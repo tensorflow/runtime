@@ -128,16 +128,16 @@ struct AddChainAndStreamToFuncPattern : public OpRewritePattern<FuncOp> {
 //
 // will be rewritten to
 //
-//     %f2 = unrealized_conversion_cast %f0 : !async.value<X> to !async.value<Y>
-//     %a1, %f3 = async.execute [%a0] (
-//       %f2 as %y0: !async.value<Y>
+//     %g0 = unrealized_conversion_cast %f0 : !async.value<X> to !async.value<Y>
+//     %a1, %g1 = async.execute [%a0] (
+//       %g0 as %y0: !async.value<Y>
 //     ) -> (!async.value<Y>) {
 //       %x0 = unrealized_conversion_cast %y0 : Y to X
 //       ...
 //       %y1 = unrealized_conversion_cast %x1 : X to Y
 //       async.yield %y1 : Y
 //     }
-//     %f1 = unrealized_conversion_cast %f3 : !async.value<Y> to !async.value<X>
+//     %f1 = unrealized_conversion_cast %g1 : !async.value<Y> to !async.value<X>
 //
 struct ConvertAsyncExecToChainAndEventPattern
     : public OpConversionPattern<async::ExecuteOp> {
@@ -305,6 +305,22 @@ struct InlineConversionAsyncExecPattern
 //     %ch4     = tfrt_gpu.stream.wait %stream0, %event0, %ch3
 //     %t4      = unrealized_conversion_cast %ch4, %stream0
 //
+// All uses outside of the current block or as terminator operand are replaced
+// by a cast from an event.
+//
+//     %t0 = unrealized_conversion_cast %ch0, %stream0
+//     ... op using %t0 ...
+//     return %t0
+//
+// will be rewritten to
+//
+//     %t0 = unrealized_conversion_cast %ch0, %stream
+//     %ch1, %event = unrealized_conversion_cast %t0
+//     %t1 = unrealized_conversion_cast %ch1, %stream
+//     %t2 = unrealized_conversion_cast %ch1, %event
+//     ... op using %t1 ...
+//     return %t2
+//
 struct ConvertGpuWaitToChainAndStreamPattern
     : public OpConversionPattern<mlir::gpu::WaitOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -326,7 +342,6 @@ struct ConvertGpuWaitToChainAndStreamPattern
 //     %ctx   = tfrt_gpu.stream.get_context %stream
 //     %event = tfrt_gpu.event.create
 //     %ch1   = tfrt_gpu.event.record %event, %stream, %ch0
-//     %t     = unlrealized_conversion_cast %ch1, %stream
 //
 struct ConvertCastToEventRecordPattern : public OpConversionPattern<CastOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -410,6 +425,14 @@ struct ConvertGpuToTfrtGpuPass
   StringRef getArgument() const override { return "gpu-tfrt-streamify"; }
 };
 
+// A pass which removes unrealized_conversion_cast ops.
+struct ReconcileCastsPass
+    : public PassWrapper<ReconcileCastsPass, OperationPass<ModuleOp>> {
+ private:
+  void runOnOperation() override;
+  StringRef getArgument() const override { return "cast-tfrt-streamify"; }
+};
+
 // A pass which converts from async dialect to tfrt dialect.
 struct ConvertAsyncToTfrtPass
     : public PassWrapper<ConvertAsyncToTfrtPass, FunctionPass> {
@@ -456,18 +479,18 @@ const auto IsChainAndEventType = IsTypes<compiler::ChainType, EventType>;
 // Helper function to test whether cast is between !gpu.async.token and
 // !tfrt.chain plus !tfrt_gpu.stream/event.
 template <typename T>
-static bool IsCastToChainAnd(CastOp cast_op) {
+static bool IsCastFromChainAnd(CastOp cast_op) {
   return cast_op && IsTokenType(cast_op.getResultTypes()) &&
          IsTypes<compiler::ChainType, T>(cast_op.getOperandTypes());
 }
-const auto IsCastToChainAndStream = IsCastToChainAnd<StreamType>;
-const auto IsCastToChainAndEvent = IsCastToChainAnd<EventType>;
+const auto IsCastFromChainAndEvent = IsCastFromChainAnd<EventType>;
+const auto IsCastFromChainAndStream = IsCastFromChainAnd<StreamType>;
 template <typename T>
-static bool IsCastFromChainAnd(CastOp cast_op) {
+static bool IsCastToChainAnd(CastOp cast_op) {
   return cast_op && IsTokenType(cast_op.getOperandTypes()) &&
          IsTypes<compiler::ChainType, T>(cast_op.getResultTypes());
 }
-const auto IsCastFromChainAndEvent = IsCastFromChainAnd<EventType>;
+const auto IsCastToChainAndEvent = IsCastToChainAnd<EventType>;
 
 // Helper function to merge two ranges into a SmallVector.
 template <typename R1, typename R2>
@@ -682,7 +705,7 @@ LogicalResult ConvertMemsetPattern::matchAndRewrite(
   if (adaptor.asyncDependencies().empty() || !memset_op.asyncToken())
     return rewriter.notifyMatchFailure(memset_op, "no async deps or no result");
   auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
-  if (!IsCastToChainAndStream(cast_op))
+  if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(memset_op, "operand not def by cast");
 
   auto loc = memset_op->getLoc();
@@ -703,7 +726,7 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   if (adaptor.asyncDependencies().empty() || !memcpy_op.asyncToken())
     return rewriter.notifyMatchFailure(memcpy_op, "no async deps or no result");
   auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
-  if (!IsCastToChainAndStream(cast_op))
+  if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(memcpy_op, "operand not def by cast");
 
   auto loc = memcpy_op->getLoc();
@@ -713,6 +736,19 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   auto token = CastToToken(rewriter, loc, {new_op, stream});
   rewriter.replaceOp(memcpy_op, token);
   return success();
+}
+
+// Returns !tfrt_gpu.context of the parent function's stream argument.
+// Inserts tfrt_gpu.stream.get_context if it doesn't already exist.
+Value GetContextFromParentFunc(ConversionPatternRewriter &rewriter,
+                               Operation *op) {
+  auto func_op = op->getParentOfType<FuncOp>();
+  auto get_ctx_ops = func_op.getOps<StreamGetContextOp>();
+  if (!get_ctx_ops.empty()) return *get_ctx_ops.begin();
+  OpBuilder::InsertionGuard guard(rewriter);
+  rewriter.setInsertionPointToStart(&func_op.front());
+  Value stream = func_op.getArgument(1);
+  return rewriter.create<StreamGetContextOp>(op->getLoc(), stream);
 }
 
 LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
@@ -725,8 +761,7 @@ LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
   if (!module_attr)
     return rewriter.notifyMatchFailure(get_global_op, "no gpu_module attr");
   Location loc = get_global_op->getLoc();
-  Value stream = get_global_op->getParentOfType<FuncOp>().getArgument(1);
-  Value context = rewriter.create<StreamGetContextOp>(loc, stream);
+  Value context = GetContextFromParentFunc(rewriter, get_global_op);
   auto func_op =
       SymbolTable::lookupNearestSymbolFrom<FuncOp>(get_global_op, module_attr);
   auto once_op = rewriter.create<compiler::OnceOp>(
@@ -843,13 +878,13 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   if (adaptor.asyncDependencies().empty() || !launch_op.asyncToken())
     return rewriter.notifyMatchFailure(launch_op, "no async deps or no result");
   auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
-  if (!IsCastToChainAndStream(cast_op))
+  if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(launch_op, "operand not def by cast");
 
   Location loc = launch_op->getLoc();
   Value chain = cast_op.getOperand(0);
   Value stream = cast_op.getOperand(1);
-  Value context = rewriter.create<StreamGetContextOp>(loc, stream);
+  Value context = GetContextFromParentFunc(rewriter, launch_op);
   auto func_op = SymbolTable::lookupNearestSymbolFrom<FuncOp>(
       launch_op, adaptor.kernel().getRootReference());
   auto once_op = rewriter.create<compiler::OnceOp>(
@@ -864,11 +899,16 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   Value shared_mem_size = adaptor.dynamicSharedMemorySize();
   if (!shared_mem_size)
     shared_mem_size = rewriter.create<compiler::ConstantUI32Op>(loc, 0);
+  auto cast_to_ui32 = [&](Value value) {
+    return typeConverter->materializeTargetConversion(
+        rewriter, loc, rewriter.getIntegerType(32, /*isSigned=*/false), value);
+  };
   auto new_op = rewriter.create<FunctionLaunchOp>(
       loc, chain.getType(), stream, get_func_op.getResult(),
-      adaptor.gridSizeX(), adaptor.gridSizeY(), adaptor.gridSizeZ(),
-      adaptor.blockSizeX(), adaptor.blockSizeY(), adaptor.blockSizeZ(),
-      shared_mem_size, chain, adaptor.operands());
+      cast_to_ui32(adaptor.gridSizeX()), cast_to_ui32(adaptor.gridSizeY()),
+      cast_to_ui32(adaptor.gridSizeZ()), cast_to_ui32(adaptor.blockSizeX()),
+      cast_to_ui32(adaptor.blockSizeY()), cast_to_ui32(adaptor.blockSizeZ()),
+      cast_to_ui32(shared_mem_size), chain, adaptor.operands());
   rewriter.replaceOp(launch_op, CastToToken(rewriter, loc, {new_op, stream}));
   return success();
 }
@@ -930,7 +970,7 @@ LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
   if (adaptor.asyncDependencies().empty() || !exec_op.getAsyncToken())
     return rewriter.notifyMatchFailure(exec_op, "no async deps or no result");
   auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
-  if (!IsCastToChainAndStream(cast_op))
+  if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(exec_op, "operand not def by cast");
 
   // Merge !tfrt_gpu_conversion.async.execute body into parent block.
@@ -943,13 +983,6 @@ LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
   return success();
 }
 
-Value GetContextFromParentFunc(Operation *op) {
-  auto func_op = op->getParentOfType<FuncOp>();
-  auto get_ctx_ops = func_op.getOps<StreamGetContextOp>();
-  if (get_ctx_ops.empty()) return nullptr;
-  return *get_ctx_ops.begin();
-}
-
 LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
     mlir::gpu::WaitOp wait_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
@@ -960,11 +993,11 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
   SmallVector<CastOp, 2> cast_from_event_ops;
   for (auto operand : operands) {
     CastOp cast_op = operand.getDefiningOp<CastOp>();
-    if (IsCastToChainAndEvent(cast_op)) {
+    if (IsCastFromChainAndEvent(cast_op)) {
       cast_from_event_ops.push_back(cast_op);
       continue;
     }
-    if (IsCastToChainAndStream(cast_op)) {
+    if (IsCastFromChainAndStream(cast_op)) {
       if (cast_from_stream_op)
         return rewriter.notifyMatchFailure(wait_op, "more than one stream");
       cast_from_stream_op = cast_op;
@@ -992,7 +1025,7 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
     // Use stream block argument if it exists.
     for (auto argument : wait_op->getBlock()->getArguments())
       if (argument.getType().isa<StreamType>()) return argument;
-    Value context = GetContextFromParentFunc(wait_op);
+    Value context = GetContextFromParentFunc(rewriter, wait_op);
     return rewriter.create<StreamCreateOp>(loc, context);
   }();
 
@@ -1019,6 +1052,7 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
   // Replace event uses with cast roundtrip to chain and event.
   if (!event_uses.empty()) {
     auto chain_and_event = CastToChainAndEvent(rewriter, loc, token);
+    token = CastToToken(rewriter, loc, {chain_and_event.front(), stream});
     auto cast_from_event = CastToToken(rewriter, loc, chain_and_event);
     for (auto &use : event_uses) use.set(cast_from_event);
   }
@@ -1031,29 +1065,28 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
 LogicalResult ConvertCastToEventRecordPattern::matchAndRewrite(
     CastOp cast_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  auto operands = adaptor.getOperands();
-  if (!IsTokenType(TypeRange(operands)))
-    return rewriter.notifyMatchFailure(cast_op, "not cast from token");
+  if (!IsCastFromChainAndStream(cast_op)) {
+    return rewriter.notifyMatchFailure(
+        cast_op, "not cast from chain and stream to token");
+  }
 
-  if (!IsChainAndEventType(cast_op->getResultTypes()))
-    return rewriter.notifyMatchFailure(cast_op, "not cast to chain and event");
-
-  auto cast_to_token_op = operands.front().getDefiningOp<CastOp>();
-  if (!IsCastToChainAndStream(cast_to_token_op))
-    return rewriter.notifyMatchFailure(cast_op, "operand not def by cast");
+  if (!llvm::all_of(cast_op->getUsers(), [](Operation *op) {
+        return IsCastToChainAndEvent(dyn_cast<CastOp>(op));
+      })) {
+    return rewriter.notifyMatchFailure(
+        cast_op, "not all users are cast to chain and event");
+  }
 
   Location loc = cast_op->getLoc();
-  Value chain = cast_to_token_op.getOperand(0);
-  Value stream = cast_to_token_op.getOperand(1);
-  Value context = GetContextFromParentFunc(cast_op);
-  if (!context) context = rewriter.create<StreamGetContextOp>(loc, stream);
-
+  Value chain = adaptor.getOperands().front();
+  Value stream = adaptor.getOperands().back();
+  Value context = GetContextFromParentFunc(rewriter, cast_op);
   Value event = rewriter.create<EventCreateOp>(loc, context);
   chain = rewriter.create<EventRecordOp>(loc, event, stream, chain);
 
-  rewriter.replaceOp(cast_op, {chain, event});
-  Value token = CastToToken(rewriter, loc, {chain, stream});
-  rewriter.replaceOp(cast_to_token_op, token);
+  for (auto user : cast_op->getUsers())
+    rewriter.replaceOp(user, {chain, event});
+  rewriter.eraseOp(cast_op);
 
   return success();
 }
@@ -1161,24 +1194,28 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
 void ConvertGpuToTfrtGpuPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   auto converter = createMemrefToTfrtGpuConverter();
-  converter.addConversion([](IndexType type) {
-    return IntegerType::get(type.getContext(), 32, IntegerType::Unsigned);
-  });
   patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern,
                ConvertLaunchFuncPattern>(converter, &getContext());
   patterns.add<ConvertGetGlobalPattern, ConvertGpuModulePattern,
                InlineConversionAsyncExecPattern,
-               ConvertGpuWaitToChainAndStreamPattern,
-               ConvertCastToEventRecordPattern, FoldConstCastPattern>(
-      &getContext());
+               ConvertGpuWaitToChainAndStreamPattern>(&getContext());
   ConversionTarget target(getContext());
   target.addIllegalDialect<mlir::gpu::GPUDialect>();
   target.addIllegalOp<conversion::AsyncExecuteOp, memref::GetGlobalOp>();
-  target.addDynamicallyLegalOp<CastOp>([&](CastOp cast_op) {
-    // Trigger ConvertCastToEventRecordPattern and FoldConstCastPattern.
-    return !IsCastFromChainAndEvent(cast_op) &&
-           converter.isLegal(cast_op->getOperandTypes());
-  });
+  target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
+
+  if (failed(
+          applyPartialConversion(getOperation(), target, std::move(patterns))))
+    return signalPassFailure();
+}
+
+void ReconcileCastsPass::runOnOperation() {
+  RewritePatternSet patterns(&getContext());
+  patterns.add<ConvertCastToEventRecordPattern, FoldConstCastPattern>(
+      &getContext());
+  populateReconcileUnrealizedCastsPatterns(patterns);
+  ConversionTarget target(getContext());
+  target.addIllegalOp<CastOp>();
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
   if (failed(
@@ -1241,7 +1278,7 @@ void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
   pm.addPass(std::make_unique<ConvertAsyncToChainAndEventPass>());
   pm.addPass(createCanonicalizerPass());  // Remove unused `cast(get_global)`.
   pm.addPass(std::make_unique<ConvertGpuToTfrtGpuPass>());
-  pm.addPass(createReconcileUnrealizedCastsPass());
+  pm.addPass(std::make_unique<ReconcileCastsPass>());
   pm.addPass(std::make_unique<ConvertAsyncToTfrtPass>());
 }
 

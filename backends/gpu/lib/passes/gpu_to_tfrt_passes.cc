@@ -873,6 +873,30 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   return success();
 }
 
+Value materializeConstCast(OpBuilder &builder, ValueRange operands,
+                           Type resultType, Location loc) {
+  if (!IsTypes<IndexType>(operands.getTypes()) ||
+      !resultType.isa<IntegerType>())
+    return Value();
+  auto const_op = operands.front().getDefiningOp<arith::ConstantOp>();
+  if (!const_op) return Value();
+  auto type = resultType.cast<IntegerType>();
+  auto rewrite = [&](auto dummy) -> Value {
+    APInt value = const_op.value().cast<IntegerAttr>().getValue();
+    if (type.isUnsigned())
+      value = value.zextOrTrunc(type.getWidth());
+    else
+      value = value.sextOrTrunc(type.getWidth());
+    auto attr = builder.getIntegerAttr(type, value);
+    return builder.create<decltype(dummy)>(loc, type, attr);
+  };
+  if (type.isUnsignedInteger(32)) return rewrite(compiler::ConstantUI32Op());
+  if (type.isUnsignedInteger(64)) return rewrite(compiler::ConstantUI64Op());
+  if (type.isInteger(32)) return rewrite(compiler::ConstantI32Op());
+  if (type.isInteger(64)) return rewrite(compiler::ConstantI64Op());
+  return Value();
+}
+
 LogicalResult FoldConstCastPattern::matchAndRewrite(
     CastOp cast_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
@@ -1191,6 +1215,8 @@ void ConvertAsyncToTfrtPass::runOnFunction() {
 
 static Value MaterializeCast(OpBuilder &builder, Type type, ValueRange values,
                              Location loc) {
+  if (Value constCast = materializeConstCast(builder, values, type, loc))
+    return constCast;
   return builder.create<CastOp>(loc, type, values).getResult(0);
 }
 

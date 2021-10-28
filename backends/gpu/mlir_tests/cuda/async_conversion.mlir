@@ -48,8 +48,6 @@ func @test_wrap_async_execute() {
 func @test_fold_memref_view(%arg0 : memref<64xi8>) {
   %zero = arith.constant 0 : index
   // CHECK-NOT: memref.view
-  // CHECK: builtin.unrealized_conversion_cast %arg0
-  // CHECK-SAME : memref<64xi8> to !tfrt_gpu.buffer
   %view = "memref.view"(%arg0, %zero) : (memref<64xi8>, index) -> (memref<4x4xf32>)
   // CHECK: return
   return

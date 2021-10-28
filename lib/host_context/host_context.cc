@@ -42,7 +42,6 @@ HostContext::HostContext(
       work_queue_(std::move(work_queue)),
       shared_context_mgr_(std::make_unique<SharedContextManager>(this)),
       instance_ptr_{HostContextPool::instance().AllocateForHostContext(this)} {
-  ReadyChain::Get().Construct(this);
   host_device_ =
       device_mgr_.MaybeAddDevice(MakeRef<CpuDevice>(host_device_name));
 }
@@ -57,9 +56,6 @@ HostContext::HostContext(
 HostContext::~HostContext() {
   // Wait for the completion of all async tasks managed by this host context.
   Quiesce();
-  // We need to free the ready chain AsyncValue first, as the destructor of the
-  // AsyncValue calls the HostContext to free its memory.
-  ReadyChain::Get().Destruct(this);
   HostContextPool::instance().FreeHostContext(this);
 }
 

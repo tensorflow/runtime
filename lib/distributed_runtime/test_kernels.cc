@@ -280,7 +280,7 @@ AsyncValueRef<Chain> TestRegisterFakeCompilerPass(
   RegisterCompilerPass(
       compiler_pass_name.str(),
       new FakeCompilerPass(compiled_program.get(), output_devices));
-  return GetReadyChain(exec_ctx.host());
+  return GetReadyChain();
 }
 
 Expected<RCReference<Device>> TestGetRemoteDevice(

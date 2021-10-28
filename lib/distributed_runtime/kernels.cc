@@ -1190,7 +1190,7 @@ AsyncValueRef<Chain> SetChainForTaskHandle(
     Chain ch, RemoteChainManager* chain_manager, TaskHandle task,
     Argument<RemoteObjectId> remote_chain, const ExecutionContext& exec_ctx) {
   chain_manager->SetRemoteChain(task, remote_chain.get());
-  return MakeAvailableAsyncValueRef<Chain>(exec_ctx.host());
+  return MakeAvailableAsyncValueRef<Chain>();
 }
 
 AsyncValueRef<DistributedContext> GetDistributedContext(

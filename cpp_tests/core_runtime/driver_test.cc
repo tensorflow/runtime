@@ -237,7 +237,7 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
         result.SetStateConcrete();
 
         assert(num_results == 2);
-        results[0] = GetReadyChain(host).CopyRef();
+        results[0] = GetReadyChain();
         results[1] = MakeAvailableAsyncValueRef<TensorHandle>(
             host, host->GetHostDeviceRef(), a.GetAvailableMetadata(),
             std::move(result));
@@ -281,7 +281,7 @@ TEST_F(CpuDriverTest, NativeCompositeOpTest) {
         TFRT_DLOG(INFO) << "Result value is " << result_value;
 
         assert(num_results == 2);
-        results[0] = GetReadyChain(host).CopyRef();
+        results[0] = GetReadyChain();
         results[1] = MakeAvailableAsyncValueRef<int32_t>(host, result_value);
       };
 

@@ -33,62 +33,12 @@ namespace tfrt {
 
 class Chain {};
 
-class ReadyChain {
- public:
-  ReadyChain(const ReadyChain&) = delete;
-  ReadyChain& operator=(const ReadyChain&) = delete;
-
-  static ReadyChain& Get() {
-    // TODO(b/162096472) Use NoDestructor when available.
-    static ReadyChain& kReadyChain = *new ReadyChain();
-    return kReadyChain;
-  }
-
-  AsyncValueRef<Chain> GetReadyChain(HostContext* host) {
-    return AsyncValueRef<Chain>(
-        FormRef(all_ready_chains_[HostContextPtr(host).index()].get()));
-  }
-
-  AsyncValueRef<Chain> GetReadyChain() {
-    static auto* chain = new internal::ConcreteAsyncValue<Chain>(
-        internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
-    return AsyncValueRef<Chain>(FormRef(chain));
-  }
-
- private:
-  friend class HostContext;
-
-  ReadyChain() = default;
-
-  void Construct(HostContext* host) {
-    all_ready_chains_[HostContextPtr(host).index()] =
-        std::make_unique<internal::ConcreteAsyncValue<Chain>>(
-            internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
-  }
-
-  void Destruct(HostContext* host) {
-    all_ready_chains_[HostContextPtr(host).index()].reset();
-  }
-
-  // Store a ready chain for each HostContext to avoid repeated creations of
-  // ready chains on the heap.
-  std::unique_ptr<internal::ConcreteAsyncValue<Chain>>
-      all_ready_chains_[HostContextPool::kCompacity];
-};
-
 AsyncValueRef<Chain> GetReadyChain();
-AsyncValueRef<Chain> GetReadyChain(HostContext* host);
 
 // Specialization of MakeAvailableAsyncValueRef<Chain> that calls GetReadyChain.
 template <>
 inline AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>() {
   return GetReadyChain();
-}
-
-template <>
-inline AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>(
-    HostContext* host) {
-  return GetReadyChain(host);
 }
 
 }  // namespace tfrt

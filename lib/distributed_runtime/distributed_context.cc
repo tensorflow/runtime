@@ -77,8 +77,8 @@ DistributedContext::DistributedContext(
   if (cpu_device.get() != nullptr) {
     local_ready_chain_ = std::make_unique<RemoteObjectId>(
         remote_manager_->AllocateRemoteObject(cpu_device));
-    remote_manager_->SetRemoteObject(
-        *local_ready_chain_, GetReadyChain(GetHostContext()).CopyRCRef());
+    remote_manager_->SetRemoteObject(*local_ready_chain_,
+                                     GetReadyChain().CopyRCRef());
   }
 }
 

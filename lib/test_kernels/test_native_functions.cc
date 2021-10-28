@@ -36,7 +36,7 @@ void NativeAsyncSink(AsyncValue* const* arguments, int num_arguments,
                      RCReference<AsyncValue>* results, int num_results,
                      HostContext* host) {
   assert(num_results == 1);
-  results[0] = MakeAvailableAsyncValueRef<Chain>(host);
+  results[0] = MakeAvailableAsyncValueRef<Chain>();
 }
 
 void NativeAdd(AsyncValue* const* arguments, int num_arguments,

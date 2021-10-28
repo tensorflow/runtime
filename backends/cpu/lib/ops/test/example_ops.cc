@@ -283,7 +283,7 @@ static AsyncValueRef<Chain> PrintOp(const HostTensor& input,
   input.Print(tfrt::outs());
   tfrt::outs() << '\n';
   tfrt::outs().flush();
-  return GetReadyChain(exec_ctx.host());
+  return GetReadyChain();
 }
 
 //===----------------------------------------------------------------------===//
@@ -300,7 +300,7 @@ static AsyncValueRef<Chain> PrintAddressOp(const HostTensor& input,
 
   tfrt::outs() << '\n';
   tfrt::outs().flush();
-  return GetReadyChain(exec_ctx.host());
+  return GetReadyChain();
 }
 
 //===----------------------------------------------------------------------===//

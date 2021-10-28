@@ -521,7 +521,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // Store the output Chain as an AsyncValue output in AsyncKernelFrame by
   // re-using the ready chain cached in HostContext.
   static void StoreResultAt(AsyncKernelFrame* frame, int index, Chain t) {
-    frame->SetResultAt(index, GetReadyChain(frame->GetHostContext()));
+    frame->SetResultAt(index, GetReadyChain());
   }
 
   // Store an already created AsyncValue as a result in the AsyncKernelFrame.

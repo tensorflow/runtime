@@ -64,7 +64,7 @@ CoreRuntimeCpuDriver::CoreRuntimeCpuDriver()
 CoreRuntimeCpuDriver::CoreRuntimeCpuDriver(std::unique_ptr<CoreRuntime> corert)
     : corert_(std::move(corert)),
       op_handler_(corert_->GetOpHandler(kCpuOpHandlerName)),
-      chain_(MakeAvailableAsyncValueRef<Chain>(corert_->GetHostContext())) {
+      chain_(MakeAvailableAsyncValueRef<Chain>()) {
   assert(op_handler_);
 }
 

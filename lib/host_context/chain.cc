@@ -25,12 +25,10 @@
 
 namespace tfrt {
 
-AsyncValueRef<Chain> GetReadyChain(HostContext* host) {
-  return ReadyChain::Get().GetReadyChain(host);
-}
-
 AsyncValueRef<Chain> GetReadyChain() {
-  return ReadyChain::Get().GetReadyChain();
+  static auto* chain = new internal::ConcreteAsyncValue<Chain>(
+      internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
+  return AsyncValueRef<Chain>(FormRef(chain));
 }
 
 }  // namespace tfrt

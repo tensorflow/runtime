@@ -30,9 +30,17 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status);
 template <>
 Expected<miopenDataType_t> Parse<miopenDataType_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t value);
+template <>
+Expected<miopenConvolutionMode_t> Parse<miopenConvolutionMode_t>(
+    llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              miopenConvolutionMode_t value);
 
 template <>
 struct PlatformTypeTraits<DnnDataTypeTag, miopenDataType_t>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<DnnConvolutionModeTag, miopenConvolutionMode_t>
     : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<DnnConvFwdAlgoTag, uint64_t>

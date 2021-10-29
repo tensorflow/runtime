@@ -98,6 +98,27 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value) {
   }
 }
 
+template <>
+Expected<cudnnConvolutionMode_t> Parse<cudnnConvolutionMode_t>(
+    llvm::StringRef name) {
+  if (name == "CUDNN_CONVOLUTION") return CUDNN_CONVOLUTION;
+  if (name == "CUDNN_CROSS_CORRELATION") return CUDNN_CROSS_CORRELATION;
+  return MakeStringError("Unknown cudnnConvolutionMode_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionMode_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION:
+      return os << "CUDNN_CONVOLUTION";
+    case CUDNN_CROSS_CORRELATION:
+      return os << "CUDNN_CROSS_CORRELATION";
+    default:
+      return os << llvm::formatv("cudnnConvolutionMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

@@ -79,6 +79,33 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t value) {
   }
 }
 
+template <>
+Expected<miopenConvolutionMode_t> Parse<miopenConvolutionMode_t>(
+    llvm::StringRef name) {
+  if (name == "miopenConvolution") return miopenConvolution;
+  if (name == "miopenTranspose") return miopenTranspose;
+  if (name == "miopenGroupConv") return miopenGroupConv;
+  if (name == "miopenDepthwise") return miopenDepthwise;
+  return MakeStringError("Unknown miopenConvolutionMode_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              miopenConvolutionMode_t value) {
+  switch (value) {
+    case miopenConvolution:
+      return os << "miopenConvolution";
+    case miopenTranspose:
+      return os << "miopenTranspose";
+    case miopenGroupConv:
+      return os << "miopenGroupConv";
+    case miopenDepthwise:
+      return os << "miopenDepthwise";
+    default:
+      return os << llvm::formatv("miopenConvolutionMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

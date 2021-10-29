@@ -96,6 +96,7 @@ class EnumAttr : public mlir::Attribute {
 
 using PlatformAttr = EnumAttr<wrapper::Platform>;
 using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
+using DnnConvolutionModeAttr = EnumAttr<wrapper::DnnConvolutionMode>;
 using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
 using BlasDiagTypeAttr = EnumAttr<wrapper::BlasDiagType>;
 using BlasComputeTypeAttr = EnumAttr<wrapper::BlasComputeType>;

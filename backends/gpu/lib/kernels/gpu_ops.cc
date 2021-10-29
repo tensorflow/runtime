@@ -69,6 +69,12 @@ struct EnumTraits<wrapper::DnnDataTypeTag> {
 };
 
 template <>
+struct EnumTraits<wrapper::DnnConvolutionModeTag> {
+  using cuda_type = cudnnConvolutionMode_t;
+  using rocm_type = miopenConvolutionMode_t;
+};
+
+template <>
 struct EnumTraits<wrapper::BlasDataTypeTag> {
   using cuda_type = cudaDataType;
   using rocm_type = rocblas_datatype;

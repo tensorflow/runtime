@@ -45,9 +45,17 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status);
 template <>
 Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value);
+template <>
+Expected<cudnnConvolutionMode_t> Parse<cudnnConvolutionMode_t>(
+    llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionMode_t value);
 
 template <>
 struct PlatformTypeTraits<DnnDataTypeTag, cudnnDataType_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<DnnConvolutionModeTag, cudnnConvolutionMode_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<DnnConvFwdAlgoTag, cudnnConvolutionFwdAlgo_t>

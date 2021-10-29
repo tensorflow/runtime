@@ -34,6 +34,8 @@ constexpr int kDnnDimMax() { return 8; }
 // Platform-discriminated enums.
 struct DnnDataTypeTag;
 using DnnDataType = Enum<DnnDataTypeTag>;
+struct DnnConvolutionModeTag;
+using DnnConvolutionMode = Enum<DnnConvolutionModeTag>;
 struct DnnConvFwdAlgoTag {
   using type = uint64_t;
 };
@@ -48,8 +50,6 @@ struct DnnConvBwdWeightsAlgoTag {
 using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
 struct DnnNanPropagationTag;
 using DnnNanPropagation = Enum<DnnNanPropagationTag>;  // cuDNN only.
-
-enum class DnnConvolutionMode { kConvolution, kCrossCorrelation };
 
 enum class DnnRnnInputMode {  // Matches miopenRNNInputMode_t
   kLinear,

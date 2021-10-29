@@ -56,9 +56,9 @@ class GpuDialect : public Dialect {
 
 // An attribute that wrapps an I32Attr holding an enum or wrapper::Enum value.
 template <typename T>
-class EnumAttr : public Attribute {
+class EnumAttr : public mlir::Attribute {
  public:
-  using Attribute::Attribute;
+  using mlir::Attribute::Attribute;
   static EnumAttr get(MLIRContext* context, T value) {
     return IntegerAttr::get(IntegerType::get(context, 32),
                             APInt(32, ToOpaqueValue(value)))
@@ -67,7 +67,7 @@ class EnumAttr : public Attribute {
   T getValue() const {
     return FromOpaqueValue(IntegerAttr(impl).getValue().getZExtValue());
   }
-  static bool classof(Attribute attr) {
+  static bool classof(mlir::Attribute attr) {
     IntegerAttr int_attr = attr.dyn_cast<IntegerAttr>();
     return int_attr && int_attr.getType().isSignlessInteger(32);
   }

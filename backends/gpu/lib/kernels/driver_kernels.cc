@@ -85,7 +85,7 @@ static Error GpuStreamWait(const GpuStream& stream, const GpuEvent& event) {
 static AsyncValueRef<Chain> GpuStreamSynchronize(
     Argument<GpuStream> stream, const ExecutionContext& exec_ctx) {
   return EnqueueBlockingWork(
-      exec_ctx, [stream = stream.ValueRef()]() -> Expected<Chain> {
+      exec_ctx.host(), [stream = stream.ValueRef()]() -> Expected<Chain> {
         if (auto error = wrapper::StreamSynchronize(stream->get()))
           return std::move(error);
         return Chain();
@@ -121,8 +121,8 @@ static void GpuEventSynchronize(Argument<GpuEvent> event, Chain in_chain,
   if (!ready) return result.SetError(StrCat(ready.takeError()));
   if (*ready) return result.emplace(in_chain);
   bool enqueued = EnqueueBlockingWork(
-      exec_ctx, [result = result.CopyRef(), event = event.ValueRef(),
-                 in_chain = in_chain]() mutable {
+      exec_ctx.host(), [result = result.CopyRef(), event = event.ValueRef(),
+                        in_chain = in_chain]() mutable {
         if (auto error = wrapper::EventSynchronize(event->get()))
           return result.SetError(StrCat(error));
         result.emplace(in_chain);

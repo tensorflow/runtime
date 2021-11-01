@@ -71,7 +71,7 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
 static void TestUSleep(Argument<int32_t> sleep_time_us_arg,
                        const ExecutionContext& exec_ctx) {
   int32_t sleep_time_us = *sleep_time_us_arg;
-  bool work_enqueued = EnqueueBlockingWork(exec_ctx, [sleep_time_us] {
+  bool work_enqueued = EnqueueBlockingWork(exec_ctx.host(), [sleep_time_us] {
     std::this_thread::sleep_for(std::chrono::microseconds(sleep_time_us));
     printf("Slept for %d microseconds\n", sleep_time_us);
     fflush(stdout);
@@ -89,7 +89,8 @@ static void TestBlockingUSleep(Argument<int32_t> sleep_time_us_arg,
                                const ExecutionContext& exec_ctx) {
   int32_t sleep_time_us = *sleep_time_us_arg;
   bool work_enqueued = EnqueueBlockingWork(
-      exec_ctx, [sleep_time_us, sleeping_done = sleeping_done.Allocate()] {
+      exec_ctx.host(),
+      [sleep_time_us, sleeping_done = sleeping_done.Allocate()] {
         std::this_thread::sleep_for(std::chrono::microseconds(sleep_time_us));
         printf("Slept for %d microseconds\n", sleep_time_us);
         fflush(stdout);

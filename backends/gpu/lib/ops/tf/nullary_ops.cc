@@ -68,7 +68,7 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
 
   // `frozen_attrs` needs to live until the memcpy is done.
   bool work_enqueued = EnqueueBlockingWork(
-      exec_ctx,
+      exec_ctx.host(),
       [frozen_attrs = std::move(frozen_attrs), event = std::move(event)] {
         // FIXME(sanjoy): How do we handle an error from EventSynchronize here?
         llvm::ExitOnError die_if_error;

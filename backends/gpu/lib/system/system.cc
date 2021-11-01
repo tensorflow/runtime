@@ -189,7 +189,7 @@ AsyncValueRef<Chain> System::TransferFromDevice(ExecutionContext& exec_ctx,
         // EventSynchronize needs to be scheduled in the blocking work queue
         // because it will block caller thread until the event is completed.
         auto enqueued = EnqueueBlockingWork(
-            exec_ctx,
+            exec_ctx.host(),
             [event = std::move(*event), out_chain = out_chain.CopyRef()] {
               if (auto error = wrapper::EventSynchronize(event.get()))
                 return out_chain.SetError(error);

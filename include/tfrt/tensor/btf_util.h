@@ -166,16 +166,14 @@ AsyncValueRef<typename ParseTensorTraits::TensorTy> ReadTensorFromBTF(
   HostContext* host = exec_ctx.host();
 
   using ReturnTy = Expected<typename ParseTensorTraits::TensorTy>;
-  return EnqueueBlockingWork(
-      exec_ctx, [host, path, index, exec_ctx]() -> ReturnTy {
-        auto result =
-            ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
-        if (!result) {
-          auto diag = EmitError(exec_ctx, result.takeError());
-          return MakeStringError(diag.message);
-        }
-        return result;
-      });
+  return EnqueueBlockingWork(host, [host, path, index, exec_ctx]() -> ReturnTy {
+    auto result = ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
+    if (!result) {
+      auto diag = EmitError(exec_ctx, result.takeError());
+      return MakeStringError(diag.message);
+    }
+    return result;
+  });
 }
 
 template <typename DType_, size_t Rank_>

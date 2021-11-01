@@ -36,7 +36,8 @@ static AsyncValueRef<GpuCclHandle> CclCreate(Argument<GpuContext> context,
   // CclCommInitRank() blocks to wait for all participants and therefore needs
   // to run inside a blocking task.
   return RunBlockingWork(
-      exec_ctx, [=, context = context.ValueRef()]() -> Expected<GpuCclHandle> {
+      exec_ctx.host(),
+      [=, context = context.ValueRef()]() -> Expected<GpuCclHandle> {
         auto current = wrapper::CtxSetCurrent(context->get());
         if (!current) return current.takeError();
         auto comm = wrapper::CclCommInitRank(*current, count, id, rank);
@@ -208,7 +209,7 @@ static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
   // CclGroupEnd() blocks to wait for all participants and therefore needs to
   // run inside a blocking task.
   return RunBlockingWork(
-      exec_ctx,
+      exec_ctx.host(),
       [stream = stream.ValueRef(),
        handle = handle.ValueRef()]() -> Expected<Chain> {
         auto current = wrapper::CtxSetCurrent(stream->context()->get());

@@ -38,22 +38,6 @@ void EnqueueWork(const ExecutionContext& exec_ctx,
   work_queue.AddTask(exec_ctx, TaskFunction(std::move(work)));
 }
 
-bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,
-                         llvm::unique_function<void()> work) {
-  auto& work_queue = exec_ctx.work_queue();
-  Optional<TaskFunction> task = work_queue.AddBlockingTask(
-      exec_ctx, TaskFunction(std::move(work)), /*allow_queuing=*/true);
-  return !task.hasValue();
-}
-
-bool RunBlockingWork(const ExecutionContext& exec_ctx,
-                     llvm::unique_function<void()> work) {
-  auto& work_queue = exec_ctx.work_queue();
-  Optional<TaskFunction> task = work_queue.AddBlockingTask(
-      exec_ctx, TaskFunction(std::move(work)), /*allow_queuing=*/false);
-  return !task.hasValue();
-}
-
 void EnqueueWork(HostContext* host, llvm::unique_function<void()> work) {
   auto& work_queue = host->work_queue();
   work_queue.AddTask(TaskFunction(std::move(work)));

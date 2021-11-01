@@ -40,7 +40,7 @@ IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
         iterator->ReadIOSource(exec_ctx);
       };
       // This call can fail if the work queue is full.
-      if (EnqueueBlockingWork(exec_ctx, std::move(task))) {
+      if (EnqueueBlockingWork(exec_ctx.host(), std::move(task))) {
         // The task which is successfully scheduled in the blocking threadpool
         // should own the token.
         token_owned_ = true;

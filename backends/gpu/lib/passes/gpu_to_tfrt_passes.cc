@@ -29,6 +29,8 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/Value.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
@@ -161,7 +163,7 @@ struct ConvertAsyncYieldToChainAndEventPattern
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Swaps the async.await and the operand-defining cast.
+// Swaps the `async.await` and the operand-defining cast.
 //
 //     %fx = unrealized_conversion_cast %fy : !async.value<Y> to !async.value<X>
 //     %x  = async.await %fx : X
@@ -181,7 +183,7 @@ struct SwapAsyncAwaitOfCastPattern
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Converts mlir::gpu::MemsetOp to tfrt::gpu::MemSetOp.
+// Converts `gpu.memset` op to `tfrt_gpu.mem.set` op.
 struct ConvertMemsetPattern : OpConversionPattern<mlir::gpu::MemsetOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -191,7 +193,7 @@ struct ConvertMemsetPattern : OpConversionPattern<mlir::gpu::MemsetOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Converts mlir::gpu::MemcpyOp to tfrt::gpu::MemCopyOp.
+// Converts `gpu.memcpy` op to `tfrt_gpu.mem.copy` op.
 struct ConvertMemcpyPattern : OpConversionPattern<mlir::gpu::MemcpyOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -201,7 +203,19 @@ struct ConvertMemcpyPattern : OpConversionPattern<mlir::gpu::MemcpyOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Converts mlir::memref::GetGlobalOp to tfrt::gpu::ModuleGetGlobalOp.
+// Converts `memref.get_global` to a `tfrt.once` call of the corresponding
+// function.
+//
+//     %buffer = memref.get_global @global : memref<4xf32>
+//
+// will be rewritten to
+//
+//     %result:2 = tfrt.once @global %context
+//         : (!tfrt_gpu.context) -> (!tfrt_gpu.buffer, !tfrt.chain)
+//     %buffer = unrealized_conversion_cast %result#0, %result#1
+//         !tfrt_gpu.buffer, !tfrt.chain to !tfrt_gpu.buffer
+//
+// The cast is removed later, see ConvertBufferCastPattern.
 struct ConvertGetGlobalPattern : OpConversionPattern<memref::GetGlobalOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -211,13 +225,33 @@ struct ConvertGetGlobalPattern : OpConversionPattern<memref::GetGlobalOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Converts `gpu.module` op to a function that loads the module.
+// Inserts a `tfrt.merge.chains` op for all uses of a buffer cast.
 //
-//     gpu.module @gpu_module attributes { binary = "<cubin>" }
+//     %value = unrealized_conversion_cast %buffer, %ch0
+//         !tfrt_gpu.buffer, !tfrt.chain to !tfrt_gpu.buffer
+//     <some use> %value, %ch1, ...
 //
 // will be rewritten to
 //
-//     func @gpu_module(%arg0: !tfrt_gpu.context) -> !tfrt_gpu.module {
+//     %ch2 = tfrt.merge.chains %ch0, %ch1
+//     <some use> %buffer, %ch2, ...
+//
+struct ConvertBufferCastPattern : OpConversionPattern<CastOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      CastOp cast_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts `gpu.module` op to a function that loads the module.
+//
+//     gpu.module @module attributes { binary = "<cubin>" }
+//
+// will be rewritten to
+//
+//     func @module(%arg0: !tfrt_gpu.context) -> !tfrt_gpu.module {
 //       %0 = tfrt_gpu.module.load %arg0 {data = "<cubin>\00"}
 //       tfrt.return %0 : !tfrt_gpu.module
 //     }
@@ -233,7 +267,29 @@ struct ConvertGpuModulePattern : OpConversionPattern<mlir::gpu::GPUModuleOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Converts mlir::gpu::LaunchFuncOp to tfrt::gpu::FunctionLaunchOp.
+// Converts a `memref.global` to a function that returns the corresponding
+// `!tfrt_gpu.buffer` and a `tfrt.chain`.
+//
+//     memref.global @global attributes { [gpu_module = @module] }
+//
+// will be rewritten to
+//
+//     func @global(%arg0: !tfrt_gpu.context) -> !tfrt_gpu.buffer, !tfrt.chain {
+//       ...
+//     }
+//
+// The function returns the GPU module symbol if the `gpu_module` attribute is
+// present. Otherwise it allocates memory.
+struct ConvertMemrefGlobalPattern : OpConversionPattern<memref::GlobalOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      memref::GlobalOp global_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts `gpu.launch_func` op to `tfrt_gpu.function.launch` op.
 struct ConvertLaunchFuncPattern : OpConversionPattern<mlir::gpu::LaunchFuncOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -445,6 +501,11 @@ struct ConvertAsyncToTfrtPass
 };
 
 }  // namespace
+
+template <typename... Ts>
+static std::array<Type, sizeof...(Ts)> GetTypes(OpBuilder &builder) {
+  return {builder.getType<Ts>()...};
+}
 
 // Helper functions to unrealized_conversion_cast to statically known types.
 template <typename T>
@@ -754,20 +815,45 @@ Value GetContextFromParentFunc(ConversionPatternRewriter &rewriter,
 LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
     memref::GetGlobalOp get_global_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  auto global_op =
-      SymbolTable::lookupNearestSymbolFrom(get_global_op, adaptor.name());
-  auto module_attr =
-      global_op->getAttrOfType<SymbolRefAttr>(getGpuModuleAttrName());
-  if (!module_attr)
-    return rewriter.notifyMatchFailure(get_global_op, "no gpu_module attr");
   Location loc = get_global_op->getLoc();
   Value context = GetContextFromParentFunc(rewriter, get_global_op);
-  auto func_op =
-      SymbolTable::lookupNearestSymbolFrom<FuncOp>(get_global_op, module_attr);
   auto once_op = rewriter.create<compiler::OnceOp>(
-      loc, func_op.getType().getResults(), context, func_op.getName());
-  rewriter.replaceOpWithNewOp<ModuleGetGlobalOp>(
-      get_global_op, once_op.getResult(0), get_global_op.nameAttr().getAttr());
+      loc, GetTypes<BufferType, compiler::ChainType>(rewriter), context,
+      adaptor.name());
+  Value buffer = CastTo<BufferType>(rewriter, loc, once_op.getResults());
+  rewriter.replaceOp(get_global_op, buffer);
+  return success();
+}
+
+LogicalResult ConvertBufferCastPattern::matchAndRewrite(
+    CastOp cast_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (!IsTypes<BufferType, compiler::ChainType>(cast_op.getOperandTypes()) ||
+      !IsTypes<BufferType>(cast_op.getResultTypes())) {
+    return rewriter.notifyMatchFailure(
+        cast_op, "not cast from buffer and chain to buffer");
+  }
+
+  SmallVector<OpOperand *, 4> chain_operands;
+  for (Operation *user : cast_op->getUsers()) {
+    auto it = llvm::find_if(user->getOpOperands(), [](OpOperand &operand) {
+      return operand.get().getType().isa<compiler::ChainType>();
+    });
+    if (it == user->getOpOperands().end())
+      return rewriter.notifyMatchFailure(cast_op, "not all users take a chain");
+    chain_operands.push_back(&*it);
+  }
+
+  Location loc = cast_op->getLoc();
+  Value chain = adaptor.getOperands().back();
+  for (OpOperand *operand : chain_operands) {
+    rewriter.setInsertionPoint(operand->getOwner());
+    Value merged_chain = rewriter.create<compiler::MergeChainsOp>(
+        loc, chain.getType(), ValueRange({chain, operand->get()}));
+    operand->set(merged_chain);
+  }
+  rewriter.replaceOp(cast_op, adaptor.getOperands().front());
+
   return success();
 }
 
@@ -787,8 +873,8 @@ static std::string GetDenseHostTensorTypeName(Type type) {
   llvm_unreachable("Unsupported type");
 }
 
-static Value CreateTensor(ConversionPatternRewriter &rewriter, Location loc,
-                          StringRef suffix, MemRefType type) {
+static Value CreateMakeTensor(ConversionPatternRewriter &rewriter, Location loc,
+                              StringRef suffix, MemRefType type) {
   std::string name;
   llvm::raw_string_ostream(name) << "tfrt_dht.create_uninitialized_tensor."
                                  << suffix << "." << type.getRank();
@@ -798,9 +884,9 @@ static Value CreateTensor(ConversionPatternRewriter &rewriter, Location loc,
   return rewriter.createOperation(state)->getResult(0);
 }
 
-static Value SetTensor(ConversionPatternRewriter &rewriter, Location loc,
-                       StringRef suffix, Value tensor, Value chain,
-                       DenseElementsAttr init_values) {
+static Value CreateSetTensor(ConversionPatternRewriter &rewriter, Location loc,
+                             StringRef suffix, Value tensor, Value chain,
+                             DenseElementsAttr init_values) {
   std::string name;
   llvm::raw_string_ostream(name)
       << "tfrt_dht.set_tensor_with_constant_values." << suffix;
@@ -814,32 +900,20 @@ static Value SetTensor(ConversionPatternRewriter &rewriter, Location loc,
   return rewriter.createOperation(state)->getResult(0);
 }
 
-// Initializes the global symbols in 'module' with values in 'constants'.
-static Value CreateGlobalInitialization(ConversionPatternRewriter &rewriter,
-                                        Location loc, Value context,
-                                        Value module, ArrayAttr constants) {
-  Value chain = rewriter.create<compiler::NewChainOp>(loc);
-  auto stream = rewriter.create<StreamCreateOp>(loc, context);
-  auto cast = [](Attribute attr) { return attr.cast<FlatSymbolRefAttr>(); };
-  for (auto constant : llvm::map_range(constants, cast)) {
-    auto global_op = SymbolTable::lookupNearestSymbolFrom<memref::GlobalOp>(
-        stream, constant);
-    assert(global_op);
-
-    auto init_attr = global_op.initial_valueAttr().cast<DenseElementsAttr>();
-    auto type_name = GetDenseHostTensorTypeName(init_attr.getElementType());
-    Value tensor = CreateTensor(rewriter, loc, type_name, global_op.type());
-    chain = SetTensor(rewriter, loc, type_name, tensor, chain, init_attr);
-
-    Type buffer_type = rewriter.getType<ht::HostBufferType>();
-    auto buffer_op = rewriter.create<dht::GetBufferOp>(
-        loc, buffer_type, chain.getType(), tensor, chain);
-    auto get_global_op =
-        rewriter.create<ModuleGetGlobalOp>(loc, module, constant.getAttr());
-    chain = rewriter.create<MemCopyOp>(loc, get_global_op,
-                                       buffer_op.getResult(0), stream, chain);
-  }
-  return rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
+// Initializes 'buffer' with constant values from 'global_op'. Returns chain.
+static Value CreateSetGlobal(ConversionPatternRewriter &rewriter,
+                             memref::GlobalOp global_op, Value buffer,
+                             Value chain, Value stream) {
+  Location loc = global_op->getLoc();
+  auto init_attr = global_op.initial_valueAttr().cast<DenseElementsAttr>();
+  auto type_name = GetDenseHostTensorTypeName(init_attr.getElementType());
+  Value tensor = CreateMakeTensor(rewriter, loc, type_name, global_op.type());
+  chain = CreateSetTensor(rewriter, loc, type_name, tensor, chain, init_attr);
+  Type buffer_type = rewriter.getType<ht::HostBufferType>();
+  auto buffer_op = rewriter.create<dht::GetBufferOp>(
+      loc, buffer_type, chain.getType(), tensor, chain);
+  return rewriter.create<MemCopyOp>(loc, buffer, buffer_op.getResult(0), stream,
+                                    chain);
 }
 
 LogicalResult ConvertGpuModulePattern::matchAndRewrite(
@@ -861,14 +935,64 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
   Value context = func_op.getArgument(0);
   std::string binary = data.getValue().str();  // Add trailing zero.
-  Value load_op = rewriter.create<ModuleLoadOp>(
+  Value module = rewriter.create<ModuleLoadOp>(
       loc, context, StringRef(binary.data(), binary.size() + 1));
-  SmallVector<Value, 2> return_values = {load_op};
+  SmallVector<Value, 2> return_values = {module};
   if (constants) {
-    return_values.push_back(
-        CreateGlobalInitialization(rewriter, loc, context, load_op, constants));
+    // Initialize GPU module symbols.
+    Value chain = rewriter.create<compiler::NewChainOp>(loc);
+    Value stream = rewriter.create<StreamCreateOp>(loc, context);
+    auto cast = [](Attribute attr) { return attr.cast<FlatSymbolRefAttr>(); };
+    for (auto constant : llvm::map_range(constants, cast)) {
+      auto global_op = SymbolTable::lookupNearestSymbolFrom<memref::GlobalOp>(
+          func_op, constant);
+      Value buffer =
+          rewriter.create<ModuleGetGlobalOp>(loc, module, constant.getAttr());
+      chain = CreateSetGlobal(rewriter, global_op, buffer, chain, stream);
+    }
+    chain = rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
+    return_values.push_back(chain);
   }
   rewriter.create<compiler::ReturnOp>(loc, return_values);
+  return success();
+}
+
+LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
+    memref::GlobalOp global_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  mlir::FunctionType func_type = rewriter.getFunctionType(
+      rewriter.getType<ContextType>(),
+      GetTypes<tfrt::gpu::BufferType, compiler::ChainType>(rewriter));
+  auto func_op = rewriter.replaceOpWithNewOp<FuncOp>(
+      global_op, global_op.sym_name(), func_type);
+  rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
+  Location loc = global_op->getLoc();
+  Value context = func_op.getArgument(0);
+
+  // If the global is a GPU module symbol, return that.
+  if (auto module_attr =
+          global_op->getAttrOfType<FlatSymbolRefAttr>(getGpuModuleAttrName())) {
+    auto once_op = rewriter.create<compiler::OnceOp>(
+        loc, GetTypes<ModuleType, compiler::ChainType>(rewriter),
+        ValueRange(context), module_attr);
+    Value buffer = rewriter.create<ModuleGetGlobalOp>(
+        loc, once_op->getResult(0), adaptor.sym_name());
+    rewriter.create<compiler::ReturnOp>(
+        loc, ValueRange({buffer, once_op->getResult(1)}));
+    return success();
+  }
+
+  // Otherwise, allocate memory and initialize it.
+  Value allocator = rewriter.create<AllocatorCreateOp>(loc, context);
+  Value stream = rewriter.create<StreamCreateOp>(loc, context);
+  uint64_t size_bytes = (global_op.type().getSizeInBits() + 7) / 8;
+  Value size = rewriter.create<compiler::ConstantI64Op>(loc, size_bytes);
+  Value chain = rewriter.create<compiler::NewChainOp>(loc);
+  Value buffer =
+      rewriter.create<gpu::MemAllocateOp>(loc, allocator, stream, size, chain);
+  chain = CreateSetGlobal(rewriter, global_op, buffer, chain, stream);
+  chain = rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
+  rewriter.create<compiler::ReturnOp>(loc, ValueRange({buffer, chain}));
   return success();
 }
 
@@ -1186,41 +1310,60 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
       [&](Operation *op) { return converter.isLegal(op); });
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
-  if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
+  if (failed(applyPartialConversion(getOperation(), target,
+                                    std::move(patterns)))) {
     return signalPassFailure();
+  }
+}
+
+static LogicalResult ConvertGpuModuleOps(ModuleOp module_op) {
+  SmallVector<Operation *, 4> gpu_module_ops;
+  module_op.walk(
+      [&](mlir::gpu::GPUModuleOp op) { gpu_module_ops.push_back(op); });
+  if (gpu_module_ops.empty()) return success();
+
+  RewritePatternSet patterns(module_op->getContext());
+  patterns.add<ConvertGpuModulePattern>(module_op->getContext());
+  return success(applyOpPatternsAndFold(gpu_module_ops, std::move(patterns),
+                                        /*strict=*/true));
 }
 
 void ConvertGpuToTfrtGpuPass::runOnOperation() {
+  // Rewrite `gpu.module` before rewriting the referenced `memref.global` ops.
+  if (failed(ConvertGpuModuleOps(getOperation()))) return signalPassFailure();
+
   RewritePatternSet patterns(&getContext());
   auto converter = createMemrefToTfrtGpuConverter();
   patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern,
-               ConvertLaunchFuncPattern>(converter, &getContext());
-  patterns.add<ConvertGetGlobalPattern, ConvertGpuModulePattern,
-               InlineConversionAsyncExecPattern,
+               ConvertMemrefGlobalPattern, ConvertLaunchFuncPattern>(
+      converter, &getContext());
+  patterns.add<ConvertGetGlobalPattern, InlineConversionAsyncExecPattern,
                ConvertGpuWaitToChainAndStreamPattern>(&getContext());
   ConversionTarget target(getContext());
   target.addIllegalDialect<mlir::gpu::GPUDialect>();
-  target.addIllegalOp<conversion::AsyncExecuteOp, memref::GetGlobalOp>();
+  target.addIllegalOp<conversion::AsyncExecuteOp, memref::GetGlobalOp,
+                      memref::GlobalOp>();
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
-  if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
+  if (failed(applyPartialConversion(getOperation(), target,
+                                    std::move(patterns)))) {
     return signalPassFailure();
+  }
 }
 
 void ReconcileCastsPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
-  patterns.add<ConvertCastToEventRecordPattern, FoldConstCastPattern>(
-      &getContext());
+  patterns.add<ConvertCastToEventRecordPattern, FoldConstCastPattern,
+               ConvertBufferCastPattern>(&getContext());
   populateReconcileUnrealizedCastsPatterns(patterns);
   ConversionTarget target(getContext());
   target.addIllegalOp<CastOp>();
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
-  if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
+  if (failed(applyPartialConversion(getOperation(), target,
+                                    std::move(patterns)))) {
     return signalPassFailure();
+  }
 }
 
 void ConvertAsyncToTfrtPass::runOnFunction() {
@@ -1245,9 +1388,10 @@ void ConvertAsyncToTfrtPass::runOnFunction() {
   target.addIllegalOp<async::AwaitOp, async::ExecuteOp, async::YieldOp>();
   target.markUnknownOpDynamicallyLegal([&](Operation *) { return true; });
 
-  if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
+  if (failed(applyPartialConversion(getOperation(), target,
+                                    std::move(patterns)))) {
     return signalPassFailure();
+  }
 }
 
 static Value MaterializeCast(OpBuilder &builder, Type type, ValueRange values,

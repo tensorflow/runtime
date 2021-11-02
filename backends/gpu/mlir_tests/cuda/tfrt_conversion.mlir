@@ -127,18 +127,19 @@ func @test_mem_set(%arg0 : !tfrt_gpu.buffer) {
 // CHECK-LABEL: @test_launch_kernel
 module @test_launch_kernel attributes {gpu.container_module} {
 
-  memref.global "private" @pi : memref<f32> = dense<3.14159274>
+  memref.global "private" @pi
+      : memref<f32> = dense<3.14159274> {gpu_module = @gpu_module}
 
   // CHECK: func @gpu_module(%arg0: !tfrt_gpu.context)
   // CHECK-SAME: -> (!tfrt_gpu.module, !tfrt.chain) {
   // CHECK:   %[[module:.*]] = tfrt_gpu.module.load %arg0 {data = "<cubin>\00"}
   // CHECK:   %[[ch0:.*]] = tfrt.new.chain
   // CHECK:   %[[stream:.*]] = tfrt_gpu.stream.create %arg0
+  // CHECK:   %[[global:.*]] = tfrt_gpu.module.get_global %[[module]] {name = "pi"}
   // CHECK:   %[[tensor:.*]] = tfrt_dht.create_uninitialized_tensor.f32.0 []
   // CHECK:   %[[ch1:.*]] = tfrt_dht.set_tensor_with_constant_values.f32
   // CHECK-SAME: %[[tensor]], %[[ch0]] [3.14159274 : f32]
   // CHECK:   %[[buffer:.*]]:2 = tfrt_dht.get_buffer %[[tensor]], %[[ch1]]
-  // CHECK:   %[[global:.*]] = tfrt_gpu.module.get_global %[[module]] {name = "pi"}
   // CHECK:   %[[ch2:.*]] = tfrt_gpu.mem.copy %[[global]], %[[buffer]]#0,
   // CHECK-SAME: %[[stream]], %[[ch1]] : !tfrt_gpu.buffer, !ht.host_buffer
   // CHECK:   %[[ch3:.*]] = tfrt_gpu.stream.synchronize %[[stream]], %[[ch2]]

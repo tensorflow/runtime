@@ -1001,7 +1001,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(CreateConvertRuntimeToLLVMPass());
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
-  if (opts.math_avx2) vector_to_llvm_opts.setEnableX86Vector(true);
+  if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
   pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
   pm.addPass(mlir::createMemRefToLLVMPass());
 

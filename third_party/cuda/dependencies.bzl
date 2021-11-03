@@ -56,6 +56,25 @@ def _cudnn_headers_impl(repository_ctx):
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
 
+def _cudnn_frontend_impl(repository_ctx):
+    build_file = Label("//third_party/cuda:cudnn_frontend.BUILD")
+
+    version = "0.4.1"
+    url = "archive/refs/tags/v{version}.tar.gz".format(version = version)
+    strip_prefix = "cudnn-frontend-{version}".format(version = version)
+    sha256 = "e0cef5e4440d24115c770160ba4a08821ae24c357a1623a7e9ca736ed685131c"
+    repository_ctx.download_and_extract(
+        url = [
+            "http://github.com/NVIDIA/cudnn-frontend/" + url,
+            "http://mirror.tensorflow.org/github.com/NVIDIA/cudnn-frontend/" + url,
+        ],
+        output = "cudnn_frontend",
+        sha256 = sha256,
+        stripPrefix = strip_prefix,
+    )
+
+    repository_ctx.symlink(build_file, "BUILD")
+
 def _nccl_headers_impl(repository_ctx):
     build_file = Label("//third_party/cuda:nccl_headers.BUILD")
     patch_file = Label("//third_party/cuda:nccl_headers.patch")
@@ -88,6 +107,11 @@ _cudnn_headers = repository_rule(
     # remotable = True,
 )
 
+_cudnn_frontend = repository_rule(
+    implementation = _cudnn_frontend_impl,
+    # remotable = True,
+)
+
 _nccl_headers = repository_rule(
     implementation = _nccl_headers_impl,
     # remotable = True,
@@ -96,4 +120,5 @@ _nccl_headers = repository_rule(
 def cuda_dependencies():
     _cuda_headers(name = "cuda_headers")
     _cudnn_headers(name = "cudnn_headers")
+    _cudnn_frontend(name = "cudnn_frontend")
     _nccl_headers(name = "nccl_headers")

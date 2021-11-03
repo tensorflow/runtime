@@ -233,6 +233,14 @@
       "cudnnMakeFusedOpsPlan",
       "cudnnFusedOpsExecute",
       "cudnnSetRNNDescriptor_v6",
-      "cudnnSetRNNDescriptor_v5"
+      "cudnnSetRNNDescriptor_v5",
+
+      "cudnnBackendCreateDescriptor",
+      "cudnnBackendDestroyDescriptor",
+      "cudnnBackendInitialize",
+      "cudnnBackendFinalize",
+      "cudnnBackendSetAttribute",
+      "cudnnBackendGetAttribute",
+      "cudnnBackendExecute"
    ]
 }

@@ -47,7 +47,6 @@ using cudaStream_t = struct CUstream_st *;
 
 // Forward declaration of cuDNN types.
 struct cudnnRuntimeTag_t;
-
 using cudnnHandle_t = struct cudnnContext *;
 using cudnnTensorDescriptor_t = struct cudnnTensorStruct *;
 using cudnnConvolutionDescriptor_t = struct cudnnConvolutionStruct *;
@@ -73,6 +72,7 @@ using cudnnFusedOpsConstParamPack_t = struct cudnnFusedOpsConstParamStruct *;
 using cudnnFusedOpsVariantParamPack_t =
     struct cudnnFusedOpsVariantParamStruct *;
 using cudnnFusedOpsPlan_t = struct cudnnFusedOpsPlanStruct *;
+using cudnnBackendDescriptor_t = void *;
 
 // Forward declaration of cuBLAS types.
 using cublasHandle_t = struct cublasContext *;

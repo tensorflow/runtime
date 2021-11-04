@@ -14,12 +14,13 @@
 """Lit configuration."""
 
 from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
+import os
 import lit.formats
 from lit.llvm import llvm_config
 from lit.llvm.subst import ToolSubst
+
+cwd = os.getcwd()
 
 # pylint: disable=undefined-variable
 
@@ -32,25 +33,39 @@ config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 # suffixes: A list of file extensions to treat as test files.
 config.suffixes = ['.mlir']
 
-# test_source_root: The root path where tests are located.
-config.test_source_root = config.tfrt_test_dir
+# test_source_root: Base path of the test files. The remainder (none in this
+# case) is the lit argument stripped by the path to the suite directory.
+config.test_source_root = os.path.dirname(os.environ['TEST_BINARY'])
 
-# test_exec_root: The root path where tests should be run.
-config.test_exec_root = config.runfile_srcdir
+# test_exec_root: Base path to the execution directory. The remainder is the lit
+# argument directory stripped by the path to the suite directory.
+config.test_exec_root = '.'
+
+config.llvm_tools_dir = os.path.join(cwd, '..', 'llvm-project', 'llvm')
+
+# pylint: enable=undefined-variable
 
 llvm_config.use_default_substitutions()
 
-llvm_config.config.substitutions.append(
-    ('%tfrt_bindir', 'tensorflow/compiler/aot'))
 
-tool_dirs = config.tfrt_tools_dirs + [config.llvm_tools_dir]
+def _AddToolSubstitutions(targets):
+  paths = [
+      t.lstrip('/').replace('@', '../').replace('//', '/').replace(':', '/')
+      for t in targets
+  ]
+  llvm_config.add_tool_substitutions([
+      ToolSubst(os.path.basename(p), os.path.join(cwd, p), unresolved='ignore')
+      for p in paths
+  ], [])
 
-tool_names = [
-    'bef_executor', 'bef_executor_lite', 'tfrt_translate', 'tfrt_opt',
-    'tfrt_gpu_translate', 'tfrt_gpu_opt', 'code_size_test_driver',
-    'bef_executor_debug_tracing'
-]
-tools = [ToolSubst(s, unresolved='ignore') for s in tool_names]
-llvm_config.add_tool_substitutions(tools, tool_dirs)
 
-# pylint: enable=undefined-variable
+_AddToolSubstitutions([
+    '//backends/gpu:tfrt_gpu_translate',
+    '//backends/gpu:tfrt_gpu_opt',
+    '//tools:bef_executor',
+    '//tools:bef_executor_debug_tracing',
+    '//tools:bef_executor_lite',
+    '//tools:code_size_test_driver',
+    '//tools:tfrt_opt',
+    '//tools:tfrt_translate',
+])

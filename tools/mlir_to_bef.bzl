@@ -41,22 +41,19 @@ def mlir_to_bef(name, tfrt_translate):
 def glob_tfrt_lit_tests(
         name = "glob_tfrt_lit_tests",
         data = [],
+        # Custom driver is unsupported in OSS. Fails if one is provided.
         # copybara:uncomment driver = "@tf_runtime//mlir_tests:run_lit.sh",
         exclude = [],
         # Do not run "tfrt_translate -mlir-to-bef" on these files.
         no_bef_translation = [],
-        tfrt_translate = "",
-        tags_override = {},
+        tfrt_translate = "@tf_runtime//tools:tfrt_translate",
+        per_test_extra_data = {},
         **kwargs):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
-
-    if tfrt_translate == "":
-        tfrt_translate = "@tf_runtime//tools:tfrt_translate"
 
     mlir_files = native.glob(
         include = ["**/*.mlir"],
         exclude = exclude + no_bef_translation,
-        exclude_directories = 1,
     )
 
     data = data + if_google([
@@ -64,10 +61,10 @@ def glob_tfrt_lit_tests(
     ])
 
     # Pass generated .bef files to glob_lit_tests as per_test_extra_data.
-    per_test_extra_data = {}
+    per_test_extra_data = dict(per_test_extra_data)
     for mlir_file in mlir_files:
         bef_file = mlir_to_bef(mlir_file, tfrt_translate)
-        per_test_extra_data[mlir_file] = [bef_file]
+        per_test_extra_data.setdefault(mlir_file, []).append(bef_file)
 
         # Generate mpm files to allow running tests on production machines (e.g. borg)
         # copybara:uncomment mlir_to_mpm(mlir_file, bef_file, data)
@@ -76,8 +73,8 @@ def glob_tfrt_lit_tests(
         data = data,
         per_test_extra_data = per_test_extra_data,
         # copybara:uncomment driver = driver,
+        cfgs = "@tf_runtime//mlir_tests:litcfgs",  # copybara:comment
         test_file_exts = ["mlir"],
         exclude = exclude,
-        tags_override = tags_override,
         **kwargs
     )

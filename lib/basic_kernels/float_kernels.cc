@@ -14,6 +14,8 @@
 
 // This file implements host executor kernels for floating point types.
 
+#include <complex>
+
 #include "tfrt/basic_kernels/basic_kernels.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/sync_kernel_utils.h"
@@ -43,9 +45,28 @@ static Chain TFRTPrintF64(Argument<double> arg, AsyncKernelFrame* frame) {
   return Chain();
 }
 
+static Chain TFRTPrintC64(Argument<std::complex<float>> arg,
+                          AsyncKernelFrame* frame) {
+  printf("complex64 = %f+%fi\n", arg->real(), arg->imag());
+  fflush(stdout);
+  return Chain();
+}
+
+static Chain TFRTPrintC128(Argument<std::complex<double>> arg,
+                           AsyncKernelFrame* frame) {
+  printf("complex128 = %f+%fi\n", arg->real(), arg->imag());
+  fflush(stdout);
+  return Chain();
+}
+
 template <typename T>
 static T TFRTConstant(Attribute<T> arg) {
   return *arg;
+}
+
+template <typename T>
+static std::complex<T> TFRTComplexConstant(Attribute<T> re, Attribute<T> im) {
+  return std::complex<T>(*re, *im);
 }
 
 template <typename T>
@@ -91,11 +112,19 @@ void RegisterFloatKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt.print.f16", TFRT_KERNEL(TFRTPrintF16));
   registry->AddKernel("tfrt.print.f32", TFRT_KERNEL(TFRTPrintF32));
   registry->AddKernel("tfrt.print.f64", TFRT_KERNEL(TFRTPrintF64));
+  registry->AddKernel("tfrt.print.complex64", TFRT_KERNEL(TFRTPrintC64));
+  registry->AddKernel("tfrt.print.complex128", TFRT_KERNEL(TFRTPrintC128));
 
   // Partial support for fp16
   registry->AddKernel("tfrt.constant.f16", TFRT_KERNEL(TFRTConstant<fp16>));
   registry->AddSyncKernel("tfrt.constant_s.f16",
                           TFRT_SYNC_KERNEL(TFRTConstant<fp16>));
+
+  // Partial support for complex types
+  registry->AddKernel("tfrt.constant.complex64",
+                      TFRT_KERNEL(TFRTComplexConstant<float>));
+  registry->AddKernel("tfrt.constant.complex128",
+                      TFRT_KERNEL(TFRTComplexConstant<double>));
 
   RegisterFloatKernelsForType<float>(registry, "f32");
   RegisterFloatKernelsForType<double>(registry, "f64");

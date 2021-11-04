@@ -287,12 +287,6 @@ static LogicalResult VerifyBlasGemmOp(OpTy op) {
   if (!AllEqual({op.typeA(), op.typeB(), op.typeC()})) {
     return op.emitOpError("typeA, typeB and typeC need to match");
   }
-  Type compute_type = GetType(op.computeTypeAttr());
-  if (op.alpha().getType() != compute_type ||
-      op.beta().getType() != compute_type) {
-    return op.emitOpError(
-        "alpha's or beta's type is incompatible with computeType");
-  }
   return mlir::success();
 }
 

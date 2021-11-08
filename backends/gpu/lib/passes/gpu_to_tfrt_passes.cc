@@ -631,33 +631,22 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
         func_op, "expected all but the last gpu.wait to be async");
   }
 
-  Type chain_type = rewriter.getType<compiler::ChainType>();
-  Type stream_type = rewriter.getType<StreamType>();
-
   // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
-  auto argument_types = MergeRanges(TypeRange{chain_type, stream_type},
-                                    func_op.getArgumentTypes());
-  auto result_types =
-      MergeRanges(TypeRange(chain_type), func_op.getCallableResults());
   rewriter.updateRootInPlace(func_op, [&] {
-    func_op.setType(
-        rewriter.getType<mlir::FunctionType>(argument_types, result_types));
+    auto types = GetTypes<compiler::ChainType, StreamType>(rewriter);
+    func_op.insertArguments({0, 0}, types, /*argAttrs=*/{}, /*argLocs=*/{});
+    func_op.insertResult(0, types.front(), /*resultAttrs=*/nullptr);
   });
-
-  // Add new function arguments to entry block. This is a bit of a dance
-  // so that it could be rolled back in case of conversion failure.
-  Block *block = &func_op.body().front();
-  Block *entry = rewriter.createBlock(block, argument_types);
-  auto entry_args = entry->getArguments();
 
   // Cast new arguments to token and insert wait async op.
   // %t0 = unrealized_conversion_cast %arg0, %arg1 -> !gpu.async.token
   // %t1 = gpu.wait async [%t0]
   Location loc = func_op.getLoc();
-  Value token = CastToToken(rewriter, loc, entry_args.take_front(2));
+  rewriter.setInsertionPointToStart(&func_op.body().front());
+  Value token =
+      CastToToken(rewriter, loc, func_op.getArguments().take_front(2));
   auto first_wait_op =
       rewriter.create<mlir::gpu::WaitOp>(loc, token.getType(), token);
-  rewriter.mergeBlocks(block, entry, entry_args.drop_front(2));
 
   // Add %t1 from above to all `gpu.wait async []` ops.
   for (auto op : makeArrayRef(wait_ops).drop_back())

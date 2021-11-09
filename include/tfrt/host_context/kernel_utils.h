@@ -1076,10 +1076,10 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
               (!has_in_chain && arg_idx == frame->GetNumArgs() - 1 &&
                frame->GetArgAt(arg_idx)->template IsType<Chain>())) &&
              "Extra arguments passed to kernel.");
-      assert(attr_idx == frame->GetNumAttributes() ||
-             attr_idx == -1 && "Extra attributes passed to kernel.");
-      assert(func_idx == frame->GetNumFunctions() ||
-             func_idx == -1 && "Extra functions passed to kernel.");
+      assert((attr_idx == frame->GetNumAttributes() || attr_idx == -1) &&
+             "Extra attributes passed to kernel.");
+      assert((func_idx == frame->GetNumFunctions() || func_idx == -1) &&
+             "Extra functions passed to kernel.");
       SyncKernelReturnHelper<has_kernel_error_handler, Return>::Invoke(
           frame, pargs...);
     }

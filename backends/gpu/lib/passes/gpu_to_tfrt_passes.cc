@@ -34,6 +34,7 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/RegionUtils.h"
@@ -809,6 +810,8 @@ LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
   auto once_op = rewriter.create<compiler::OnceOp>(
       loc, GetTypes<BufferType, compiler::ChainType>(rewriter), context,
       adaptor.name());
+  // TODO(csigg): this should rather cast to memref, and the
+  // ConvertBufferCastPattern should match both this and the materialization.
   Value buffer = CastTo<BufferType>(rewriter, loc, once_op.getResults());
   rewriter.replaceOp(get_global_op, buffer);
   return success();
@@ -848,7 +851,7 @@ LogicalResult ConvertBufferCastPattern::matchAndRewrite(
 
 static std::string GetDenseHostTensorTypeName(Type type) {
   if (type.isInteger(1)) return "bool";
-  if (type.isSignedInteger())
+  if (type.isSignedInteger() || type.isSignlessInteger())
     return "i" + std::to_string(type.getIntOrFloatBitWidth());
   if (type.isUnsignedInteger())
     return "ui" + std::to_string(type.getIntOrFloatBitWidth());
@@ -1416,8 +1419,12 @@ void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
 }
 
 void registerPasses() {
-  // Only register the pipeline, not the individual passes.
-  // TODO(csigg): test passes individually, split and move test inputs.
+  PassRegistration<AddChainAndStreamToFuncPass>();
+  PassRegistration<ConvertAsyncToChainAndEventPass>();
+  PassRegistration<ConvertGpuToTfrtGpuPass>();
+  PassRegistration<ReconcileCastsPass>();
+  PassRegistration<ConvertAsyncToTfrtPass>();
+
   PassPipelineRegistration<>(
       "gpu-to-tfrt-gpu",
       "Pass pipeline to convert from MLIR's gpu and async dialects to TFRT.",

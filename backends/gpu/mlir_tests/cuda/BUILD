@@ -6,26 +6,9 @@ licenses(["notice"])
 glob_tfrt_lit_tests(
     data = [":test_utilities"],
     # copybara:uncomment driver = "@tf_runtime//backends/gpu/mlir_tests:run_lit.sh",
-    no_bef_translation = [
-        "async_conversion.mlir",
-        "ops.mlir",
-        "tfrt_conversion.mlir",
-    ],
     tags_override = dict({
         file: ["requires-gpu-nvidia"]
-        for file in [
-            "blas.mlir",
-            "dnn.mlir",
-            "event.mlir",
-            "launch.mlir",
-            "memcpy.mlir",
-            "memset.mlir",
-            "module.mlir",
-            "register.mlir",
-            "solver.mlir",
-            "stream.mlir",
-            "while.mlir",
-        ]
+        for file in glob(["*.mlir"])
     }.items() + {
         # Note: NCCL in the sandbox produces the wrong result in OSS.
         "ccl.mlir": ["requires-gpu-nvidia:2"] + if_oss(["no-sandbox"]),

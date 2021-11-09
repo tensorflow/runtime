@@ -16,6 +16,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
+#include "tfrt/support/fp16.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -116,6 +117,27 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
     default:
       return os << llvm::formatv("cudnnConvolutionMode_t({0})",
                                  static_cast<int>(value));
+  }
+}
+
+mlir::TypeID GetCudnnDataTypeId(cudnnDataType_t data_type) {
+  switch (data_type) {
+    case CUDNN_DATA_FLOAT:
+      return mlir::TypeID::get<float>();
+    case CUDNN_DATA_DOUBLE:
+      return mlir::TypeID::get<double>();
+    case CUDNN_DATA_HALF:
+      return mlir::TypeID::get<fp16>();
+    case CUDNN_DATA_INT8:
+      return mlir::TypeID::get<int8_t>();
+    case CUDNN_DATA_INT32:
+      return mlir::TypeID::get<int32_t>();
+    case CUDNN_DATA_UINT8:
+      return mlir::TypeID::get<uint8_t>();
+    case CUDNN_DATA_INT64:
+      return mlir::TypeID::get<int64_t>();
+    default:
+      return {};
   }
 }
 

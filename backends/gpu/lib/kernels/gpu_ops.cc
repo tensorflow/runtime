@@ -126,7 +126,7 @@ static Type GetType(MLIRContext *context, cudaDataType data_type) {
     case CUDA_R_64F:
       return Float64Type::get(context);
     default:
-      llvm_unreachable("unexpected data type");
+      llvm_unreachable("unexpected cuda data type");
   }
 }
 
@@ -148,7 +148,20 @@ static Type GetType(MLIRContext *context, cublasComputeType_t compute_type) {
     case CUBLAS_COMPUTE_32I_PEDANTIC:
       return IntegerType::get(context, 32, IntegerType::Signed);
     default:
-      llvm_unreachable("unexpected compute type");
+      llvm_unreachable("unexpected cublas compute type");
+  }
+}
+
+static Type GetType(MLIRContext *context, cudnnDataType_t data_type) {
+  switch (data_type) {
+    case CUDNN_DATA_HALF:
+      return Float16Type::get(context);
+    case CUDNN_DATA_FLOAT:
+      return Float32Type::get(context);
+    case CUDNN_DATA_DOUBLE:
+      return Float64Type::get(context);
+    default:
+      llvm_unreachable("unexpected cudnn data type");
   }
 }
 
@@ -161,7 +174,18 @@ static Type GetType(MLIRContext *context, rocblas_datatype data_type) {
     case rocblas_datatype_f64_r:
       return Float64Type::get(context);
     default:
-      llvm_unreachable("unexpected data type");
+      llvm_unreachable("unexpected rocblas data type");
+  }
+}
+
+static Type GetType(MLIRContext *context, miopenDataType_t data_type) {
+  switch (data_type) {
+    case miopenHalf:
+      return Float16Type::get(context);
+    case miopenFloat:
+      return Float32Type::get(context);
+    default:
+      llvm_unreachable("unexpected miopen data type");
   }
 }
 

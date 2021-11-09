@@ -16,6 +16,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
+#include "tfrt/support/fp16.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -103,6 +104,21 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
     default:
       return os << llvm::formatv("miopenConvolutionMode_t({0})",
                                  static_cast<int>(value));
+  }
+}
+
+mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type) {
+  switch (data_type) {
+    case miopenHalf:
+      return mlir::TypeID::get<fp16>();
+    case miopenFloat:
+      return mlir::TypeID::get<float>();
+    case miopenInt32:
+      return mlir::TypeID::get<int32_t>();
+    case miopenInt8:
+      return mlir::TypeID::get<int8_t>();
+    default:
+      return {};
   }
 }
 

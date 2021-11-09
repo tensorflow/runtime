@@ -23,6 +23,7 @@
 #include <memory>
 #include <type_traits>
 
+#include "mlir/Support/TypeID.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace tfrt {
@@ -230,6 +231,8 @@ struct DnnRnnDescriptorData {
   DnnDataType math_type;  // Unspecified for MIOpen.
 };
 
+mlir::TypeID GetDnnDataTypeId(DnnDataType data_type);
+
 llvm::Expected<LibraryVersion> DnnGetVersion(Platform platform);
 
 llvm::Expected<OwningDnnHandle> DnnCreate(CurrentContext current);
@@ -253,6 +256,13 @@ llvm::Expected<OwningDnnConvolutionDescriptor> DnnCreateConvolutionDescriptor(
 llvm::Error DnnDestroyConvolutionDescriptor(
     DnnConvolutionDescriptor descriptor);
 
+llvm::Error DnnSetConvolutionDescriptor(DnnConvolutionDescriptor descriptor,
+                                        llvm::ArrayRef<int> pad,
+                                        llvm::ArrayRef<int> filter_stride,
+                                        llvm::ArrayRef<int> dilation,
+                                        DnnConvolutionMode mode,
+                                        DnnDataType compute_type);
+
 llvm::Expected<OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
     Platform platform);
 llvm::Error DnnDestroyPoolingDescriptor(DnnPoolingDescriptor descriptor);
@@ -264,6 +274,10 @@ llvm::Error DnnDestroyActivationDescriptor(DnnActivationDescriptor descriptor);
 llvm::Expected<OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
     Platform platform);
 llvm::Error DnnDestroyFilterDescriptor(DnnFilterDescriptor descriptor);
+
+llvm::Error DnnSetFilterDescriptor(DnnFilterDescriptor descriptor,
+                                   DnnDataType data_type, int32_t format,
+                                   llvm::ArrayRef<int> dimensions);
 
 llvm::Expected<OwningDnnDropoutDescriptor> DnnCreateDropoutDescriptor(
     Platform platform);
@@ -296,20 +310,23 @@ DnnGetConvolutionForwardOutputDim(DnnConvolutionDescriptor conv_desc,
                                   DnnTensorDescriptor input_tensor_desc,
                                   DnnFilterDescriptor filter_desc);
 llvm::Error DnnConvolutionForward(
-    CurrentContext current, DnnHandle handle, DnnTensorDescriptor x_desc,
-    Pointer<const void> x, DnnFilterDescriptor w_desc, Pointer<const void> w,
+    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    DnnTensorDescriptor x_desc, Pointer<const void> x,
+    DnnFilterDescriptor w_desc, Pointer<const void> w,
     DnnConvolutionDescriptor conv_desc, DnnConvFwdAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnTensorDescriptor y_desc, Pointer<void> y);
 llvm::Error DnnConvolutionBackwardData(
-    CurrentContext current, DnnHandle handle, DnnFilterDescriptor w_desc,
-    Pointer<const void> w, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    DnnFilterDescriptor w_desc, Pointer<const void> w,
+    DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdDataAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnTensorDescriptor dx_desc, Pointer<void> dx);
 llvm::Error DnnConvolutionBackwardFilter(
-    CurrentContext current, DnnHandle handle, DnnTensorDescriptor x_desc,
-    Pointer<const void> x, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    DnnTensorDescriptor x_desc, Pointer<const void> x,
+    DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnFilterDescriptor dw_desc, Pointer<void> dw);

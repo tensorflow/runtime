@@ -119,6 +119,8 @@ struct CudnnRnnClipData {
   double right_clip;
 };
 
+mlir::TypeID GetCudnnDataTypeId(cudnnDataType_t data_type);
+
 llvm::Expected<cudnnStatus_t> CudnnQueryRuntimeError(cudnnHandle_t handle,
                                                      cudnnErrQueryMode_t mode,
                                                      cudnnRuntimeTag_t* tag);
@@ -307,12 +309,12 @@ llvm::Expected<size_t> CudnnGetConvolutionForwardWorkspaceSize(
     cudnnFilterDescriptor_t w_desc, cudnnConvolutionDescriptor_t conv_desc,
     cudnnTensorDescriptor_t y_desc, cudnnConvolutionFwdAlgo_t algo);
 llvm::Error CudnnConvolutionForward(
-    CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha,
+    CurrentContext current, cudnnHandle_t handle, const void* alpha,
     cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
     cudnnFilterDescriptor_t w_desc, Pointer<const void> w,
     cudnnConvolutionDescriptor_t conv_desc, cudnnConvolutionFwdAlgo_t algo,
-    Pointer<void> work_space, size_t work_space_size_in_bytes,
-    Pointer<const void> beta, cudnnTensorDescriptor_t y_desc, Pointer<void> y);
+    Pointer<void> work_space, size_t work_space_size_in_bytes, const void* beta,
+    cudnnTensorDescriptor_t y_desc, Pointer<void> y);
 llvm::Error CudnnConvolutionBiasActivationForward(
     CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha1,
     cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
@@ -348,12 +350,12 @@ llvm::Expected<size_t> CudnnGetConvolutionBackwardFilterWorkspaceSize(
     cudnnTensorDescriptor_t dy_desc, cudnnConvolutionDescriptor_t conv_desc,
     cudnnFilterDescriptor_t grad_desc, cudnnConvolutionBwdFilterAlgo_t algo);
 llvm::Error CudnnConvolutionBackwardFilter(
-    CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha,
+    CurrentContext current, cudnnHandle_t handle, const void* alpha,
     cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
     cudnnTensorDescriptor_t dy_desc, Pointer<const void> dy,
     cudnnConvolutionDescriptor_t conv_desc,
     cudnnConvolutionBwdFilterAlgo_t algo, Pointer<void> work_space,
-    size_t work_space_size_in_bytes, Pointer<const void> beta,
+    size_t work_space_size_in_bytes, const void* beta,
     cudnnFilterDescriptor_t dw_desc, Pointer<void> dw);
 llvm::Expected<int> CudnnGetConvolutionBackwardDataAlgorithmMaxCount(
     cudnnHandle_t handle);
@@ -377,13 +379,12 @@ llvm::Expected<size_t> CudnnGetConvolutionBackwardDataWorkspaceSize(
     cudnnTensorDescriptor_t dy_desc, cudnnConvolutionDescriptor_t conv_desc,
     cudnnTensorDescriptor_t dx_desc, cudnnConvolutionBwdDataAlgo_t algo);
 llvm::Error CudnnConvolutionBackwardData(
-    CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha,
+    CurrentContext current, cudnnHandle_t handle, const void* alpha,
     cudnnFilterDescriptor_t w_desc, Pointer<const void> w,
     cudnnTensorDescriptor_t dy_desc, Pointer<const void> dy,
     cudnnConvolutionDescriptor_t conv_desc, cudnnConvolutionBwdDataAlgo_t algo,
-    Pointer<void> work_space, size_t work_space_size_in_bytes,
-    Pointer<const void> beta, cudnnTensorDescriptor_t dx_desc,
-    Pointer<void> dx);
+    Pointer<void> work_space, size_t work_space_size_in_bytes, const void* beta,
+    cudnnTensorDescriptor_t dx_desc, Pointer<void> dx);
 
 llvm::Error CudnnIm2Col(CurrentContext current, cudnnHandle_t handle,
                         cudnnTensorDescriptor_t x_desc, Pointer<const void> x,

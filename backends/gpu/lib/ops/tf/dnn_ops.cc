@@ -480,10 +480,10 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
       }());
 
   if (auto error = wrapper::CudnnConvolutionForward(
-          dctx->current_context(), dctx->dnn_handle(), alpha.pointer(platform),
-          input_desc.get(), input_ptr, filter_desc.get(), temp_buffer.pointer(),
-          conv_desc.get(), algo, workspace_ptr, workspace_size_bytes,
-          beta.pointer(platform), output_desc.get(), output_buffer.pointer())) {
+          dctx->current_context(), dctx->dnn_handle(), &alpha, input_desc.get(),
+          input_ptr, filter_desc.get(), temp_buffer.pointer(), conv_desc.get(),
+          algo, workspace_ptr, workspace_size_bytes, &beta, output_desc.get(),
+          output_buffer.pointer())) {
     return std::move(error);
   }
 

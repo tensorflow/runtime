@@ -52,6 +52,8 @@ template <>
 struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag, uint64_t>
     : public RocmPlatformType {};
 
+mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type);
+
 llvm::Expected<LibraryVersion> MiopenGetVersion();
 llvm::Expected<OwningDnnHandle> MiopenCreate(CurrentContext current);
 llvm::Error MiopenDestroy(miopenHandle_t handle);

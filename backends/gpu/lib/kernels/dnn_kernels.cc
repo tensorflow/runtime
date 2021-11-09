@@ -38,6 +38,39 @@ static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
   return GpuDnnHandle(stream.ValueRef(), std::move(*handle));
 }
 
+static Expected<wrapper::OwningDnnConvolutionDescriptor>
+DnnCreateConvolutionDescriptor(
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> compute_type_attr, Attribute<int32_t> conv_mode_attr,
+    ArrayAttr dilation, ArrayAttr filter_stride, ArrayAttr pad) {
+  auto conv_mode =
+      wrapper::DnnConvolutionMode::FromOpaqueValue(*conv_mode_attr);
+  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
+  auto descriptor =
+      wrapper::DnnCreateConvolutionDescriptor(compute_type.platform());
+  if (!descriptor) return descriptor.takeError();
+  if (auto error = wrapper::DnnSetConvolutionDescriptor(
+          descriptor->get(), pad.GetValue<int32_t>(),
+          filter_stride.GetValue<int32_t>(), dilation.GetValue<int32_t>(),
+          conv_mode, compute_type))
+    return std::move(error);
+  return std::move(*descriptor);
+}
+
+static Expected<wrapper::OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> data_type_attr, ArrayAttr dimensions,
+    Attribute<int32_t> tensor_format_attr) {
+  auto data_type = wrapper::DnnDataType::FromOpaqueValue(*data_type_attr);
+  auto descriptor = wrapper::DnnCreateFilterDescriptor(data_type.platform());
+  if (!descriptor) return descriptor.takeError();
+  if (auto error = wrapper::DnnSetFilterDescriptor(
+          descriptor->get(), data_type, *tensor_format_attr,
+          dimensions.GetValue<int32_t>()))
+    return std::move(error);
+  return std::move(*descriptor);
+}
+
 static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
     const GpuContext& context, uint32_t mode, uint32_t nan_propagation,
     // Needs to be sorted alphabetically by attribute name!
@@ -103,55 +136,64 @@ static Error DnnPoolingBackward(
       beta_ptr, dx_desc.get(), dx.pointer());
 }
 
-Error DnnConvolutionForward(
+static Error DnnConvolutionForward(
     const GpuDnnHandle& handle, const GpuDnnTensorDesc& x_desc,
     const GpuBuffer& x, const wrapper::OwningDnnFilterDescriptor& w_desc,
     const GpuBuffer& w,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space, const GpuDnnTensorDesc& y_desc,
-    const GpuBuffer& y) {
+    const GpuBuffer& y,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> compute_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
   auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionForward(
-      *current, handle.get(), x_desc.get(), x.pointer(), w_desc.get(),
-      w.pointer(), conv_desc.get(), algo_dnn, work_space.pointer(),
-      work_space.size(), y_desc.get(), y.pointer());
+      *current, handle.get(), compute_type, x_desc.get(), x.pointer(),
+      w_desc.get(), w.pointer(), conv_desc.get(), algo_dnn,
+      work_space.pointer(), work_space.size(), y_desc.get(), y.pointer());
 }
 
-Error DnnConvolutionBackwardData(
+static Error DnnConvolutionBackwardData(
     const GpuDnnHandle& handle,
     const wrapper::OwningDnnFilterDescriptor& w_desc, const GpuBuffer& w,
     const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space, const GpuDnnTensorDesc& dx_desc,
-    const GpuBuffer& dx) {
+    const GpuBuffer& dx,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> compute_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
   auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardData(
-      *current, handle.get(), w_desc.get(), w.pointer(), dy_desc.get(),
-      dy.pointer(), conv_desc.get(), algo_dnn, work_space.pointer(),
-      work_space.size(), dx_desc.get(), dx.pointer());
+      *current, handle.get(), compute_type, w_desc.get(), w.pointer(),
+      dy_desc.get(), dy.pointer(), conv_desc.get(), algo_dnn,
+      work_space.pointer(), work_space.size(), dx_desc.get(), dx.pointer());
 }
 
-Error DnnConvolutionBackwardFilter(
+static Error DnnConvolutionBackwardFilter(
     const GpuDnnHandle& handle, const GpuDnnTensorDesc& x_desc,
     const GpuBuffer& x, const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space,
-    const wrapper::OwningDnnFilterDescriptor& dw_desc, const GpuBuffer& dw) {
+    const wrapper::OwningDnnFilterDescriptor& dw_desc, const GpuBuffer& dw,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> compute_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
   auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardFilter(
-      *current, handle.get(), x_desc.get(), x.pointer(), dy_desc.get(),
-      dy.pointer(), conv_desc.get(), algo_dnn, work_space.pointer(),
-      work_space.size(), dw_desc.get(), dw.pointer());
+      *current, handle.get(), compute_type, x_desc.get(), x.pointer(),
+      dy_desc.get(), dy.pointer(), conv_desc.get(), algo_dnn,
+      work_space.pointer(), work_space.size(), dw_desc.get(), dw.pointer());
 }
 
 // This is CUDA specific kernel, there is no ROCm counterpart.
-Error CudnnConvolutionBiasActivationForward(
+static Error CudnnConvolutionBiasActivationForward(
     const GpuDnnHandle& handle, const GpuBuffer& alpha1,
     const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc, const GpuBuffer& w,
@@ -174,6 +216,10 @@ Error CudnnConvolutionBiasActivationForward(
 
 void RegisterGpuDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.dnn.create", TFRT_KERNEL(DnnCreate));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.create_convolution_descriptor",
+                        TFRT_KERNEL(DnnCreateConvolutionDescriptor));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.create_filter_descriptor",
+                        TFRT_KERNEL(DnnCreateFilterDescriptor));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_tensor_descriptor",

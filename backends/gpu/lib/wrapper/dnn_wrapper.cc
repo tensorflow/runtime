@@ -24,6 +24,18 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+mlir::TypeID GetDnnDataTypeId(DnnDataType data_type) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCudnnDataTypeId(data_type);
+    case Platform::ROCm:
+      return GetMiopenDataTypeId(data_type);
+    default:
+      return {};
+  }
+}
+
 static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
   switch (mode) {
     case DnnPoolingMode::kPoolingMax:
@@ -248,6 +260,25 @@ llvm::Error DnnDestroyConvolutionDescriptor(
   }
 }
 
+llvm::Error DnnSetConvolutionDescriptor(DnnConvolutionDescriptor descriptor,
+                                        llvm::ArrayRef<int> pad,
+                                        llvm::ArrayRef<int> filter_stride,
+                                        llvm::ArrayRef<int> dilation,
+                                        DnnConvolutionMode mode,
+                                        DnnDataType compute_type) {
+  auto platform = descriptor.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnSetConvolutionDescriptor(descriptor, pad, filter_stride,
+                                           dilation, mode, compute_type);
+    case Platform::ROCm:
+      return MiopenInitConvolutionDescriptor(descriptor, pad, filter_stride,
+                                             dilation, mode);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Expected<OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
     Platform platform) {
   switch (platform) {
@@ -329,6 +360,22 @@ llvm::Expected<OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
   switch (platform) {
     case Platform::CUDA:
       return CudnnCreateFilterDescriptor();
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error DnnSetFilterDescriptor(DnnFilterDescriptor descriptor,
+                                   DnnDataType data_type, int32_t format,
+                                   llvm::ArrayRef<int> dimensions) {
+  auto platform = descriptor.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnSetFilterDescriptor(descriptor, data_type,
+                                      static_cast<cudnnTensorFormat_t>(format),
+                                      dimensions);
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:
@@ -460,25 +507,28 @@ DnnGetConvolutionForwardOutputDim(DnnConvolutionDescriptor conv_desc,
 }
 
 llvm::Error DnnConvolutionForward(
-    CurrentContext current, DnnHandle handle, DnnTensorDescriptor x_desc,
-    Pointer<const void> x, DnnFilterDescriptor w_desc, Pointer<const void> w,
+    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    DnnTensorDescriptor x_desc, Pointer<const void> x,
+    DnnFilterDescriptor w_desc, Pointer<const void> w,
     DnnConvolutionDescriptor conv_desc, DnnConvFwdAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnTensorDescriptor y_desc, Pointer<void> y) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA: {
-      // This does not work for the double, type would need to be double.
-      // The scaling factor parameters 'alpha' and 'beta' of the
-      // cudnnTransform* and cudnnConvolution* functions are type
-      // punned pointers. The storage type is double for double
-      // output tensors, and float otherwise.
-      float alpha = 1.0;
-      float beta = 0.0;
-      return CudnnConvolutionForward(
-          current, handle, Pointer<const void>(&alpha, Platform::CUDA), x_desc,
-          x, w_desc, w, conv_desc, algo, work_space, work_space_size_in_bytes,
-          Pointer<const void>(&beta, Platform::CUDA), y_desc, y);
+      if (GetDnnDataTypeId(compute_type) == mlir::TypeID::get<double>()) {
+        double alpha = 1.0;
+        double beta = 0.0;
+        return CudnnConvolutionForward(
+            current, handle, &alpha, x_desc, x, w_desc, w, conv_desc, algo,
+            work_space, work_space_size_in_bytes, &beta, y_desc, y);
+      } else {
+        float alpha = 1.0;
+        float beta = 0.0;
+        return CudnnConvolutionForward(
+            current, handle, &alpha, x_desc, x, w_desc, w, conv_desc, algo,
+            work_space, work_space_size_in_bytes, &beta, y_desc, y);
+      }
     }
     case Platform::ROCm:
       return MiopenConvolutionForwardImmediate(
@@ -490,25 +540,28 @@ llvm::Error DnnConvolutionForward(
 }
 
 llvm::Error DnnConvolutionBackwardData(
-    CurrentContext current, DnnHandle handle, DnnFilterDescriptor w_desc,
-    Pointer<const void> w, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    DnnFilterDescriptor w_desc, Pointer<const void> w,
+    DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdDataAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnTensorDescriptor dx_desc, Pointer<void> dx) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA: {
-      // This does not work for the double, type would need to be double.
-      // The scaling factor parameters 'alpha' and 'beta' of the
-      // cudnnTransform* and cudnnConvolution* functions are type
-      // punned pointers. The storage type is double for double
-      // output tensors, and float otherwise.
-      float alpha = 1.0;
-      float beta = 0.0;
-      return CudnnConvolutionBackwardData(
-          current, handle, Pointer<const void>(&alpha, Platform::CUDA), w_desc,
-          w, dy_desc, dy, conv_desc, algo, work_space, work_space_size_in_bytes,
-          Pointer<const void>(&beta, Platform::CUDA), dx_desc, dx);
+      if (GetDnnDataTypeId(compute_type) == mlir::TypeID::get<double>()) {
+        double alpha = 1.0;
+        double beta = 0.0;
+        return CudnnConvolutionBackwardData(
+            current, handle, &alpha, w_desc, w, dy_desc, dy, conv_desc, algo,
+            work_space, work_space_size_in_bytes, &beta, dx_desc, dx);
+      } else {
+        float alpha = 1.0;
+        float beta = 0.0;
+        return CudnnConvolutionBackwardData(
+            current, handle, &alpha, w_desc, w, dy_desc, dy, conv_desc, algo,
+            work_space, work_space_size_in_bytes, &beta, dx_desc, dx);
+      }
     }
     case Platform::ROCm:
       return MiopenConvolutionBackwardDataImmediate(
@@ -520,25 +573,28 @@ llvm::Error DnnConvolutionBackwardData(
 }
 
 llvm::Error DnnConvolutionBackwardFilter(
-    CurrentContext current, DnnHandle handle, DnnTensorDescriptor x_desc,
-    Pointer<const void> x, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    DnnTensorDescriptor x_desc, Pointer<const void> x,
+    DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnFilterDescriptor dw_desc, Pointer<void> dw) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA: {
-      // This does not work for the double, type would need to be double.
-      // The scaling factor parameters 'alpha' and 'beta' of the
-      // cudnnTransform* and cudnnConvolution* functions are type
-      // punned pointers. The storage type is double for double
-      // output tensors, and float otherwise.
-      float alpha = 1.0;
-      float beta = 0.0;
-      return CudnnConvolutionBackwardFilter(
-          current, handle, Pointer<const void>(&alpha, Platform::CUDA), x_desc,
-          x, dy_desc, dy, conv_desc, algo, work_space, work_space_size_in_bytes,
-          Pointer<const void>(&beta, Platform::CUDA), dw_desc, dw);
+      if (GetDnnDataTypeId(compute_type) == mlir::TypeID::get<double>()) {
+        double alpha = 1.0;
+        double beta = 0.0;
+        return CudnnConvolutionBackwardFilter(
+            current, handle, &alpha, x_desc, x, dy_desc, dy, conv_desc, algo,
+            work_space, work_space_size_in_bytes, &beta, dw_desc, dw);
+      } else {
+        float alpha = 1.0;
+        float beta = 0.0;
+        return CudnnConvolutionBackwardFilter(
+            current, handle, &alpha, x_desc, x, dy_desc, dy, conv_desc, algo,
+            work_space, work_space_size_in_bytes, &beta, dw_desc, dw);
+      }
     }
     case Platform::ROCm:
       return MiopenConvolutionBackwardWeightsImmediate(

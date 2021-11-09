@@ -217,5 +217,18 @@ TEST_F(AsyncValueRefTest, AsExpectedNoError) {
   EXPECT_EQ(**expected, kTestValue);
 }
 
+TEST_F(AsyncValueRefTest, Nullptr) {
+  // Test constructing from nullptr.
+  AsyncValueRef<int> av_int = nullptr;
+  EXPECT_FALSE(av_int);
+
+  // Test assignment to nullptr.
+  AsyncValueRef<int> av_int2 =
+      MakeConstructedAsyncValueRef<int>(host_context_.get(), kTestValue);
+  EXPECT_TRUE(av_int2);
+  av_int2 = nullptr;
+  EXPECT_FALSE(av_int2);
+}
+
 }  // namespace
 }  // namespace tfrt

@@ -27,6 +27,7 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 
+#include <cstddef>
 #include <type_traits>
 
 #include "llvm/ADT/FunctionExtras.h"
@@ -60,6 +61,7 @@ template <typename T>
 class AsyncValueRef {
  public:
   AsyncValueRef() = default;
+  /*implicit */ AsyncValueRef(std::nullptr_t) {}  // NOLINT
 
   // Support implicit conversion from AsyncValueRef<Derived> to
   // AsyncValueRef<Base>.

@@ -406,8 +406,8 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
             // reject it.
             if (!BefAttrEmitter::IsSupportedAttribute(attr.second) &&
                 result == LogicalResult::Success) {
-              op->emitError() << "BEF files cannot encode the '" << attr.first
-                              << "' attribute";
+              op->emitError() << "BEF files cannot encode the '"
+                              << attr.first.getValue() << "' attribute";
               result = LogicalResult::Failure;
               return;
             }

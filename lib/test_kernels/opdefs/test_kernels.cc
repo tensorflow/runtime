@@ -219,7 +219,7 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
   for (auto &name_attr : op->getAttrs()) {
-    auto id = name_attr.first;
+    auto id = name_attr.first.getValue();
     if (id == "name") continue;
 
     if (need_comma) p << ", ";
@@ -356,7 +356,7 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
   for (auto &name_attr : op->getAttrs()) {
-    auto id = name_attr.first;
+    auto id = name_attr.first.getValue();
     if (id == "target_fn") continue;
 
     if (need_comma) p << ", ";

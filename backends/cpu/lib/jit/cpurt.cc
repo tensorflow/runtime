@@ -169,13 +169,24 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type) {
     os << value->value_type();
     os << ">";
 
+  } else if (auto* tensor = dyn_cast<RankedTensorType>(&type)) {
+    os << "tensor<";
+    print_arr(tensor->sizes());
+    os << "x" << tensor->element_type();
+    os << ">";
+
+  } else if (auto* tensor = dyn_cast<UnrankedTensorType>(&type)) {
+    os << "tensor<";
+    os << "*x" << tensor->element_type();
+    os << ">";
+
   } else if (auto* memref = dyn_cast<MemrefType>(&type)) {
     os << "memref<";
     print_arr(memref->sizes());
     os << "x" << memref->element_type();
     os << ">";
 
-  } else if (auto* unranked = dyn_cast<UnrankedMemrefType>(&type)) {
+  } else if (auto* memref = dyn_cast<UnrankedMemrefType>(&type)) {
     os << "memref<";
     os << "*x" << memref->element_type();
     os << ">";
@@ -197,19 +208,37 @@ AsyncTokenType::AsyncTokenType() : Type(TypeKind::kAsyncToken) {}
 AsyncValueType::AsyncValueType(std::unique_ptr<Type> value_type)
     : Type(TypeKind::kAsyncValue), value_type_(std::move(value_type)) {}
 
+RankedTensorType::RankedTensorType(ArrayRef<Index> sizes, DType element_type)
+    : Type(TypeKind::kRankedTensor),
+      sizes_(sizes.begin(), sizes.end()),
+      element_type_(element_type) {}
+
+ArrayRef<Index> RankedTensorType::sizes() const { return sizes_; }
+
+unsigned RankedTensorType::rank() const { return sizes_.size(); }
+
+DType RankedTensorType::element_type() const { return element_type_; }
+
+UnrankedTensorType::UnrankedTensorType(DType element_type)
+    : Type(TypeKind::kUnrankedTensor), element_type_(element_type) {}
+
+DType UnrankedTensorType::element_type() const { return element_type_; }
+
 MemrefType::MemrefType(ArrayRef<Index> sizes, DType element_type)
     : Type(TypeKind::kMemref),
       sizes_(sizes.begin(), sizes.end()),
       element_type_(element_type) {}
-
-UnrankedMemrefType::UnrankedMemrefType(DType element_type)
-    : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
 
 ArrayRef<Index> MemrefType::sizes() const { return sizes_; }
 
 unsigned MemrefType::rank() const { return sizes_.size(); }
 
 DType MemrefType::element_type() const { return element_type_; }
+
+UnrankedMemrefType::UnrankedMemrefType(DType element_type)
+    : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
+
+DType UnrankedMemrefType::element_type() const { return element_type_; }
 
 KernelContextOperandType::KernelContextOperandType()
     : Type(TypeKind::kKernelContext) {}
@@ -237,11 +266,7 @@ static Expected<DType> ConvertElementType(mlir::Type type) {
   return MakeStringError("unsupported element type: ", type);
 }
 
-static Expected<std::unique_ptr<Type>> ConvertType(
-    mlir::Type type, mlir::TypeConverter& type_converter) {
-  // Try to apply user provided type conversion first.
-  if (auto converted = type_converter.convertType(type)) type = converted;
-
+static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
   // mlir::async::TokenType -> tfrt::cpu::jit::AsyncTokenType
   if (type.isa<mlir::async::TokenType>())
     return std::make_unique<AsyncTokenType>();
@@ -251,10 +276,24 @@ static Expected<std::unique_ptr<Type>> ConvertType(
     if (!value.getValueType().isa<mlir::MemRefType>())
       return MakeStringError("async value can only hold memref type");
 
-    auto value_type = ConvertType(value.getValueType(), type_converter);
+    auto value_type = ConvertType(value.getValueType());
     if (auto err = value_type.takeError()) return std::move(err);
 
     return std::make_unique<AsyncValueType>(std::move(*value_type));
+  }
+
+  // mlir::RankedTensorType -> tfrt::cpu::jit::RankedTensorType
+  if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
+    auto element_type = ConvertElementType(tensor.getElementType());
+    if (auto err = element_type.takeError()) return std::move(err);
+    return std::make_unique<RankedTensorType>(tensor.getShape(), *element_type);
+  }
+
+  // mlir::UnrankedTensorType -> tfrt::cpu::jit::UnrankedTensorType
+  if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
+    auto element_type = ConvertElementType(tensor.getElementType());
+    if (auto err = element_type.takeError()) return std::move(err);
+    return std::make_unique<UnrankedTensorType>(*element_type);
   }
 
   // mlir::MemrefType -> tfrt::cpu::jit::MemrefType
@@ -265,8 +304,8 @@ static Expected<std::unique_ptr<Type>> ConvertType(
   }
 
   // mlir::UnrankedMemrefType -> tfrt::cpu::jit::UnrankedMemrefType
-  if (auto unranked = type.dyn_cast<mlir::UnrankedMemRefType>()) {
-    auto element_type = ConvertElementType(unranked.getElementType());
+  if (auto memref = type.dyn_cast<mlir::UnrankedMemRefType>()) {
+    auto element_type = ConvertElementType(memref.getElementType());
     if (auto err = element_type.takeError()) return std::move(err);
     return std::make_unique<UnrankedMemrefType>(*element_type);
   }
@@ -280,12 +319,6 @@ static Expected<std::unique_ptr<Type>> ConvertType(
 
 /*static*/ Expected<FunctionType> FunctionType::Convert(
     mlir::FunctionType type) {
-  mlir::TypeConverter converter;
-  return FunctionType::Convert(type, converter);
-}
-
-/*static*/ Expected<FunctionType> FunctionType::Convert(
-    mlir::FunctionType type, mlir::TypeConverter& type_converter) {
   llvm::SmallVector<std::unique_ptr<Type>> operands;
   llvm::SmallVector<std::unique_ptr<Type>> results;
 
@@ -298,16 +331,14 @@ static Expected<std::unique_ptr<Type>> ConvertType(
   };
 
   for (unsigned i = 0; i < type.getNumInputs(); ++i) {
-    Expected<std::unique_ptr<Type>> converted =
-        ConvertType(type.getInput(i), type_converter);
+    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getInput(i));
     if (auto err = converted.takeError())
       return error("input", i, type.getInput(i), std::move(err));
     operands.push_back(std::move(*converted));
   }
 
   for (unsigned i = 0; i < type.getNumResults(); ++i) {
-    Expected<std::unique_ptr<Type>> converted =
-        ConvertType(type.getResult(i), type_converter);
+    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getResult(i));
     if (auto err = converted.takeError())
       return error("result", i, type.getResult(i), std::move(err));
     results.push_back(std::move(*converted));
@@ -382,9 +413,9 @@ Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
 // Verify that signature operands types are matching runtime operands types.
 // -------------------------------------------------------------------------- //
 
-static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
-                                 const MemrefDesc& memref,
-                                 bool check_sizes = true) {
+static Error VerifyMemrefOperand(unsigned index, DType element_type,
+                                 Optional<ArrayRef<Index>> sizes,
+                                 const MemrefDesc& memref) {
   // Format memref operand and expected type for user-friendly error messages.
   auto format_operands = [&]() -> std::string {
     std::string err;
@@ -394,45 +425,49 @@ static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
       return d == MemrefType::kDynamicSize ? "?" : std::to_string(d);
     };
 
-    auto print_shaped = [&](ArrayRef<Index> dims, DType dtype) {
-      if (dims.empty()) {
+    auto print_shaped = [&](Optional<ArrayRef<Index>> dims, DType dtype) {
+      if (!dims.hasValue()) {
+        os << "[*x" << dtype << "]";
+        return;
+      }
+
+      if (dims->empty()) {
         os << "[" << dtype << "]";
         return;
       }
 
-      os << "[" << dim(dims[0]);
-      for (int i = 1; i < dims.size(); ++i) os << "x" << dim(dims[i]);
+      os << "[" << dim((*dims)[0]);
+      for (int i = 1; i < dims->size(); ++i) os << "x" << dim((*dims)[i]);
       os << "x" << dtype << "]";
     };
 
     os << "got ";
-    print_shaped(memref.sizes, memref.dtype);
+    print_shaped({memref.sizes}, memref.dtype);
     os << " vs expected ";
-    print_shaped(type.sizes(), type.element_type());
+    print_shaped(sizes, element_type);
 
     return err;
   };
 
   // Check that memref data type matches operand element type.
-  if (type.element_type() != memref.dtype)
+  if (element_type != memref.dtype)
     return MakeStringError(
         "operand #", index,
         " type doesn't match the expected element type: ", memref.dtype, " vs ",
-        type.element_type(), " (", format_operands(), ")");
+        element_type, " (", format_operands(), ")");
 
-  // Unranked memrefs are not representable with MemrefType, we explicitly pass
-  // a flag to disable sizes check in this case .
-  if (!check_sizes) return Error::success();
+  // Skip sizes verification if they are not available.
+  if (!sizes.hasValue()) return Error::success();
 
   // Check that memref rank is the same as operand rank.
-  if (memref.sizes.size() != type.rank())
+  if (memref.sizes.size() != sizes->size())
     return MakeStringError(
         "operand #", index,
         " rank does not match expected input rank: ", memref.sizes.size(),
-        " vs ", type.rank(), " (", format_operands(), ")");
+        " vs ", sizes->size(), " (", format_operands(), ")");
 
   // Check that all statically known dimensions matches the memref dimensions.
-  for (auto pair : llvm::enumerate(llvm::zip(memref.sizes, type.sizes()))) {
+  for (const auto& pair : llvm::enumerate(llvm::zip(memref.sizes, *sizes))) {
     Index operand_dim = std::get<0>(pair.value());
     Index expected_dim = std::get<1>(pair.value());
 
@@ -448,34 +483,27 @@ static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
   return Error::success();
 }
 
+static Error VerifyMemrefOperand(unsigned index, const RankedTensorType& type,
+                                 const MemrefDesc& memref) {
+  return VerifyMemrefOperand(index, type.element_type(), type.sizes(), memref);
+}
+
+static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
+                                 const MemrefDesc& memref) {
+  return VerifyMemrefOperand(index, type.element_type(), type.sizes(), memref);
+}
+
 static Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
                                  const MemrefDesc& memref) {
   auto element_type = ConvertElementType(type.getElementType());
   if (auto err = element_type.takeError()) return err;
 
-  // We do not support unranked memrefs at runtime, and do not have a special
-  // runtime type to represent it, however we need to verify operand types when
-  // we do compiled kernel specialization to shape.
-  MemrefType memref_type(type.hasRank() ? type.getShape() : ArrayRef<Index>(),
-                         *element_type);
-
-  return VerifyMemrefOperand(index, memref_type, memref,
-                             /*check_sizes=*/type.hasRank());
-}
-
-static Error VerifyMemrefOperand(unsigned index, mlir::MemRefType type,
-                                 const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.cast<mlir::ShapedType>(), memref);
-}
-
-static Error VerifyMemrefOperand(unsigned index, mlir::RankedTensorType type,
-                                 const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.cast<mlir::ShapedType>(), memref);
-}
-
-static Error VerifyMemrefOperand(unsigned index, mlir::UnrankedTensorType type,
-                                 const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.cast<mlir::ShapedType>(), memref);
+  // We do not support unranked memrefs at runtime, however we need to verify
+  // operand types when we do compiled kernel specialization to shape.
+  return VerifyMemrefOperand(
+      index, *element_type,
+      type.hasRank() ? Optional<ArrayRef<Index>>{type.getShape()} : llvm::None,
+      memref);
 }
 
 // -------------------------------------------------------------------------- //
@@ -546,30 +574,31 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // Make sure that we call the kernel with the correct number of operands.
   // We subtract one operand from the signature because it corresponds to the
   // context that we prepend to the given operands.
-  if (operands.size() != signature_.num_operands() - 1)
+  if (operands.size() != runtime_signature_.num_operands() - 1)
     return MakeStringError(
         "number of operands doesn't match the function signature: ",
-        operands.size(), " vs ", signature_.num_operands() - 1);
+        operands.size(), " vs ", runtime_signature_.num_operands() - 1);
 
   // Verify that all operands passed at runtime are compatible with compiled
   // function signature.
-  auto kctx = dyn_cast<KernelContextOperandType>(signature_.operand(0));
+  auto kctx = dyn_cast<KernelContextOperandType>(runtime_signature_.operand(0));
   if (!kctx) {
     return MakeStringError(
         "expected KernelContext in first argument of "
         "signature, got: ",
-        signature_.operand(0));
+        runtime_signature_.operand(0));
   }
 
   // We use 0-based index for operands, because the kernel context operand is an
   // internal implementation detail, and in case of an error users should get
   // back operand index corresponding to the user provided signature.
   for (unsigned i = 0; i < operands.size(); ++i) {
-    if (auto* memref = dyn_cast<MemrefType>(signature_.operand(1 + i))) {
+    if (auto* memref =
+            dyn_cast<MemrefType>(runtime_signature_.operand(1 + i))) {
       if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
     } else {
       return MakeStringError("expected memref operand at #", i,
-                             ", got: ", signature_.operand(i));
+                             ", got: ", *runtime_signature_.operand(i));
     }
   }
 
@@ -668,6 +697,7 @@ namespace internal {
 
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
                                      unsigned result_index, const Type* type,
+                                     const Type* runtime_type,
                                      void* result_ptr) {
   if (!isa<AsyncTokenType>(type)) return mlir::failure();
 
@@ -682,17 +712,19 @@ mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
 mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        unsigned result_index,
                                                        const Type* type,
+                                                       const Type* runtime_type,
                                                        void* result_ptr) {
   return ReturnAsyncStridedMemref<ConvertDenseHostTensor>(
-      {}, results, result_index, type, result_ptr);
+      {}, results, result_index, type, runtime_type, result_ptr);
 }
 
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   unsigned result_index,
                                                   const Type* type,
+                                                  const Type* runtime_type,
                                                   void* result_ptr) {
-  return ReturnStridedMemref<ConvertDenseHostTensor>({}, results, result_index,
-                                                     type, result_ptr);
+  return ReturnStridedMemref<ConvertDenseHostTensor>(
+      {}, results, result_index, type, runtime_type, result_ptr);
 }
 
 }  // namespace internal
@@ -806,10 +838,11 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
   // Try to convert results using registered conversion functions.
   bool converted = true;
 
-  for (unsigned i = 0; i < signature_.num_results(); ++i) {
+  for (unsigned i = 0; i < runtime_signature_.num_results(); ++i) {
     const Type* type = signature_.result(i);
+    const Type* runtime_type = runtime_signature_.result(i);
     void* ret = &call_frame->results[results_memory_layout_.offsets[i]];
-    bool res = mlir::succeeded(results.ReturnValue(i, type, ret));
+    bool res = mlir::succeeded(results.ReturnValue(i, type, runtime_type, ret));
     converted = converted && res;
   }
 
@@ -819,7 +852,9 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
     return Error::success();
 }
 
-const FunctionType& Executable::signature() const { return signature_; }
+unsigned Executable::num_results() const {
+  return runtime_signature_.num_results();
+}
 
 //----------------------------------------------------------------------------//
 // Setup MLIR pass pipeline to lower to LLVM dialect, and use ORC JIT to codegen
@@ -1039,8 +1074,7 @@ class JitCompilationContext {
   // Makes an executable from the JIT compilation context. This is the end of
   // life for the compilation context, it effectively converts the MLIR module
   // to the executable (function pointer) using LLVM JIT code generation.
-  static Expected<Executable> Compile(
-      std::unique_ptr<JitCompilationContext> ctx);
+  static Expected<Executable> Compile(std::unique_ptr<JitCompilationContext>);
 
   template <typename OriginalError>
   llvm::Error Error(OriginalError original_error) {
@@ -1151,6 +1185,13 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
     std::unique_ptr<JitCompilationContext> ctx) {
+  mlir::FuncOp entry_func = ctx->entrypoint();
+  std::string entrypoint = entry_func.getName().str();
+
+  // Get the signature of the original entrypoint function.
+  auto signature = FunctionType::Convert(entry_func.getType());
+  if (auto err = signature.takeError()) return std::move(err);
+
   // Lower loaded module to dialects supported by the CPURT to LLVM pipeline.
   if (failed(LowerToCpurt(ctx->module(), ctx->options())))
     return ctx->Error("failed to lower module to CPURT dialects");
@@ -1158,19 +1199,15 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Prepend KernelContext to the arguments of the entrypoint function.
   PrependKernelContextType(ctx->entrypoint());
 
-  // Verify entrypoint function signature.
-  mlir::FuncOp entry_func = ctx->entrypoint();
-  std::string entrypoint = entry_func.getName().str();
-
-  // Convert entrypoint function type to the runtime function type. We do not
-  // pass user provided type converter at this point, because all high level
-  // dialects should be already lowered to the CPURT dialects.
-  auto entry_signature = FunctionType::Convert(entry_func.getType());
-  if (auto err = entry_signature.takeError()) return std::move(err);
+  // Get the signature of the entrypoint function after lowering to the dialects
+  // supported by the runtime (at this point all operands and results should
+  // have well-defined ABI).
+  auto runtime_signature = FunctionType::Convert(entry_func.getType());
+  if (auto err = runtime_signature.takeError()) return std::move(err);
 
   // Get the memory layout for returning function results.
   auto results_memory_layout =
-      Executable::GetResultsMemoryLayout(*entry_signature);
+      Executable::GetResultsMemoryLayout(*runtime_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
@@ -1205,7 +1242,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Register memory allocation functions (malloc, free, ...).
   (*engine)->registerSymbols(AsyncRuntimeMemoryAllocationSymbolMap);
 
-  return Executable(std::move(*engine), std::move(*entry_signature), entrypoint,
+  return Executable(std::move(*engine), std::move(*signature),
+                    std::move(*runtime_signature), entrypoint,
                     std::move(*results_memory_layout), ctx->name().str());
 }
 
@@ -1486,22 +1524,32 @@ SymbolicShapesResolver::SymbolicShapesResolver(
     const FunctionType& signature, ArrayRef<OperandConstraint> constraints)
     : constraints_(constraints.begin(), constraints.end()) {
   for (unsigned i = 0; i < signature.num_operands(); ++i) {
-    if (auto* memref = dyn_cast<MemrefType>(signature.operand(i))) {
-      // Copy memref dimensions sizes from the signature type.
-      operands_sizes_.emplace_back(llvm::SmallVector<Index>(
-          memref->sizes().begin(), memref->sizes().end()));
+    auto* type = signature.operand(i);
 
-      // Keep track of all statically known dimension sizes.
-      for (Index size : memref->sizes()) {
-        if (size != MemrefType::kDynamicSize) seen_static_sizes_.insert(size);
-      }
-
+    // For unranked operands we do not know any static shape information.
+    if (isa<UnrankedTensorType, UnrankedMemrefType>(type)) {
+      operands_sizes_.emplace_back();
       continue;
     }
 
-    if (auto* unranked = dyn_cast<UnrankedMemrefType>(signature.operand(i))) {
-      // No shape information known statically.
-      operands_sizes_.emplace_back();
+    auto emplace_sizes = [&](ArrayRef<Index> sizes) {
+      operands_sizes_.emplace_back(llvm::to_vector(sizes));
+
+      // Keep track of all statically known dimension sizes.
+      for (Index size : sizes) {
+        if (size != MemrefType::kDynamicSize) seen_static_sizes_.insert(size);
+      }
+    };
+
+    // Copy memref dimensions sizes from the signature type.
+    if (auto* memref = dyn_cast<MemrefType>(type)) {
+      emplace_sizes(memref->sizes());
+      continue;
+    }
+
+    // Copy tensor dimensions sizes from the signature type.
+    if (auto* tensor = dyn_cast<RankedTensorType>(type)) {
+      emplace_sizes(tensor->sizes());
       continue;
     }
 
@@ -1617,8 +1665,7 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
 
   // Get the entrypoint function signature, it will be later required to
   // compute the specialized function signature from the operands at runtime.
-  auto signature = FunctionType::Convert((*ctx)->entrypoint().getType(),
-                                         compilation_opts.type_converter);
+  auto signature = FunctionType::Convert((*ctx)->entrypoint().getType());
   if (auto err = signature.takeError()) return std::move(err);
 
   // If the module must be specialized, return JitExecutable without a default
@@ -1733,12 +1780,19 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // operands to find the mismatch and report it to the user.
   if (mlir::failed(symbolic_shapes)) {
     for (unsigned i = 0; i < operands.size(); ++i) {
-      if (auto* memref = dyn_cast<MemrefType>(signature_.operand(i))) {
+      auto* type = signature_.operand(i);
+
+      if (auto* memref = dyn_cast<MemrefType>(type)) {
         if (auto err = VerifyMemrefOperand(i, *memref, operands[i]))
           return std::move(err);
+
+      } else if (auto* tensor = dyn_cast<RankedTensorType>(type)) {
+        if (auto err = VerifyMemrefOperand(i, *tensor, operands[i]))
+          return std::move(err);
+
       } else {
         return MakeStringError("expected memref operand at #", i,
-                               ", got: ", signature_.operand(i));
+                               ", got: ", *signature_.operand(i));
       }
     }
 

@@ -138,7 +138,7 @@ static void ExecuteImpl(const Executable& executable,
 
   // Allocate storage for compiled kernel results.
   SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
-  kernel_ret.resize(executable.signature().num_results());
+  kernel_ret.resize(executable.num_results());
 
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.

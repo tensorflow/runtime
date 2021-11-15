@@ -228,6 +228,8 @@ class Type {
   enum class TypeKind {
     kAsyncToken,
     kAsyncValue,
+    kRankedTensor,
+    kUnrankedTensor,
     kMemref,
     kUnrankedMemref,
     kKernelContext
@@ -278,6 +280,39 @@ class AsyncValueType : public Type {
 
  private:
   std::unique_ptr<Type> value_type_;
+};
+
+// Ranked Tensor type corresponding to the mlir::RankedTensorType.
+class RankedTensorType : public Type {
+ public:
+  static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
+  RankedTensorType(ArrayRef<Index> sizes, DType element_type);
+
+  ArrayRef<Index> sizes() const;
+  unsigned rank() const;
+  DType element_type() const;
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kRankedTensor;
+  }
+
+ private:
+  llvm::SmallVector<Index> sizes_;
+  DType element_type_;
+};
+
+// Unranked Tensor type corresponding to the mlir::UnrankedTensorType.
+class UnrankedTensorType : public Type {
+ public:
+  explicit UnrankedTensorType(DType element_type);
+  DType element_type() const;
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kUnrankedTensor;
+  }
+
+ private:
+  DType element_type_;
 };
 
 // Ranked Memref type corresponding to the mlir::MemrefType.
@@ -333,12 +368,8 @@ class FunctionType {
   unsigned num_results() const;
 
   // Converts MLIR function type to the runtime function type. Returns error if
-  // function has unsupported operands or results types. Optionally applies user
-  // defined type conversion to each operand and result type before trying to
-  // convert it to the runtime type.
+  // function has unsupported operands or results types.
   static Expected<FunctionType> Convert(mlir::FunctionType type);
-  static Expected<FunctionType> Convert(mlir::FunctionType type,
-                                        mlir::TypeConverter& type_converter);
 
   FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
                llvm::SmallVector<std::unique_ptr<Type>> results);
@@ -387,12 +418,14 @@ class ReturnValueConverterBase {
   explicit ReturnValueConverterBase(RemainingResults results);
   virtual ~ReturnValueConverterBase();
 
-  // Converts value `ret` of type `type` returned from the compiled function at
-  // `result_index` return position using registered conversion functions, and
-  // emplaces the result async value. If the conversion failed returns a failure
-  // and sets the result async value to error.
+  // Converts value `ret` of type `runtime_type` (runtime type derived from the
+  // original `type`) returned from the compiled function at `result_index`
+  // return position using registered conversion functions, and emplaces the
+  // result async value. If the conversion failed returns a failure and sets the
+  // result async value to error.
   virtual mlir::LogicalResult ReturnValue(unsigned result_index,
                                           const Type* type,
+                                          const Type* runtime_type,
                                           void* ret) const = 0;
 
   // Forward error to all remaining results.
@@ -425,9 +458,18 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   ~ReturnValueConverter() override = default;
 
   mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
+                                  const Type* runtime_type,
                                   void* ret) const final {
+    // TODO(ezhulenev): Workaround for non-atomic TF/TFRT changes.
+    for (auto& convert : llvm::reverse(legacy_conversion_callbacks_)) {
+      auto converted =
+          convert(*context_, results(), result_index, runtime_type, ret);
+      if (mlir::succeeded(converted)) return mlir::success();
+    }
+
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
-      auto converted = convert(*context_, results(), result_index, type, ret);
+      auto converted =
+          convert(*context_, results(), result_index, type, runtime_type, ret);
       if (mlir::succeeded(converted)) return mlir::success();
     }
     return mlir::failure();
@@ -445,9 +487,28 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   //
   // When attempting to convert a retuned value via 'ReturnValue', the most
   // recently added conversions will be invoked first.
+
+  // TODO(ezhulenev): Workaround for non-atomic TF/TFRT changes.
+ private:
+  template <typename FnT>
+  void AddConversion(FnT&& callback, std::true_type) {
+    conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
+  }
+
+  template <typename FnT>
+  void AddConversion(FnT&& callback, std::false_type) {
+    legacy_conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
+  }
+
+ public:
   template <typename FnT>
   void AddConversion(FnT&& callback) {
-    conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
+    using Tag = typename std::conditional<
+        std::is_same<typename llvm::function_traits<
+                         std::decay_t<FnT>>::template arg_t<4>,
+                     const Type*>::value,
+        std::true_type, std::false_type>::type;
+    AddConversion<FnT>(std::forward<FnT>(callback), Tag{});
   }
 
   ConversionContext& context() { return *context_; }
@@ -467,20 +528,27 @@ class ReturnValueConverter : public ReturnValueConverterBase {
  private:
   using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
       const ConversionContext&, RemainingResults, unsigned, const Type*,
-      void*)>;
+      const Type*, void*)>;
 
   // If result type was not matched by any of the user defined conversion
   // functions we return an error to the caller.
-  static mlir::LogicalResult UnsupportedReturnType(const ConversionContext& ctx,
-                                                   RemainingResults results,
-                                                   unsigned result_index,
-                                                   const Type* t, const void*) {
-    results.EmitErrorAt(result_index, StrCat("unsupported return type: ", t));
+  static mlir::LogicalResult UnsupportedReturnType(
+      const ConversionContext& ctx, RemainingResults results,
+      unsigned result_index, const Type* t, const Type* rt, const void*) {
+    results.EmitErrorAt(result_index, StrCat("unsupported return type: ", *rt,
+                                             " (derived from: ", *t, ")"));
     return mlir::failure();
   }
 
   std::unique_ptr<ConversionContext> context_;
   SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+
+  // TODO(ezhulenev): Workaround for non-atomic TF/TFRT changes.
+  using LegacyConversionCallbackFn = std::function<mlir::LogicalResult(
+      const ConversionContext&, RemainingResults, unsigned, const Type*,
+      void*)>;
+
+  SmallVector<LegacyConversionCallbackFn, 4> legacy_conversion_callbacks_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -492,6 +560,7 @@ namespace internal {
 // Converts returned values of `async::TokenType` type to the async chains.
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
                                      unsigned result_index, const Type* type,
+                                     const Type* runtime_type,
                                      void* result_ptr);
 
 // Following functions always construct a new tensor for the returned memref.
@@ -505,6 +574,7 @@ mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
 mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        unsigned result_index,
                                                        const Type* type,
+                                                       const Type* runtime_type,
                                                        void* result_ptr);
 
 // Converts returned values of `memref<...>` type to the async values of newly
@@ -512,16 +582,19 @@ mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   unsigned result_index,
                                                   const Type* type,
+                                                  const Type* runtime_type,
                                                   void* result_ptr);
 
 }  // namespace internal
 
-#define DECLARE_CONTEXT_ADAPTOR(NAME)                               \
-  template <typename ConversionContext>                             \
-  static mlir::LogicalResult NAME(                                  \
-      const ConversionContext&, RemainingResults results,           \
-      unsigned result_index, const Type* type, void* result_ptr) {  \
-    return internal::NAME(results, result_index, type, result_ptr); \
+#define DECLARE_CONTEXT_ADAPTOR(NAME)                                    \
+  template <typename ConversionContext>                                  \
+  static mlir::LogicalResult NAME(                                       \
+      const ConversionContext&, RemainingResults results,                \
+      unsigned result_index, const Type* type, const Type* runtime_type, \
+      void* result_ptr) {                                                \
+    return internal::NAME(results, result_index, type, runtime_type,     \
+                          result_ptr);                                   \
   }
 
 DECLARE_CONTEXT_ADAPTOR(ReturnAsyncToken)
@@ -552,14 +625,15 @@ template <typename Converter,
 mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
                                         RemainingResults results,
                                         unsigned result_index, const Type* type,
+                                        const Type* runtime_type,
                                         void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
   static_assert(std::is_move_constructible<ConversionContext>::value,
                 "Conversion context type must be move constructible");
 
-  // Check if the type is a valid memref.
-  auto* memref = dyn_cast<MemrefType>(type);
+  // Check if the runtime type is a valid memref.
+  auto* memref = dyn_cast<MemrefType>(runtime_type);
   if (!memref) return mlir::failure();
 
   // Dispatch to the correct extract function based on rank.
@@ -593,8 +667,16 @@ mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
                           StrCat("unsupported returned memref rank: ", rank));
   };
 
-  // Dispatch based on the memref element type.
+  // Dispatch based on the element type.
   DType element_type = memref->element_type();
+
+  // If the runtime memref type was derived from the Tensor type, take the
+  // element type of the original tensor, because during lowering from the high
+  // level dialects we can change the data type to another data type with
+  // compatible memory layout (e.g. unsigned type converted to signless type).
+  if (auto* tensor = dyn_cast<RankedTensorType>(type))
+    element_type = tensor->element_type();
+
   switch (element_type) {
     case DType::F32:
       rank_dispatch(float{});
@@ -641,6 +723,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
                                              RemainingResults results,
                                              unsigned result_index,
                                              const Type* type,
+                                             const Type* runtime_type,
                                              void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
@@ -814,10 +897,12 @@ class Executable {
   struct KernelContext;
 
   Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
-             FunctionType signature, string_view entrypoint,
-             ResultsMemoryLayout results_memory_layout, llvm::StringRef name)
+             FunctionType signature, FunctionType runtime_signature,
+             string_view entrypoint, ResultsMemoryLayout results_memory_layout,
+             llvm::StringRef name)
       : engine_(std::move(engine)),
         signature_(std::move(signature)),
+        runtime_signature_(std::move(runtime_signature)),
         fptr_(*engine_->lookup(entrypoint)),
         results_memory_layout_(std::move(results_memory_layout)),
         name_(name.str()) {
@@ -865,11 +950,14 @@ class Executable {
   void Execute(CallFrame& call_frame, const ExecutionContext& exec_ctx,
                const ExecuteOpts& opts = {}) const;
 
-  const FunctionType& signature() const;
-
   bool IsAsync() const { return results_memory_layout_.has_async_results; }
 
   llvm::StringRef name() const { return name_; }
+
+  unsigned num_results() const;
+
+  // TODO(ezhulenev): Non-atomic TF/TFRT changes workaround.
+  const FunctionType& signature() const { return runtime_signature_; }
 
   // CallFrame provides a pointer-stable storage for packed function arguments
   // and storage for returned values.
@@ -961,11 +1049,29 @@ class Executable {
 
   std::unique_ptr<mlir::ExecutionEngine> engine_;
 
-  // Signature of the compiled module entrypoint function prepared for the
-  // execution. First argument is always a kernel context added to the function
-  // by the lowering pipeline. Operands and results types are converted to the
-  // types supported by the runtime using compilation options type converter.
+  // Signature of the compiled module entrypoint function before lowering to
+  // the runtime dialects (see JitExecutable `signature_` for more details).
   FunctionType signature_;
+
+  // Signature of the compiled module entrypoint function after lowering it from
+  // high level dialects to the dialects supported by the cpurt runtime.
+  //
+  // - Operands and results types converted to the types with well-defined ABI
+  //   (e.g. tensors converted to memrefs).
+  //
+  // - First argument is always a kernel context added to the function by the
+  //   lowering pipeline.
+  //
+  // From this signature executable infers how to pack runtime operands
+  // according to the expected memory layout, and how to convert results
+  // returned from the JIT-compiled function into high level types (e.g. how to
+  // convert StridedMemrefType into Tensorflow Tensor).
+  //
+  // To infer the type of the returned value, executable looks at the type
+  // defined by the `runtime_signature_` to get the memory layout of the
+  // returned value, and at the type defined by the `signature_` to get the type
+  // expected by the runtime.
+  FunctionType runtime_signature_;
 
   KernelFunctionPtr fptr_;
   ResultsMemoryLayout results_memory_layout_;
@@ -1158,13 +1264,16 @@ class JitExecutable {
   // `kResolved`.
   llvm::SmallVector<OperandConstraint> constraints_;
 
-  // Signature of the compiled module entrypoint function (operands and results
-  // types converted to the types supported by the runtime using compilation
-  // options type converter).
+  // Signature of the compiled module entrypoint function.
   //
-  // This function signature is constructed from the user provided function, and
-  // does not contain kernel context operand, which is added by the runtime
-  // when the function is lowered to LLVM.
+  // This function signature is allowed to have operands and results types
+  // without a well-defined ABI (e.g. it can have tensors when compiled module
+  // defined in Tensorflow dialect), and it corresponds to the kernel definition
+  // in one of the high level dialects (e.g. Tensorflow or mHLO).
+  //
+  // When compiled module prepared for execution, function operands and results
+  // are mapped to the types with well-defined ABI (e.g. tensors mapped to
+  // memrefs). See `signature_` documentation in the `Executable` type.
   FunctionType signature_;
 
   // Symbolic shape resolver assigns symbolic dimensions to runtime operands

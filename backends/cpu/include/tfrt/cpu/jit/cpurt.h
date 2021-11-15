@@ -460,13 +460,6 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
                                   const Type* runtime_type,
                                   void* ret) const final {
-    // TODO(ezhulenev): Workaround for non-atomic TF/TFRT changes.
-    for (auto& convert : llvm::reverse(legacy_conversion_callbacks_)) {
-      auto converted =
-          convert(*context_, results(), result_index, runtime_type, ret);
-      if (mlir::succeeded(converted)) return mlir::success();
-    }
-
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
       auto converted =
           convert(*context_, results(), result_index, type, runtime_type, ret);
@@ -487,28 +480,9 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   //
   // When attempting to convert a retuned value via 'ReturnValue', the most
   // recently added conversions will be invoked first.
-
-  // TODO(ezhulenev): Workaround for non-atomic TF/TFRT changes.
- private:
-  template <typename FnT>
-  void AddConversion(FnT&& callback, std::true_type) {
-    conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
-  }
-
-  template <typename FnT>
-  void AddConversion(FnT&& callback, std::false_type) {
-    legacy_conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
-  }
-
- public:
   template <typename FnT>
   void AddConversion(FnT&& callback) {
-    using Tag = typename std::conditional<
-        std::is_same<typename llvm::function_traits<
-                         std::decay_t<FnT>>::template arg_t<4>,
-                     const Type*>::value,
-        std::true_type, std::false_type>::type;
-    AddConversion<FnT>(std::forward<FnT>(callback), Tag{});
+    conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
   }
 
   ConversionContext& context() { return *context_; }
@@ -542,13 +516,6 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
   std::unique_ptr<ConversionContext> context_;
   SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
-
-  // TODO(ezhulenev): Workaround for non-atomic TF/TFRT changes.
-  using LegacyConversionCallbackFn = std::function<mlir::LogicalResult(
-      const ConversionContext&, RemainingResults, unsigned, const Type*,
-      void*)>;
-
-  SmallVector<LegacyConversionCallbackFn, 4> legacy_conversion_callbacks_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -955,9 +922,6 @@ class Executable {
   llvm::StringRef name() const { return name_; }
 
   unsigned num_results() const;
-
-  // TODO(ezhulenev): Non-atomic TF/TFRT changes workaround.
-  const FunctionType& signature() const { return runtime_signature_; }
 
   // CallFrame provides a pointer-stable storage for packed function arguments
   // and storage for returned values.

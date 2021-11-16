@@ -1,9 +1,9 @@
 {
-   "header":"/opt/rocm-4.2.0/include/hip/hip_runtime.h",
+   "header":"/opt/rocm-4.5.0/include/hip/hip_runtime.h",
    "extra_args":[
       "-D__HIP_PLATFORM_AMD__",
       "-I.",
-      "-I/opt/rocm-4.2.0/include/",
+      "-I/opt/rocm-4.5.0/include/",
       "-Ithird_party/llvm/llvm-project/clang/lib/Headers",
       "-Ibazel-genfiles",
       "-ferror-limit=0"

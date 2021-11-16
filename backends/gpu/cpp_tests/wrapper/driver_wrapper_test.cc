@@ -244,46 +244,46 @@ TEST_P(Test, TestContextDevice) {
   EXPECT_EQ(device, get_device);
 }
 
-TEST_F(Test, TestContextLimitCUDA) {
-  auto platform = Platform::CUDA;
+TEST_F(Test, TestContextLimitROCm) {
+  auto platform = Platform::ROCm;
   ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  auto limit = CU_LIMIT_PRINTF_FIFO_SIZE;
+  auto limit = hipLimitPrintfFifoSize;
   size_t value = 1024 * 1024;
-  EXPECT_THAT(CuCtxSetLimit(current, limit, value), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto get_value, CuCtxGetLimit(current, limit));
+  EXPECT_THAT(HipCtxSetLimit(current, limit, value), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto get_value, HipCtxGetLimit(current, limit));
   EXPECT_EQ(value, get_value);
 }
 
-TEST_F(Test, TestContextCacheConfigCUDA) {
-  auto platform = Platform::CUDA;
+TEST_F(Test, TestContextCacheConfigROCm) {
+  auto platform = Platform::ROCm;
   ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  auto cache_cfg = CU_FUNC_CACHE_PREFER_SHARED;
-  EXPECT_THAT(CuCtxSetCacheConfig(current, cache_cfg), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto get_cache_cfg, CuCtxGetCacheConfig(current));
+  auto cache_cfg = hipFuncCachePreferShared;
+  EXPECT_THAT(HipCtxSetCacheConfig(current, cache_cfg), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto get_cache_cfg, HipCtxGetCacheConfig(current));
   EXPECT_EQ(cache_cfg, get_cache_cfg);
 }
 
-TEST_F(Test, TestContextSharedConfigCUDA) {
-  auto platform = Platform::CUDA;
+TEST_F(Test, TestContextSharedConfigROCm) {
+  auto platform = Platform::ROCm;
   ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  auto shread_cfg = CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE;
-  EXPECT_THAT(CuCtxSetSharedMemConfig(current, shread_cfg), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto get_shread_cfg, CuCtxGetSharedMemConfig(current));
+  auto shread_cfg = hipSharedMemBankSizeFourByte;
+  EXPECT_THAT(HipCtxSetSharedMemConfig(current, shread_cfg), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto get_shread_cfg, HipCtxGetSharedMemConfig(current));
   EXPECT_EQ(shread_cfg, get_shread_cfg);
 }
 

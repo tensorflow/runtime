@@ -1,8 +1,8 @@
 {
-   "header":"/opt/rocm-4.2.0/include/rocblas.h",
+   "header":"/opt/rocm-4.5.0/include/rocblas.h",
    "extra_args":[
       "-I.",
-      "-I/opt/rocm-4.2.0/include/"
+      "-I/opt/rocm-4.5.0/include/"
    ],
    "enums":[
       "rocblas_operation",

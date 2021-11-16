@@ -1,8 +1,8 @@
 {
-   "header":"/opt/rocm-4.2.0/include/miopen/miopen.h",
+   "header":"/opt/rocm-4.5.0/include/miopen/miopen.h",
    "extra_args":[
       "-I.",
-      "-I/opt/rocm-4.2.0/include/"
+      "-I/opt/rocm-4.5.0/include/"
    ],
    "enums":[
       "miopenStatus_t",

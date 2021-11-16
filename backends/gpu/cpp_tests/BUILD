@@ -23,7 +23,8 @@ tfrt_cc_library(
         name = "wrapper/%s_wrapper_test" % name,
         srcs = ["wrapper/%s_wrapper_test.cc" % name],
         # Skip ROCm tests by default for now. TODO(csigg): make configurable.
-        args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
+        # args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
+        args = ["--%s_filter=*ROCm" % if_google("gunit", "gtest")],
         env = {
             "CUDNN_LOGDEST_DBG": "tfrt",
         } if name == "dnn" else {},
@@ -55,7 +56,8 @@ tfrt_cc_test(
         "gpu_types_test.cc",
     ],
     # Skip ROCm tests by default for now. TODO(csigg): make configurable.
-    args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
+    # args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
+    args = ["--%s_filter=*ROCm" % if_google("gunit", "gtest")],
     tags = [
         "noasan",
         "nomsan",

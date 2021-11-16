@@ -651,6 +651,9 @@ mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
     case DType::I1:
       rank_dispatch(bool{});
       break;
+    case DType::I8:
+      rank_dispatch(int8_t{});
+      break;
     case DType::I32:
       rank_dispatch(int32_t{});
       break;

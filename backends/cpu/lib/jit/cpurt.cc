@@ -260,6 +260,7 @@ unsigned FunctionType::num_results() const { return results_.size(); }
 static Expected<DType> ConvertElementType(mlir::Type type) {
   if (type.isF32()) return DType::F32;
   if (type.isInteger(1)) return DType::I1;
+  if (type.isInteger(8)) return DType::I8;
   if (type.isInteger(32)) return DType::I32;
   if (type.isInteger(64)) return DType::I64;
 
@@ -409,6 +410,15 @@ Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
                              std::move(results_offsets_bytes)};
 }
 
+static bool areCompatibleTypes(DType type1, DType type2) {
+  // I1 and I8 types are compatible since they both are 1-byte size at runtime.
+  if ((type1 == DType::I1 && type2 == DType::I8) ||
+      (type1 == DType::I8 && type2 == DType::I1))
+    return true;
+
+  return type1 == type2;
+}
+
 // -------------------------------------------------------------------------- //
 // Verify that signature operands types are matching runtime operands types.
 // -------------------------------------------------------------------------- //
@@ -449,12 +459,13 @@ static Error VerifyMemrefOperand(unsigned index, DType element_type,
     return err;
   };
 
-  // Check that memref data type matches operand element type.
-  if (element_type != memref.dtype)
+  // Check that memref data type is compatible with the operand element type.
+  if (!areCompatibleTypes(element_type, memref.dtype)) {
     return MakeStringError(
         "operand #", index,
-        " type doesn't match the expected element type: ", memref.dtype, " vs ",
-        element_type, " (", format_operands(), ")");
+        " type is not compatible with the expected element type: ",
+        memref.dtype, " vs ", element_type, " (", format_operands(), ")");
+  }
 
   // Skip sizes verification if they are not available.
   if (!sizes.hasValue()) return Error::success();

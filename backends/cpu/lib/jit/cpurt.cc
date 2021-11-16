@@ -259,6 +259,9 @@ unsigned FunctionType::num_results() const { return results_.size(); }
 
 static Expected<DType> ConvertElementType(mlir::Type type) {
   if (type.isF32()) return DType::F32;
+  if (type.isUnsignedInteger(8)) return DType::UI8;
+  if (type.isUnsignedInteger(32)) return DType::UI32;
+  if (type.isUnsignedInteger(64)) return DType::UI64;
   if (type.isInteger(1)) return DType::I1;
   if (type.isInteger(8)) return DType::I8;
   if (type.isInteger(32)) return DType::I32;
@@ -411,9 +414,18 @@ Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
 }
 
 static bool areCompatibleTypes(DType type1, DType type2) {
+  auto compatible = [&](DType fromType, DType toType) {
+    return (type1 == fromType && type2 == toType) ||
+           (type1 == toType && type2 == fromType);
+  };
   // I1 and I8 types are compatible since they both are 1-byte size at runtime.
-  if ((type1 == DType::I1 && type2 == DType::I8) ||
-      (type1 == DType::I8 && type2 == DType::I1))
+  if (compatible(DType::I1, DType::I8)) return true;
+
+  // Signed and unsigned integers of the same size are compatible in memory.
+  if (compatible(DType::I8, DType::UI8) ||
+      compatible(DType::I16, DType::UI16) ||
+      compatible(DType::I32, DType::UI32) ||
+      compatible(DType::I64, DType::UI64))
     return true;
 
   return type1 == type2;

@@ -1058,17 +1058,17 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(CreateConvertToKernelFunction());
   pm.addPass(CreateConvertRuntimeToLLVMPass());
 
-  mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
-  if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
-  pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
-  pm.addPass(mlir::createMemRefToLLVMPass());
-
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
     fpm.addPass(mlir::createConvertMathToLLVMPass());
   }
 
   pm.addPass(mlir::createConvertMathToLibmPass());
+
+  mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
+  if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
+  pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
+  pm.addPass(mlir::createMemRefToLLVMPass());
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));

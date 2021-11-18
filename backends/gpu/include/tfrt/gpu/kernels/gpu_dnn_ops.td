@@ -28,6 +28,12 @@
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 def GPU_DnnHandleType : GPU_Type<"DnnHandle"> { let mnemonic = "dnn.handle"; }
+def GPU_DnnConvolutionPlanType : GPU_Type<"DnnConvolutionPlan"> {
+  let mnemonic = "dnn.convolution_plan";
+}
+
+// TODO(hanbinyoon): Remove these. Move legacy convolution to the
+// BuildConvolution(cached)->RunConvolution style API.
 def GPU_DnnActivationDescriptorType : GPU_Type<"DnnActivationDescriptor"> {
   let mnemonic = "dnn.activation.descriptor";
 }
@@ -322,5 +328,98 @@ def GPU_DnnConvolutionBiasActivationForwardOp :
   let results = (outs TFRT_ChainType);
 }
 
+def GPU_DnnBuildConvolutionOp : GPU_Op<"dnn.build_convolution"> {
+  let description = [{
+    tfrt_gpu.dnn.build_convolution returns a tfrt_gpu.dnn.convolution_plan for
+    the convolution that is described by the supplied input, output, filter, and
+    convolution configuration parameters.
+  }];
+  let arguments = (ins GPU_DnnHandleType:$handle,
+                   GPU_DnnDataTypeAttr:$input_type,
+                   GPU_DnnDataTypeAttr:$output_type,
+                   I64ArrayAttr:$input_dims, I64ArrayAttr:$input_strides,
+                   I64ArrayAttr:$output_dims, I64ArrayAttr:$output_strides,
+                   I64ArrayAttr:$filter_dims, I64ArrayAttr:$filter_strides,
+                   GPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
+                   I64ArrayAttr:$conv_dilations, I64ArrayAttr:$conv_padding,
+                   I64ArrayAttr:$conv_strides, I32Attr:$backend_type,
+                   I32Attr:$engine_id, I64ArrayAttr:$tuning_knob_ids,
+                   I64ArrayAttr:$tuning_knob_values);
+  let results = (outs GPU_DnnConvolutionPlanType);
+  let assemblyFormat = [{
+    $handle`,` custom<Enum>($input_type)`,` custom<Enum>($output_type)`,`
+    $input_dims`,` $input_strides`,` $output_dims`,` $output_strides`,`
+    $filter_dims`,` $filter_strides`,` custom<Enum>($conv_mode)`,` $conv_dim`,`
+    $conv_dilations`,` $conv_padding`,` $conv_strides`,` $backend_type`,`
+    $engine_id`,` $tuning_knob_ids`,` $tuning_knob_values attr-dict
+  }];
+}
+
+def GPU_DnnRunConvolutionOp : GPU_Op<"dnn.run_convolution"> {
+  let description = [{
+    tfrt_gpu.dnn.run_convolution runs the convolution according to the supplied
+    convolution plan using the input, output, filter, and workspace buffers.
+  }];
+  let arguments = (ins GPU_DnnHandleType:$handle,
+                   GPU_DnnConvolutionPlanType:$convolution_plan,
+                   GPU_BufferType:$input, GPU_BufferType:$output,
+                   GPU_BufferType:$filter, GPU_BufferType:$workspace);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $convolution_plan`,` $input`,` $output`,` $filter`,` $workspace
+    attr-dict
+  }];
+}
+
+def GPU_DnnBuildFusedConvolutionOp : GPU_Op<"dnn.build_fused_convolution"> {
+  let description = [{
+    tfrt_gpu.dnn.build_fused_convolution returns a tfrt_gpu.dnn.convolution_plan
+    for the convolution that is described by the supplied input, output, filter,
+    and convolution configuration parameters. Additionally, bias, side input
+    (scaling), and activation are fused into the convolution plan.
+  }];
+  let arguments = (ins GPU_DnnHandleType:$handle,
+                   GPU_DnnDataTypeAttr:$input_type,
+                   GPU_DnnDataTypeAttr:$output_type,
+                   GPU_DnnDataTypeAttr:$bias_type,
+                   I64ArrayAttr:$input_dims, I64ArrayAttr:$input_strides,
+                   I64ArrayAttr:$output_dims, I64ArrayAttr:$output_strides,
+                   I64ArrayAttr:$filter_dims, I64ArrayAttr:$filter_strides,
+                   I64ArrayAttr:$bias_dims, I64ArrayAttr:$bias_strides,
+                   GPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
+                   I64ArrayAttr:$conv_dilations, I64ArrayAttr:$conv_padding,
+                   I64ArrayAttr:$conv_strides, I32Attr:$backend_type,
+                   F64:$alpha, F64:$alpha2, I32Attr:$activation_mode,
+                   I32Attr:$engine_id, I64ArrayAttr:$tuning_knob_ids,
+                   I64ArrayAttr:$tuning_knob_values);
+  let results = (outs GPU_DnnConvolutionPlanType);
+  let assemblyFormat = [{
+    $handle`,` custom<Enum>($input_type)`,` custom<Enum>($output_type)`,`
+    custom<Enum>($bias_type)`,` $input_dims`,` $input_strides`,` $output_dims`,`
+    $output_strides`,` $filter_dims`,` $filter_strides`,` $bias_dims`,`
+    $bias_strides`,` custom<Enum>($conv_mode)`,` $conv_dim`,`
+    $conv_dilations`,` $conv_padding`,` $conv_strides`,` $backend_type`,`
+    $alpha`,` $alpha2`,` $activation_mode`,` $engine_id`,` $tuning_knob_ids`,`
+    $tuning_knob_values attr-dict
+  }];
+}
+
+def GPU_DnnRunFusedConvolutionOp : GPU_Op<"dnn.run_fused_convolution"> {
+  let description = [{
+    tfrt_gpu.dnn.run_fused_convolution runs the fused convolution according to
+    the supplied convolution plan using the input, output, filter, side_input,
+    bias, and workspace buffers.
+  }];
+  let arguments = (ins GPU_DnnHandleType:$handle,
+                   GPU_DnnConvolutionPlanType:$convolution_plan,
+                   GPU_BufferType:$input, GPU_BufferType:$output,
+                   GPU_BufferType:$filter, GPU_BufferType:$side_input,
+                   GPU_BufferType:$bias, GPU_BufferType:$workspace);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $convolution_plan`,` $input`,` $output`,` $filter`,`
+    $side_input`,` $bias`,` $workspace attr-dict
+  }];
+}
 
 #endif  // GPU_DNN_OPS

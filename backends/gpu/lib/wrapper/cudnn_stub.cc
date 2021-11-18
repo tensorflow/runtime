@@ -43,6 +43,13 @@ static cudnnStatus_t DynamicCall(const char *symbol_name, Args &&...args) {
 extern "C" {
 #include "cudnn_stub.cc.inc"
 
+size_t CUDNNWINAPI cudnnGetVersion(void) {
+  static auto func_ptr = reinterpret_cast<decltype(cudnnGetVersion) *>(
+      LoadSymbol("cudnnGetVersion"));
+  if (!func_ptr) return 0;
+  return func_ptr();
+}
+
 const char *CUDNNWINAPI cudnnGetErrorString(cudnnStatus_t status) {
   static auto func_ptr = reinterpret_cast<decltype(cudnnGetErrorString) *>(
       LoadSymbol("cudnnGetErrorString"));

@@ -18,7 +18,8 @@
 #ifndef TFRT_GPU_WRAPPER_CUDNN_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_CUDNN_WRAPPER_H_
 
-#include "cudnn.h"  // from @cudnn_headers
+#include "cudnn.h"           // from @cudnn_headers
+#include "cudnn_frontend.h"  // from @cudnn_frontend
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 
 namespace tfrt {
@@ -120,6 +121,12 @@ struct CudnnRnnClipData {
 };
 
 mlir::TypeID GetCudnnDataTypeId(cudnnDataType_t data_type);
+std::pair<int, int> GetCudnnVectorizedSizeAndDim(cudnnDataType_t data_type);
+cudnnDataType_t GetUnvectorizedCudnnDataType(cudnnDataType_t data_type);
+cudnnDataType_t GetCudnnConvAccumulatorType(cudnnDataType_t data_type,
+                                            bool fp32_computation_for_fp16);
+cudnnDataType_t GetCudnnConvActivationType(cudnnDataType_t data_type,
+                                           bool fp32_computation_for_fp16);
 
 llvm::Expected<cudnnStatus_t> CudnnQueryRuntimeError(cudnnHandle_t handle,
                                                      cudnnErrQueryMode_t mode,
@@ -640,6 +647,9 @@ llvm::Error CudnnRnnForwardTraining(
     Pointer<void> cell_output_data, Pointer<void> workspace,
     size_t workspace_size_bytes, Pointer<void> reserve_space,
     size_t reserve_space_size_in_bytes);
+llvm::Error CudnnBackendExecute(CurrentContext current, cudnnHandle_t handle,
+                                cudnnBackendDescriptor_t execution_plan,
+                                cudnnBackendDescriptor_t variant_pack);
 
 }  // namespace wrapper
 }  // namespace gpu

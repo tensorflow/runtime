@@ -232,6 +232,7 @@ tfrt_cc_library(
         [
             # CUDA libraries are statically linked.
             "//platforms/gpus/cuda/dynamic_libcuda",
+            "@cudnn_frontend",
             "@cuda_headers//:cublas_static",
             "@cuda_headers//:cudart_static",
             "@cuda_headers//:cufft_static",
@@ -240,6 +241,7 @@ tfrt_cc_library(
             "@nccl_headers//:nccl",
         ],
         [
+            "@cudnn_frontend",
             "@cudnn_headers",
             "@nccl_headers",
             # This target is set to :cuda_stubs in TFRT's .bazelrc file.

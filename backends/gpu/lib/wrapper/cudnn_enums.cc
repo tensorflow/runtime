@@ -141,6 +141,80 @@ mlir::TypeID GetCudnnDataTypeId(cudnnDataType_t data_type) {
   }
 }
 
+std::pair<int, int> GetCudnnVectorizedSizeAndDim(cudnnDataType_t data_type) {
+  int vector_size, vector_dim;
+  switch (data_type) {
+    case CUDNN_DATA_INT8x4:
+    case CUDNN_DATA_UINT8x4:
+      vector_size = 4;
+      vector_dim = 1;
+      break;
+    case CUDNN_DATA_INT8x32:
+      vector_size = 32;
+      vector_dim = 1;
+      break;
+    default:
+      vector_size = 1;
+      vector_dim = -1;
+      break;
+  }
+  return std::make_pair(vector_size, vector_dim);
+}
+
+cudnnDataType_t GetUnvectorizedCudnnDataType(cudnnDataType_t data_type) {
+  switch (data_type) {
+    case CUDNN_DATA_INT8x4:
+    case CUDNN_DATA_INT8x32:
+      return CUDNN_DATA_INT8;
+    case CUDNN_DATA_UINT8x4:
+      return CUDNN_DATA_UINT8;
+    default:
+      return data_type;
+  }
+}
+
+cudnnDataType_t GetCudnnConvAccumulatorType(cudnnDataType_t data_type,
+                                            bool fp32_computation_for_fp16) {
+  switch (data_type) {
+    case CUDNN_DATA_FLOAT:
+    case CUDNN_DATA_DOUBLE:
+      return data_type;
+    case CUDNN_DATA_HALF:
+      return fp32_computation_for_fp16 ? CUDNN_DATA_FLOAT : CUDNN_DATA_HALF;
+    case CUDNN_DATA_INT8:
+    case CUDNN_DATA_INT32:
+      return CUDNN_DATA_INT32;
+#if CUDNN_VERSION >= 8200
+    case CUDNN_DATA_BFLOAT16:
+      return fp32_computation_for_fp16 ? CUDNN_DATA_FLOAT : CUDNN_DATA_BFLOAT16;
+#endif
+    default:
+      assert(0 && "Invalid cudnnDataType_t");
+  }
+  return data_type;
+}
+
+cudnnDataType_t GetCudnnConvActivationType(cudnnDataType_t data_type,
+                                           bool fp32_computation_for_fp16) {
+  switch (data_type) {
+    case CUDNN_DATA_FLOAT:
+    case CUDNN_DATA_DOUBLE:
+      return data_type;
+    case CUDNN_DATA_HALF:
+      return fp32_computation_for_fp16 ? CUDNN_DATA_FLOAT : CUDNN_DATA_HALF;
+    case CUDNN_DATA_INT8:
+    case CUDNN_DATA_INT32:
+      return CUDNN_DATA_FLOAT;
+#if CUDNN_VERSION >= 8200
+    case CUDNN_DATA_BFLOAT16:
+      return fp32_computation_for_fp16 ? CUDNN_DATA_FLOAT : CUDNN_DATA_BFLOAT16;
+#endif
+    default:
+      assert(0 && "Invalid cudnnDataType_t");
+  }
+  return data_type;
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

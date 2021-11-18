@@ -53,6 +53,12 @@ struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag, uint64_t>
     : public RocmPlatformType {};
 
 mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type);
+std::pair<int, int> GetMiopenVectorizedSizeAndDim(miopenDataType_t data_type);
+miopenDataType_t GetUnvectorizedMiopenDataType(miopenDataType_t data_type);
+miopenDataType_t GetMiopenConvAccumulatorType(miopenDataType_t data_type,
+                                              bool fp32_computation_for_fp16);
+miopenDataType_t GetMiopenConvActivationType(miopenDataType_t data_type,
+                                             bool fp32_computation_for_fp16);
 
 llvm::Expected<LibraryVersion> MiopenGetVersion();
 llvm::Expected<OwningDnnHandle> MiopenCreate(CurrentContext current);

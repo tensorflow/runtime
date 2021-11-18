@@ -232,6 +232,13 @@ struct DnnRnnDescriptorData {
 };
 
 mlir::TypeID GetDnnDataTypeId(DnnDataType data_type);
+// Returns vector size of 1 and dimension of -1 if data_type is not vectorized.
+std::pair<int, int> GetTensorVectorizedSizeAndDim(DnnDataType data_type);
+DnnDataType GetUnvectorizedDnnDataType(DnnDataType data_type);
+DnnDataType GetConvAccumulatorType(DnnDataType data_type,
+                                   bool fp32_computation_for_fp16);
+DnnDataType GetConvActivationType(DnnDataType data_type,
+                                  bool fp32_computation_for_fp16);
 
 llvm::Expected<LibraryVersion> DnnGetVersion(Platform platform);
 

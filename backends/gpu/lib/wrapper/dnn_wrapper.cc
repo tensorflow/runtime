@@ -36,6 +36,56 @@ mlir::TypeID GetDnnDataTypeId(DnnDataType data_type) {
   }
 }
 
+std::pair<int, int> GetTensorVectorizedSizeAndDim(DnnDataType data_type) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCudnnVectorizedSizeAndDim(data_type);
+    case Platform::ROCm:
+      return GetMiopenVectorizedSizeAndDim(data_type);
+    default:
+      return {};
+  }
+}
+
+DnnDataType GetUnvectorizedDnnDataType(DnnDataType data_type) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetUnvectorizedCudnnDataType(data_type);
+    case Platform::ROCm:
+      return GetUnvectorizedMiopenDataType(data_type);
+    default:
+      return {};
+  }
+}
+
+DnnDataType GetConvAccumulatorType(DnnDataType data_type,
+                                   bool fp32_computation_for_fp16) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCudnnConvAccumulatorType(data_type, fp32_computation_for_fp16);
+    case Platform::ROCm:
+      return GetMiopenConvAccumulatorType(data_type, fp32_computation_for_fp16);
+    default:
+      return {};
+  }
+}
+
+DnnDataType GetConvActivationType(DnnDataType data_type,
+                                  bool fp32_computation_for_fp16) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCudnnConvActivationType(data_type, fp32_computation_for_fp16);
+    case Platform::ROCm:
+      return GetMiopenConvActivationType(data_type, fp32_computation_for_fp16);
+    default:
+      return {};
+  }
+}
+
 static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
   switch (mode) {
     case DnnPoolingMode::kPoolingMax:

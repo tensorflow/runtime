@@ -122,6 +122,50 @@ mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type) {
   }
 }
 
+std::pair<int, int> GetMiopenVectorizedSizeAndDim(miopenDataType_t data_type) {
+  int vector_size, vector_dim;
+  switch (data_type) {
+    case miopenInt8x4:
+      vector_size = 4;
+      vector_dim = 1;
+      break;
+    default:
+      vector_size = 1;
+      vector_dim = -1;
+      break;
+  }
+  return std::make_pair(vector_size, vector_dim);
+}
+
+miopenDataType_t GetUnvectorizedMiopenDataType(miopenDataType_t data_type) {
+  switch (data_type) {
+    case miopenInt8x4:
+      return miopenInt8;
+    default:
+      return data_type;
+  }
+}
+
+// TODO(hanbinyoon): Implement this.
+miopenDataType_t GetMiopenConvAccumulatorType(miopenDataType_t data_type,
+                                              bool fp32_computation_for_fp16) {
+  switch (data_type) {
+    default:
+      assert(0 && "Invalid miopenDataType_t");
+  }
+  return data_type;
+}
+
+// TODO(hanbinyoon): Implement this.
+miopenDataType_t GetMiopenConvActivationType(miopenDataType_t data_type,
+                                             bool fp32_computation_for_fp16) {
+  switch (data_type) {
+    default:
+      assert(0 && "Invalid miopenDataType_t");
+  }
+  return data_type;
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

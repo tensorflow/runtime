@@ -1360,6 +1360,13 @@ llvm::Error CudnnRnnForwardTraining(
       reserve_space_size_in_bytes));
 }
 
+llvm::Error CudnnBackendExecute(CurrentContext current, cudnnHandle_t handle,
+                                cudnnBackendDescriptor_t execution_plan,
+                                cudnnBackendDescriptor_t variant_pack) {
+  CheckCudaContext(current);
+  return TO_ERROR(cudnnBackendExecute(handle, execution_plan, variant_pack));
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

@@ -5,8 +5,8 @@ licenses(["notice"])
 cc_library(
     name = "cudnn_frontend",
     hdrs = glob([
-        "include/*.h",
-        "include/contrib/nlohmann/json/json.hpp",
+        "cudnn_frontend/include/*.h",
+        "cudnn_frontend/include/contrib/nlohmann/json/json.hpp",
     ]),
-    includes = ["include"],
+    includes = ["cudnn_frontend/include"],
 )

@@ -65,7 +65,9 @@ static T TFRTConstant(Attribute<T> arg) {
 }
 
 template <typename T>
-static std::complex<T> TFRTComplexConstant(Attribute<T> re, Attribute<T> im) {
+static std::complex<T> TFRTComplexConstant(
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<T> im, Attribute<T> re) {
   return std::complex<T>(*re, *im);
 }
 

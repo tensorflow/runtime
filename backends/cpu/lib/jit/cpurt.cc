@@ -48,6 +48,7 @@
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -1041,7 +1042,8 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Add async.runtime reference counting operations.
   pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
 
-  // Expand math operations into std dialect operations.
+  // Expand math operations into std/arith dialect operations.
+  pm.addNestedPass<mlir::FuncOp>(mlir::arith::createArithmeticExpandOpsPass());
   pm.addNestedPass<mlir::FuncOp>(mlir::createStdExpandOpsPass());
 
   // Add alignment attribute to all memref allocations.

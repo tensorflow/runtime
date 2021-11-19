@@ -25,6 +25,7 @@ namespace tfrt {
 namespace compat {
 
 using ::Eigen::Index;
+using IndexPair = ::Eigen::IndexPair<Index>;
 using ::tfrt::compat::AsEigenConstTensor;
 using ::tfrt::compat::AsEigenTensor;
 
@@ -50,10 +51,10 @@ static AsyncValueRef<Chain> TfPadImpl(
                                  " does not match the expected output shape ",
                                  expected_output_shape));
   }
-  const std::pair<Index, Index> padding_heights = {height_1, height_2};
-  const std::pair<Index, Index> padding_widths = {width_1, width_2};
-  const Eigen::array<std::pair<Index, Index>, 4> paddings = {
-      {0, 0}, padding_heights, padding_widths, {0, 0}};
+  const IndexPair padding_heights = {height_1, height_2};
+  const IndexPair padding_widths = {width_1, width_2};
+  const Eigen::array<IndexPair, 4> paddings = {IndexPair(0, 0), padding_heights,
+                                               padding_widths, IndexPair(0, 0)};
 
   auto input_t = AsEigenConstTensor(input_view);
   auto output_t = AsEigenTensor(output_view);

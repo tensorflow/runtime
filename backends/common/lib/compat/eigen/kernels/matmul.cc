@@ -25,6 +25,7 @@ namespace tfrt {
 namespace compat {
 
 using ::Eigen::Index;
+using IndexPair = Eigen::IndexPair<Index>;
 using ::tfrt::compat::AsEigenConstTensor;
 using ::tfrt::compat::AsEigenTensor;
 
@@ -55,7 +56,7 @@ void MatMul(Argument<T> alpha, ArgumentView<DHTIndexableView<T, 2>> a,
   }
 
   // Contraction dimension.
-  Eigen::array<Eigen::IndexPair<Eigen::Index>, 1> contract_dim({1, 0});
+  Eigen::array<IndexPair, 1> contract_dim{IndexPair{1, 0}};
 
   auto on_done = [chain = chain_out.Allocate(), frame = *frame]() {
     chain.emplace();

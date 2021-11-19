@@ -119,7 +119,7 @@ inline AsyncValueRef<Chain> Conv2DImpl(
     auto kernel_t = AsEigenConstTensor(filter_view, reshaped_kern);
     auto output_t = AsEigenTensor(output_view, reshaped_out);
 
-    Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> contract_dim({1, 0});
+    Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> contract_dim{{{1, 0}}};
     auto expr = input_t.contract(kernel_t, contract_dim, output_kernel.get());
 
     return AsyncAssign(

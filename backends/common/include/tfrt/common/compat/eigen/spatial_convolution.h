@@ -186,8 +186,8 @@ SpatialConvolution(const Input& input, const FixedRankShape<4>& input_shape,
                                                      out_width, kernel_filters);
 
   // Contract along the [kernel_h x kernel_w x kernel_channels] dimension.
-  Eigen::array<IndexPair<IndexType>, 1> contract_dims(
-      IndexPair<IndexType>(1, 0));
+  Eigen::array<IndexPair<IndexType>, 1> contract_dims{
+      IndexPair<IndexType>(1, 0)};
 
   // Patch row and column dimensions in Eigen are defined in the wrong order
   // (in NWHC data format). We pass `kernel_width` as `patch_rows` (it is patch

@@ -14,6 +14,7 @@
 
 // This file implements the Executor for BEF files.
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
@@ -103,6 +104,28 @@ class ReadyKernelQueue {
       : stream_id_(stream_id),
         kernel_array_(kernel_array),
         inline_kernel_ids_(std::move(kernel_ids)) {}
+
+  // If the inline kernels are empty, we can move some of the outline kernels
+  // into the inline kernels, and update the stream id. This allows to reduce
+  // the number of enqueued tasks to process outline kernels.
+  void SwitchStreamId() {
+    assert(inline_kernel_ids_.empty() && "inlined kernels must be empty");
+
+    // We can't switch stream id if we do not have outline kernels.
+    if (outline_kernel_ids_.empty()) return;
+
+    // Pick the new stream id from the ready outline kernels.
+    stream_id_ = kernel_array_[outline_kernel_ids_[0]].stream_id;
+
+    // Partition outlined kernels using the new stream id.
+    auto inline_kernels_begin = std::partition(
+        outline_kernel_ids_.begin(), outline_kernel_ids_.end(),
+        [&](unsigned id) { return kernel_array_[id].stream_id != stream_id_; });
+
+    // Move outline kernels belonging to the new stream into the inline kernels.
+    inline_kernel_ids_.assign(inline_kernels_begin, outline_kernel_ids_.end());
+    outline_kernel_ids_.erase(inline_kernels_begin, outline_kernel_ids_.end());
+  }
 
   // Decrement the ready counts for `kernel_ids` and put them in the queue.
   // Depending on their stream_id, they will be either put in the inline queue
@@ -528,9 +551,13 @@ void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
   kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
   kernel_frame.SetFunctions(BefFile()->functions_);
 
-  if (!ready_kernel_queue.outline_kernel_ids().empty()) {
+  // Switch stream id if there are no inline kernels to process.
+  if (ready_kernel_queue.inline_kernel_ids().empty())
+    ready_kernel_queue.SwitchStreamId();
+
+  // Enqueue outline kernels into the concurrent work queue.
+  if (!ready_kernel_queue.outline_kernel_ids().empty())
     EnqueueReadyKernels(ready_kernel_queue.outline_kernel_ids());
-  }
   assert(ready_kernel_queue.outline_kernel_ids().empty());
 
   // The loop below process inline kernels in a LIFO order for cache locality.
@@ -542,9 +569,13 @@ void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
 
     ProcessReadyKernel(kernel_id, &kernel_frame, ready_kernel_queue);
 
-    if (!ready_kernel_queue.outline_kernel_ids().empty()) {
+    // Switch stream id if there are no inline kernels to process.
+    if (ready_kernel_queue.inline_kernel_ids().empty())
+      ready_kernel_queue.SwitchStreamId();
+
+    // Enqueue outline kernels into the concurrent work queue.
+    if (!ready_kernel_queue.outline_kernel_ids().empty())
       EnqueueReadyKernels(ready_kernel_queue.outline_kernel_ids());
-    }
     assert(ready_kernel_queue.outline_kernel_ids().empty());
   }
 }

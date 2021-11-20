@@ -48,14 +48,27 @@ namespace tfrt {
  */
 template <typename IdSet>
 class MapByType {
+  struct StorageBase {
+    virtual ~StorageBase() = default;
+  };
+
+  template <typename ConcreteT>
+  struct Storage : StorageBase {
+    template <typename... Args>
+    explicit Storage(Args&&... args) : value(std::forward<Args>(args)...) {}
+
+    ConcreteT value;
+  };
+
  public:
   template <typename T, typename... Args, typename VT = std::decay_t<T>>
   VT& emplace(Args&&... args) {
     auto id = getTypeId<VT>();
     if (id >= data_.size()) data_.resize(id + 1);
 
-    data_[id] = make_unique_any<VT>(std::forward<Args>(args)...);
-    return *any_cast<VT>(&data_[id]);
+    data_[id] = std::make_unique<Storage<VT>>(std::forward<Args>(args)...);
+
+    return cast<VT>(data_[id].get());
   }
 
   template <typename T>
@@ -70,9 +83,10 @@ class MapByType {
 
   template <typename T>
   const T& get() const {
-    auto id = getTypeId<T>();
+    using VT = std::decay_t<T>;
+    auto id = getTypeId<VT>();
     assert(id < data_.size());
-    return *any_cast<T>(&data_[id]);
+    return cast<VT>(data_[id].get());
   }
 
   template <typename T>
@@ -83,20 +97,23 @@ class MapByType {
 
   template <typename T>
   const T* getIfExists() const {
-    auto id = getTypeId<T>();
+    using VT = std::decay_t<T>;
+
+    auto id = getTypeId<VT>();
     if (id >= data_.size()) return nullptr;
 
     auto& value = data_[id];
-    if (value.hasValue()) return any_cast<T>(&value);
+    if (value) return &cast<VT>(value.get());
 
     return nullptr;
   }
 
   template <typename T>
   bool contains() const {
-    auto id = getTypeId<T>();
+    using VT = std::decay_t<T>;
+    auto id = getTypeId<VT>();
     if (id >= data_.size()) return false;
-    return data_[id].hasValue();
+    return data_[id] != nullptr;
   }
 
  private:
@@ -104,7 +121,13 @@ class MapByType {
   static size_t getTypeId() {
     return DenseTypeId<IdSet>::template get<std::decay_t<T>>();
   }
-  std::vector<tfrt::UniqueAny> data_;
+
+  template <typename T>
+  static T& cast(StorageBase* base) {
+    return static_cast<Storage<T>*>(base)->value;
+  }
+
+  std::vector<std::unique_ptr<StorageBase>> data_;
 };
 
 }  // namespace tfrt

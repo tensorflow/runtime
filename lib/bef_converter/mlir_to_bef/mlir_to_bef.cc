@@ -400,14 +400,14 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
             //
             // TODO(tfrt-devs): Use attribute interface instead of hardcoding
             // here.
-            if (attr.first == "_tfrt_cost") continue;
+            if (attr.getName() == "_tfrt_cost") continue;
 
             // Check to make sure that this is a supported attribute, if not,
             // reject it.
-            if (!BefAttrEmitter::IsSupportedAttribute(attr.second) &&
+            if (!BefAttrEmitter::IsSupportedAttribute(attr.getValue()) &&
                 result == LogicalResult::Success) {
               op->emitError() << "BEF files cannot encode the '"
-                              << attr.first.getValue() << "' attribute";
+                              << attr.getName().getValue() << "' attribute";
               result = LogicalResult::Failure;
               return;
             }
@@ -417,7 +417,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
             // the compiled module returns None. All compiled operations will be
             // added to the attributes section as compilation units.
             auto bef_function_ref = [&]() -> Optional<mlir::SymbolRefAttr> {
-              auto sym_attr = attr.second.dyn_cast<mlir::SymbolRefAttr>();
+              auto sym_attr = attr.getValue().dyn_cast<mlir::SymbolRefAttr>();
               if (!sym_attr) return llvm::None;
 
               // Check if the referenced symbol is in the compiled module.
@@ -439,12 +439,12 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
               if (collect_attribute_types_and_names) {
                 // Add attribute names and types for attribute types section and
                 // attribute names section. These will be ignored by executor.
-                AddString(attr.first);
-                AddAttributeType(attr.second);
+                AddString(attr.getName());
+                AddAttributeType(attr.getValue());
               }
 
               // Skip collecting array of function attributes.
-              auto array_attr = attr.second.dyn_cast<mlir::ArrayAttr>();
+              auto array_attr = attr.getValue().dyn_cast<mlir::ArrayAttr>();
               if (array_attr) {
                 if (!array_attr.empty() &&
                     array_attr.begin()->dyn_cast<mlir::SymbolRefAttr>()) {
@@ -454,7 +454,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
               // We ignore the name of attributes, they just get passed as
               // arguments.
-              attributes.insert(attr.second);
+              attributes.insert(attr.getValue());
             }
           }
 
@@ -983,11 +983,11 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
     // Skip cost attribute which is not used in runtime execution.
     //
     // TODO(tfrt-devs): Use attribute interface instead of hardcoding here.
-    if (attr_name_pair.first == "_tfrt_cost") continue;
+    if (attr_name_pair.getName() == "_tfrt_cost") continue;
 
     // Emit array of function attributes.
     if (auto array_fn_attr =
-            attr_name_pair.second.dyn_cast<mlir::ArrayAttr>()) {
+            attr_name_pair.getValue().dyn_cast<mlir::ArrayAttr>()) {
       if (!array_fn_attr.empty() &&
           array_fn_attr.begin()->dyn_cast<mlir::FlatSymbolRefAttr>()) {
         for (auto fn : array_fn_attr) {
@@ -1000,7 +1000,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
     }
 
     if (auto fn_attr =
-            attr_name_pair.second.dyn_cast<mlir::FlatSymbolRefAttr>()) {
+            attr_name_pair.getValue().dyn_cast<mlir::FlatSymbolRefAttr>()) {
       // Function references are output as regions.
       num_input_functions++;
       input_function_emitter.Emit<uint32_t>(
@@ -1008,12 +1008,12 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
     } else {
       if (attribute_names != nullptr) {
         attribute_names->EmitVbrInt(
-            entity_index_.GetStringOffset(attr_name_pair.first));
+            entity_index_.GetStringOffset(attr_name_pair.getName()));
       }
       num_input_attributes++;
 
       input_attribute_emitter.Emit<uint32_t>(
-          entity_index_.GetAttributeOffset(attr_name_pair.second));
+          entity_index_.GetAttributeOffset(attr_name_pair.getValue()));
     }
   }
 

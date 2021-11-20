@@ -179,7 +179,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
   auto setDefaultAttrIfUnset = [&](const char *attr_name, int value) {
     bool found = llvm::any_of(result.attributes,
                               [attr_name](const NamedAttribute &attr) {
-                                return attr.first == attr_name;
+                                return attr.getName() == attr_name;
                               });
     if (!found) {
       IntegerAttr default_val = parser.getBuilder().getI32IntegerAttr(value);
@@ -219,12 +219,12 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
   for (auto &name_attr : op->getAttrs()) {
-    auto id = name_attr.first.getValue();
+    auto id = name_attr.getName().getValue();
     if (id == "name") continue;
 
     if (need_comma) p << ", ";
 
-    auto attr = name_attr.second;
+    auto attr = name_attr.getValue();
 
     p << id << " = ";
     if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {
@@ -321,7 +321,7 @@ static ParseResult parseSyncBenchmarkOp(OpAsmParser &parser,
   auto setDefaultAttrIfUnset = [&](const char *attr_name, int value) {
     bool found = llvm::any_of(result.attributes,
                               [attr_name](const NamedAttribute &attr) {
-                                return attr.first == attr_name;
+                                return attr.getName() == attr_name;
                               });
     if (!found) {
       IntegerAttr default_val = parser.getBuilder().getI32IntegerAttr(value);
@@ -356,12 +356,12 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
   for (auto &name_attr : op->getAttrs()) {
-    auto id = name_attr.first.getValue();
+    auto id = name_attr.getName().getValue();
     if (id == "target_fn") continue;
 
     if (need_comma) p << ", ";
 
-    auto attr = name_attr.second;
+    auto attr = name_attr.getValue();
 
     p << id << " = ";
     if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {

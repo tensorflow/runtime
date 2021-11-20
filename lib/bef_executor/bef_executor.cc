@@ -31,7 +31,6 @@
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
-#include "tfrt/tracing/tracing.h"
 
 #ifdef DEBUG_BEF_EXECUTOR
 #define DEBUG_PRINT(...) fprintf(stderr, __VA_ARGS__)
@@ -403,11 +402,8 @@ void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
   AsyncKernelImplementation kernel_fn =
       BefFile()->GetAsyncKernel(kernel.kernel_code());
 
-#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
-  const auto kernel_name = BefFile()->GetKernelName(kernel.kernel_code());
-#endif
-
-  DEBUG_PRINT("Run kernel %u %s\n", kernel_id, kernel_name);
+  DEBUG_PRINT("Run kernel %u %s\n", kernel_id,
+              BefFile()->GetKernelName(kernel.kernel_code()));
 
   // Set up operands.
   int entry_offset = 0;
@@ -448,10 +444,7 @@ void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
 
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
-    {
-      TFRT_TRACE_SCOPE(Debug, kernel_name);
-      kernel_fn(kernel_frame);
-    }
+    kernel_fn(kernel_frame);
   } else {
     // Otherwise, automatically propagate errors to the result values.
     for (size_t i = 0, e = kernel_frame->GetNumResults(); i != e; ++i) {
@@ -543,8 +536,6 @@ LLVM_ATTRIBUTE_NOINLINE void BEFExecutor::EnqueueReadyKernels(
 // users back for next round of processing, until there are no more ready
 // kernels.
 void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
-  TFRT_TRACE_SCOPE(Verbose, "BEFExecutor::ProcessReadyKernels");
-
   // Process the kernel record to get information about what argument
   // registers, result registers, and attributes should be passed.
   KernelFrameBuilder kernel_frame(exec_ctx_);

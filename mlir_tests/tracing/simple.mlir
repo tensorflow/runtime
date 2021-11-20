@@ -18,19 +18,13 @@
 func @print_test() {
 // CHECK: Scope:Bef Executor
 // CHECK: Scope:Function: print_test
-// CHECK: Scope:BEFExecutor::ProcessReadyKernels
 
-  // CHECK: Scope:tfrt.new.chain
   %ch0 = tfrt.new.chain
-  // CHECK: End Scope
 
-  // CHECK: Scope:tfrt_test.print_hello
   %ch1 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
-  // CHECK: End Scope
 
   tfrt.return
 
-// CHECK: End Scope
 // CHECK: End Scope
 // CHECK: End Scope
 }

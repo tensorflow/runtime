@@ -342,8 +342,11 @@ def GPU_DnnBuildConvolutionOp : GPU_Op<"dnn.build_convolution"> {
                    I64ArrayAttr:$filter_dims, I64ArrayAttr:$filter_strides,
                    GPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
                    I64ArrayAttr:$conv_dilations, I64ArrayAttr:$conv_padding,
-                   I64ArrayAttr:$conv_strides, I32Attr:$backend_type,
-                   I32Attr:$engine_id, I64ArrayAttr:$tuning_knob_ids,
+                   I64ArrayAttr:$conv_strides,
+                   // TODO(hanbinyoon): Add custom parsing/printing for these
+                   // attributes.
+                   I32Attr:$backend_type, I32Attr:$engine_id,
+                   I64ArrayAttr:$tuning_knob_ids,
                    I64ArrayAttr:$tuning_knob_values);
   let results = (outs GPU_DnnConvolutionPlanType);
   let assemblyFormat = [{
@@ -388,9 +391,12 @@ def GPU_DnnBuildFusedConvolutionOp : GPU_Op<"dnn.build_fused_convolution"> {
                    I64ArrayAttr:$bias_dims, I64ArrayAttr:$bias_strides,
                    GPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
                    I64ArrayAttr:$conv_dilations, I64ArrayAttr:$conv_padding,
-                   I64ArrayAttr:$conv_strides, I32Attr:$backend_type,
-                   F64:$alpha, F64:$alpha2, I32Attr:$activation_mode,
-                   I32Attr:$engine_id, I64ArrayAttr:$tuning_knob_ids,
+                   I64ArrayAttr:$conv_strides,
+                   // TODO(hanbinyoon): Add custom parsing/printing for these
+                   // attributes.
+                   I32Attr:$backend_type, F64:$alpha, F64:$alpha2,
+                   I32Attr:$activation_mode, I32Attr:$engine_id,
+                   I64ArrayAttr:$tuning_knob_ids,
                    I64ArrayAttr:$tuning_knob_values);
   let results = (outs GPU_DnnConvolutionPlanType);
   let assemblyFormat = [{

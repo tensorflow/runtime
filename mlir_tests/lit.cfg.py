@@ -60,6 +60,7 @@ def _AddToolSubstitutions(targets):
 
 
 _AddToolSubstitutions([
+    '//backends/gpu:tfrt_gpu_executor',
     '//backends/gpu:tfrt_gpu_translate',
     '//backends/gpu:tfrt_gpu_opt',
     '//tools:bef_executor',

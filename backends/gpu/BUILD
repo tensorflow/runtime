@@ -869,10 +869,12 @@ tfrt_cc_library(
     srcs = [
         "lib/passes/gpu_async_patterns.cc",
         "lib/passes/gpu_to_tfrt_passes.cc",
+        "lib/passes/set_entry_point.cc",
     ],
     hdrs = ["include/tfrt/gpu/passes/passes.h"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":gpu_entry_point",
         ":gpu_opdefs",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Async",
@@ -947,9 +949,11 @@ tfrt_cc_binary(
     deps = [
         ":gpu_opdefs",
         ":gpu_passes",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:GPUDialect",
+        "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:Pass",
@@ -957,6 +961,7 @@ tfrt_cc_binary(
         "@llvm-project//mlir:Transforms",
         "@tf_runtime//:basic_kernels_opdefs",
         "@tf_runtime//:init_tfrt_dialects",
+        "@tf_runtime//:support",
         "@tf_runtime//:test_kernels_opdefs",
     ],
 )
@@ -974,6 +979,48 @@ tfrt_cc_binary(
         "@tf_runtime//:init_tfrt_dialects",
         "@tf_runtime//:mlirtobef_translate",
         "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
+    ],
+)
+
+tfrt_cc_binary(
+    name = "tfrt_gpu_executor",
+    srcs = ["tools/tfrt_gpu_executor/main.cc"],
+    visibility = [":tests_and_tools"],
+    deps = [
+        ":gpu_executor",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@tf_runtime//:befexecutor",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//tools:bef_executor_lightweight_kernels",
+    ],
+)
+
+tfrt_cc_library(
+    name = "gpu_entry_point",
+    hdrs = ["lib/gpu_entry_point.h"],
+)
+
+tfrt_cc_library(
+    name = "gpu_executor",
+    srcs = ["lib/gpu_executor.cc"],
+    hdrs = ["include/tfrt/gpu/gpu_executor.h"],
+    visibility = if_google(
+        [":xla_friends"],
+        ["//visibility:public"],
+    ),
+    deps = [
+        ":gpu_entry_point",
+        ":gpu_types",
+        ":gpu_wrapper",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@tf_runtime//:bef",
+        "@tf_runtime//:befexecutor",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
     ],
 )
 

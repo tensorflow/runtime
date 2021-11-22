@@ -16,11 +16,18 @@
 //
 // Load MLIR and apply required passes on it.
 
+#include <cstdint>
+
+#include "llvm/Support/CommandLine.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/MlirOptMain.h"
@@ -29,10 +36,10 @@
 #include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/gpu/passes/passes.h"
 #include "tfrt/init_tfrt_dialects.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/test_kernels/opdefs/test_kernels.h"
 
-namespace tfrt {
-namespace gpu {
+namespace {
 
 // Test pass to wrap tfrt_gpu ops in tfrt_gpu_conversion.async.execute.
 struct TestGpuAsyncConversionPass
@@ -42,7 +49,7 @@ struct TestGpuAsyncConversionPass
   void runOnFunction() override {
     TypeConverter converter;
     converter.addConversion([](Type type) { return type; });
-    auto buffer_type = BufferType::get(&getContext());
+    auto buffer_type = tfrt::gpu::BufferType::get(&getContext());
     converter.addConversion([&](BaseMemRefType) { return buffer_type; });
     converter.addTargetMaterialization([](OpBuilder &builder, Type type,
                                           ValueRange inputs,
@@ -55,7 +62,7 @@ struct TestGpuAsyncConversionPass
     wrap.addLegalDialect("wrap");
 
     RewritePatternSet patterns(&getContext());
-    populateGpuAsyncConversionPatterns(patterns, converter, wrap);
+    tfrt::gpu::populateGpuAsyncConversionPatterns(patterns, converter, wrap);
 
     ConversionTarget target(getContext());
     target.addLegalDialect("other", "tfrt", "tfrt_gpu_conversion");
@@ -70,8 +77,49 @@ struct TestGpuAsyncConversionPass
   }
 };
 
-}  // namespace gpu
-}  // namespace tfrt
+class TestSetEntryPointPass
+    : public mlir::PassWrapper<TestSetEntryPointPass, OperationPass<ModuleOp>> {
+ public:
+  TestSetEntryPointPass() = default;
+  TestSetEntryPointPass(const TestSetEntryPointPass &pass) {}
+
+  StringRef getArgument() const final { return "test-set-entry-point"; }
+
+  void runOnOperation() override {
+    auto platform =
+        tfrt::gpu::wrapper::Parse<tfrt::gpu::wrapper::Platform>(platform_);
+    if (!platform) return emitError(toString(platform.takeError()));
+
+    mlir::FuncOp func_op;
+    if (function_name_.hasValue()) {
+      func_op = mlir::SymbolTable::lookupNearestSymbolFrom<FuncOp>(
+          getOperation(), mlir::StringAttr::get(&getContext(), function_name_));
+      if (!func_op)
+        return emitError("Function '" + function_name_ + "' not found");
+    } else {
+      auto funcs = getOperation().getOps<FuncOp>();
+      if (funcs.empty() || ++funcs.begin() != funcs.end())
+        return emitError("Expected exactly one function");
+      func_op = *funcs.begin();
+    }
+
+    tfrt::gpu::setEntryPoint(getOperation(), *platform, func_op.sym_name(),
+                             buffer_sizes_);
+  }
+
+ private:
+  void emitError(StringRef message) {
+    getOperation()->emitError() << message;
+    signalPassFailure();
+  }
+
+  Option<std::string> platform_{*this, "platform"};
+  Option<std::string> function_name_{*this, "function_name"};
+  ListOption<int64_t> buffer_sizes_{*this, "buffer_sizes",
+                                    llvm::cl::MiscFlags::CommaSeparated};
+};
+
+}  // namespace
 
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
@@ -82,7 +130,8 @@ int main(int argc, char **argv) {
                   tfrt::gpu::GpuDialect,
                   tfrt::gpu::conversion::GpuConversionDialect,
                   tfrt::test::TestDialect>();
-  PassRegistration<tfrt::gpu::TestGpuAsyncConversionPass>();
+  PassRegistration<TestGpuAsyncConversionPass>();
+  PassRegistration<TestSetEntryPointPass>();
   tfrt::gpu::registerPasses();
 
   return mlir::asMainReturnCode(

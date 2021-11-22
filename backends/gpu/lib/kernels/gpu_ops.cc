@@ -366,9 +366,10 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
 Type tfrt::gpu::GpuDialect::parseType(DialectAsmParser &parser) const {
   StringRef typeTag;
   Type genType;
-  if (succeeded(parser.parseKeyword(&typeTag)))
-    generatedTypeParser(parser, typeTag, genType);
-  return genType;
+  if (failed(parser.parseKeyword(&typeTag))) return nullptr;
+  if (generatedTypeParser(parser, typeTag, genType).hasValue()) return genType;
+  auto identifier = Identifier::get(getDialectNamespace(), parser.getContext());
+  return OpaqueType::get(identifier, typeTag);
 }
 
 void tfrt::gpu::GpuDialect::printType(Type type,

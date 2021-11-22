@@ -22,7 +22,9 @@ filegroup(
     testonly = True,
     srcs = [
         "@llvm-project//llvm:FileCheck",
+        "@tf_runtime//backends/gpu:tfrt_gpu_executor",
         "@tf_runtime//backends/gpu:tfrt_gpu_opt",
+        "@tf_runtime//backends/gpu:tfrt_gpu_translate",
         "@tf_runtime//tools:bef_executor_lite",
     ],
 )

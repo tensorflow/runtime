@@ -21,12 +21,17 @@
 
 #include <memory>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringRef.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace tfrt {
 namespace gpu {
+namespace wrapper {
+enum class Platform;
+}
 
 namespace internal {
 mlir::Value GpuAsyncOpConversionGetStream(mlir::Operation* parent);
@@ -86,6 +91,12 @@ void populateGpuToTfrtGpuPasses(mlir::OpPassManager& pm);
 
 // Registers all tfrt gpu passes.
 void registerPasses();
+
+// Adds a function to `module` which returns the entry point information for
+// the gpu executor.
+void setEntryPoint(mlir::ModuleOp module, wrapper::Platform platform,
+                   llvm::StringRef function_name,
+                   llvm::ArrayRef<int64_t> buffer_sizes);
 
 }  // namespace gpu
 }  // namespace tfrt

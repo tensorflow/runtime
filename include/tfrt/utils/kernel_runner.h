@@ -31,6 +31,7 @@
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
 /**
@@ -80,6 +81,8 @@ class KernelRunner {
   KernelRunner& AddArrayAttribute(llvm::ArrayRef<T> value);
 
   KernelRunner& AddStringAttribute(string_view str);
+
+  KernelRunner& AddDenseAttribute(const DenseHostTensor& dht);
 
   template <typename T>
   const T& RunAndGetResult() {

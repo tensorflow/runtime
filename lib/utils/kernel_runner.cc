@@ -26,6 +26,8 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/resource_context.h"
+#include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
 namespace {
@@ -91,6 +93,12 @@ void KernelRunner::Run(size_t num_results) {
   }
 
   Await(host_, results_);
+}
+
+KernelRunner& KernelRunner::AddDenseAttribute(const DenseHostTensor& dht) {
+  attr_offsets_.emplace_back(
+      SerializeDenseHostTensorToDenseAttr(dht, &bef_attr_encoder_));
+  return *this;
 }
 
 }  // namespace tfrt

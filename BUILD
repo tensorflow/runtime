@@ -323,6 +323,7 @@ tfrt_cc_library(
         ":bef_attr_encoder",
         ":hostcontext",
         ":support",
+        ":tensor",
         "@llvm-project//llvm:Support",
     ],
 )

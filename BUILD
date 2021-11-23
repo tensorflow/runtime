@@ -102,6 +102,7 @@ alias(
 #         "//devtools/blueprint/bluze/public:bluze_ncl",
 #         "//devtools/blueprint/ncl:sanitizer",
 #     ],
+#     deps = ["//devtools/bazel/subteams/configurability/android_platforms_migration:flags_ncl"],
 # )
 # copybara:uncomment_end
 

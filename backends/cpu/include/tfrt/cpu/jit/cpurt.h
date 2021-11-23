@@ -882,7 +882,7 @@ class Executable {
       : engine_(std::move(engine)),
         signature_(std::move(signature)),
         runtime_signature_(std::move(runtime_signature)),
-        fptr_(*engine_->lookup(entrypoint)),
+        fptr_(*engine_->lookupPacked(entrypoint)),
         results_memory_layout_(std::move(results_memory_layout)),
         name_(name.str()) {
     assert(fptr_ != nullptr && "entrypoint was not found");

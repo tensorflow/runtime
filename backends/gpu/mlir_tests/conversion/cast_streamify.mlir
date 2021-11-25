@@ -44,18 +44,3 @@ func @const_cast() -> (i32, i64, ui32, ui64) {
   // CHECK: tfrt.return %[[c1]], %[[c2]], %[[c3]], %[[c4]] : i32, i64, ui32, ui64
   tfrt.return %1, %2, %3, %4 : i32, i64, ui32, ui64
 }
-
-// CHECK-LABEL: @buffer_cast
-func @buffer_cast(
-  %arg0 : !tfrt.chain,
-  %arg1 : !tfrt_gpu.buffer
-) -> (!tfrt.chain, !tfrt_gpu.buffer) {
-  %buffer = builtin.unrealized_conversion_cast %arg1, %arg0
-     : !tfrt_gpu.buffer, !tfrt.chain to !tfrt_gpu.buffer
-  // CHECK: %[[ch:.*]] = tfrt.merge.chains %arg0, %arg0
-  // CHECK: tfrt.return %[[ch]], %arg1 : !tfrt.chain, !tfrt_gpu.buffer
-  tfrt.return %arg0, %buffer : !tfrt.chain, !tfrt_gpu.buffer
-}
-
-
-

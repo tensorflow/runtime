@@ -16,6 +16,7 @@
 
 #include <iterator>
 
+#include "llvm/ADT/STLExtras.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -379,19 +380,26 @@ static void TFRTOnce(RemainingArguments args, RemainingResults results,
   }
 
   struct TFRTOnceResource {
-    TFRTOnceResource(const RemainingArguments& args,
-                     const Attribute<Function>& function,
-                     const ExecutionContext& exec_ctx)
-        : results(function->num_results()) {
-      function->Execute(exec_ctx, args.values(), results);
+    explicit TFRTOnceResource(size_t num_results) : results(num_results) {
+      for (auto& result : results) result = MakeIndirectAsyncValue();
     }
 
-    SmallVector<RCReference<AsyncValue>, 4> results;
+    SmallVector<RCReference<IndirectAsyncValue>, 4> results;
+    std::atomic<bool> executed = {false};
   };
 
   auto resource =
       exec_ctx.resource_context()->GetOrCreateResource<TFRTOnceResource>(
-          ("tfrt.once @" + function->name()).str(), args, function, exec_ctx);
+          ("tfrt.once @" + function->name()).str(), function->num_results());
+
+  // Execute the function after unlocking the resource context mutex.
+  if (!resource->executed.exchange(true)) {
+    SmallVector<RCReference<AsyncValue>, 4> values(function->num_results());
+    function->Execute(exec_ctx, args.values(), values);
+    for (auto pair : llvm::zip_first(resource->results, values))
+      std::get<0>(pair)->ForwardTo(std::get<1>(pair));
+  }
+
   llvm::transform(
       resource->results, results.values().begin(),
       [](const RCReference<AsyncValue>& result) { return result.CopyRef(); });

@@ -226,26 +226,6 @@ struct ConvertGetGlobalPattern : OpConversionPattern<memref::GetGlobalOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Inserts a `tfrt.merge.chains` op for all uses of a buffer cast.
-//
-//     %value = unrealized_conversion_cast %buffer, %ch0
-//         !tfrt_gpu.buffer, !tfrt.chain to !tfrt_gpu.buffer
-//     <some use> %value, %ch1, ...
-//
-// will be rewritten to
-//
-//     %ch2 = tfrt.merge.chains %ch0, %ch1
-//     <some use> %buffer, %ch2, ...
-//
-struct ConvertBufferCastPattern : OpConversionPattern<CastOp> {
-  using OpConversionPattern::OpConversionPattern;
-
- private:
-  LogicalResult matchAndRewrite(
-      CastOp cast_op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override;
-};
-
 // Converts `gpu.module` op to a function that loads the module.
 //
 //     gpu.module @module attributes { binary = "<cubin>" }
@@ -536,7 +516,6 @@ static bool IsTypes(TypeRange types) {
   return IsTypesImpl<Ts...>(types, std::make_index_sequence<sizeof...(Ts)>());
 }
 const auto IsTokenType = IsTypes<mlir::gpu::AsyncTokenType>;
-const auto IsChainAndEventType = IsTypes<compiler::ChainType, EventType>;
 
 // Helper function to test whether cast is between !gpu.async.token and
 // !tfrt.chain plus !tfrt_gpu.stream/event.
@@ -563,7 +542,7 @@ auto MergeRanges(R1 first, R2 second) {
   llvm::copy(first, std::back_inserter(result));
   llvm::copy(second, std::back_inserter(result));
   return result;
-};
+}
 
 FailureOr<OneToAnyConversion> OneToAnyConversion::Get(TypeConverter *converter,
                                                       TypeRange source_types) {
@@ -598,7 +577,7 @@ SmallVector<Value, 4> OneToAnyConversion::CastToSourceTypes(
 SmallVector<Value, 4> OneToAnyConversion::CastToTargetTypes(
     OpBuilder &builder, Location loc, ValueRange source_values) {
   SmallVector<Value, 4> results;
-  for (auto pair : llvm::enumerate(source_values)) {
+  for (const auto &pair : llvm::enumerate(source_values)) {
     auto mapping = conversion_.getInputMapping(pair.index());
     if (!mapping) continue;  // Argument was dropped.
     if (mapping->replacementValue) results.push_back(mapping->replacementValue);
@@ -808,44 +787,10 @@ LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
   Location loc = get_global_op->getLoc();
   Value context = GetContextFromParentFunc(rewriter, get_global_op);
   auto once_op = rewriter.create<compiler::OnceOp>(
-      loc, GetTypes<BufferType, compiler::ChainType>(rewriter), context,
-      adaptor.name());
-  // TODO(csigg): this should rather cast to memref, and the
-  // ConvertBufferCastPattern should match both this and the materialization.
-  Value buffer = CastTo<BufferType>(rewriter, loc, once_op.getResults());
-  rewriter.replaceOp(get_global_op, buffer);
-  return success();
-}
-
-LogicalResult ConvertBufferCastPattern::matchAndRewrite(
-    CastOp cast_op, OpAdaptor adaptor,
-    ConversionPatternRewriter &rewriter) const {
-  if (!IsTypes<BufferType, compiler::ChainType>(cast_op.getOperandTypes()) ||
-      !IsTypes<BufferType>(cast_op.getResultTypes())) {
-    return rewriter.notifyMatchFailure(
-        cast_op, "not cast from buffer and chain to buffer");
-  }
-
-  SmallVector<OpOperand *, 4> chain_operands;
-  for (Operation *user : cast_op->getUsers()) {
-    auto it = llvm::find_if(user->getOpOperands(), [](OpOperand &operand) {
-      return operand.get().getType().isa<compiler::ChainType>();
-    });
-    if (it == user->getOpOperands().end())
-      return rewriter.notifyMatchFailure(cast_op, "not all users take a chain");
-    chain_operands.push_back(&*it);
-  }
-
-  Location loc = cast_op->getLoc();
-  Value chain = adaptor.getOperands().back();
-  for (OpOperand *operand : chain_operands) {
-    rewriter.setInsertionPoint(operand->getOwner());
-    Value merged_chain = rewriter.create<compiler::MergeChainsOp>(
-        loc, chain.getType(), ValueRange({chain, operand->get()}));
-    operand->set(merged_chain);
-  }
-  rewriter.replaceOp(cast_op, adaptor.getOperands().front());
-
+      loc, rewriter.getType<BufferType>(), context, adaptor.name());
+  auto cast_op = rewriter.create<CastOp>(loc, get_global_op.getType(),
+                                         once_op.getResults());
+  rewriter.replaceOp(get_global_op, cast_op.getResults());
   return success();
 }
 
@@ -917,11 +862,8 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
   Location loc = module_op->getLoc();
   auto constants =
       module_op->getAttrOfType<ArrayAttr>(getGpuConstantsAttrName());
-  SmallVector<Type, 2> return_types = {rewriter.getType<ModuleType>()};
-  if (constants)
-    return_types.push_back(rewriter.getType<compiler::ChainType>());
-  mlir::FunctionType func_type =
-      rewriter.getFunctionType(rewriter.getType<ContextType>(), return_types);
+  mlir::FunctionType func_type = rewriter.getFunctionType(
+      rewriter.getType<ContextType>(), rewriter.getType<ModuleType>());
   FuncOp func_op = rewriter.replaceOpWithNewOp<FuncOp>(
       module_op, module_op.getName(), func_type);
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
@@ -929,7 +871,6 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
   std::string binary = data.getValue().str();  // Add trailing zero.
   Value module = rewriter.create<ModuleLoadOp>(
       loc, context, StringRef(binary.data(), binary.size() + 1));
-  SmallVector<Value, 2> return_values = {module};
   if (constants) {
     // Initialize GPU module symbols.
     Value chain = rewriter.create<compiler::NewChainOp>(loc);
@@ -943,9 +884,9 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
       chain = CreateSetGlobal(rewriter, global_op, buffer, chain, stream);
     }
     chain = rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
-    return_values.push_back(chain);
+    module = rewriter.create<AliasOp>(loc, module.getType(), module, chain);
   }
-  rewriter.create<compiler::ReturnOp>(loc, return_values);
+  rewriter.create<compiler::ReturnOp>(loc, module);
   return success();
 }
 
@@ -953,8 +894,7 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
     memref::GlobalOp global_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   mlir::FunctionType func_type = rewriter.getFunctionType(
-      rewriter.getType<ContextType>(),
-      GetTypes<tfrt::gpu::BufferType, compiler::ChainType>(rewriter));
+      rewriter.getType<ContextType>(), rewriter.getType<BufferType>());
   auto func_op = rewriter.replaceOpWithNewOp<FuncOp>(
       global_op, global_op.sym_name(), func_type);
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
@@ -965,12 +905,10 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
   if (auto module_attr =
           global_op->getAttrOfType<FlatSymbolRefAttr>(getGpuModuleAttrName())) {
     auto once_op = rewriter.create<compiler::OnceOp>(
-        loc, GetTypes<ModuleType, compiler::ChainType>(rewriter),
-        ValueRange(context), module_attr);
+        loc, rewriter.getType<ModuleType>(), ValueRange(context), module_attr);
     Value buffer = rewriter.create<ModuleGetGlobalOp>(
         loc, once_op->getResult(0), adaptor.sym_name());
-    rewriter.create<compiler::ReturnOp>(
-        loc, ValueRange({buffer, once_op->getResult(1)}));
+    rewriter.create<compiler::ReturnOp>(loc, buffer);
     return success();
   }
 
@@ -984,7 +922,8 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
       rewriter.create<gpu::MemAllocateOp>(loc, allocator, stream, size, chain);
   chain = CreateSetGlobal(rewriter, global_op, buffer, chain, stream);
   chain = rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
-  rewriter.create<compiler::ReturnOp>(loc, ValueRange({buffer, chain}));
+  buffer = rewriter.create<AliasOp>(loc, buffer.getType(), buffer, chain);
+  rewriter.create<compiler::ReturnOp>(loc, buffer);
   return success();
 }
 
@@ -1345,8 +1284,8 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
 
 void ReconcileCastsPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
-  patterns.add<ConvertCastToEventRecordPattern, FoldConstCastPattern,
-               ConvertBufferCastPattern>(&getContext());
+  patterns.add<ConvertCastToEventRecordPattern, FoldConstCastPattern>(
+      &getContext());
   populateReconcileUnrealizedCastsPatterns(patterns);
   ConversionTarget target(getContext());
   target.addIllegalOp<CastOp>();

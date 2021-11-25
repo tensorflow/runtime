@@ -81,7 +81,7 @@ static Error GpuStreamWait(const GpuStream& stream, const GpuEvent& event) {
 }
 
 // tfrt_gpu.stream.synchronize sets the output chain ready when all work
-// previously enqueued on the stream are completed.
+// previously enqueued on the stream is completed.
 static AsyncValueRef<Chain> GpuStreamSynchronize(
     Argument<GpuStream> stream, const ExecutionContext& exec_ctx) {
   return EnqueueBlockingWork(
@@ -379,6 +379,10 @@ static Error GpuFunctionLaunch(const GpuStream& stream,
                                stream.get(), arg_pointers, {});
 }
 
+static void GpuAlias(AsyncValue* value, Chain, RemainingResults results) {
+  results.values().front() = FormRef(value);
+}
+
 void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.device.get", TFRT_KERNEL(GpuDeviceGet));
   kernel_reg->AddKernel("tfrt_gpu.context.primary",
@@ -433,6 +437,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(GpuModuleGetFunction));
   kernel_reg->AddKernel("tfrt_gpu.function.launch",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuFunctionLaunch));
+
+  kernel_reg->AddKernel("tfrt_gpu.alias", TFRT_KERNEL(GpuAlias));
 }
 
 }  // namespace gpu

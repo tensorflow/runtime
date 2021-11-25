@@ -87,6 +87,8 @@ func @driver_ops() {
              %shmem, %ch6,
              args(%buffer) : (!tfrt_gpu.buffer)
 
+  %alias = tfrt_gpu.alias %function, %ch7 : !tfrt_gpu.function
+
   tfrt.return
 }
 

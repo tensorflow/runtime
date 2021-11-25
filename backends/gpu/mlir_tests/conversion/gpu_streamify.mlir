@@ -57,7 +57,7 @@ func @memcopy(
 // CHECK-LABEL: @gpu_container_module
 module @gpu_container_module attributes {gpu.container_module} {
 
-  // CHECK-LABEL: func @zero(%arg0: !tfrt_gpu.context) -> (!tfrt_gpu.buffer, !tfrt.chain) {
+  // CHECK-LABEL: func @zero(%arg0: !tfrt_gpu.context) -> !tfrt_gpu.buffer {
   // CHECK:   %[[allocator:.*]] = tfrt_gpu.allocator.create %arg0
   // CHECK:   %[[stream:.*]] = tfrt_gpu.stream.create %arg0
   // CHECK:   %[[size:.*]] = tfrt.constant.i64 4
@@ -68,19 +68,20 @@ module @gpu_container_module attributes {gpu.container_module} {
   // CHECK:   %[[host:.*]]:2 = tfrt_dht.get_buffer %[[tensor]], %[[ch1]]
   // CHECK:   %[[ch2:.*]] = tfrt_gpu.mem.copy %4, %[[host]]#0, %[[stream]], %[[ch1]] : !tfrt_gpu.buffer, !ht.host_buffer
   // CHECK:   %[[ch3:.*]] = tfrt_gpu.stream.synchronize %[[stream]], %[[ch2]]
-  // CHECK:   tfrt.return %[[buffer]], %[[ch3]] : !tfrt_gpu.buffer, !tfrt.chain
+  // CHECK:   %[[alias:.*]] = tfrt_gpu.alias %[[buffer]], %[[ch3]] : !tfrt_gpu.buffer
+  // CHECK:   tfrt.return %[[alias]] : !tfrt_gpu.buffer
   // CHECK: }
   memref.global @zero : memref<i32> = dense<0>
 
-  // CHECK-LABEL: func @pi(%arg0: !tfrt_gpu.context) -> (!tfrt_gpu.buffer, !tfrt.chain) {
-  // CHECK:   %[[module:.*]]:2 = tfrt.once @gpu_module(%arg0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module, !tfrt.chain)
-  // CHECK:   %[[global:.*]] = tfrt_gpu.module.get_global %[[module]]#0 {name = "pi"}
-  // CHECK:   tfrt.return %[[global]], %[[module]]#1 : !tfrt_gpu.buffer, !tfrt.chain
+  // CHECK-LABEL: func @pi(%arg0: !tfrt_gpu.context) -> !tfrt_gpu.buffer {
+  // CHECK:   %[[module:.*]] = tfrt.once @gpu_module(%arg0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
+  // CHECK:   %[[global:.*]] = tfrt_gpu.module.get_global %[[module]] {name = "pi"}
+  // CHECK:   tfrt.return %[[global]] : !tfrt_gpu.buffer
   // CHECK: }
   memref.global @pi : memref<f32> = dense<3.14159274> {gpu_module = @gpu_module}
 
   // CHECK-LABEL: func @gpu_module(%arg0: !tfrt_gpu.context)
-  // CHECK-SAME: -> (!tfrt_gpu.module, !tfrt.chain) {
+  // CHECK-SAME: -> !tfrt_gpu.module {
   // CHECK:   %[[module:.*]] = tfrt_gpu.module.load %arg0 {data = "<cubin>\00"}
   // CHECK:   %[[ch0:.*]] = tfrt.new.chain
   // CHECK:   %[[stream:.*]] = tfrt_gpu.stream.create %arg0
@@ -92,7 +93,8 @@ module @gpu_container_module attributes {gpu.container_module} {
   // CHECK:   %[[ch2:.*]] = tfrt_gpu.mem.copy %[[global]], %[[buffer]]#0,
   // CHECK-SAME: %[[stream]], %[[ch1]] : !tfrt_gpu.buffer, !ht.host_buffer
   // CHECK:   %[[ch3:.*]] = tfrt_gpu.stream.synchronize %[[stream]], %[[ch2]]
-  // CHECK:   tfrt.return %[[module]], %[[ch3]] : !tfrt_gpu.module, !tfrt.chain
+  // CHECK:   %[[alias:.*]] = tfrt_gpu.alias %[[module]], %[[ch3]] : !tfrt_gpu.module
+  // CHECK:   tfrt.return %[[alias]] : !tfrt_gpu.module
   // CHECK: }
   gpu.module @gpu_module attributes {
     binary = "<cubin>",
@@ -104,13 +106,13 @@ module @gpu_container_module attributes {gpu.container_module} {
   // CHECK-LABEL: @get_global
   func @get_global(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
     // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
-    // CHECK: %[[zero:.*]]:2 = tfrt.once @zero(%[[ctx]])
-    // CHECK: builtin.unrealized_conversion_cast %[[zero]]#0, %[[zero]]#1
-    // CHECK-SAME: !tfrt_gpu.buffer, !tfrt.chain to !tfrt_gpu.buffer
+    // CHECK: %[[zero:.*]] = tfrt.once @zero(%[[ctx]])
+    // CHECK: builtin.unrealized_conversion_cast %[[zero]]
+    // CHECK-SAME: : !tfrt_gpu.buffer to memref<i32>
     %zero = memref.get_global @zero : memref<i32>
-    // CHECK: %[[pi:.*]]:2 = tfrt.once @pi(%[[ctx]])
-    // CHECK: builtin.unrealized_conversion_cast %[[pi]]#0, %[[pi]]#1
-    // CHECK-SAME: !tfrt_gpu.buffer, !tfrt.chain to !tfrt_gpu.buffer
+    // CHECK: %[[pi:.*]] = tfrt.once @pi(%[[ctx]])
+    // CHECK: builtin.unrealized_conversion_cast %[[pi]]
+    // CHECK-SAME: : !tfrt_gpu.buffer to memref<f32>
     %pi = memref.get_global @pi : memref<f32>
     tfrt.return
   }
@@ -121,12 +123,11 @@ module @gpu_container_module attributes {gpu.container_module} {
     %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
         : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
     // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
-    // CHECK: %[[once:.*]]:2 = tfrt.once @gpu_module(%[[ctx]])
-    // CHECK-SAME: (!tfrt_gpu.context) -> (!tfrt_gpu.module, !tfrt.chain)
-    // CHECK: %[[kernel:.*]] = tfrt_gpu.module.get_function %[[once]]#0 {name = "kernel"}
-    // CHECK: %[[ch0:.*]] = tfrt.merge.chains %arg0, %[[once]]#1 : !tfrt.chain, !tfrt.chain
-    // CHECK: %[[ch1:.*]] = tfrt_gpu.function.launch %arg1, %[[kernel]],
-    // CHECK-SAME: blocks in ({{.*}}), threads in ({{.*}}), {{.*}}, %[[ch0]]
+    // CHECK: %[[once:.*]] = tfrt.once @gpu_module(%[[ctx]])
+    // CHECK-SAME: (!tfrt_gpu.context) -> (!tfrt_gpu.module)
+    // CHECK: %[[kernel:.*]] = tfrt_gpu.module.get_function %[[once]] {name = "kernel"}
+    // CHECK: %[[ch0:.*]] = tfrt_gpu.function.launch %arg1, %[[kernel]],
+    // CHECK-SAME: blocks in ({{.*}}), threads in ({{.*}}), {{.*}}, %arg0
     %t1 = gpu.launch_func async [%t0] @gpu_module::@kernel
         blocks in (%one, %one, %one) threads in (%one, %one, %one)
     tfrt.return

@@ -402,4 +402,24 @@ def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
   }];
 }
 
+def GPU_AliasOp : GPU_Op<"alias", [
+     TypesMatchWith<"value type matches result type", "res", "value", "$_self">
+]>{
+
+  let description = [{
+    tfrt_gpu.alias returns the value argument once the input chain is ready.
+
+    Example:
+      %1 = tfrt_gpu.alias %0, %ch : !tfrt_gpu.module
+  }];
+
+  let arguments = (ins AnyType:$value, TFRT_ChainType:$chain);
+  let results = (outs AnyType:$res);
+
+  let assemblyFormat = [{
+    $value`,` $chain attr-dict `:` type($res)
+  }];
+
+}
+
 #endif  // GPU_OPS

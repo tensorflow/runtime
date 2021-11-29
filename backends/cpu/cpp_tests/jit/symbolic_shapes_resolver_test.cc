@@ -94,7 +94,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, -2}, {-2}, {-2, 4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -2}, {-2}, {-2, 4}}));
   }
 
   {  // All unknown dimensions are unique at runtime.
@@ -102,7 +102,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, -3}, {-4}, {-5, 4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -3}, {-4}, {-5, 4}}));
   }
 
   {  // Ones converted to a static dimension.
@@ -110,7 +110,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{1, 1, 1}, {1}, {1, 4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{1, 1, 1}, {1}, {1, 4}}));
   }
 
   {  // Known constants converted to a static dimension.
@@ -118,7 +118,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {4}, {1, 4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {4}, {1, 4}}));
   }
 }
 
@@ -140,7 +140,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2}, {-2}, {-2}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-2}, {-2}}));
   }
 
   {  // All unknown dimensions are unique at runtime.
@@ -148,7 +148,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2}, {-3}, {-4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-4}}));
   }
 
   {  // Two of the three dimensions are the same.
@@ -156,7 +156,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2}, {-3}, {-2}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-2}}));
   }
 
   {  // Ones converted to a static dimension.
@@ -164,7 +164,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{1}, {1}, {-2}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{1}, {1}, {-2}}));
   }
 }
 
@@ -186,7 +186,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {-2, 8}, {-2}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-2, 8}, {-2}}));
   }
 
   {  // All unknown dimensions are unique at runtime.
@@ -194,7 +194,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-4}}));
   }
 
   {  // Two of the three dimensions are the same.
@@ -202,7 +202,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-2}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-2}}));
   }
 
   {  // Ones converted to a static dimension.
@@ -210,7 +210,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{1, 4}, {-2, 8}, {1}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{1, 4}, {-2, 8}, {1}}));
   }
 
   {  // Known constants converted to a static dimension.
@@ -218,7 +218,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
-    EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {8, 8}, {8}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {8, 8}, {8}}));
   }
 }
 
@@ -238,7 +238,37 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
     auto symbolic = resolver.Resolve(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
-    EXPECT_EQ(symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
+    EXPECT_EQ(*symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
+  }
+}
+
+TEST(SymbolicShapeResolverTest, ShapeConstrainedInputAfterDynamicInput) {
+  // Operands: tensor<?x?xf32>, tensor<?x?xi32>
+  auto dtypes = {DType::F32, DType::I32};
+
+  auto type = GetFunctionType(
+      dtypes, {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
+
+  auto constraints = {OperandConstraint::kResolved, OperandConstraint::kShape};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  {  // All unknown dimensions materialized as static shapes (first operand
+     // resolved based on seen static shapes of the second one).
+    auto operands = GetFakeMemrefs({{100, 50}, {100, 50}});
+    auto symbolic = resolver.Resolve(operands);
+
+    EXPECT_EQ(symbolic->size(), 2);
+    EXPECT_EQ(*symbolic, SymbolicShapes({{100, 50}, {100, 50}}));
+  }
+
+  {  // Unknown dimension correctly resolved to a symbolic dimension.
+    auto operands = GetFakeMemrefs({{100, 50}, {100, 4}});
+    auto symbolic = resolver.Resolve(operands);
+
+    EXPECT_EQ(symbolic->size(), 2);
+    EXPECT_EQ(*symbolic, SymbolicShapes({{100, -2}, {100, 4}}));
   }
 }
 

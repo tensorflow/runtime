@@ -23,6 +23,7 @@
 
 #include <sys/types.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -1580,6 +1581,19 @@ SymbolicShapesResolver::SymbolicShapesResolver(
 
     assert(false && "unsupported operand type");
   }
+
+  // When resolving symbolic shapes we should visit operands starting from the
+  // more constrained ones, because they can change the static signature of the
+  // function, and this information should be propagated to operands with
+  // dynamic shapes (e.g. all seen static sizes should be materialized in the
+  // function signature).
+  iteration_order_.resize(signature.num_operands());
+  std::iota(iteration_order_.begin(), iteration_order_.end(), 0);
+
+  llvm::sort(iteration_order_, [&](size_t a, size_t b) {
+    return static_cast<unsigned>(constraints[a]) >
+           static_cast<unsigned>(constraints[b]);
+  });
 }
 
 mlir::FailureOr<llvm::SmallVector<SymbolicShape>>
@@ -1592,11 +1606,11 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
 
   // Resolved symbolic shapes.
   llvm::SmallVector<SymbolicShape> symbolic_shapes;
-  symbolic_shapes.reserve(operands.size());
+  symbolic_shapes.resize(operands.size());
 
   int64_t sym_dim = -2;  // the next symbolic dimension id
 
-  for (unsigned i = 0; i < operands_sizes_.size(); ++i) {
+  for (size_t i : iteration_order_) {
     bool has_static_sizes = operands_sizes_[i].hasValue();
     ArrayRef<int64_t> runtime_sizes = operands[i].sizes;
 
@@ -1606,7 +1620,12 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
 
     // For shape constrained operands use runtime shape.
     if (constraints_[i] == OperandConstraint::kShape) {
-      symbolic_shapes.emplace_back(runtime_sizes.begin(), runtime_sizes.end());
+      symbolic_shapes[i].assign(runtime_sizes.begin(), runtime_sizes.end());
+
+      // Add all runtime dimensions to the `size_to_symbolic_dim` to materialize
+      // all dynamic dimensions of the same size as static dimensions.
+      for (int64_t d : runtime_sizes) size_to_symbolic_dim.try_emplace(d, d);
+
       continue;
     }
 
@@ -1616,13 +1635,13 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
     if (has_static_sizes) {
       ArrayRef<int64_t> static_sizes = *operands_sizes_[i];
       assert(runtime_sizes.size() == static_sizes.size());
-      symbolic_shapes.emplace_back(static_sizes.begin(), static_sizes.end());
+      symbolic_shapes[i].assign(static_sizes.begin(), static_sizes.end());
     } else {
       size_t rank = runtime_sizes.size();
-      symbolic_shapes.emplace_back(rank, MemrefType::kDynamicSize);
+      symbolic_shapes[i].resize(rank, MemrefType::kDynamicSize);
     }
 
-    MutableArrayRef<int64_t> symbolic_sizes = symbolic_shapes.back();
+    MutableArrayRef<int64_t> symbolic_sizes = symbolic_shapes[i];
 
     for (unsigned d = 0; d < runtime_sizes.size(); ++d) {
       int64_t symbolic_dim = symbolic_sizes[d];

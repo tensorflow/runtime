@@ -1137,6 +1137,9 @@ class SymbolicShapesResolver {
 
   // Values of statically known dimensions sizes in the function signature.
   llvm::DenseSet<int64_t> seen_static_sizes_;
+
+  // The iteration order for the operands when resolving symbolic shapes.
+  llvm::SmallVector<size_t> iteration_order_;
 };
 
 // JitExecutable owns a default executable compiled from the MLIR module (if

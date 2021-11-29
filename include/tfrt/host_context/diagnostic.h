@@ -38,16 +38,22 @@ struct DecodedDiagnostic {
   explicit DecodedDiagnostic(const Error& error);
   explicit DecodedDiagnostic(string_view message) : message(message) {}
   DecodedDiagnostic(string_view message, ErrorCode code)
-      : message(message), code(code) {}
+      : message(message), code(code) {
+    assert(code != ErrorCode::kOK &&
+           "DecodedDiagnostic cannot have an OK error code");
+  }
   DecodedDiagnostic(DecodedLocation location, string_view message)
       : location(std::move(location)), message(message) {}
   DecodedDiagnostic(DecodedLocation location, string_view message,
                     ErrorCode code)
-      : location(std::move(location)), message(message), code(code) {}
+      : location(std::move(location)), message(message), code(code) {
+    assert(code != ErrorCode::kOK &&
+           "DecodedDiagnostic cannot have an OK error code");
+  }
 
   llvm::Optional<DecodedLocation> location;
   std::string message;
-  ErrorCode code{ErrorCode::kOK};
+  ErrorCode code{ErrorCode::kUnknown};
 };
 
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diagnostic);

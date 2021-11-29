@@ -46,6 +46,8 @@ static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
   return wrapper::Pointer<void>(&value->get<T>(), platform);
 }
 
+// For complex types, the scale type matches the element type, not
+// the compute type
 static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
     AsyncValue* value, mlir::TypeID typeId, wrapper::Platform platform) {
   if (value->IsType<fp16>())
@@ -54,6 +56,14 @@ static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
     return GetScalePointer<float>(value, typeId, platform);
   if (value->IsType<double>()) {
     return GetScalePointer<double>(value, typeId, platform);
+  }
+  if (value->IsType<std::complex<float>>()) {
+    return GetScalePointer<std::complex<float>>(
+        value, mlir::TypeID::get<std::complex<float>>(), platform);
+  }
+  if (value->IsType<std::complex<double>>()) {
+    return GetScalePointer<std::complex<double>>(
+        value, mlir::TypeID::get<std::complex<double>>(), platform);
   }
   return MakeStringError("pointer type not supported");
 }

@@ -366,11 +366,12 @@ def GPU_DnnRunConvolutionOp : GPU_Op<"dnn.run_convolution"> {
   let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_DnnConvolutionPlanType:$convolution_plan,
                    GPU_BufferType:$input, GPU_BufferType:$output,
-                   GPU_BufferType:$filter, GPU_BufferType:$workspace);
+                   GPU_BufferType:$filter, GPU_BufferType:$workspace,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $convolution_plan`,` $input`,` $output`,` $filter`,` $workspace
-    attr-dict
+    $handle`,` $convolution_plan`,` $input`,` $output`,` $filter`,`
+    $workspace`,` $chain attr-dict
   }];
 }
 
@@ -420,11 +421,12 @@ def GPU_DnnRunFusedConvolutionOp : GPU_Op<"dnn.run_fused_convolution"> {
                    GPU_DnnConvolutionPlanType:$convolution_plan,
                    GPU_BufferType:$input, GPU_BufferType:$output,
                    GPU_BufferType:$filter, GPU_BufferType:$side_input,
-                   GPU_BufferType:$bias, GPU_BufferType:$workspace);
+                   GPU_BufferType:$bias, GPU_BufferType:$workspace,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
     $handle`,` $convolution_plan`,` $input`,` $output`,` $filter`,`
-    $side_input`,` $bias`,` $workspace attr-dict
+    $side_input`,` $bias`,` $workspace`,` $chain attr-dict
   }];
 }
 

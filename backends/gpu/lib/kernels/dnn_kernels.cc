@@ -710,11 +710,11 @@ void RegisterGpuDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.dnn.build_convolution",
                         TFRT_KERNEL(DnnBuildConvolution));
   kernel_reg->AddKernel("tfrt_gpu.dnn.run_convolution",
-                        TFRT_KERNEL(DnnRunConvolution));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(DnnRunConvolution));
   kernel_reg->AddKernel("tfrt_gpu.dnn.build_fused_convolution",
                         TFRT_KERNEL(DnnBuildFusedConvolution));
   kernel_reg->AddKernel("tfrt_gpu.dnn.run_fused_convolution",
-                        TFRT_KERNEL(DnnRunFusedConvolution));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(DnnRunFusedConvolution));
 }
 
 }  // namespace gpu

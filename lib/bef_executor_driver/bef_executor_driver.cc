@@ -28,6 +28,7 @@
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Identifier.h"
+#include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/FileUtilities.h"
 #include "tfrt/bef/bef_buffer.h"
@@ -85,29 +86,25 @@ int RunBefExecutor(
     return 1;
   }
 
-  // Tell source_mgr about this buffer, which is what the parser will pick up.
-  llvm::SourceMgr source_mgr;
-  source_mgr.AddNewSourceBuffer(std::move(file), llvm::SMLoc());
-
   // Parse the input file.
   mlir::MLIRContext context;
+  llvm::SourceMgr source_mgr;
   mlir::SourceMgrDiagnosticVerifierHandler source_mgr_handler(source_mgr,
                                                               &context);
 
-  auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {
-    std::string message = "runtime error: " + diag.message;
+  auto get_loc = [&](Optional<DecodedLocation> loc) -> mlir::Location {
+    if (!loc) return mlir::UnknownLoc::get(&context);
+    if (loc->is<FileLineColLocation>()) {
+      auto file_loc = loc->get<FileLineColLocation>();
+      return mlir::FileLineColLoc::get(&context, file_loc.filename,
+                                       file_loc.line, file_loc.column);
+    };
+    return mlir::NameLoc::get(
+        mlir::Identifier::get(loc->get<OpaqueLocation>().loc, &context));
+  };
 
-    if (diag.location->is<FileLineColLocation>()) {
-      auto decoded_loc = diag.location->get<FileLineColLocation>();
-      auto loc = mlir::FileLineColLoc::get(
-          &context, decoded_loc.filename, decoded_loc.line, decoded_loc.column);
-      emitError(loc) << message;
-    } else {
-      auto identifier = mlir::Identifier::get(
-          diag.location->get<OpaqueLocation>().loc, &context);
-      auto loc = mlir::NameLoc::get(identifier);
-      emitError(loc) << message;
-    }
+  auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {
+    emitError(get_loc(diag.location)) << "runtime error: " << diag.message;
   };
 
   assert(GetNumReferenceCountedObjects() == 0 &&
@@ -135,9 +132,7 @@ int RunBefExecutor(
   }
   tfrt::outs().flush();
 
-  // Dig the bytes out of the SourceMgr.
-  auto buffer =
-      source_mgr.getMemoryBuffer(source_mgr.getMainFileID())->getBuffer();
+  auto buffer = file->getBuffer();
 
   // Handle BefBuffer alignment.
   //   mlir::openInputFile() should return 4KB aligned buffer when a file is

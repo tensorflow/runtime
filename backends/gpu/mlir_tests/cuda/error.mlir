@@ -13,18 +13,29 @@
 // limitations under the License.
 
 // RUN: tfrt_gpu_opt -mlir-print-debuginfo \
-// RUN:   -test-set-entry-point='platform=CUDA buffer_sizes=64' %s \
+// RUN:   -test-set-entry-point='platform=CUDA function_name=error' %s \
 // RUN: | tfrt_gpu_translate -mlir-to-bef \
-// RUN: | tfrt_gpu_executor \
-// RUN: | FileCheck %s
+// RUN: | tfrt_gpu_executor
 
-func @main(
+// RUN: bef_executor_lite %s.bef
+
+func @error(
   %arg0 : !tfrt.chain,
-  %arg1 : !tfrt_gpu.stream,
-  %arg2 : !tfrt_gpu.buffer
+  %arg1 : !tfrt_gpu.stream
 ) -> !tfrt.chain {
-  %ch0 = tfrt_gpu.stream.synchronize %arg1, %arg0
-  // CHECK: GpuBuffer<pointer={{0x[[:xdigit:]]+}} (CUDA), size=64>
-  %ch1 = tfrt_gpu.mem.print_metadata %arg2, %ch0
-  tfrt.return %ch1 : !tfrt.chain
+  %ordinal = tfrt.constant.i32 -1
+  // expected-error@+1 {{CUDA_ERROR_INVALID_DEVICE}}
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  tfrt.return %arg0 : !tfrt.chain
+}
+
+func @main() {
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+  %stream = tfrt_gpu.stream.create %context
+  %ch0 = tfrt.new.chain
+  %ch1 = tfrt.call @error(%ch0, %stream)
+    : (!tfrt.chain, !tfrt_gpu.stream) -> (!tfrt.chain)
+  tfrt.return
 }

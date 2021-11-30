@@ -50,10 +50,9 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
                           host_ctx.diag_handler(), host_ctx.allocator());
   if (!file) return tfrt::MakeStringError("Failed to open file");
 
-  // Allow verifying diagnostics.
+  // Augment diagnostics with source and verify expected errors.
   llvm::SourceMgr src_mgr;
-  src_mgr.AddNewSourceBuffer(std::move(*buffer), llvm::SMLoc());
-  mlir::SourceMgrDiagnosticVerifierHandler verifier(src_mgr, &context);
+  mlir::SourceMgrDiagnosticVerifierHandler handler(src_mgr, &context);
 
   tfrt::ResourceContext resource_ctx;
   auto exec_ctx = tfrt::gpu::CreateExecutionContext(&host_ctx, &resource_ctx);
@@ -81,8 +80,15 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
       Execute(*exec_ctx, *function, chain, stream, buffers);
   tfrt::Await(result.GetAsyncValue());
 
-  // Report error if any.
-  if (result.IsError()) return tfrt::MakeStringError(result.GetError());
+  // The above only guarantees that work depending on `result` has completed.
+  // Flush all remaining work before checking for potential errors.
+  host_ctx.Quiesce();
+
+  if (failed(handler.verify()))
+    return tfrt::MakeStringError("unexpected errors reported");
+
+  if (result.IsError())
+    return tfrt::MakeStringError("result has error: ", result.GetError());
 
   // Synchronize the stream.
   return tfrt::gpu::wrapper::StreamSynchronize(stream->get());

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gpu_entry_point.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -60,19 +61,18 @@ namespace {
 class BefMemoryBuffer : public llvm::MemoryBuffer {
  public:
   explicit BefMemoryBuffer(llvm::MemoryBuffer* buffer)
-      : buffer_(buffer->getBufferStart(), buffer->getBufferEnd()),
+      : buffer_(reinterpret_cast<const uint8_t*>(buffer->getBufferStart()),
+                reinterpret_cast<const uint8_t*>(buffer->getBufferEnd())),
         identifier_(buffer->getBufferIdentifier().str()) {
-    init(buffer_.data(), buffer_.data() + buffer_.size(),
-         /*RequiresNullTerminator*/ true);
+    init(reinterpret_cast<const char*>(buffer_.data()),
+         reinterpret_cast<const char*>(buffer_.data() + buffer_.size()),
+         /*RequiresNullTerminator*/ false);
   }
   llvm::StringRef getBufferIdentifier() const override { return identifier_; }
   BufferKind getBufferKind() const override { return MemoryBuffer_Malloc; }
 
  private:
-  // Aligned bef data. It is not a BefBuffer instance because MemoryBuffer
-  // holds chars and not uint8_t. It is a string so that it's null terminated.
-  using Allocator = BefBuffer::allocator_type::rebind<char>::other;
-  std::basic_string<char, std::char_traits<char>, Allocator> buffer_;
+  BefBuffer buffer_;  // Aligned bef data.
   std::string identifier_;
 };
 }  // namespace

@@ -1213,9 +1213,14 @@ class JitExecutable {
   //
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
+  //
+  // TODO(b/208618010): Optionally overwrite the number of worker threads for
+  // the recompiled specialized binaries. The number of worker threads in the
+  // default binary stays the same.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
       ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
-      const Listener* listener = nullptr);
+      const Listener* listener = nullptr,
+      Optional<int> num_worker_threads = llvm::None);
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;

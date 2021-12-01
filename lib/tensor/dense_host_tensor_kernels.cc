@@ -243,7 +243,7 @@ static void PrintBuffer(Argument<RCReference<HostBuffer>> buffer,
 }
 
 template <typename T, size_t Rank>
-static void RegisterDenseHostTensorKernelsForTypeAndRank(
+static void RegisterDhtCreationKernelsForTypeAndRank(
     KernelRegistry* registry, const std::string& t_name) {
   std::string suffix = t_name + "." + std::to_string(Rank);
   registry->AddKernel("tfrt_dht.create_uninitialized_tensor." + suffix,
@@ -254,8 +254,8 @@ static void RegisterDenseHostTensorKernelsForTypeAndRank(
 }
 
 template <typename T>
-static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
-                                                  const std::string& t_name) {
+static void RegisterDhtCreationKernelsForType(KernelRegistry* registry,
+                                              const std::string& t_name) {
   std::string suffix = t_name;
   registry->AddSyncKernel("tfrt_dht_sync.create_dense_tensor." + suffix,
                           TFRT_SYNC_KERNEL(CreateDenseTensor<T>));
@@ -276,6 +276,17 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
       TFRT_SYNC_KERNEL(SyncSetDenseTensorWithConstantValues<T>));
   registry->AddKernel("tfrt_dht.set_tensor_with_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithValues<T>));
+  RegisterDhtCreationKernelsForTypeAndRank<T, 0>(registry, t_name);
+  RegisterDhtCreationKernelsForTypeAndRank<T, 1>(registry, t_name);
+  RegisterDhtCreationKernelsForTypeAndRank<T, 2>(registry, t_name);
+  RegisterDhtCreationKernelsForTypeAndRank<T, 3>(registry, t_name);
+  RegisterDhtCreationKernelsForTypeAndRank<T, 4>(registry, t_name);
+}
+
+template <typename T>
+static void RegisterDhtComparisonKernelsForType(KernelRegistry* registry,
+                                                const std::string& t_name) {
+  std::string suffix = t_name;
   registry->AddKernel("tfrt_dht.tensor_equal." + suffix,
                       TFRT_KERNEL(DenseTensorEqual<T>));
   registry->AddKernel("tfrt_dht.tensor_allclose." + suffix,
@@ -288,16 +299,19 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(DenseTensorAllClose<T, 2000>));
   registry->AddKernel("tfrt_dht.tensor_allclose.100000ulp." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T, 100000>));
-  RegisterDenseHostTensorKernelsForTypeAndRank<T, 0>(registry, t_name);
-  RegisterDenseHostTensorKernelsForTypeAndRank<T, 1>(registry, t_name);
-  RegisterDenseHostTensorKernelsForTypeAndRank<T, 2>(registry, t_name);
-  RegisterDenseHostTensorKernelsForTypeAndRank<T, 3>(registry, t_name);
-  RegisterDenseHostTensorKernelsForTypeAndRank<T, 4>(registry, t_name);
+}
+
+template <typename T>
+static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
+                                                  const std::string& t_name) {
+  RegisterDhtCreationKernelsForType<T>(registry, t_name);
+  RegisterDhtComparisonKernelsForType<T>(registry, t_name);
 }
 
 void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDenseHostTensorKernelsForType<uint8_t>(registry, "ui8");
   RegisterDenseHostTensorKernelsForType<float>(registry, "f32");
+  RegisterDenseHostTensorKernelsForType<double>(registry, "f64");
   RegisterDenseHostTensorKernelsForType<int32_t>(registry, "i32");
   RegisterDenseHostTensorKernelsForType<int64_t>(registry, "i64");
   RegisterDenseHostTensorKernelsForType<bool>(registry, "bool");
@@ -305,6 +319,11 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
                                                              "complex64");
   RegisterDenseHostTensorKernelsForType<std::complex<double>>(registry,
                                                               "complex128");
+  // Only creation kernels for now. Including
+  // tfrt/common/compat/eigen/eigen_dtype.h for comparison kernels makes TFRT
+  // depend on TF due to b/161569340.
+  RegisterDhtCreationKernelsForType<fp16>(registry, "f16");
+
   registry->AddKernel("tfrt_dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
   registry->AddSyncKernel("tfrt_dht_sync.allocate_buffer",
                           TFRT_SYNC_KERNEL(SyncAllocateBuffer));

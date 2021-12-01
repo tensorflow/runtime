@@ -1136,6 +1136,8 @@ class JitCompilationContext {
 
   const CompilationOptions& options() const { return opts_; }
 
+  bool specialized() const { return specialized_; }
+
  private:
   JitCompilationContext(CompilationOptions opts, string_view mlir_module,
                         string_view entrypoint);
@@ -1148,6 +1150,7 @@ class JitCompilationContext {
   mlir::SourceMgrDiagnosticHandler handler_;
   mlir::OwningModuleRef module_;  // can be null if failed to parse the module
   mlir::FuncOp entrypoint_;       // can be null if failed to parse the module
+  bool specialized_;
 };
 }  // namespace
 
@@ -1188,7 +1191,8 @@ JitCompilationContext::JitCompilationContext(CompilationOptions opts,
     : opts_(std::move(opts)),
       context_(CreateMlirContext(opts_)),
       diagnostic_os_(diagnostic_),
-      handler_(source_mgr_, context_.get(), diagnostic_os_) {
+      handler_(source_mgr_, context_.get(), diagnostic_os_),
+      specialized_(false) {
   source_mgr_.AddNewSourceBuffer(
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
@@ -1270,7 +1274,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 
   return Executable(std::move(*engine), std::move(*signature),
                     std::move(*runtime_signature), entrypoint,
-                    std::move(*results_memory_layout), ctx->name().str());
+                    std::move(*results_memory_layout), ctx->name().str(),
+                    ctx->specialized(), ctx->options().num_worker_threads);
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.
@@ -1339,6 +1344,9 @@ llvm::Error JitCompilationContext::Specialize(
     ArrayRef<MemrefDesc> operands, ArrayRef<SymbolicShape> symbolic_shapes,
     ArrayRef<OperandConstraint> constraints,
     const JitExecutable::Listener* listener) {
+  assert(!specialized_ && "can specialize executable only once");
+  specialized_ = true;
+
   mlir::FuncOp func = entrypoint();
   unsigned num_inputs = func.getNumArguments();
 

@@ -25,6 +25,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -878,13 +879,15 @@ class Executable {
   Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
              FunctionType signature, FunctionType runtime_signature,
              string_view entrypoint, ResultsMemoryLayout results_memory_layout,
-             llvm::StringRef name)
+             llvm::StringRef name, bool specialized, int num_worker_threads)
       : engine_(std::move(engine)),
         signature_(std::move(signature)),
         runtime_signature_(std::move(runtime_signature)),
         fptr_(*engine_->lookupPacked(entrypoint)),
         results_memory_layout_(std::move(results_memory_layout)),
-        name_(name.str()) {
+        name_(name.str()),
+        specialized_(specialized),
+        num_worker_threads_(num_worker_threads) {
     assert(fptr_ != nullptr && "entrypoint was not found");
   }
 
@@ -932,6 +935,10 @@ class Executable {
   bool IsAsync() const { return results_memory_layout_.has_async_results; }
 
   llvm::StringRef name() const { return name_; }
+
+  bool specialized() const { return specialized_; }
+
+  int num_worker_threads() const { return num_worker_threads_; }
 
   unsigned num_results() const;
 
@@ -1051,7 +1058,13 @@ class Executable {
 
   KernelFunctionPtr fptr_;
   ResultsMemoryLayout results_memory_layout_;
+
+  // The name of the compiled kernel.
   std::string name_;
+  // Indicates whether this executable is a specialization or a default one.
+  bool specialized_;
+  // The number of worker threads this executable was compiled for.
+  bool num_worker_threads_;
 };
 
 //----------------------------------------------------------------------------//

@@ -1,9 +1,6 @@
 {
    "header":"external/nccl_headers/nccl/src/nccl.h",
-   "extra_args":[
-     "-Iexternal/cuda_headers/cuda",
-     "-Iexternal/cuda_headers/cuda/include"
-   ],
+   "extra_args":["-Iexternal/cuda_headers/cuda/include"],
    "functions":[
      "ncclGetVersion",
      "ncclGetUniqueId",

@@ -14,7 +14,6 @@ load(
     # copybara:comment_end
     "cuda_library",
 )
-load("@local_cuda//:defs.bzl", "if_local_cuda")  # copybara:comment
 
 package(default_visibility = [":__subpackages__"])
 
@@ -136,19 +135,9 @@ tfrt_cc_library(
     # No CUDA shared object dependencies, they are dynamically loaded.
     deps = [
         ":symbol_loader",
+        "@cuda_headers",
         "@tf_runtime//third_party/cuda:stub_inc",
     ] + if_google(
-        ["@cuda_headers"],
-        # Compiling CUDA device code requires crt headers that are not provided
-        # by the NVIDIA headers repository. Use the headers from the local CUDA
-        # toolkit instead (which needs to be present for compiling device code
-        # anyway). Conversely, do not require a local CUDA toolkit and use only
-        # the NVIDIA headers repository if not compiling device code.
-        select({
-            ":cuda_enabled": ["@local_cuda//:cuda_headers"],
-            "//conditions:default": ["@cuda_headers"],
-        }),
-    ) + if_google(
         ["@cudnn_headers//:cudnn_header"],
         ["@cudnn_headers"],
     ) + if_google(

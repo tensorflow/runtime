@@ -1,9 +1,6 @@
 {
    "header":"external/cudnn_headers/cudnn/cudnn.h",
-   "extra_args":[
-     "-Iexternal/cuda_headers/cuda",
-     "-Iexternal/cuda_headers/cuda/include"
-   ],
+   "extra_args":["-Iexternal/cuda_headers/cuda/include"],
    "functions":[
       "cudnnQueryRuntimeError",
       "cudnnGetProperty",

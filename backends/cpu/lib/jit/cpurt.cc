@@ -1819,7 +1819,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
 // is not available, and the number of specializations is above N?
 Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
-    const Listener* listener, Optional<int> num_worker_threads) {
+    const Listener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
@@ -1874,15 +1874,9 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // Instantiation from the source and specialization are cheap, so we do it in
   // the caller thread. We only use compilation runner for expensive part.
 
-  // TODO(b/208618010): Remove this once AsyncParallelFor can dynamically
-  // obtain the number of threads from the runtime.
-  CompilationOptions compilation_opts = compilation_opts_;
-  if (num_worker_threads.hasValue())
-    compilation_opts.num_worker_threads = *num_worker_threads;
-
   // Try to instantiate compilation context from the mlir source.
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
-      JitCompilationContext::Instantiate(compilation_opts, mlir_module_,
+      JitCompilationContext::Instantiate(compilation_opts_, mlir_module_,
                                          entrypoint_);
 
   if (auto err = ctx.takeError()) {

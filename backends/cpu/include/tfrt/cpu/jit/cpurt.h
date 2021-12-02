@@ -1064,7 +1064,7 @@ class Executable {
   // Indicates whether this executable is a specialization or a default one.
   bool specialized_;
   // The number of worker threads this executable was compiled for.
-  bool num_worker_threads_;
+  int num_worker_threads_;
 };
 
 //----------------------------------------------------------------------------//

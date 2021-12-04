@@ -1263,7 +1263,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto engine = mlir::ExecutionEngine::create(
       ctx->module(), /*llvmModuleBuilder=*/nullptr, transformer,
       ctx->options().jit_code_opt_level, libs);
-  if (!engine) return ctx->Error(engine.takeError());
+  if (auto err = engine.takeError()) return std::move(err);
 
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);

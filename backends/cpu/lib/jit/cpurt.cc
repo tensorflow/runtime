@@ -1025,8 +1025,10 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   // Convert scf.parallel operations into async work sharding loops.
   if (opts.num_worker_threads > 1) {
+    // TODO(b/209485649): Turn on async dispatch when all performance regression
+    // problems will be resolved.
     pm.addPass(mlir::createAsyncParallelForPass(
-        /*asyncDispatch=*/true, /*numWorkerThreads=*/opts.num_worker_threads,
+        /*asyncDispatch=*/false, /*numWorkerThreads=*/opts.num_worker_threads,
         /*targetBlockSize=*/16 * 1024));
 
     // Run canonicalization after async-parallel-for pass to remove async

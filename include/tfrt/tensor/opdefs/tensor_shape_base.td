@@ -33,6 +33,8 @@ def TensorShapeDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::ts";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 // Type definition.

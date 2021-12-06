@@ -35,6 +35,8 @@ def COO_Dialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::coo";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 // Base class for the operation in this dialect.

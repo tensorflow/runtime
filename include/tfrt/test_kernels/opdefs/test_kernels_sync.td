@@ -36,6 +36,8 @@ def Test_Sync_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::test_sync";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 #endif  // TEST_SYNC_OPS

@@ -35,6 +35,8 @@ def TFRT_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::compiler";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 def TFRT_ChainType :

@@ -35,6 +35,8 @@ def DistDialect : Dialect {
                      This dialect contains distributed execution operations.}];
 
   let cppNamespace = "::tfrt::dist";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 def DistributedContextType :

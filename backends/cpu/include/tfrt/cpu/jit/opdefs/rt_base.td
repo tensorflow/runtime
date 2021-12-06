@@ -34,6 +34,8 @@ def RuntimeDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::cpu::jit";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 class RT_Type<string name, string typeMnemonic> : TypeDef<RuntimeDialect,

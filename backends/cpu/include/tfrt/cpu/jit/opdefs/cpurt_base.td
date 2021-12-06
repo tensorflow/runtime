@@ -36,6 +36,8 @@ def CpuRuntimeDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::cpu::jit";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 def JitExecutableType : OpaqueType<"cpurt", "jit_executable",

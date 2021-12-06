@@ -36,6 +36,8 @@ def GPU_Dialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::gpu";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 // Base class for GPU dialect ops.

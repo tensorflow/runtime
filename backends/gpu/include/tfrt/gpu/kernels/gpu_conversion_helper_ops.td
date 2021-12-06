@@ -38,6 +38,8 @@ def GPU_ConversionDialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::gpu::conversion";
+
+  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 def GPU_AsyncExecuteOp : Op<GPU_ConversionDialect, "async.execute",

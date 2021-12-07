@@ -977,7 +977,7 @@ Value materializeConstCast(OpBuilder &builder, ValueRange operands,
   if (!const_op) return Value();
   auto type = resultType.cast<IntegerType>();
   auto rewrite = [&](auto dummy) -> Value {
-    APInt value = const_op.value().cast<IntegerAttr>().getValue();
+    APInt value = const_op.getValue().cast<IntegerAttr>().getValue();
     if (type.isUnsigned())
       value = value.zextOrTrunc(type.getWidth());
     else
@@ -1003,7 +1003,7 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(cast_op, "operand not def by constant");
   auto type = cast_op.getType(0).cast<IntegerType>();
   auto rewrite = [&](auto dummy) {
-    APInt value = const_op.value().cast<IntegerAttr>().getValue();
+    APInt value = const_op.getValue().cast<IntegerAttr>().getValue();
     if (type.isUnsigned())
       value = value.zextOrTrunc(type.getWidth());
     else

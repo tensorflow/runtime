@@ -204,7 +204,7 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
 
     // Get the pointer to the error message that we'll pass to the runtime.
     auto err_addr = rewriter.create<LLVM::AddressOfOp>(
-        loc, LLVM::LLVMPointerType::get(err_ty), err_constant.sym_name());
+        loc, LLVM::LLVMPointerType::get(err_ty), err_constant.getSymName());
     auto err_ptr = rewriter.create<LLVM::BitcastOp>(
         loc, LLVM::LLVMPointerType::get(rewriter.getI8Type()), err_addr);
 

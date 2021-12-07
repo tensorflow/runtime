@@ -82,12 +82,12 @@ static void ConvertAssertOperations(FuncOp func, Value kernel_ctx) {
     // Set up block for returning error.
     Block* err = func.addBlock();
     b.setInsertionPointToStart(err);
-    b.create<SetErrorOp>(kernel_ctx, assert.msg());
+    b.create<SetErrorOp>(kernel_ctx, assert.getMsg());
     b.create<ReturnOp>();
 
     // Branch into the error block if assertion failed.
     b.setInsertionPointToEnd(block);
-    b.create<CondBranchOp>(assert.arg(), ok, err);
+    b.create<CondBranchOp>(assert.getArg(), ok, err);
 
     // Erase the original assert operation.
     assert.erase();

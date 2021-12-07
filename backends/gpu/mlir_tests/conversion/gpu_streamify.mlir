@@ -51,6 +51,12 @@ func @memcopy(
   %t1 = gpu.memcpy async [%t0] %dst, %src : memref<32xi32>, memref<32xi32>
   // CHECK: builtin.unrealized_conversion_cast %[[ch]], %arg1
   // CHECK-SAME: : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
+
+  %empty = builtin.unrealized_conversion_cast %arg2
+    : !tfrt_gpu.buffer to memref<0xi32>
+  // CHECK-NOT: tfrt_gpu.mem.copy
+  %t2 = gpu.memcpy async [%t0] %empty, %empty : memref<0xi32>, memref<0xi32>
+
   tfrt.return
 }
 

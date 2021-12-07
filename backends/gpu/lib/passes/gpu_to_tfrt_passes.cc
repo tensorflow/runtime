@@ -759,11 +759,17 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(memcpy_op, "operand not def by cast");
 
-  auto loc = memcpy_op->getLoc();
-  auto stream = cast_op.getOperand(1);
-  auto new_op = rewriter.create<tfrt::gpu::MemCopyOp>(
+  // Drop copy if memref type has zero elements.
+  if (!memcpy_op.dst().getType().cast<mlir::MemRefType>().getNumElements()) {
+    rewriter.replaceOp(memcpy_op, cast_op.getResults());
+    return success();
+  }
+
+  Location loc = memcpy_op->getLoc();
+  Value stream = cast_op.getOperand(1);
+  Value chain = rewriter.create<tfrt::gpu::MemCopyOp>(
       loc, adaptor.dst(), adaptor.src(), stream, cast_op.getOperand(0));
-  auto token = CastToToken(rewriter, loc, {new_op, stream});
+  auto token = CastToToken(rewriter, loc, {chain, stream});
   rewriter.replaceOp(memcpy_op, token);
   return success();
 }

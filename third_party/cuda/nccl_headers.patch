@@ -1,7 +1,7 @@
 diff --git nccl/src/nccl.h.in nccl/src/nccl.h.in
 index 11d8e1b..cd9ebac 100644
---- nccl/src/nccl.h.in
-+++ nccl/src/nccl.h.in
+--- src/nccl.h.in
++++ src/nccl.h.in
 @@ -7,7 +7,7 @@
  #ifndef NCCL_H_
  #define NCCL_H_

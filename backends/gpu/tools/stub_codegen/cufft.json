@@ -1,6 +1,6 @@
 {
-  "header":"external/cuda_headers/cuda/cufft.h",
-  "extra_args":["-Iexternal/cuda_headers/cuda/include"],
+  "header":"external/cuda_headers/cufft.h",
+  "extra_args":["-Iexternal/cuda_headers/include"],
   "functions":[
     "cufftPlan1d",
     "cufftPlan2d",

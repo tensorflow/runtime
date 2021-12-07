@@ -1,6 +1,6 @@
 {
-   "header":"external/cuda_headers/cuda/cusolverDn.h",
-   "extra_args":["-Iexternal/cuda_headers/cuda/include"],
+   "header":"external/cuda_headers/cusolverDn.h",
+   "extra_args":["-Iexternal/cuda_headers/include"],
    "functions":[
       "cusolverDnCreate",
       "cusolverDnDestroy",

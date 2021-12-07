@@ -1,6 +1,6 @@
 """CUDA headers repository."""
 
-def _download_nvidia_headers(repository_ctx, output, url, sha256, strip_prefix):
+def _download_nvidia_headers(repository_ctx, url, sha256, strip_prefix):
     # Keep the mirror up-to-date manually (see b/154869892) with:
     # /google/bin/releases/tensorflow-devinfra-team/cli_tools/tf_mirror <url>
     repository_ctx.download_and_extract(
@@ -8,7 +8,6 @@ def _download_nvidia_headers(repository_ctx, output, url, sha256, strip_prefix):
             "http://gitlab.com/nvidia/headers/" + url,
             "http://mirror.tensorflow.org/gitlab.com/nvidia/headers/" + url,
         ],
-        output = output,
         sha256 = sha256,
         stripPrefix = strip_prefix,
     )
@@ -40,7 +39,7 @@ def _cuda_headers_impl(repository_ctx):
     ]:
         url = "cuda-individual/{name}/-/archive/{tag}/{name}-{tag}.tar.gz".format(name = name, tag = tag)
         strip_prefix = "{name}-{tag}".format(name = name, tag = tag)
-        _download_nvidia_headers(repository_ctx, "cuda", url, sha256, strip_prefix)
+        _download_nvidia_headers(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
@@ -53,7 +52,7 @@ def _cudnn_headers_impl(repository_ctx):
     url = "cudnn/-/archive/{tag}/cudnn-{tag}.tar.gz".format(tag = tag)
     strip_prefix = "cudnn-{tag}".format(tag = tag)
     sha256 = "a5a2749cee42dd0a175d6dfcfbab7e64acee55210febe2f32d4605eef32591af"
-    _download_nvidia_headers(repository_ctx, "cudnn", url, sha256, strip_prefix)
+    _download_nvidia_headers(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
@@ -70,7 +69,6 @@ def _cudnn_frontend_impl(repository_ctx):
             "http://github.com/NVIDIA/cudnn-frontend/" + url,
             "http://mirror.tensorflow.org/github.com/NVIDIA/cudnn-frontend/" + url,
         ],
-        output = "cudnn_frontend",
         sha256 = sha256,
         stripPrefix = strip_prefix,
     )
@@ -90,14 +88,13 @@ def _nccl_headers_impl(repository_ctx):
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/nvidia/" + url,
             "https://github.com/nvidia/" + url,
         ],
-        output = "nccl",
         sha256 = sha256,
         stripPrefix = strip_prefix,
     )
 
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
-    repository_ctx.symlink("nccl/src/nccl.h.in", "nccl/src/nccl.h")
+    repository_ctx.symlink("src/nccl.h.in", "src/nccl.h")
 
 _cuda_headers = repository_rule(
     implementation = _cuda_headers_impl,

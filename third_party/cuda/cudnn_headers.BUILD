@@ -2,13 +2,15 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
+exports_files(["LICENSE"])
+
 filegroup(
     name = "header_files",
-    srcs = glob(["cudnn/*.h"]),
+    srcs = glob(["*.h"]),
 )
 
 cc_library(
     name = "cudnn_headers",
     hdrs = [":header_files"],
-    includes = ["cudnn"],
+    includes = ["."],  # Allow <angled> include.
 )

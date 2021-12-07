@@ -1,7 +1,7 @@
 diff --git cuda/cublas.h cuda/cublas.h
 index 970a329..b4d89ca 100644
---- cuda/cublas.h
-+++ cuda/cublas.h
+--- cublas.h
++++ cublas.h
 @@ -57,7 +57,7 @@
  #if !defined(CUBLAS_H_)
  #define CUBLAS_H_
@@ -13,8 +13,8 @@ index 970a329..b4d89ca 100644
  #ifdef _WIN32
 diff --git cuda/cudalibxt.h cuda/cudalibxt.h
 index 94fcf47..fe854ee 100644
---- cuda/cudalibxt.h
-+++ cuda/cudalibxt.h
+--- cudalibxt.h
++++ cudalibxt.h
 @@ -53,7 +53,7 @@
  
  #ifndef _CUDA_LIB_XT_H_

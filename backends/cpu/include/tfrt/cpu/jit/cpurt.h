@@ -879,14 +879,15 @@ class Executable {
   Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
              FunctionType signature, FunctionType runtime_signature,
              string_view entrypoint, ResultsMemoryLayout results_memory_layout,
-             llvm::StringRef name, bool specialized, int num_worker_threads)
+             llvm::StringRef name, Optional<size_t> specialization,
+             int num_worker_threads)
       : engine_(std::move(engine)),
         signature_(std::move(signature)),
         runtime_signature_(std::move(runtime_signature)),
         fptr_(*engine_->lookupPacked(entrypoint)),
         results_memory_layout_(std::move(results_memory_layout)),
         name_(name.str()),
-        specialized_(specialized),
+        specialization_(specialization),
         num_worker_threads_(num_worker_threads) {
     assert(fptr_ != nullptr && "entrypoint was not found");
   }
@@ -936,7 +937,7 @@ class Executable {
 
   llvm::StringRef name() const { return name_; }
 
-  bool specialized() const { return specialized_; }
+  Optional<size_t> specialization() const { return specialization_; }
 
   int num_worker_threads() const { return num_worker_threads_; }
 
@@ -1061,8 +1062,9 @@ class Executable {
 
   // The name of the compiled kernel.
   std::string name_;
-  // Indicates whether this executable is a specialization or a default one.
-  bool specialized_;
+  // Specialization id if this executable is a specialization, or an empty
+  // optional if this executable is a default one.
+  Optional<size_t> specialization_;
   // The number of worker threads this executable was compiled for.
   int num_worker_threads_;
 };

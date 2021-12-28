@@ -589,8 +589,7 @@ tfrt_cc_test(
 )
 
 # Options to pass to 'bazel test' that affect what's measured:
-# --copt=-DTFRT_DISABLE_TRACING:            strip tracing code.
-# --copt=-DTFRT_BM_DISABLE_TRACING_REQUEST: do not request tracing.
+# --//third_party/tf_runtime:TFRT_MAX_TRACING_LEVEL=<value>
 tfrt_cc_test(
     name = "tracing",
     srcs = [

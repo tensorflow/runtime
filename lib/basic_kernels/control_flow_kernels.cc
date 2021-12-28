@@ -14,7 +14,9 @@
 
 // This file implements core control flow related kernels.
 
+#include <algorithm>
 #include <iterator>
+#include <utility>
 
 #include "llvm/ADT/STLExtras.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -400,9 +402,7 @@ static void TFRTOnce(RemainingArguments args, RemainingResults results,
       std::get<0>(pair)->ForwardTo(std::get<1>(pair));
   }
 
-  llvm::transform(
-      resource->results, results.values().begin(),
-      [](const RCReference<AsyncValue>& result) { return result.CopyRef(); });
+  llvm::copy(resource->results, results.values().begin());
 }
 
 // This is a helper function that runs a block of iterations and sets up a

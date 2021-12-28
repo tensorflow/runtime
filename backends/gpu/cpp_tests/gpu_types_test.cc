@@ -68,9 +68,12 @@ TEST_P(Test, BorrowedGpuStream) {
       wrapper::StreamCreate(current, wrapper::StreamFlags::DEFAULT));
 
   BorrowedGpuStream borrowed_stream(context.get(), stream.get());
-  auto stream_ref = static_cast<AsyncValueRef<GpuStream>>(borrowed_stream);
+  AsyncValueRef<GpuStream> stream_ref = borrowed_stream;
   EXPECT_EQ(stream_ref->context()->get(), context.get());
   EXPECT_EQ(stream_ref->get(), stream.get());
+
+  // Check that moved-from borrowed_stream is destroyed correctly.
+  BorrowedGpuStream moved_to = std::move(borrowed_stream);
 }
 
 TEST_P(Test, GpuEvent) {

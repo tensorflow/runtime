@@ -16,14 +16,13 @@
 //
 // This file implements a simple tracing sink which prints activities to stderr.
 
-#include "tfrt/tracing/simple_tracing_sink/simple_tracing_sink.h"
-
 #include <chrono>
 #include <string>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/support/logging.h"
+#include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
 namespace tracing {
@@ -95,6 +94,14 @@ class TracingStorage {
   llvm::SmallVector<std::tuple<std::string, Time>, 16> stack_;
   llvm::SmallVector<Activity, kMaxEntries> activities_;
 };
+
+class SimpleTracingSink : public TracingSink {
+ public:
+  Error RequestTracing(bool enable) override;
+  void RecordTracingEvent(NameGenerator gen_name) override;
+  void PushTracingScope(NameGenerator gen_name) override;
+  void PopTracingScope() override;
+};
 }  // namespace
 
 static TracingStorage& GetTracingStorage() {
@@ -114,6 +121,11 @@ void SimpleTracingSink::PushTracingScope(TracingSink::NameGenerator gen_name) {
   GetTracingStorage().PushScope(gen_name());
 }
 void SimpleTracingSink::PopTracingScope() { GetTracingStorage().PopScope(); }
+
+static const bool kRegisterTracingSink = [] {
+  RegisterTracingSink(new SimpleTracingSink);
+  return true;
+}();
 
 }  // namespace tracing
 }  // namespace tfrt

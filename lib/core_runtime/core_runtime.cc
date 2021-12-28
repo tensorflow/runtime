@@ -220,10 +220,8 @@ void CoreRuntime::Execute(const ExecutionContext& exec_ctx, string_view op_name,
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
                                             OpHandler* op_handler) {
-#ifdef TFRT_DISABLE_TRACING
-  return op_handler->MakeOp(op_name);
-#else   // TFRT_DISABLE_TRACING
   auto op = op_handler->MakeOp(op_name);
+  if (!tracing::IsTracingEnabled(tracing::TracingLevel::Default)) return op;
   if (!op) return op;
   bool is_fallback = op->IsFallback();
   auto device = op->GetDeviceRef();
@@ -237,7 +235,6 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
         op(invocation);
       },
       is_fallback, std::move(device), op->GetTensorType());
-#endif  // TFRT_DISABLE_TRACING
 }
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {

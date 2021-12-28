@@ -22,6 +22,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 
 // Dialect for CPU runtime operations.
 #include "tfrt/cpu/jit/opdefs/cpurt_ops_dialect.h.inc"

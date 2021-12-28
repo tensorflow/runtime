@@ -269,6 +269,7 @@ tfrt_cc_library(
     deps = [
         ":cpurt_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",
         "@tf_runtime//:core_runtime_opdefs",
@@ -288,6 +289,7 @@ tfrt_cc_library(
     deps = [
         ":async_runtime",
         ":async_runtime_api",
+        ":codegen_transforms",
         ":cpurt_support",
         ":rt_conversion",
         ":rt_opdefs",
@@ -317,7 +319,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:MathToLLVM",
         "@llvm-project//mlir:MathToLibm",
-        "@llvm-project//mlir:MathTransforms",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:MemRefToLLVM",
         "@llvm-project//mlir:MlirJitRunner",
@@ -388,6 +389,7 @@ tfrt_cc_binary(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":codegen_transforms",
         ":rt_conversion",
         ":rt_transforms",
         "@llvm-project//mlir:MlirOptLib",
@@ -487,6 +489,23 @@ gentbl_cc_library(
     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
 )
 
+gentbl_cc_library(
+    name = "codegen_transforms_passes_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            [
+                "-gen-pass-decls",
+                "-name=CodegenTransforms",
+            ],
+            "include/tfrt/cpu/jit/transforms/codegen_gen_passes.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/cpu/jit/transforms/codegen_passes.td",
+    deps = ["@llvm-project//mlir:PassBaseTdFiles"],
+)
+
 tfrt_cc_library(
     name = "rt_opdefs",
     srcs = ["lib/jit/opdefs/rt_ops.cc"],
@@ -535,6 +554,24 @@ tfrt_cc_library(
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:Support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "codegen_transforms",
+    srcs = [
+        "lib/jit/transforms/math_optimization.cc",
+    ],
+    hdrs = ["include/tfrt/cpu/jit/transforms/codegen_passes.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        ":codegen_transforms_passes_inc_gen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:MathTransforms",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Transforms",
+        "@llvm-project//mlir:VectorOps",
+        "@llvm-project//mlir:X86Vector",
     ],
 )
 

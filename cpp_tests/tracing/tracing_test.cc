@@ -16,20 +16,23 @@
 
 #include "tfrt/tracing/tracing.h"
 
+#include <limits>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/Support/Error.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace tracing {
 namespace {
 
+using ::testing::ByMove;
 using ::testing::DefaultValue;
 using ::testing::InSequence;
-using ::testing::IsNull;
 using ::testing::Matcher;
-using ::testing::StrEq;
-using ::testing::TypedEq;
+using ::testing::NiceMock;
+using ::testing::Return;
+using ::testing::StrictMock;
 
 MATCHER_P(FunctionReturns, value, "") { return arg() == value; }
 
@@ -50,106 +53,117 @@ auto kSetDefaultErrorFactory = [] {
          0;
 }();
 
+#define TFRT_SKIP_IF(cond) \
+  if (cond) GTEST_SKIP() << #cond;
+
 TEST(TracingTest, Request) {
-  MockTracingSink sink;
-  EXPECT_FALSE(IsTracingEnabled());
-  RequestTracing(false);
-  EXPECT_FALSE(IsTracingEnabled());
-#ifdef TFRT_DISABLE_TRACING
-  GTEST_SKIP() << "Tracing is disabled";
-#endif
-  EXPECT_CALL(sink, RequestTracing(true));
+  TFRT_SKIP_IF(internal::kMaxTracingLevel < TracingLevel::Default)
+
+  InSequence seq;
+  StrictMock<MockTracingSink> sink;
+  EXPECT_FALSE(IsTracingEnabled(TracingLevel::Default));
+
+  // Sink returns error, tracing should not get enabled.
+  EXPECT_CALL(sink, RequestTracing(true))
+      .WillOnce(Return(ByMove(MakeStringError("fail"))));
   RequestTracing(true);
-  EXPECT_TRUE(IsTracingEnabled());
-  EXPECT_CALL(sink, RequestTracing(false));
+  EXPECT_FALSE(IsTracingEnabled(TracingLevel::Default));
+
+  // Sink return success, tracing should get enabled.
+  EXPECT_CALL(sink, RequestTracing(true)).Times(1);
+  RequestTracing(true);
+  EXPECT_TRUE(IsTracingEnabled(TracingLevel::Default));
+
+  // Check that re-enabling is handled with counter without calling sink.
+  RequestTracing(true);
   RequestTracing(false);
-  EXPECT_FALSE(IsTracingEnabled());
+
+  // Sink returns error, tracing should not get disabled.
+  EXPECT_CALL(sink, RequestTracing(false))
+      .WillOnce(Return(ByMove(MakeStringError("fail"))));
+  RequestTracing(false);
+  EXPECT_TRUE(IsTracingEnabled(TracingLevel::Default));
+
+  // Sink return success, tracing should get disabled.
+  EXPECT_CALL(sink, RequestTracing(false)).Times(1);
+  RequestTracing(false);
+  EXPECT_FALSE(IsTracingEnabled(TracingLevel::Default));
+}
+
+// This test should pass independent of the value of TFRT_MAX_TRACING_LEVEL.
+TEST(TracingTest, Levels) {
+  NiceMock<MockTracingSink> sink;
+  for (auto level : {TracingLevel::None, TracingLevel::Default,
+                     TracingLevel::Debug, TracingLevel::Verbose}) {
+    SetTracingLevel(level);
+    RequestTracing(true);
+    EXPECT_EQ(GetCurrentTracingLevel(),
+              std::min(level, internal::kMaxTracingLevel));
+    EXPECT_EQ(IsTracingEnabled(level), level <= internal::kMaxTracingLevel);
+    RequestTracing(false);
+    EXPECT_EQ(GetCurrentTracingLevel(), TracingLevel::None);
+    EXPECT_EQ(IsTracingEnabled(level), level == TracingLevel::None);
+  }
+
+  SetTracingLevel(internal::kMaxTracingLevel);  // Reset level.
 }
 
 TEST(TracingTest, Events) {
-#ifdef TFRT_DISABLE_TRACING
-  GTEST_SKIP() << "Tracing is disabled";
-#endif
+  TFRT_SKIP_IF(internal::kMaxTracingLevel < TracingLevel::Default);
+  TFRT_SKIP_IF(internal::kMaxTracingLevel >= TracingLevel::Debug);
+
   InSequence seq;
-  MockTracingSink sink;
+  NiceMock<MockTracingSink> sink;
 
-  SetTracingLevel(TracingLevel::Default);
-
-  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event0")))
-      .Times(0);  // Should not call before tracing is enabled.
+  // Should not call before tracing is enabled.
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event0"))).Times(0);
   RecordTracingEvent(TracingLevel::Default, [] { return "event0"; });
 
-  EXPECT_CALL(sink, RequestTracing(true));
   RequestTracing(true);
 
-  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event1")));
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event1"))).Times(1);
   RecordTracingEvent(TracingLevel::Default, [] { return "event1"; });
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event2"))).Times(0);
+  RecordTracingEvent(TracingLevel::Debug, [] { return "event2"; });
 
-  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event2")))
-      .Times(0);  // Should not call after tracing is disabled.
-  RecordTracingEvent(TracingLevel::Verbose, [] { return "event2"; });
-
-  SetTracingLevel(TracingLevel::Verbose);
-  EXPECT_TRUE(IsAboveTracingLevel(TracingLevel::Default));
-  EXPECT_TRUE(IsAboveTracingLevel(TracingLevel::Verbose));
-  EXPECT_FALSE(IsAboveTracingLevel(TracingLevel::Debug));
-  EXPECT_EQ(GetCurrentTracingLevel(), TracingLevel::Verbose);
-
-  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event3")));
-  RecordTracingEvent(TracingLevel::Verbose, [] { return "event3"; });
-
-  EXPECT_CALL(sink, RequestTracing(false));
   RequestTracing(false);
 
-  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event4")))
-      .Times(0);  // Should not call after tracing is disabled.
-  RecordTracingEvent(TracingLevel::Verbose, [] { return "event4"; });
+  // Should not call after tracing is disabled.
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event3"))).Times(0);
+  RecordTracingEvent(TracingLevel::Default, [] { return "event3"; });
 }
 
 TEST(TracingTest, Scopes) {
-#ifdef TFRT_DISABLE_TRACING
-  GTEST_SKIP() << "Tracing is disabled";
-#endif
+  TFRT_SKIP_IF(internal::kMaxTracingLevel < TracingLevel::Default);
+  TFRT_SKIP_IF(internal::kMaxTracingLevel >= TracingLevel::Debug);
+
   InSequence seq;
-  MockTracingSink sink;
+  NiceMock<MockTracingSink> sink;
 
-  SetTracingLevel(TracingLevel::Default);
-
-  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope0")))
-      .Times(0);  // Should not call before tracing is enabled.
+  // Should not call before tracing is enabled.
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope0"))).Times(0);
   // NOLINTNEXTLINE(bugprone-unused-raii)
   TracingScope(TracingLevel::Default, [] { return "scope0"; });
 
-  EXPECT_CALL(sink, RequestTracing(true));
   RequestTracing(true);
 
-  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope1")));
-  EXPECT_CALL(sink, PopTracingScope());
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope1"))).Times(1);
+  EXPECT_CALL(sink, PopTracingScope()).Times(1);
   // NOLINTNEXTLINE(bugprone-unused-raii)
   TracingScope(TracingLevel::Default, [] { return "scope1"; });
 
   EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope2"))).Times(0);
-  // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Verbose, [] { return "scope2"; });
-
-  SetTracingLevel(TracingLevel::Verbose);
-  EXPECT_TRUE(IsAboveTracingLevel(TracingLevel::Default));
-  EXPECT_TRUE(IsAboveTracingLevel(TracingLevel::Verbose));
-  EXPECT_FALSE(IsAboveTracingLevel(TracingLevel::Debug));
-  EXPECT_EQ(GetCurrentTracingLevel(), TracingLevel::Verbose);
-
-  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope3")));
-  EXPECT_CALL(sink, PopTracingScope());
-  // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Verbose, [] { return "scope3"; });
-
-  EXPECT_CALL(sink, RequestTracing(false));
-  RequestTracing(false);
-
-  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope4"))).Times(0);
   EXPECT_CALL(sink, PopTracingScope()).Times(0);
   // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Debug, [] { return "scope4"; });
+  TracingScope(TracingLevel::Debug, [] { return "scope2"; });
+
+  RequestTracing(false);
+
+  // Should not call after tracing is disabled.
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope3"))).Times(0);
+  EXPECT_CALL(sink, PopTracingScope()).Times(0);
+  // NOLINTNEXTLINE(bugprone-unused-raii)
+  TracingScope(TracingLevel::Default, [] { return "scope3"; });
 }
 
 }  // namespace

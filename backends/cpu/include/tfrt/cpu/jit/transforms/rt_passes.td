@@ -17,7 +17,7 @@
 
 include "mlir/Pass/PassBase.td"
 
-def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "ModuleOp"> {
+def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "mlir::ModuleOp"> {
   let summary = "Converts entrypoint function to kernel function";
 
   let description = [{

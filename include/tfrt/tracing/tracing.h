@@ -23,9 +23,13 @@
 
 #include <atomic>
 #include <cstdint>
+#include <string>
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/support/forward_decls.h"
+
+#define TFRT_GET_TRACE_LEVEL(level) ::tfrt::tracing::TracingLevel::level
 
 namespace tfrt {
 namespace tracing {
@@ -39,7 +43,7 @@ class TracingSink {
   // This function is called before trace recording is enabled and after trace
   // recording has been disabled. Pending tracing scopes will still be popped
   // even after tracing has been disabled. If the function returns an error,
-  // trace recording will not be enabled.
+  // the tracing state is not changed.
   virtual Error RequestTracing(bool enable) = 0;
 
   // Records an instant event for the calling thread.
@@ -50,58 +54,71 @@ class TracingSink {
   // Ends the tracing scope from top of the calling thread's stack.
   // May be called after trace recording has been disabled.
   virtual void PopTracingScope() = 0;
-
-  // The following functions forward to the above. Derived classes can override
-  // them as an optimization if their sinks consume the corresponding type.
 };
 
-// When choosing a level, use
-// Default for activities related to ops and kernels execution.
-// Verbose for extra information which is cheap to generate.
-// Debug for extra information which is expensive to generate
-enum class TracingLevel { Default = 0, Verbose = 1, Debug = 2 };
+// Enum specifying the verbosity of tracing activities.
+//
+// A tracing levels is disabled if its value is larger than
+// TFRT_MAX_TRACING_LEVEL. Tracing activities with disabled constexpr levels
+// incur zero runtime overhead.
+//
+// A tracing level is inactive if its value is larger than
+// GetCurrentTracingLevel(). Tracing activities with inactive levels incur a
+// small runtime overhead (comperable to an inactive VLOG).
+enum class TracingLevel {
+  // Tracing level to pass to SetTracingLevel() to deactivate all activities.
+  None = 0,
+  // Enabled and active by default. Use this level for activities that are
+  // useful for everyone. Generating the activity name should be cheap.
+  Default = 1,
+  // Enabled and inactive by default. Use this level for activities that are
+  // not directly useful for an end user, but you might want to see without
+  // having to rebuild the binary. Generating the activity name should be
+  // cheap enough so that timing information is not skewed.
+  Verbose = 2,
+  // Disabled and inactive by default. Use this level for activities that are
+  // too detailed to be generally useful, but you still want to see (after
+  // rebuilding your binary). Generating the activity name can be expensive.
+  Debug = 3,
+};
+raw_ostream& operator<<(raw_ostream& os, TracingLevel level);
+Expected<TracingLevel> ParseTracingLevel(llvm::StringRef name);
 
 namespace internal {
+// Compile-time tracing level above which all activities are disabled.
+constexpr auto kMaxTracingLevel = TFRT_GET_TRACE_LEVEL(TFRT_MAX_TRACING_LEVEL);
 // The one and only registered tracing sink.
 extern TracingSink* kTracingSink;
 // Counter whether tracing is currently enabled. If positive, tracing events and
 // scopes should be sent to the sink.
-extern std::atomic<int> kIsTracingEnabled;
+extern int kTracingEnabled;
+// Tracing level when tracing is enabled.
+extern TracingLevel kTracingLevel;
 
-// Stores the current tracing level. All activities which lower level will be
-// discarded.
-extern std::atomic<TracingLevel> kTracingLevel;
+// The current tracing level. All activities with lower level will be discarded.
+extern std::atomic<TracingLevel> kCurrentTracingLevel;
 }  // namespace internal
 
 // Registers the tracing sink. Only one sink can be registered at any time.
 // Tracing needs to be disabled during registration.
 void RegisterTracingSink(TracingSink* tracing_sink);
 
-#ifndef TFRT_DISABLE_TRACING
-// Returns whether tracing is currently enabled.
-inline bool IsTracingEnabled() {
-  return internal::kIsTracingEnabled.load(std::memory_order_acquire) > 0;
-}
-
-inline bool IsAboveTracingLevel(TracingLevel level) {
-  auto current_level = internal::kTracingLevel.load(std::memory_order_acquire);
-  return static_cast<int>(current_level) >= static_cast<int>(level);
-}
-
+// Returns the current tracing level.
 inline TracingLevel GetCurrentTracingLevel() {
-  auto current_level = internal::kTracingLevel.load(std::memory_order_acquire);
-  return current_level;
+  return internal::kCurrentTracingLevel.load(std::memory_order_acquire);
 }
 
-#else  // TFRT_DISABLE_TRACING
-// Always return false because tracing is disabled at compile time.
-constexpr inline bool IsTracingEnabled() { return false; }
-constexpr inline bool IsAboveTracingLevel(TracingLevel) { return false; }
-constexpr inline TracingLevel GetCurrentTracingLevel() {
-  return TracingLevel::Default;
+// Returns whether tracing is enabled for the given level.
+inline bool IsTracingEnabled(TracingLevel level) {
+  // Evaluated at compile time, eliminates all activities if
+  // TFRT_MAX_TRACING_LEVEL is set to None. Change to 'if constexpr' in C++17.
+  if (internal::kMaxTracingLevel <= TracingLevel::None) return false;
+  // Likely evaluated at compile time, eliminates activities if level is a
+  // compile time constant above TFRT_MAX_TRACING_LEVEL.
+  // Works for gcc >= v10.3 and all versions of clang and msvc.
+  if (internal::kMaxTracingLevel < level) return false;
+  return level <= GetCurrentTracingLevel();
 }
-
-#endif
 
 // Requests the tracing sink to enable or disable tracing.
 void RequestTracing(bool enable);
@@ -121,7 +138,7 @@ class TracingRequester {
 // Functions to add a tracing event.
 inline void RecordTracingEvent(TracingLevel level,
                                TracingSink::NameGenerator gen_name) {
-  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
+  if (IsTracingEnabled(level)) {
     internal::kTracingSink->RecordTracingEvent(gen_name);
   }
 }
@@ -134,7 +151,7 @@ class TracingScope {
 
  public:
   TracingScope(TracingLevel level, TracingSink::NameGenerator get_name)
-      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
+      : enabled_(IsTracingEnabled(level)) {
     if (enabled_) internal::kTracingSink->PushTracingScope(get_name);
   }
 
@@ -149,31 +166,14 @@ class TracingScope {
 }  // namespace tracing
 }  // namespace tfrt
 
-// There are four developer-facing tracing macros:
-// TFRT_TRACE_{""|KERNEL}_{EVENT|SCOPE}.
-//
-// The `TFRT_TRACE_KERNEL_*` use 'kernel' category and are intended for parts
-// where a BEF kernel or function is being executed. The other macros use no
-// category.
-//
-// `SCOPE` marks an activity with start and end, while `EVENT` marks a single
-// time point. The recommendation is to use `*_SCOPE` when the tracing activity
-// is long enough (~100ns) and `*_EVENT` otherwise.
-
-#ifndef TFRT_DISABLE_TRACING
-#define __TFRT_TRACE_GET_LEVEL(level) ::tfrt::tracing::TracingLevel::level
-#define TFRT_TRACE_SCOPE(level, message)                                     \
-  ::tfrt::tracing::TracingScope tracing_scope(__TFRT_TRACE_GET_LEVEL(level), \
+// `TFRT_TRACE_SCOPE` marks an activity with start and end, while
+// `TFRT_TRACE_EVENT` marks a single time point. The recommendation is to use
+// scope when the tracing activity is long enough (~100ns) and event otherwise.
+#define TFRT_TRACE_SCOPE(level, message)                                   \
+  ::tfrt::tracing::TracingScope tracing_scope(TFRT_GET_TRACE_LEVEL(level), \
                                               [&] { return message; })
-#define TFRT_TRACE_EVENT(level, message)                             \
-  ::tfrt::tracing::RecordTracingEvent(__TFRT_TRACE_GET_LEVEL(level), \
+#define TFRT_TRACE_EVENT(level, message)                           \
+  ::tfrt::tracing::RecordTracingEvent(TFRT_GET_TRACE_LEVEL(level), \
                                       [&] { return message; })
-
-#else  // TFRT_DISABLE_TRACING
-// Note: the above macro definitions would generate the same code as these stubs
-// because IsTracingEnabled() always returns false and all code is eliminated.
-#define TFRT_TRACE_SCOPE(level, message)
-#define TFRT_TRACE_EVENT(level, message)
-#endif  // TFRT_DISABLE_TRACING
 
 #endif  // TFRT_TRACING_TRACING_H_

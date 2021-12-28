@@ -31,19 +31,19 @@ func @basic_test_matmul_f32() -> !tfrt.chain {
 
   // CHECK: Scope:tfrt_test.create_dense_tensor#op_handler=cpu#
   // CHECK: Scope:RunMetadataFunction
-  // CHECK: Scope:RunDispatchFunction: tfrt_test.create_dense_tensor#op_name=tfrt_test.create_dense_tensor,Inputs=(),Results=(f32 [1, 65536]),Attributes=OpAttrs contains 2 entries:{{[[:space:]]*}}'shape' type=I64 value=[1, 65536]{{[[:space:]]*}}'values' type=F32 value=[1.000000e+00]{{[[:space:]]*}}#
+  // CHECK: Scope:RunDispatch: tfrt_test.create_dense_tensor
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 65536], values = [1.0 : f32] } : 1
 
   // CHECK: Scope:tfrt_test.create_dense_tensor#op_handler=cpu#
   // CHECK: Scope:RunMetadataFunction
-  // CHECK: Scope:RunDispatchFunction: tfrt_test.create_dense_tensor#op_name=tfrt_test.create_dense_tensor,Inputs=(),Results=(f32 [65536, 1]),Attributes=OpAttrs contains 2 entries:{{[[:space:]]*}}'shape' type=I64 value=[65536, 1]{{[[:space:]]*}}'values' type=F32 value=[1.000000e+00]{{[[:space:]]*}}#
+  // CHECK: Scope:RunDispatch: tfrt_test.create_dense_tensor
   %b_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [65536, 1], values = [1.0 : f32] } : 1
 
   // CHECK: Scope:tfrt_test.matmul#op_handler=cpu#
   // CHECK: Scope:RunMetadataFunction
-  // CHECK: Scope:RunDispatchFunction: tfrt_test.matmul#op_name=tfrt_test.matmul,long_name=MyCustomNameScope/MyCustomName,Inputs=(f32 [1, 65536];f32 [65536, 1]),Results=(f32 [1, 1]),Attributes=OpAttrs contains 2 entries:{{[[:space:]]*}}'transpose_a' type=BOOL value=0{{[[:space:]]*}}'transpose_b' type=BOOL value=0{{[[:space:]]*}}#
+  // CHECK: Scope:RunDispatch: tfrt_test.matmul
   %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
     {transpose_a = false, transpose_b = false}: 1 loc("MyCustomNameScope/MyCustomName")
 

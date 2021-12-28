@@ -53,11 +53,9 @@
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/Linalg/IR/LinalgOps.h"
-#include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
+#include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/Dialect/Math/Transforms/Passes.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
@@ -86,6 +84,7 @@
 #include "tfrt/cpu/jit/cpurt_support.h"
 #include "tfrt/cpu/jit/opdefs/rt_ops.h"
 #include "tfrt/cpu/jit/runtime.h"
+#include "tfrt/cpu/jit/transforms/codegen_passes.h"
 #include "tfrt/cpu/jit/transforms/rt_passes.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -887,21 +886,6 @@ unsigned Executable::num_results() const {
 //----------------------------------------------------------------------------//
 
 namespace {
-// Optimize operations from the `math` dialect.
-struct MathOptimizationPass
-    : public mlir::PassWrapper<MathOptimizationPass, mlir::FunctionPass> {
-  MathOptimizationPass() = default;
-  MathOptimizationPass(const MathOptimizationPass& pass) {}
-  explicit MathOptimizationPass(bool avx2) { enable_avx2 = avx2; }
-  void runOnFunction() override;
-
- private:
-  Option<bool> enable_avx2{
-      *this, "enable-avx2",
-      llvm::cl::desc("Enable math approximations that emit AVX2 intrinsics."),
-      llvm::cl::init(false)};
-};
-
 // Add alignment attribute to all `alloc` operations.
 struct AlignedAllocationsPass
     : public mlir::PassWrapper<AlignedAllocationsPass, mlir::FunctionPass> {
@@ -920,22 +904,6 @@ struct RewriteVectorMultiReductionPass
   void runOnFunction() override;
 };
 }  // namespace
-
-void MathOptimizationPass::runOnFunction() {
-  mlir::OwningRewritePatternList patterns(&getContext());
-  mlir::populateMathAlgebraicSimplificationPatterns(patterns);
-  mlir::MathPolynomialApproximationOptions approx_options;
-  approx_options.enableAvx2 = enable_avx2;
-  mlir::populateMathPolynomialApproximationPatterns(patterns, approx_options);
-  if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(),
-                                                std::move(patterns))))
-    signalPassFailure();
-}
-
-static std::unique_ptr<MathOptimizationPass> CreateMathOptimizationPass(
-    bool enable_avx2) {
-  return std::make_unique<MathOptimizationPass>(enable_avx2);
-}
 
 void AlignedAllocationsPass::runOnFunction() {
   assert(alignment >= 0 && "alignment must be larger or equal to 0");
@@ -959,7 +927,8 @@ static std::unique_ptr<AlignedAllocationsPass> CreateAlignedAllocationsPass(
 
 void RewriteVectorMultiReductionPass::runOnFunction() {
   mlir::RewritePatternSet patterns(&getContext());
-  mlir::vector::populateVectorMultiReductionLoweringPatterns(patterns);
+  mlir::vector::populateVectorMultiReductionLoweringPatterns(
+      patterns, mlir::vector::VectorMultiReductionLowering::InnerReduction);
   (void)applyPatternsAndFoldGreedily(getFunction(), std::move(patterns));
 }
 
@@ -1022,6 +991,8 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Convert all linalg operations to parallel loops.
   pm.addNestedPass<mlir::FuncOp>(
       mlir::createConvertLinalgToParallelLoopsPass());
+  // Canonicalize generated scf.parallel operations to remove single iterations.
+  pm.addPass(mlir::createCanonicalizerPass());
 
   // Convert scf.parallel operations into async work sharding loops.
   if (opts.num_worker_threads > 1) {
@@ -1102,7 +1073,11 @@ class JitCompilationContext {
   // Makes an executable from the JIT compilation context. This is the end of
   // life for the compilation context, it effectively converts the MLIR module
   // to the executable (function pointer) using LLVM JIT code generation.
-  static Expected<Executable> Compile(std::unique_ptr<JitCompilationContext>);
+  // Optional specialization identifier specifies if the compiled executable is
+  // a default one, or a specialization.
+  static Expected<Executable> Compile(
+      std::unique_ptr<JitCompilationContext>,
+      Optional<size_t> specialization = llvm::None);
 
   template <typename OriginalError>
   llvm::Error Error(OriginalError original_error) {
@@ -1137,8 +1112,6 @@ class JitCompilationContext {
                          const JitExecutable::Listener* listener);
 
   const CompilationOptions& options() const { return opts_; }
-
-  bool specialized() const { return specialized_; }
 
  private:
   JitCompilationContext(CompilationOptions opts, string_view mlir_module,
@@ -1216,7 +1189,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 }
 
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
-    std::unique_ptr<JitCompilationContext> ctx) {
+    std::unique_ptr<JitCompilationContext> ctx,
+    Optional<size_t> specialization) {
   mlir::FuncOp entry_func = ctx->entrypoint();
   std::string entrypoint = entry_func.getName().str();
 
@@ -1277,7 +1251,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   return Executable(std::move(*engine), std::move(*signature),
                     std::move(*runtime_signature), entrypoint,
                     std::move(*results_memory_layout), ctx->name().str(),
-                    ctx->specialized(), ctx->options().num_worker_threads);
+                    specialization, ctx->options().num_worker_threads);
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.
@@ -1600,9 +1574,12 @@ SymbolicShapesResolver::SymbolicShapesResolver(
   iteration_order_.resize(signature.num_operands());
   std::iota(iteration_order_.begin(), iteration_order_.end(), 0);
 
+  // Make the sort stable so that dynamic shapes are computed deterministically.
   llvm::sort(iteration_order_, [&](size_t a, size_t b) {
-    return static_cast<unsigned>(constraints[a]) >
-           static_cast<unsigned>(constraints[b]);
+    unsigned ca = static_cast<unsigned>(constraints[a]);
+    unsigned cb = static_cast<unsigned>(constraints[b]);
+    if (ca > cb) return true;
+    return ca < cb ? false : a < b;
   });
 }
 
@@ -1735,7 +1712,7 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
 
     return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
                          std::move(*constraints), std::move(*signature),
-                         llvm::None, std::move(runner));
+                         /*default_executable=*/llvm::None, std::move(runner));
   }
 
   // Otherwise try to compile the default executable.
@@ -1899,21 +1876,25 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // We lost the race; some other invocation will do the compilation.
   if (!entry.allocated) return entry.ptr;
 
-  // Construct the task that will do the specialized executable compilation.
-  auto compile = TaskFunction(
-      [ctx = std::move(*ctx), ref = entry.ptr.CopyRef()]() mutable {
-        Expected<Executable> executable =
-            JitCompilationContext::Compile(std::move(ctx));
+  // Get the specialization id from the size of the specializations cache.
+  size_t specialization = entry.size - 1;
 
-        // Set the allocated entry async value state to error or concrete.
-        if (auto err = executable.takeError())
-          ref.SetError(std::move(err));
-        else
-          ref.emplace(std::move(*executable));
-      });
+  // Construct the task that will do the specialized executable compilation.
+  auto compile = TaskFunction([ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
+                               specialization]() mutable {
+    Expected<Executable> executable =
+        JitCompilationContext::Compile(std::move(ctx), specialization);
+
+    // Set the allocated entry async value state to error or concrete.
+    if (auto err = executable.takeError()) {
+      ref.SetError(std::move(err));
+    } else {
+      ref.emplace(std::move(*executable));
+    }
+  });
 
   // Offload specialization compilation to the user provided runner.
-  runner_(entry.size, constraints_, operands, std::move(compile), exec_ctx);
+  runner_(specialization, constraints_, operands, std::move(compile), exec_ctx);
 
   // Use the default executable while we are compiling a specialized version if
   // this is not explicitly disabled by the compilation options.

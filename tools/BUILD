@@ -159,7 +159,7 @@ tfrt_cc_binary(
         ":bef_executor_lib",
         ":bef_executor_lightweight_kernels",
         "@tf_runtime//:dtype",
-        "@tf_runtime//:simple_tracing_sink_alwayslink",
+        "@tf_runtime//:simple_tracing_sink",
     ],
 )
 
@@ -174,7 +174,7 @@ tfrt_cc_binary(
         ":bef_executor_lib",
         ":bef_executor_lightweight_kernels",
         "@tf_runtime//:dtype",
-        "@tf_runtime//:simple_tracing_sink_alwayslink",
+        "@tf_runtime//:simple_tracing_sink",
     ],
 )
 

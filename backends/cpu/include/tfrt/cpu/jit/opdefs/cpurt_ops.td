@@ -22,6 +22,7 @@
 #else
 #define CPURT_OPS
 
+include "mlir/Interfaces/SideEffectInterfaces.td"
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
 include "tfrt/core_runtime/opdefs/corert_base.td"
 include "tfrt/tensor/opdefs/tensor.td"
@@ -39,7 +40,7 @@ class CPURT_Op<string mnemonic, list<OpTrait> traits = []> :
 // TFRT CPU Runtime op definitions to facilitate runtime lowerings.
 //===----------------------------------------------------------------------===//
 
-def CallOp : CPURT_Op<"call"> {
+def CallOp : CPURT_Op<"call", [NoSideEffect]> {
   let summary = "cpurt function call operation";
   let description = [{
     This operation is used in graph rewrites to call compiled functions. This

@@ -136,7 +136,8 @@ class BorrowedGpuStream {
 
   ~BorrowedGpuStream();
 
-  operator AsyncValueRef<GpuStream>() const { return stream_.CopyRef(); }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator const AsyncValueRef<GpuStream>&() const { return stream_; }
 
  private:
   AsyncValueRef<GpuContext> context_;

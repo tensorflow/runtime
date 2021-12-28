@@ -19,6 +19,7 @@
 #include "mlir/Support/MlirOptMain.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/cpu/jit/conversion/rt_passes.h"
+#include "tfrt/cpu/jit/transforms/codegen_passes.h"
 #include "tfrt/cpu/jit/transforms/rt_passes.h"
 #include "tfrt/init_tfrt_dialects.h"
 
@@ -26,6 +27,7 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTCompiledDialects(registry);
   tfrt::cpu::jit::registerRuntimeConversionPasses();
+  tfrt::cpu::jit::registerCodegenTransformsPasses();
   tfrt::cpu::jit::registerRuntimeTransformsPasses();
   return failed(mlir::MlirOptMain(argc, argv, "CPURT pass driver\n", registry));
 }

@@ -199,3 +199,16 @@ def tfrt_py_binary(
         tags = tags + ["do_not_disable_rtti"],
         **kwargs
     )
+
+def _make_variable_impl(ctx):
+    value = ctx.build_setting_value
+    if value not in ctx.attr.values:
+        fail("Error setting " + str(ctx.label) + ": invalid value '" +
+             value + "'. Allowed values are " + ctx.attr.values)
+    return platform_common.TemplateVariableInfo({ctx.label.name: value})
+
+make_variable = rule(
+    implementation = _make_variable_impl,
+    build_setting = config.string(flag = True),
+    attrs = {"values": attr.string_list()},
+)

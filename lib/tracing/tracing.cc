@@ -17,18 +17,51 @@
 // This file implements the tracing library.
 #include "tfrt/tracing/tracing.h"
 
+#include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <mutex>
+#include <utility>
 
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/Error.h"
+#include "tfrt/support/error_util.h"
+#include "tfrt/support/logging.h"
 
 namespace tfrt {
 namespace tracing {
+
 TracingSink::~TracingSink() = default;
 
+raw_ostream& operator<<(raw_ostream& os, TracingLevel level) {
+  switch (level) {
+    case TracingLevel::None:
+      return os << "none";
+    case TracingLevel::Default:
+      return os << "default";
+    case TracingLevel::Verbose:
+      return os << "verbose";
+    case TracingLevel::Debug:
+      return os << "debug";
+    default:
+      return os << "TracingLevel(" << static_cast<int>(level) << ")";
+  }
+}
+
+Expected<TracingLevel> ParseTracingLevel(llvm::StringRef name) {
+  return llvm::StringSwitch<Expected<TracingLevel>>(name)
+      .Case("none", TracingLevel::None)
+      .Case("default", TracingLevel::Default)
+      .Case("verbose", TracingLevel::Verbose)
+      .Case("debug", TracingLevel::Debug)
+      .Default(MakeStringError("Unknown TracingLevel: ", name));
+}
+
 TracingSink* internal::kTracingSink = nullptr;
-std::atomic<int> internal::kIsTracingEnabled(0);
-std::atomic<TracingLevel> internal::kTracingLevel(TracingLevel::Default);
+int internal::kTracingEnabled(0);
+TracingLevel internal::kTracingLevel =
+    std::min(TracingLevel::Default, internal::kMaxTracingLevel);
+std::atomic<TracingLevel> internal::kCurrentTracingLevel(TracingLevel::None);
 
 static std::mutex& GetTracingMutex() {
   static auto mutex = new std::mutex;
@@ -36,28 +69,45 @@ static std::mutex& GetTracingMutex() {
 }
 
 void RegisterTracingSink(TracingSink* tracing_sink) {
-  std::unique_lock<std::mutex> lock(GetTracingMutex());
+  std::lock_guard<std::mutex> lock(GetTracingMutex());
   assert(tracing_sink);
-  assert(internal::kIsTracingEnabled.load(std::memory_order_acquire) == 0);
+  assert(internal::kTracingEnabled == 0);
   internal::kTracingSink = tracing_sink;
 }
 
 void RequestTracing(bool enable) {
-  std::unique_lock<std::mutex> lock(GetTracingMutex());
-  if (internal::kTracingSink == nullptr) return;
-  auto value = internal::kIsTracingEnabled.load(std::memory_order_acquire);
-  if (enable) {
-    if (value++ > 0) return;
-  } else {
-    if (value == 0 || --value > 0) return;
+  std::lock_guard<std::mutex> lock(GetTracingMutex());
+  if (internal::kTracingSink == nullptr) {
+    TFRT_LOG(WARNING) << "No tfrt::TracingSink registered";
+    return;
   }
-  internal::kIsTracingEnabled.store(value, std::memory_order_release);
-  // Don't log error to avoid binary size bloat.
-  consumeError(internal::kTracingSink->RequestTracing(enable));
+  if (enable) {
+    if (internal::kTracingEnabled++ > 0) return;  // Already enabled.
+  } else {
+    if (internal::kTracingEnabled == 0) return;   // Already disabled.
+    if (--internal::kTracingEnabled > 0) return;  // Still enabled.
+  }
+  if (auto error = internal::kTracingSink->RequestTracing(enable)) {
+    internal::kTracingEnabled = !enable;
+    TFRT_LOG(WARNING) << std::move(error);
+    return;
+  }
+  auto level = enable ? internal::kTracingLevel : TracingLevel::None;
+  internal::kCurrentTracingLevel.store(level);
 }
 
 void SetTracingLevel(TracingLevel level) {
-  internal::kTracingLevel.store(level);
+  if (level > internal::kMaxTracingLevel) {
+    TFRT_LOG(WARNING) << "Tracing level '" << level
+                      << "' clamped to TFRT_MAX_TRACING_LEVEL ('"
+                      << internal::kMaxTracingLevel << "')";
+    level = internal::kMaxTracingLevel;
+  }
+  std::lock_guard<std::mutex> lock(GetTracingMutex());
+  internal::kTracingLevel = level;
+  if (internal::kTracingEnabled) {
+    internal::kCurrentTracingLevel.store(level);
+  }
 }
 
 }  // namespace tracing

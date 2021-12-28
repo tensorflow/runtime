@@ -29,7 +29,8 @@ Expected<wrapper::HostMemory<void>> GpuContext::HostMemoryPool::Allocate(
     wrapper::CurrentContext current, size_t size_bytes) {
   mutex_lock lock(mutex_);
   auto it = pool_.lower_bound(size_bytes);
-  if (it != pool_.end()) {
+  // Heuristic: use pool entry if it's at most 4 times the requested size.
+  if (it != pool_.end() && it->first <= size_bytes * 4) {
     auto result = std::move(it->second);
     pool_.erase(it);
     return std::move(result);
@@ -77,6 +78,7 @@ BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
           context_.CopyRef(), wrapper::OwningStream(stream))) {}
 
 BorrowedGpuStream::~BorrowedGpuStream() {
+  if (!stream_) return;  // moved-from
   stream_->release();
   context_->release();
 }

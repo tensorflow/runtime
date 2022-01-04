@@ -893,16 +893,6 @@ struct AlignedAllocationsPass
   void runOnFunction() override;
   int64_t alignment;
 };
-
-// Convert `vector.multi_reduction` into a sequence of `vector.reduction` ops.
-struct RewriteVectorMultiReductionPass
-    : public mlir::PassWrapper<RewriteVectorMultiReductionPass,
-                               mlir::FunctionPass> {
-  void getDependentDialects(mlir::DialectRegistry& registry) const override {
-    registry.insert<mlir::memref::MemRefDialect>();
-  }
-  void runOnFunction() override;
-};
 }  // namespace
 
 void AlignedAllocationsPass::runOnFunction() {
@@ -923,18 +913,6 @@ void AlignedAllocationsPass::runOnFunction() {
 static std::unique_ptr<AlignedAllocationsPass> CreateAlignedAllocationsPass(
     int64_t alignment) {
   return std::make_unique<AlignedAllocationsPass>(alignment);
-}
-
-void RewriteVectorMultiReductionPass::runOnFunction() {
-  mlir::RewritePatternSet patterns(&getContext());
-  mlir::vector::populateVectorMultiReductionLoweringPatterns(
-      patterns, mlir::vector::VectorMultiReductionLowering::InnerReduction);
-  (void)applyPatternsAndFoldGreedily(getFunction(), std::move(patterns));
-}
-
-static std::unique_ptr<RewriteVectorMultiReductionPass>
-CreateRewriteVectorMultiReductionPass() {
-  return std::make_unique<RewriteVectorMultiReductionPass>();
 }
 
 static void InitializeCompiler() {

@@ -34,4 +34,17 @@ def MathOptimizationPass : FunctionPass<"codegen-math-optimization"> {
   ];
 }
 
+def RewriteVectorMultiReductionPass :
+    FunctionPass<"codegen-rewrite-vector-multi-reduction"> {
+  let summary = "Convert `vector.multi_reduction` into `vector.reduction` ops.";
+  let description = [{
+    This pass converts `vector.multi_reduction` ops into a a sequence of
+    `vector.reduction` ops.
+  }];
+  let constructor = "::tfrt::cpu::jit::CreateRewriteVectorMultiReductionPass()";
+  let dependentDialects = [
+    "mlir::memref::MemRefDialect",
+  ];
+}
+
 #endif  // CODEGEN_PASSES

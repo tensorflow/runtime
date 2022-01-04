@@ -561,6 +561,7 @@ tfrt_cc_library(
     name = "codegen_transforms",
     srcs = [
         "lib/jit/transforms/math_optimization.cc",
+        "lib/jit/transforms/rewrite_vector_multi_reduction.cc",
     ],
     hdrs = ["include/tfrt/cpu/jit/transforms/codegen_passes.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
@@ -568,6 +569,7 @@ tfrt_cc_library(
         ":codegen_transforms_passes_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MathTransforms",
+        "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:VectorOps",

@@ -885,36 +885,6 @@ unsigned Executable::num_results() const {
 // functions at runtime.
 //----------------------------------------------------------------------------//
 
-namespace {
-// Add alignment attribute to all `alloc` operations.
-struct AlignedAllocationsPass
-    : public mlir::PassWrapper<AlignedAllocationsPass, mlir::FunctionPass> {
-  explicit AlignedAllocationsPass(int64_t alignment) : alignment(alignment) {}
-  void runOnFunction() override;
-  int64_t alignment;
-};
-}  // namespace
-
-void AlignedAllocationsPass::runOnFunction() {
-  assert(alignment >= 0 && "alignment must be larger or equal to 0");
-  if (alignment == 0) return;
-
-  auto i64 = mlir::IntegerType::get(&getContext(), 64);
-  auto alignment_attr = mlir::IntegerAttr::get(i64, alignment);
-
-  getFunction().walk([&](mlir::memref::AllocOp alloc) {
-    // Add alignment attribute only if the alignment attribute is missing or the
-    // current alignment is smaller.
-    if (!alloc.alignment().hasValue() || *alloc.alignment() < alignment)
-      alloc.alignmentAttr(alignment_attr);
-  });
-}
-
-static std::unique_ptr<AlignedAllocationsPass> CreateAlignedAllocationsPass(
-    int64_t alignment) {
-  return std::make_unique<AlignedAllocationsPass>(alignment);
-}
-
 static void InitializeCompiler() {
   static const bool initialized = ([] {
     llvm::InitializeNativeTarget();

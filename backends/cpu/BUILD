@@ -560,6 +560,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "codegen_transforms",
     srcs = [
+        "lib/jit/transforms/aligned_allocations.cc",
         "lib/jit/transforms/math_optimization.cc",
         "lib/jit/transforms/rewrite_vector_multi_reduction.cc",
     ],

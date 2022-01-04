@@ -29,6 +29,9 @@ namespace tfrt {
 namespace cpu {
 namespace jit {
 
+std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
+    int64_t alignment = 64);
+
 std::unique_ptr<mlir::FunctionPass> CreateMathOptimizationPass(
     bool enable_avx2 = false);
 

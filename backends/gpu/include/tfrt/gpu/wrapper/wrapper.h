@@ -88,6 +88,7 @@
 #define TFRT_GPU_WRAPPER_WRAPPER_H_
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <type_traits>
 
@@ -194,6 +195,11 @@ class Resource {
 
   // For member access from std::unique_ptr.
   const Resource* operator->() const { return this; }
+
+  // Free function which hashes a resource instance.
+  friend std::size_t hash(const Resource& resource) {
+    return std::hash<void*>{}(resource.pair_.getOpaqueValue());
+  }
 
  private:
   llvm::PointerIntPair<void*, 2, Platform> pair_;

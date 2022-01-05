@@ -19,10 +19,15 @@
 #ifndef TFRT_GPU_GPU_EXECUTOR_H_
 #define TFRT_GPU_GPU_EXECUTOR_H_
 
+#include <memory>
+
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "mlir/IR/MLIRContext.h"
 #include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/wrapper/dense_map_utils.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/execution_context.h"
@@ -40,6 +45,35 @@
 namespace tfrt {
 class BEFFile;
 namespace gpu {
+
+// Creates and caches GpuContexts and an associated tfrt::ResourceContexts.
+class GpuContextCache {
+  using Pair = std::pair<AsyncValueRef<GpuContext>, ResourceContext*>;
+
+ public:
+  GpuContextCache() = default;
+  GpuContextCache(GpuContextCache&&) = default;
+  GpuContextCache& operator=(GpuContextCache&&) = default;
+  ~GpuContextCache();
+
+  // Returns the `context` as non-owning AsyncValue plus a resource context
+  // that is unique to `context`.
+  Pair GetOrCreate(wrapper::Context context);
+
+ private:
+  llvm::SmallDenseMap<wrapper::Context, Pair> map_;
+};
+
+struct BorrowedStreamDeleter {
+  void operator()(AsyncValue*);
+};
+// std::unique_ptr<AsyncValueRef<GpuStream>> wouldn't allow checking NumRef() on
+// destruction. Wrapping an AsyncValue* is sufficient because this type is only
+// used as BEF function argument.
+using BorrowedStream = std::unique_ptr<AsyncValue, BorrowedStreamDeleter>;
+// Returns the `stream` belonging to `context` as a non-owning AsyncValue.
+BorrowedStream MakeBorrowedStream(AsyncValueRef<GpuContext> context,
+                                  wrapper::Stream stream);
 
 // Opens a BEF file from `path` as appropriately aligned MemoryBuffer.
 // Use '-' to read from stdin.

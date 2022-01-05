@@ -70,19 +70,6 @@ wrapper::Stream GpuStream::release() {
   return stream_.release();
 }
 
-BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
-                                     wrapper::Stream stream)
-    : context_(MakeAvailableAsyncValueRef<GpuContext>(
-          wrapper::OwningContext(context))),
-      stream_(MakeAvailableAsyncValueRef<GpuStream>(
-          context_.CopyRef(), wrapper::OwningStream(stream))) {}
-
-BorrowedGpuStream::~BorrowedGpuStream() {
-  if (!stream_) return;  // moved-from
-  stream_->release();
-  context_->release();
-}
-
 GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
                    wrapper::OwningEvent event)
     : context_(std::move(context)), event_(std::move(event)) {}

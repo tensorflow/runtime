@@ -124,26 +124,6 @@ class GpuStream {
   wrapper::OwningStream stream_;
 };
 
-// Takes an existing stream and provides it as GpuStream async value without
-// taking ownership of the stream.
-class BorrowedGpuStream {
- public:
-  // The `stream` must belong to `context`.
-  BorrowedGpuStream(wrapper::Context context, wrapper::Stream stream);
-
-  BorrowedGpuStream(BorrowedGpuStream&&) = default;
-  BorrowedGpuStream& operator=(BorrowedGpuStream&&) = default;
-
-  ~BorrowedGpuStream();
-
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  operator const AsyncValueRef<GpuStream>&() const { return stream_; }
-
- private:
-  AsyncValueRef<GpuContext> context_;
-  AsyncValueRef<GpuStream> stream_;
-};
-
 class GpuEvent {
  public:
   explicit GpuEvent(AsyncValueRef<GpuContext> context,

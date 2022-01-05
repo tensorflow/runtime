@@ -57,25 +57,6 @@ TEST_P(Test, GpuStream) {
   EXPECT_THAT(gpu_stream.get(), IsNull());
 }
 
-TEST_P(Test, BorrowedGpuStream) {
-  ASSERT_THAT(Init(GetParam()), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto device, wrapper::DeviceGet(GetParam(), 0));
-  TFRT_ASSERT_AND_ASSIGN(
-      auto context, wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device));
-  TFRT_ASSERT_AND_ASSIGN(auto current, wrapper::CtxGetCurrent());
-  TFRT_ASSERT_AND_ASSIGN(
-      auto stream,
-      wrapper::StreamCreate(current, wrapper::StreamFlags::DEFAULT));
-
-  BorrowedGpuStream borrowed_stream(context.get(), stream.get());
-  AsyncValueRef<GpuStream> stream_ref = borrowed_stream;
-  EXPECT_EQ(stream_ref->context()->get(), context.get());
-  EXPECT_EQ(stream_ref->get(), stream.get());
-
-  // Check that moved-from borrowed_stream is destroyed correctly.
-  BorrowedGpuStream moved_to = std::move(borrowed_stream);
-}
-
 TEST_P(Test, GpuEvent) {
   ASSERT_THAT(Init(GetParam()), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto device, wrapper::DeviceGet(GetParam(), 0));

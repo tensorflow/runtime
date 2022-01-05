@@ -197,9 +197,9 @@ Error GpuBuffer::Deallocate(wrapper::Stream stream) {
   return allocator_->Deallocate(pointer, stream);
 }
 
-GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuStream> stream,
+GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuContext> context,
                              wrapper::OwningBlasHandle handle)
-    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+    : context_(std::move(context)), handle_(std::move(handle)) {}
 
 GpuBlasHandle::~GpuBlasHandle() = default;
 
@@ -228,15 +228,15 @@ wrapper::CclComm GpuCclHandle::release() {
   return comm_.release();
 }
 
-GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuStream> stream,
+GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuContext> context,
                            wrapper::OwningDnnHandle handle)
-    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+    : context_(std::move(context)), handle_(std::move(handle)) {}
 
 GpuDnnHandle::~GpuDnnHandle() = default;
 
-GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuStream> stream,
+GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuContext> context,
                                  wrapper::OwningSolverHandle handle)
-    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+    : context_(std::move(context)), handle_(std::move(handle)) {}
 
 GpuSolverHandle::~GpuSolverHandle() = default;
 

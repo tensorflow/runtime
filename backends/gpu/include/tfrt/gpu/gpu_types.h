@@ -325,7 +325,7 @@ class GpuBuffer {
 
 class GpuBlasHandle {
  public:
-  explicit GpuBlasHandle(AsyncValueRef<GpuStream> stream,
+  explicit GpuBlasHandle(AsyncValueRef<GpuContext> context,
                          wrapper::OwningBlasHandle handle);
   ~GpuBlasHandle();
 
@@ -335,12 +335,10 @@ class GpuBlasHandle {
   const wrapper::OwningBlasHandle& operator->() const { return handle_; }
   wrapper::BlasHandle get() const { return handle_.get(); }
 
-  const AsyncValueRef<GpuContext>& context() const {
-    return stream_->context();
-  }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
-  AsyncValueRef<GpuStream> stream_;
+  AsyncValueRef<GpuContext> context_;
   wrapper::OwningBlasHandle handle_;
 };
 
@@ -378,7 +376,7 @@ class GpuCclHandle {
 
 class GpuDnnHandle {
  public:
-  explicit GpuDnnHandle(AsyncValueRef<GpuStream> stream,
+  explicit GpuDnnHandle(AsyncValueRef<GpuContext> context,
                         wrapper::OwningDnnHandle handle);
   ~GpuDnnHandle();
 
@@ -388,18 +386,16 @@ class GpuDnnHandle {
   const wrapper::OwningDnnHandle& operator->() const { return handle_; }
   wrapper::DnnHandle get() const { return handle_.get(); }
 
-  const AsyncValueRef<GpuContext>& context() const {
-    return stream_->context();
-  }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
-  AsyncValueRef<GpuStream> stream_;
+  AsyncValueRef<GpuContext> context_;
   wrapper::OwningDnnHandle handle_;
 };
 
 class GpuSolverHandle {
  public:
-  explicit GpuSolverHandle(AsyncValueRef<GpuStream> stream,
+  explicit GpuSolverHandle(AsyncValueRef<GpuContext> context,
                            wrapper::OwningSolverHandle handle);
   ~GpuSolverHandle();
 
@@ -409,12 +405,10 @@ class GpuSolverHandle {
   const wrapper::OwningSolverHandle& operator->() const { return handle_; }
   wrapper::SolverHandle get() const { return handle_.get(); }
 
-  const AsyncValueRef<GpuContext>& context() const {
-    return stream_->context();
-  }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
-  AsyncValueRef<GpuStream> stream_;
+  AsyncValueRef<GpuContext> context_;
   wrapper::OwningSolverHandle handle_;
 };
 

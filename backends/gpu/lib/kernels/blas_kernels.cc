@@ -28,14 +28,12 @@
 namespace tfrt {
 namespace gpu {
 
-static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context()->get());
+static Expected<GpuBlasHandle> BlasCreate(Argument<GpuContext> context) {
+  auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
   auto handle = wrapper::BlasCreate(*current);
   if (!handle) return handle.takeError();
-  if (auto error = wrapper::BlasSetStream(handle->get(), stream->get()))
-    return std::move(error);
-  return GpuBlasHandle(stream.ValueRef(), std::move(*handle));
+  return GpuBlasHandle(context.ValueRef(), std::move(*handle));
 }
 
 template <typename T>
@@ -80,13 +78,17 @@ static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
   return GetScalePointer(value, type_id, compute_type.platform());
 }
 
-static Error BlasAxpy(const GpuBlasHandle& handle, int32_t n, AsyncValue* alpha,
-                      const GpuBuffer& x, int32_t strideX, const GpuBuffer& y,
-                      int32_t strideY, Attribute<int32_t> executionType,
+static Error BlasAxpy(const GpuBlasHandle& handle, const GpuStream& stream,
+                      int32_t n, AsyncValue* alpha, const GpuBuffer& x,
+                      int32_t strideX, const GpuBuffer& y, int32_t strideY,
+                      Attribute<int32_t> executionType,
                       Attribute<int32_t> typeAlpha, Attribute<int32_t> typeX,
                       Attribute<int32_t> typeY) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
 
   auto type_alpha = wrapper::BlasDataType::FromOpaqueValue(*typeAlpha);
   auto alpha_ptr = GetScalePointer(alpha, type_alpha);
@@ -103,17 +105,20 @@ static wrapper::BlasGemmAlgo BlasGemmAlgo(Attribute<int32_t> algo) {
   return wrapper::BlasGemmAlgo::FromOpaqueValue(*algo);
 }
 
-static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                      int32_t k, AsyncValue* alpha, const GpuBuffer& A,
-                      int32_t heightA, const GpuBuffer& B, int32_t heightB,
-                      AsyncValue* beta, const GpuBuffer& C, int32_t heightC,
-                      wrapper::BlasGemmAlgo algo,
+static Error BlasGemm(const GpuBlasHandle& handle, const GpuStream& stream,
+                      int32_t m, int32_t n, int32_t k, AsyncValue* alpha,
+                      const GpuBuffer& A, int32_t heightA, const GpuBuffer& B,
+                      int32_t heightB, AsyncValue* beta, const GpuBuffer& C,
+                      int32_t heightC, wrapper::BlasGemmAlgo algo,
                       // Needs to be sorted alphabetically by attribute name!
                       Attribute<int32_t> computeType, Attribute<int32_t> transA,
                       Attribute<int32_t> transB, Attribute<int32_t> typeA,
                       Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
   auto alpha_ptr = GetScalePointer(alpha, compute_type);
@@ -131,17 +136,20 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
 }
 
 static Error BlasGemmBatch(
-    const GpuBlasHandle& handle, int32_t m, int32_t n, int32_t k,
-    AsyncValue* alpha, const GpuBuffer& A, int32_t heightA, int64_t strideA,
-    const GpuBuffer& B, int32_t heightB, int64_t strideB, AsyncValue* beta,
-    const GpuBuffer& C, int32_t heightC, int64_t strideC, int32_t batchCount,
-    wrapper::BlasGemmAlgo algo,
+    const GpuBlasHandle& handle, const GpuStream& stream, int32_t m, int32_t n,
+    int32_t k, AsyncValue* alpha, const GpuBuffer& A, int32_t heightA,
+    int64_t strideA, const GpuBuffer& B, int32_t heightB, int64_t strideB,
+    AsyncValue* beta, const GpuBuffer& C, int32_t heightC, int64_t strideC,
+    int32_t batchCount, wrapper::BlasGemmAlgo algo,
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> computeType, Attribute<int32_t> transA,
     Attribute<int32_t> transB, Attribute<int32_t> typeA,
     Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
   auto alpha_ptr = GetScalePointer(alpha, compute_type);
@@ -160,9 +168,9 @@ static Error BlasGemmBatch(
 }
 
 static Error BlasTrsmBatch(
-    const GpuBlasHandle& handle, int32_t m, int32_t n, AsyncValue* alpha,
-    const GpuBuffer& A, int32_t heightA, const GpuBuffer& B, int32_t heightB,
-    int32_t batchCount,
+    const GpuBlasHandle& handle, const GpuStream& stream, int32_t m, int32_t n,
+    AsyncValue* alpha, const GpuBuffer& A, int32_t heightA, const GpuBuffer& B,
+    int32_t heightB, int32_t batchCount,
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> dataType, Attribute<int32_t> diagType,
     Attribute<int32_t> fillMode, Attribute<int32_t> sideMode,
@@ -180,6 +188,9 @@ static Error BlasTrsmBatch(
   auto call = [&](auto dummy) {
     auto current = wrapper::CtxSetCurrent(handle.context()->get());
     if (!current) return current.takeError();
+
+    if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+      return error;
 
     using T = decltype(dummy);
     auto pointer_array =

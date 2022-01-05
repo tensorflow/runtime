@@ -21,7 +21,7 @@ func @solver_potrf() {
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
-  %solver = tfrt_gpu.solver.create %stream
+  %solver = tfrt_gpu.solver.create %context
 
   %dim = tfrt.constant.i32 2
   %buffer_size = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -36,14 +36,14 @@ func @solver_potrf() {
   %gpu_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size, %ch1
   %ch4 = tfrt_gpu.mem.copy %gpu_buffer, %host_buffer, %stream, %ch2 : !tfrt_gpu.buffer, !ht.host_buffer
 
-  %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver,
+  %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver, %stream,
     CUBLAS_FILL_MODE_LOWER, %dim, CUDA_R_32F, %dim, %ch1
   %workspace = tfrt_gpu.mem.allocate %allocator, %stream, %workspace_size, %ch1
 
   %devinfo_size = tfrt.constant.i64 4  // 4 bytes int
   %devinfo = tfrt_gpu.mem.allocate %allocator, %stream, %devinfo_size, %ch1
 
-  %ch5 = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %dim,
+  %ch5 = tfrt_gpu.solver.potrf %solver, %stream, CUBLAS_FILL_MODE_LOWER, %dim,
     CUDA_R_32F, %gpu_buffer, %dim, %workspace, %devinfo, %ch4
 
   %ch6 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer, %stream, %ch5 : !ht.host_buffer, !tfrt_gpu.buffer
@@ -62,7 +62,7 @@ func @solver_potrf_batched() {
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
-  %solver = tfrt_gpu.solver.create %stream
+  %solver = tfrt_gpu.solver.create %context
 
   %dim = tfrt.constant.i32 2
   %buffer_size = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -82,7 +82,7 @@ func @solver_potrf_batched() {
 
   %batch_count = tfrt.constant.i32 1
 
-  %ch5 = tfrt_gpu.solver.potrf.batch %solver, CUBLAS_FILL_MODE_LOWER, %dim,
+  %ch5 = tfrt_gpu.solver.potrf.batch %solver, %stream, CUBLAS_FILL_MODE_LOWER, %dim,
     CUDA_R_32F, %gpu_buffer, %dim, %devinfo, %batch_count, %ch4
 
   %ch6 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer, %stream, %ch5 : !ht.host_buffer, !tfrt_gpu.buffer

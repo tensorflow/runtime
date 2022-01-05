@@ -117,7 +117,7 @@ func @dnn_pooling_test() {
   %ch11 = "tfrt_dht.set_tensor_with_values.f32"(%gradient, %ch10, %o00, %o01, %o02, %o03, %o04, %o05, %o06, %o07, %o08, %o09, %o10, %o11, %o12, %o13, %o14, %o15, %o16, %o17, %o18, %o19, %o20, %o21, %o22, %o23, %o24, %o25, %o26, %o27, %o28, %o29, %o30, %o31, %o32, %o33, %o34, %o35):(!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
   %ch12 = tfrt_dht.print_tensor %gradient, %ch11
 
-  %dnn = tfrt_gpu.dnn.create %stream
+  %dnn = tfrt_gpu.dnn.create %context
 
   %mode = tfrt.constant.ui32 0
   %nan_propagation = tfrt.constant.ui32 0
@@ -153,7 +153,7 @@ func @dnn_pooling_test() {
   %output_host_buffer, %ch31 = tfrt_dht.get_buffer %output_tensor, %ch30
   %ch32 = tfrt_gpu.mem.copy %output_device_buffer, %output_host_buffer, %stream, %ch31 : !tfrt_gpu.buffer, !ht.host_buffer
 
-  %ch33 = tfrt_gpu.dnn.pooling_forward %dnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
+  %ch33 = tfrt_gpu.dnn.pooling_forward %dnn, %stream, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
 
   %ch34a = tfrt_gpu.mem.copy %output_host_buffer, %output_device_buffer, %stream, %ch33 : !ht.host_buffer, !tfrt_gpu.buffer
   %ch34b = tfrt_gpu.stream.synchronize %stream, %ch34a
@@ -172,7 +172,7 @@ func @dnn_pooling_test() {
   %in_grad_host_buffer, %ch40 = tfrt_dht.get_buffer %in_grad_tensor, %ch39
   %ch41 = tfrt_gpu.mem.copy %in_grad_device_buffer, %in_grad_host_buffer, %stream, %ch40 : !tfrt_gpu.buffer, !ht.host_buffer
 
-  %ch42 = tfrt_gpu.dnn.pooling_backward %dnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
+  %ch42 = tfrt_gpu.dnn.pooling_backward %dnn, %stream, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
   %ch43 = tfrt_gpu.mem.copy %in_grad_host_buffer, %in_grad_device_buffer, %stream, %ch42 : !ht.host_buffer, !tfrt_gpu.buffer
 

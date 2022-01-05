@@ -64,14 +64,12 @@ struct ConvDoFP32ComputationFP16Input {
   static constexpr bool kDefaultFlag = true;
 };
 
-static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context()->get());
+static Expected<GpuDnnHandle> DnnCreate(Argument<GpuContext> context) {
+  auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
   auto handle = wrapper::DnnCreate(*current);
   if (!handle) return handle.takeError();
-  if (auto error = wrapper::DnnSetStream(handle->get(), stream->get()))
-    return std::move(error);
-  return GpuDnnHandle(stream.ValueRef(), std::move(*handle));
+  return GpuDnnHandle(context.ValueRef(), std::move(*handle));
 }
 
 static Expected<wrapper::OwningDnnConvolutionDescriptor>
@@ -140,12 +138,16 @@ static Expected<GpuDnnTensorDesc> DnnCreateTensorDescriptor(
 }
 
 static Error DnnPoolingForward(
-    const GpuDnnHandle& handle,
+    const GpuDnnHandle& handle, const GpuStream& stream,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const GpuDnnTensorDesc& x_desc, const GpuBuffer& x, float beta,
     const GpuDnnTensorDesc& y_desc, const GpuBuffer& y) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
+
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
 
@@ -155,7 +157,7 @@ static Error DnnPoolingForward(
 }
 
 static Error DnnPoolingBackward(
-    const GpuDnnHandle& handle,
+    const GpuDnnHandle& handle, const GpuStream& stream,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const GpuDnnTensorDesc& y_desc, const GpuBuffer& y,
     const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
@@ -163,6 +165,10 @@ static Error DnnPoolingBackward(
     const GpuDnnTensorDesc& dx_desc, const GpuBuffer& dx) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
+
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
 
@@ -173,9 +179,9 @@ static Error DnnPoolingBackward(
 }
 
 static Error DnnConvolutionForward(
-    const GpuDnnHandle& handle, const GpuDnnTensorDesc& x_desc,
-    const GpuBuffer& x, const wrapper::OwningDnnFilterDescriptor& w_desc,
-    const GpuBuffer& w,
+    const GpuDnnHandle& handle, const GpuStream& stream,
+    const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
+    const wrapper::OwningDnnFilterDescriptor& w_desc, const GpuBuffer& w,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space, const GpuDnnTensorDesc& y_desc,
     const GpuBuffer& y,
@@ -183,6 +189,10 @@ static Error DnnConvolutionForward(
     Attribute<int32_t> compute_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
+
   auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
   auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionForward(
@@ -192,7 +202,7 @@ static Error DnnConvolutionForward(
 }
 
 static Error DnnConvolutionBackwardData(
-    const GpuDnnHandle& handle,
+    const GpuDnnHandle& handle, const GpuStream& stream,
     const wrapper::OwningDnnFilterDescriptor& w_desc, const GpuBuffer& w,
     const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
@@ -202,6 +212,10 @@ static Error DnnConvolutionBackwardData(
     Attribute<int32_t> compute_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
+
   auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
   auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardData(
@@ -211,8 +225,9 @@ static Error DnnConvolutionBackwardData(
 }
 
 static Error DnnConvolutionBackwardFilter(
-    const GpuDnnHandle& handle, const GpuDnnTensorDesc& x_desc,
-    const GpuBuffer& x, const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
+    const GpuDnnHandle& handle, const GpuStream& stream,
+    const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
+    const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space,
     const wrapper::OwningDnnFilterDescriptor& dw_desc, const GpuBuffer& dw,
@@ -220,6 +235,10 @@ static Error DnnConvolutionBackwardFilter(
     Attribute<int32_t> compute_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
+
   auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
   auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardFilter(
@@ -230,8 +249,8 @@ static Error DnnConvolutionBackwardFilter(
 
 // This is CUDA specific kernel, there is no ROCm counterpart.
 static Error CudnnConvolutionBiasActivationForward(
-    const GpuDnnHandle& handle, const GpuBuffer& alpha1,
-    const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
+    const GpuDnnHandle& handle, const GpuStream& stream,
+    const GpuBuffer& alpha1, const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc, const GpuBuffer& w,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space, const GpuBuffer& alpha2,
@@ -241,6 +260,10 @@ static Error CudnnConvolutionBiasActivationForward(
     const GpuDnnTensorDesc& y_desc, const GpuBuffer& y) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
+
   auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
   return wrapper::CudnnConvolutionBiasActivationForward(
       *current, handle.get(), alpha1.pointer(), x_desc.get(), x.pointer(),
@@ -423,12 +446,15 @@ Expected<cudnn_frontend::ExecutionPlan> DnnBuildConvolution(
                             tuning_knob_values.GetValue<int64_t>());
 }
 
-Error DnnRunConvolution(const GpuDnnHandle& handle,
+Error DnnRunConvolution(const GpuDnnHandle& handle, const GpuStream& stream,
                         const cudnn_frontend::ExecutionPlan& execution_plan,
                         const GpuBuffer& input, const GpuBuffer& output,
                         const GpuBuffer& filter, const GpuBuffer& workspace) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
 
   auto platform = handle->platform();
   void* data_ptrs[] = {input.pointer().raw(platform),
@@ -653,13 +679,16 @@ Expected<cudnn_frontend::ExecutionPlan> DnnBuildFusedConvolution(
 }
 
 Error DnnRunFusedConvolution(
-    const GpuDnnHandle& handle,
+    const GpuDnnHandle& handle, const GpuStream& stream,
     const cudnn_frontend::ExecutionPlan& execution_plan, const GpuBuffer& input,
     const GpuBuffer& output, const GpuBuffer& filter,
     const GpuBuffer& side_input, const GpuBuffer& bias,
     const GpuBuffer& workspace) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
+    return error;
 
   auto platform = handle->platform();
   void* data_ptrs[] = {

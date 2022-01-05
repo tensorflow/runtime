@@ -22,7 +22,7 @@ func @blas_axpy() {
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
-  %blas = tfrt_gpu.blas.create %stream
+  %blas = tfrt_gpu.blas.create %context
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -40,7 +40,7 @@ func @blas_axpy() {
 
   %stride = tfrt.constant.i32 1
   %alpha = tfrt.constant.f32 1.0
-  %ch7 = tfrt_gpu.blas.axpy %blas, %buffer_length, %alpha, CUDA_R_32F,
+  %ch7 = tfrt_gpu.blas.axpy %blas, %stream, %buffer_length, %alpha, CUDA_R_32F,
     %gpu_buffer_0, CUDA_R_32F, %stride, %gpu_buffer_1, CUDA_R_32F, %stride,
     CUDA_R_32F, %ch6
 
@@ -61,7 +61,7 @@ func @blas_gemm() {
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
-  %blas = tfrt_gpu.blas.create %stream
+  %blas = tfrt_gpu.blas.create %context
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -85,7 +85,7 @@ func @blas_gemm() {
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 1.0
   %algo = tfrt_gpu.blas.gemm.algo CUBLAS_GEMM_ALGO0
-  %ch9 = tfrt_gpu.blas.gemm %blas,
+  %ch9 = tfrt_gpu.blas.gemm %blas, %stream,
     CUBLAS_OP_N, CUBLAS_OP_N, %dim, %dim, %dim,
     %alpha, %gpu_buffer_0, CUDA_R_32F, %dim,
     %gpu_buffer_1, CUDA_R_32F, %dim, %beta,
@@ -109,7 +109,7 @@ func @blas_gemm_batched() {
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
-  %blas = tfrt_gpu.blas.create %stream
+  %blas = tfrt_gpu.blas.create %context
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -136,7 +136,7 @@ func @blas_gemm_batched() {
   %beta = tfrt.constant.f32 1.0
   %batch_count = tfrt.constant.i32 1
   %stride = tfrt.constant.i64 1
-  %ch9 = tfrt_gpu.blas.gemm.batch %blas,
+  %ch9 = tfrt_gpu.blas.gemm.batch %blas, %stream,
     CUBLAS_OP_N, CUBLAS_OP_N, %dim, %dim, %dim,
     %alpha, %gpu_buffer_0, CUDA_R_32F, %dim, %stride,
     %gpu_buffer_1, CUDA_R_32F, %dim, %stride, %beta,
@@ -160,7 +160,7 @@ func @blas_trsm_batched() {
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
-  %blas = tfrt_gpu.blas.create %stream
+  %blas = tfrt_gpu.blas.create %context
 
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
 
@@ -178,7 +178,7 @@ func @blas_trsm_batched() {
   %dim = tfrt.constant.i32 2
   %alpha = tfrt.constant.f32 1.0
   %batch_count = tfrt.constant.i32 1
-  %ch6 = tfrt_gpu.blas.trsm.batch %blas, CUBLAS_SIDE_LEFT,
+  %ch6 = tfrt_gpu.blas.trsm.batch %blas, %stream, CUBLAS_SIDE_LEFT,
     CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT, %dim, %dim,
     CUDA_R_32F, %alpha, %gpu_buffer_0, %dim, %gpu_buffer_1, %dim, %batch_count,
     %ch5

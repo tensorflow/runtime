@@ -36,7 +36,7 @@ TEST_F(BefLocationEmitterTest, IsSupportedLocationFileLineColumnLoc) {
 }
 
 TEST_F(BefLocationEmitterTest, IsSupportedLocationNamedLoc) {
-  auto loc = mlir::NameLoc::get(mlir::Identifier::get("testloc", &context_));
+  auto loc = mlir::NameLoc::get(mlir::StringAttr::get(&context_, "testloc"));
   EXPECT_TRUE(BefLocationEmitter::IsSupportedLocation(loc));
 
   auto child = loc.getChildLoc();
@@ -75,7 +75,7 @@ TEST_F(BefLocationEmitterTest, NestedFusedLoc) {
   llvm::SmallVector<mlir::Location, 2> locations;
   locations.push_back(mlir::UnknownLoc::get(&context_));
   locations.push_back(
-      mlir::NameLoc::get(mlir::Identifier::get("testloc", &context_)));
+      mlir::NameLoc::get(mlir::StringAttr::get(&context_, "testloc")));
 
   llvm::SmallVector<mlir::Location, 2> nested_locations;
   nested_locations.push_back(mlir::OpaqueLoc::get<uintptr_t>(9, &context_));
@@ -99,7 +99,7 @@ TEST_F(BefLocationEmitterTest, EmitLocationFileLineColumnLoc) {
 }
 
 TEST_F(BefLocationEmitterTest, EmitLocationNameLoc) {
-  auto loc = mlir::NameLoc::get(mlir::Identifier::get("testloc", &context_));
+  auto loc = mlir::NameLoc::get(mlir::StringAttr::get(&context_, "testloc"));
 
   BefLocationEmitter emitter;
   const size_t offset = emitter.EmitLocation(loc);
@@ -112,9 +112,9 @@ TEST_F(BefLocationEmitterTest, EmitLocationNameLoc) {
 
 TEST_F(BefLocationEmitterTest, EmitLocationCallSiteLoc) {
   mlir::Location callee_loc =
-      mlir::NameLoc::get(mlir::Identifier::get("callee", &context_));
+      mlir::NameLoc::get(mlir::StringAttr::get(&context_, "callee"));
   mlir::Location caller_loc =
-      mlir::NameLoc::get(mlir::Identifier::get("caller", &context_));
+      mlir::NameLoc::get(mlir::StringAttr::get(&context_, "caller"));
   auto loc = mlir::CallSiteLoc::get(callee_loc, caller_loc);
 
   BefLocationEmitter emitter;
@@ -134,7 +134,7 @@ TEST_F(BefLocationEmitterTest, EmitLocationFusedLoc) {
   llvm::SmallVector<mlir::Location, 2> locations;
   locations.push_back(mlir::UnknownLoc::get(&context_));
   locations.push_back(
-      mlir::NameLoc::get(mlir::Identifier::get("testloc", &context_)));
+      mlir::NameLoc::get(mlir::StringAttr::get(&context_, "testloc")));
   locations.push_back(mlir::OpaqueLoc::get<uintptr_t>(9, &context_));
   locations.push_back(mlir::FileLineColLoc::get(&context_, "file", 111, 222));
   auto loc = mlir::FusedLoc::get(&context_, locations);

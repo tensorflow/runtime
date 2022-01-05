@@ -17,7 +17,7 @@
 #include "bef_location_reader.h"
 
 #include "llvm/ADT/SmallVector.h"
-#include "mlir/IR/Identifier.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Location.h"
 #include "tfrt/bef/bef_location.h"
 
@@ -32,7 +32,7 @@ mlir::Location BefLocationReader::ReadLocation(BefLocation loc) {
                                      filelinecol.line(), filelinecol.column());
   } else if (auto name = loc.dyn_cast<BefNameLocation>()) {
     auto identifier =
-        mlir::Identifier::get(name.name(location_strings_), &context_);
+        mlir::StringAttr::get(&context_, name.name(location_strings_));
     auto child = ReadLocation(name.child());
     return mlir::NameLoc::get(identifier, child);
   } else if (auto callsite = loc.dyn_cast<BefCallSiteLocation>()) {

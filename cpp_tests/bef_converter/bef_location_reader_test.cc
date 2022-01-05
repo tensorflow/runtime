@@ -50,7 +50,7 @@ TEST_F(BefLocationReaderTest, FileLineColLoc) {
 TEST_F(BefLocationReaderTest, NameLoc) {
   auto child = mlir::FileLineColLoc::get(&context_, "file", 123, 456);
   auto loc =
-      mlir::NameLoc::get(mlir::Identifier::get("testloc", &context_), child);
+      mlir::NameLoc::get(mlir::StringAttr::get(&context_, "testloc"), child);
 
   BefLocationEmitter emitter;
   const size_t offset = emitter.EmitLocation(loc);
@@ -78,7 +78,7 @@ TEST_F(BefLocationReaderTest, CallSiteLoc) {
 TEST_F(BefLocationReaderTest, FusedLoc) {
   llvm::SmallVector<mlir::Location, 2> locations;
   locations.push_back(
-      mlir::NameLoc::get(mlir::Identifier::get("testloc", &context_)));
+      mlir::NameLoc::get(mlir::StringAttr::get(&context_, "testloc")));
   locations.push_back(mlir::FileLineColLoc::get(&context_, "file", 111, 222));
   auto loc = mlir::FusedLoc::get(&context_, locations);
 

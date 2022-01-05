@@ -139,7 +139,7 @@ static mlir::Location GetLocation(llvm::Optional<DecodedLocation> loc,
   }
   if (loc->is<OpaqueLocation>()) {
     auto identifier =
-        mlir::Identifier::get(loc->get<OpaqueLocation>().loc, context);
+        mlir::StringAttr::get(context, loc->get<OpaqueLocation>().loc);
     return mlir::NameLoc::get(identifier);
   }
   return mlir::UnknownLoc::get(context);

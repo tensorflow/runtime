@@ -360,6 +360,48 @@ static void PrependKernelContextType(mlir::FuncOp func) {
   func.insertArguments({0}, {new_type}, {attr}, {});
 }
 
+// Returns true if all function operands have statically known shape.
+static bool HasStaticShapeOperands(const FunctionType& signature) {
+  auto is_static = [](ArrayRef<Index> sizes) -> bool {
+    return llvm::none_of(sizes, mlir::ShapedType::isDynamic);
+  };
+
+  auto is_shaped_static = [&](auto* type) -> Optional<bool> {
+    if (auto* memref = dyn_cast<MemrefType>(type))
+      return is_static(memref->sizes());
+
+    if (auto* tensor = dyn_cast<RankedTensorType>(type))
+      return is_static(tensor->sizes());
+
+    return llvm::None;
+  };
+
+  for (unsigned i = 0; i < signature.num_operands(); ++i) {
+    const Type* type = signature.operand(i);
+
+    // Get the underlying value type from the async value.
+    while (auto* value = dyn_cast<AsyncValueType>(type))
+      type = &value->value_type();
+
+    // Skip types that do not have shape.
+    if (isa<AsyncTokenType, KernelContextOperandType>(type)) continue;
+
+    // Unranked types do not have statically known shape.
+    if (isa<UnrankedTensorType, UnrankedMemrefType>(type)) return false;
+
+    // Check if the type is a shaped type with static sizes.
+    if (Optional<bool> shaped_static = is_shaped_static(type)) {
+      if (*shaped_static) continue;
+      return false;
+    }
+
+    assert(false && "unsupported operand type");
+    return false;
+  }
+
+  return true;
+}
+
 //----------------------------------------------------------------------------//
 // Get compiled function results memory layout.
 //----------------------------------------------------------------------------//
@@ -1662,6 +1704,12 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
                          std::move(*constraints), std::move(*signature),
                          /*default_executable=*/llvm::None, std::move(runner));
   }
+
+  // If all of the operands have static shape, then we can always use default
+  // binary for execution (at this point we already verified that we do not need
+  // to do any value specializations).
+  if (HasStaticShapeOperands(*signature))
+    compilation_opts.specialization = Specialization::kDisabled;
 
   // Otherwise try to compile the default executable.
   Expected<Executable> executable =

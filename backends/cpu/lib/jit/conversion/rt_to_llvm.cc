@@ -134,7 +134,7 @@ class SetOutputOpLowering : public OpConversionPattern<SetOutputOp> {
     Location loc = op->getLoc();
 
     auto kernel_context = adaptor.ctx();
-    auto index = rewriter.create<ConstantOp>(loc, adaptor.index());
+    auto index = rewriter.create<ConstantOp>(loc, adaptor.indexAttr());
 
     // Get a pointer to the result value storage from the runtime.
     auto result_ptr_ty = RuntimeAPI::OpaquePointerType(rewriter.getContext());
@@ -192,7 +192,7 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
     };
 
     // Create a null-terminated StringRef from the error attribute.
-    std::string str = adaptor.error().getValue().str();
+    std::string str = adaptor.error().str();
     StringRef err(str.data(), str.size() + 1);
 
     rewriter.setInsertionPointToStart(module.getBody());

@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include <iterator>
+#include <memory>
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
@@ -430,6 +432,15 @@ struct FoldAsyncAwaitPattern : public OpConversionPattern<async::AwaitOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
+// A rewrite pattern to hoist tfrt_gpu.blas/dnn/solver.create operations.
+struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+ private:
+  LogicalResult matchAndRewrite(FuncOp func_op,
+                                PatternRewriter &rewriter) const override;
+};
+
 // A pass which rewrites a function to take extra !tfrt.chain and
 // !tfrt_gpu.stream arguments and return a !tfrt.chain.
 struct AddChainAndStreamToFuncPass
@@ -460,6 +471,17 @@ struct ConvertGpuToTfrtGpuPass
     registry.insert<tfrt::dht::DenseHostTensorDialect>();
   }
   StringRef getArgument() const override { return "gpu-tfrt-streamify"; }
+};
+
+// A pass which outlines resource creating ops and replaces them with tfrt.once.
+struct HoistingPass
+    : public PassWrapper<HoistingPass, OperationPass<ModuleOp>> {
+ private:
+  void runOnOperation() override;
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<compiler::TFRTDialect>();
+  }
+  StringRef getArgument() const override { return "gpu-tfrt-hoisting"; }
 };
 
 // A pass which removes unrealized_conversion_cast ops.
@@ -1207,6 +1229,55 @@ LogicalResult FoldAsyncAwaitPattern::matchAndRewrite(
   return success();
 }
 
+LogicalResult HoistCreateHandlePattern::matchAndRewrite(
+    FuncOp func_op, PatternRewriter &rewriter) const {
+  // Check for argument type to prevent infinite recursion. This assumes that
+  // no other function that just takes a context needs to hoist those ops.
+  // At some point, we likely want to tag the hoisted functions to later
+  // collect them and call them as part of program initialization. At that
+  // point, we can use that tag to detect recursion.
+  if (IsTypes<ContextType>(func_op.getType().getInputs()))
+    return rewriter.notifyMatchFailure(func_op, "already hoisted");
+
+  SmallVector<Operation *, 4> create_handle_ops;
+  func_op.walk([&](Operation *op) {
+    if (isa<BlasCreateOp, DnnCreateOp, SolverCreateOp>(op))
+      create_handle_ops.push_back(op);
+  });
+
+  if (create_handle_ops.empty())
+    return rewriter.notifyMatchFailure(func_op, "no create handle ops");
+
+  mlir::SymbolTable symbol_table(func_op->getParentOp());
+  // Map from handle type and context value to tfrt.once callee.
+  llvm::SmallDenseMap<std::tuple<Type, Value>, FuncOp> map;
+  for (auto *op : create_handle_ops) {
+    Type handle_type = op->getResult(0).getType();
+    Value context = op->getOperand(0);
+    auto pair = map.try_emplace(std::make_tuple(handle_type, context), nullptr);
+    if (pair.second) {
+      rewriter.setInsertionPoint(func_op);
+      Location loc = op->getLoc();
+      auto callee_type =
+          rewriter.getFunctionType(context.getType(), handle_type);
+      auto callee_op = rewriter.create<mlir::FuncOp>(
+          loc, op->getName().getIdentifier(), callee_type);
+      symbol_table.insert(callee_op);
+      rewriter.setInsertionPointToEnd(callee_op.addEntryBlock());
+      BlockAndValueMapping mapper;
+      mapper.map(context, callee_op.getArgument(0));
+      Value handle = rewriter.clone(*op, mapper)->getResult(0);
+      rewriter.create<tfrt::compiler::ReturnOp>(loc, handle);
+      pair.first->second = callee_op;
+    }
+    rewriter.setInsertionPoint(op);
+    rewriter.replaceOpWithNewOp<tfrt::compiler::OnceOp>(
+        op, handle_type, context, pair.first->second.sym_name());
+  }
+
+  return success();
+}
+
 void AddChainAndStreamToFuncPass::runOnFunction() {
   RewritePatternSet patterns(&getContext());
   patterns.insert<AddChainAndStreamToFuncPattern>(&getContext());
@@ -1288,6 +1359,14 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
   }
 }
 
+void HoistingPass::runOnOperation() {
+  RewritePatternSet patterns(&getContext());
+  patterns.add<HoistCreateHandlePattern>(&getContext());
+  SmallVector<Operation *, 4> func_ops;
+  llvm::copy(getOperation().getOps<FuncOp>(), std::back_inserter(func_ops));
+  applyOpPatternsAndFold(func_ops, std::move(patterns), /*strict=*/false);
+}
+
 void ReconcileCastsPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   patterns.add<ConvertCastToEventRecordPattern, FoldConstCastPattern>(
@@ -1361,6 +1440,7 @@ void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
   pm.addPass(std::make_unique<ConvertGpuToTfrtGpuPass>());
   pm.addPass(std::make_unique<ReconcileCastsPass>());
   pm.addPass(std::make_unique<ConvertAsyncToTfrtPass>());
+  pm.addPass(std::make_unique<HoistingPass>());
 }
 
 void registerPasses() {
@@ -1369,6 +1449,7 @@ void registerPasses() {
   PassRegistration<ConvertGpuToTfrtGpuPass>();
   PassRegistration<ReconcileCastsPass>();
   PassRegistration<ConvertAsyncToTfrtPass>();
+  PassRegistration<HoistingPass>();
 
   PassPipelineRegistration<>(
       "gpu-to-tfrt-gpu",

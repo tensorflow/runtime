@@ -1662,8 +1662,8 @@ tfrt_cc_library(
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:VectorOps",
-        "@tf_runtime//backends/cpu:cpurt_opdefs",
-        "@tf_runtime//backends/cpu:rt_opdefs",
+        "@tf_runtime//backends/jitrt:cpurt_opdefs",
+        "@tf_runtime//backends/jitrt:rt_opdefs",
     ],
 )
 

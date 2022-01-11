@@ -981,9 +981,6 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // into functions to see all constant operands.
   pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass(opts.math_avx2));
 
-  // Rewrite `vector.multi_reduction` into a sequence of `vector.reduction` ops.
-  pm.addNestedPass<mlir::FuncOp>(CreateRewriteVectorMultiReductionPass());
-
   // Convert all linalg operations to parallel loops.
   pm.addNestedPass<mlir::FuncOp>(
       mlir::createConvertLinalgToParallelLoopsPass());

@@ -398,7 +398,6 @@ tfrt_cc_library(
     srcs = [
         "lib/transforms/aligned_allocations.cc",
         "lib/transforms/math_optimization.cc",
-        "lib/transforms/rewrite_vector_multi_reduction.cc",
     ],
     hdrs = ["include/tfrt/jitrt/transforms/codegen_passes.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],

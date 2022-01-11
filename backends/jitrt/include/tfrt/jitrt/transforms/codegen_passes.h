@@ -35,8 +35,6 @@ std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
 std::unique_ptr<mlir::FunctionPass> CreateMathOptimizationPass(
     bool enable_avx2 = false);
 
-std::unique_ptr<mlir::FunctionPass> CreateRewriteVectorMultiReductionPass();
-
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/transforms/codegen_gen_passes.h.inc"
 

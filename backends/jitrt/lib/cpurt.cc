@@ -1238,10 +1238,15 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Register memory allocation functions (malloc, free, ...).
   (*engine)->registerSymbols(AsyncRuntimeMemoryAllocationSymbolMap);
 
-  return Executable(std::move(*engine), std::move(*signature),
-                    std::move(*runtime_signature), entrypoint,
-                    std::move(*results_memory_layout), ctx->name().str(),
-                    specialization, ctx->options().num_worker_threads);
+  // Trigger compilation by looking up the entrypoint function in the engine.
+  Expected<Executable::KernelFunctionPtr> kernel_fn =
+      (*engine)->lookupPacked(entrypoint);
+  if (auto err = kernel_fn.takeError()) return std::move(err);
+
+  return Executable(ctx->name().str(), std::move(*engine), *kernel_fn,
+                    std::move(*signature), std::move(*runtime_signature),
+                    std::move(*results_memory_layout), specialization,
+                    ctx->options().num_worker_threads);
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.

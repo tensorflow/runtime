@@ -870,26 +870,30 @@ auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
 
 class Executable {
  public:
+  // Pointer to a compiled kernel function.
+  using KernelFunctionPtr = void (*)(void**);
+
   // Forward declare types defined below.
   struct ResultsMemoryLayout;
   struct CallFrame;
   struct ExecuteOpts;
   struct KernelContext;
 
-  Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
-             FunctionType signature, FunctionType runtime_signature,
-             string_view entrypoint, ResultsMemoryLayout results_memory_layout,
-             llvm::StringRef name, Optional<size_t> specialization,
-             int num_worker_threads)
-      : engine_(std::move(engine)),
+  Executable(llvm::StringRef name,
+             std::unique_ptr<mlir::ExecutionEngine> engine,
+             KernelFunctionPtr fptr, FunctionType signature,
+             FunctionType runtime_signature,
+             ResultsMemoryLayout results_memory_layout,
+             Optional<size_t> specialization, int num_worker_threads)
+      : name_(name.str()),
+        engine_(std::move(engine)),
+        fptr_(fptr),
         signature_(std::move(signature)),
         runtime_signature_(std::move(runtime_signature)),
-        fptr_(*engine_->lookupPacked(entrypoint)),
         results_memory_layout_(std::move(results_memory_layout)),
-        name_(name.str()),
         specialization_(specialization),
         num_worker_threads_(num_worker_threads) {
-    assert(fptr_ != nullptr && "entrypoint was not found");
+    assert(fptr_ != nullptr && "kernel function must be not null");
   }
 
   // Initializes call frame by adding all operands as pointers to the arguments
@@ -1028,10 +1032,10 @@ class Executable {
       const FunctionType& signature);
 
  private:
-  // Pointer to a compiled kernel function.
-  using KernelFunctionPtr = void (*)(void**);
+  std::string name_;  // name of the compiled kernel module
 
   std::unique_ptr<mlir::ExecutionEngine> engine_;
+  KernelFunctionPtr fptr_;  // compiled function owned by the `engine_`
 
   // Signature of the compiled module entrypoint function before lowering to
   // the runtime dialects (see JitExecutable `signature_` for more details).
@@ -1057,11 +1061,8 @@ class Executable {
   // expected by the runtime.
   FunctionType runtime_signature_;
 
-  KernelFunctionPtr fptr_;
   ResultsMemoryLayout results_memory_layout_;
 
-  // The name of the compiled kernel.
-  std::string name_;
   // Specialization id if this executable is a specialization, or an empty
   // optional if this executable is a default one.
   Optional<size_t> specialization_;

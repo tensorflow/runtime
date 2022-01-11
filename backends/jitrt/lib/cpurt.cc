@@ -745,8 +745,7 @@ struct ConvertDenseHostTensor {
   using ConversionContext = ConversionCtx;
 
   template <typename T, int rank>
-  static DenseHostTensor Convert(const ConversionContext& ctx,
-                                 void* memref_ptr) {
+  static DenseHostTensor Convert(ConversionContext& ctx, void* memref_ptr) {
     auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
     TFRT_MSAN_MEMORY_IS_INITIALIZED(memref, sizeof(StridedMemRefType<T, rank>));
     TensorMetadata metadata(GetDType<T>(), Sizes(memref));
@@ -786,8 +785,9 @@ mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        const Type* type,
                                                        const Type* runtime_type,
                                                        void* result_ptr) {
+  ConversionCtx ctx;
   return ReturnAsyncStridedMemref<ConvertDenseHostTensor>(
-      {}, results, result_index, type, runtime_type, result_ptr);
+      ctx, results, result_index, type, runtime_type, result_ptr);
 }
 
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
@@ -795,8 +795,9 @@ mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   const Type* type,
                                                   const Type* runtime_type,
                                                   void* result_ptr) {
+  ConversionCtx ctx;
   return ReturnStridedMemref<ConvertDenseHostTensor>(
-      {}, results, result_index, type, runtime_type, result_ptr);
+      ctx, results, result_index, type, runtime_type, result_ptr);
 }
 
 }  // namespace internal

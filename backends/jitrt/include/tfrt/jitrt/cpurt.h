@@ -472,7 +472,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   // Adds a conversion function to this converter. Conversion callback must be
   // convertible to the `ConversionCallbackFn` function type:
   //
-  //   mlir::LogicalResult(const ConversionContext&, RemainingResults, unsigned,
+  //   mlir::LogicalResult(ConversionContext&, RemainingResults, unsigned,
   //                       const Type* type, void*)
   //
   // Conversion function must return `success` if it successfully handled the
@@ -502,14 +502,14 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
  private:
   using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
-      const ConversionContext&, RemainingResults, unsigned, const Type*,
-      const Type*, void*)>;
+      ConversionContext&, RemainingResults, unsigned, const Type*, const Type*,
+      void*)>;
 
   // If result type was not matched by any of the user defined conversion
   // functions we return an error to the caller.
   static mlir::LogicalResult UnsupportedReturnType(
-      const ConversionContext& ctx, RemainingResults results,
-      unsigned result_index, const Type* t, const Type* rt, const void*) {
+      ConversionContext& ctx, RemainingResults results, unsigned result_index,
+      const Type* t, const Type* rt, const void*) {
     results.EmitErrorAt(result_index, StrCat("unsupported return type: ", *rt,
                                              " (derived from: ", *t, ")"));
     return mlir::failure();
@@ -555,14 +555,13 @@ mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
 
 }  // namespace internal
 
-#define DECLARE_CONTEXT_ADAPTOR(NAME)                                    \
-  template <typename ConversionContext>                                  \
-  static mlir::LogicalResult NAME(                                       \
-      const ConversionContext&, RemainingResults results,                \
-      unsigned result_index, const Type* type, const Type* runtime_type, \
-      void* result_ptr) {                                                \
-    return internal::NAME(results, result_index, type, runtime_type,     \
-                          result_ptr);                                   \
+#define DECLARE_CONTEXT_ADAPTOR(NAME)                                      \
+  template <typename ConversionContext>                                    \
+  static mlir::LogicalResult NAME(                                         \
+      ConversionContext&, RemainingResults results, unsigned result_index, \
+      const Type* type, const Type* runtime_type, void* result_ptr) {      \
+    return internal::NAME(results, result_index, type, runtime_type,       \
+                          result_ptr);                                     \
   }
 
 DECLARE_CONTEXT_ADAPTOR(ReturnAsyncToken)
@@ -581,7 +580,7 @@ DECLARE_CONTEXT_ADAPTOR(ReturnMemrefAsDenseHostTensor)
 //   using ConversionContext = ConversionContextType;  // must be movable
 //
 //   template <typename T, int rank>
-//   static MyTensorType Convert(const ConversionContext&, void* memref_ptr) {
+//   static MyTensorType Convert(ConversionContext&, void* memref_ptr) {
 //     auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
 //     return MyTensorType>(memref.basePtr, memref.data, ...);
 //   }
@@ -590,7 +589,7 @@ DECLARE_CONTEXT_ADAPTOR(ReturnMemrefAsDenseHostTensor)
 template <typename Converter,
           typename ResultType = typename Converter::ResultType,
           typename ConversionContext = typename Converter::ConversionContext>
-mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
+mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
                                         RemainingResults results,
                                         unsigned result_index, const Type* type,
                                         const Type* runtime_type,
@@ -689,7 +688,7 @@ void Emplace(void* memref_ptr, AsyncValue* dst, void* context) {
   using ConversionContext = typename Converter::ConversionContext;
 
   dst->emplace<ResultType>(Converter::template Convert<T, rank>(
-      *reinterpret_cast<const ConversionContext*>(context), memref_ptr));
+      *reinterpret_cast<ConversionContext*>(context), memref_ptr));
 }
 
 }  // namespace internal
@@ -699,12 +698,9 @@ void Emplace(void* memref_ptr, AsyncValue* dst, void* context) {
 template <typename Converter,
           typename ResultType = typename Converter::ResultType,
           typename ConversionContext = typename Converter::ConversionContext>
-mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
-                                             RemainingResults results,
-                                             unsigned result_index,
-                                             const Type* type,
-                                             const Type* runtime_type,
-                                             void* result_ptr) {
+mlir::LogicalResult ReturnAsyncStridedMemref(
+    ConversionContext& ctx, RemainingResults results, unsigned result_index,
+    const Type* type, const Type* runtime_type, void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
   static_assert(std::is_move_constructible<ConversionContext>::value,

@@ -852,7 +852,9 @@ const T& AsyncValue::get() const {
       return GetConcreteValue<T>();
     case Kind::kIndirect:
       TFRT_DLOG_IF(FATAL, s != State::kConcrete)
-          << "Cannot call get() when IndirectAsyncValue isn't ok; state: " << s;
+          << "Cannot call get() when IndirectAsyncValue isn't concrete; state: "
+          << s
+          << ", error message: " << (IsError() ? StrCat(GetError()) : "None");
       auto* iv_value = cast<IndirectAsyncValue>(this)->value_;
       assert(iv_value && "Indirect value not resolved");
       return iv_value->get<T>();

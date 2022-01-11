@@ -112,6 +112,12 @@ static bool DebugCpurtCompile() {
 }
 
 //----------------------------------------------------------------------------//
+// Register MLIR C Runner Utils symbols with JIT execution engine.
+//----------------------------------------------------------------------------//
+
+static llvm::orc::SymbolMap CRunnerUtilsSymbolMap(llvm::orc::MangleAndInterner);
+
+//----------------------------------------------------------------------------//
 // Types for the codegen<->runtime integration, see API implementation below.
 //----------------------------------------------------------------------------//
 namespace runtime {
@@ -132,7 +138,7 @@ struct KernelContext {
   bool has_set_outputs = false;
 };
 
-llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle);
+llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
 
 }  // namespace runtime
 //----------------------------------------------------------------------------//
@@ -1231,6 +1237,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
       ctx->options().jit_code_opt_level, libs);
   if (auto err = engine.takeError()) return std::move(err);
 
+  // Register MLIR C Runner API intrinsics (defined in CRunnerUtils).
+  (*engine)->registerSymbols(CRunnerUtilsSymbolMap);
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
   // Register Runtime API intrinsics (host runtime integration).
@@ -1903,6 +1911,24 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     return entry.ptr;
   else
     return has_default_executable_ ? DefaultExecutable() : entry.ptr;
+}
+
+//----------------------------------------------------------------------------//
+// Register MLIR C Runner Utils symbols with JIT execution engine.
+//----------------------------------------------------------------------------//
+
+static llvm::orc::SymbolMap CRunnerUtilsSymbolMap(
+    llvm::orc::MangleAndInterner mangle) {
+  llvm::orc::SymbolMap symbol_map;
+
+  auto bind = [&](llvm::StringRef name, auto symbol_ptr) {
+    symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
+        llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
+  };
+
+  bind("memrefCopy", &memrefCopy);
+
+  return symbol_map;
 }
 
 //----------------------------------------------------------------------------//

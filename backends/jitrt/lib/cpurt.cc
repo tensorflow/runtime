@@ -1706,27 +1706,28 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
   auto signature = FunctionType::Convert((*ctx)->entrypoint().getType());
   if (auto err = signature.takeError()) return std::move(err);
 
+  // If all of the operands have static shape, then we can always use default
+  // binary for execution (unless specialization is explicitly required by the
+  // operands constraints).
+  if (HasStaticShapeOperands(*signature) && !IsSpecializationOnly(*constraints))
+    compilation_opts.specialization = Specialization::kDisabled;
+
+  // Return an error if specialization is explicitly disabled, yet some of
+  // the operands have unresolved constraints.
+  if (compilation_opts.specialization == Specialization::kDisabled &&
+      IsSpecializationOnly(*constraints))
+    return MakeStringError(
+        "compilation options disabled specialization, yet operands have "
+        "unresolved constraints: ",
+        *constraints);
+
   // If the module must be specialized, return JitExecutable without a default
   // compiled executable.
-  if (IsSpecializationOnly(*constraints)) {
-    // If specialization is explicitly disabled return an error, because we will
-    // never be able to compile an executable.
-    if (compilation_opts.specialization == Specialization::kDisabled)
-      return MakeStringError(
-          "compilation options disabled specialization, however operands have "
-          "unresolved constraints: ",
-          *constraints);
-
+  if (compilation_opts.specialization == Specialization::kAlways ||
+      IsSpecializationOnly(*constraints))
     return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
                          std::move(*constraints), std::move(*signature),
                          /*default_executable=*/llvm::None, std::move(runner));
-  }
-
-  // If all of the operands have static shape, then we can always use default
-  // binary for execution (at this point we already verified that we do not need
-  // to do any value specializations).
-  if (HasStaticShapeOperands(*signature))
-    compilation_opts.specialization = Specialization::kDisabled;
 
   // Otherwise try to compile the default executable.
   Expected<Executable> executable =

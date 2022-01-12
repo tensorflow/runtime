@@ -16,7 +16,7 @@ licenses(["notice"])
 #     srcs = [
 #         "@llvm-project//llvm:FileCheck",
 #         "@llvm-project//mlir:run_lit.sh",
-#         "@tf_runtime//backends/jitrt:cpurt_opt",
+#         "@tf_runtime//backends/jitrt:jitrt_opt",
 #     ],
 # )
 # copybara:uncomment_end

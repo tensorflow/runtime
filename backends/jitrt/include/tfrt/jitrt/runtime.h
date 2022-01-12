@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The TensorFlow Runtime Authors
+ * Copyright 2022 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TFRT_BACKENDS_CPU_JIT_RUNTIME_H_
-#define TFRT_BACKENDS_CPU_JIT_RUNTIME_H_
+#ifndef TFRT_BACKENDS_JITRT_RUNTIME_H_
+#define TFRT_BACKENDS_JITRT_RUNTIME_H_
 
 #include <stdint.h>
 
@@ -61,4 +61,4 @@ extern "C" void runtimeSetError(KernelContext *, const char *);
 }  // namespace cpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_CPU_JIT_RUNTIME_H_
+#endif  // TFRT_BACKENDS_JITRT_RUNTIME_H_

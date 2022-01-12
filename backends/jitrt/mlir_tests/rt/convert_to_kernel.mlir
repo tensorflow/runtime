@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s --rt-to-kernel-function | FileCheck %s
+// RUN: jitrt_opt %s --rt-to-kernel-function | FileCheck %s
 
 // CHECK: func @single_result(
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-//===- cpurt.cc - ---------------------------------------------------------===//
+//===- jitrt.cc - ---------------------------------------------------------===//
 // Support library for implementing TFRT kernels that do JIT compilation using
 // MLIR framework.
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/jitrt/cpurt.h"
+#include "tfrt/jitrt/jitrt.h"
 
 #include <sys/types.h>
 
@@ -87,9 +87,9 @@
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
-#include "tfrt/jitrt/cpurt_support.h"
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/jitrt/runtime.h"
+#include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 #include "tfrt/support/error_util.h"
@@ -737,7 +737,7 @@ static bool IsStaticStorageDuration(StridedMemRefType<T, rank>* memref) {
 }
 
 // Converts StridedMemref to the DenseHostTensor. This struct satisfies
-// ReturnStridedMemref's concept (see cpurt.h).
+// ReturnStridedMemref's concept (see jitrt.h).
 //
 // This converter always creates a new DenseHostTensor from the memref, and it
 // must be used only when it is guaranteed that the compiled region can't

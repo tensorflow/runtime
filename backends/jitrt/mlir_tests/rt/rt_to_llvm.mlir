@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s --split-input-file --rt-to-llvm | FileCheck %s --dump-input=always
+// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s
 
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>

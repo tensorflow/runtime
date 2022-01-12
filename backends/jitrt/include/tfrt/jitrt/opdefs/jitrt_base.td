@@ -1,4 +1,4 @@
-// Copyright 2021 The TensorFlow Runtime Authors
+// Copyright 2022 The TensorFlow Runtime Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cpurt_base.td ------------------------------------------------------===//
+//===- jitrt_base.td ------------------------------------------------------===//
 //
-// Dialect and type definitions for CPU Runtime dialect.
+// Dialect and type definitions for JIT Runtime dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CPURT_BASE
+#ifdef JITRT_BASE
 #else
-#define CPURT_BASE
+#define JITRT_BASE
 
 //===----------------------------------------------------------------------===//
-// TFRT CPU Runtime dialect definitions
+// TFRT JIT Runtime dialect definitions
 //===----------------------------------------------------------------------===//
 
 def CpuRuntimeDialect : Dialect {
@@ -44,4 +44,4 @@ def JitExecutableType : OpaqueType<"cpurt", "jit_executable",
                                    "!cpurt.jit_executable type">;
 
 
-#endif // CPURT_BASE
+#endif // JITRT_BASE

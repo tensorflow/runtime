@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s --codegen-aligned-allocations | FileCheck %s
-// RUN: cpurt_opt %s --codegen-aligned-allocations=alignment=16 \
+// RUN: jitrt_opt %s --codegen-aligned-allocations | FileCheck %s
+// RUN: jitrt_opt %s --codegen-aligned-allocations=alignment=16 \
 // RUN: | FileCheck --check-prefix=ALIGN16 %s
 
 // CHECK-LABEL: @aligned_alloc

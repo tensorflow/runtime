@@ -12,35 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cpurt_ops.td -------------------------------------------------------===//
+//===- jitrt_ops.td -------------------------------------------------------===//
 //
-// Operation definitions for CPU Runtime dialect.
+// Operation definitions for JIT Runtime dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CPURT_OPS
+#ifdef JITRT_OPS
 #else
-#define CPURT_OPS
+#define JITRT_OPS
 
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
 include "tfrt/core_runtime/opdefs/corert_base.td"
 include "tfrt/tensor/opdefs/tensor.td"
-include "tfrt/jitrt/opdefs/cpurt_base.td"
+include "tfrt/jitrt/opdefs/jitrt_base.td"
 
 //===----------------------------------------------------------------------===//
-// TFRT CPU Runtime op definitions
+// TFRT JIT Runtime op definitions
 //===----------------------------------------------------------------------===//
 
-class CPURT_Op<string mnemonic, list<OpTrait> traits = []> :
+class JITRT_Op<string mnemonic, list<OpTrait> traits = []> :
       Op<CpuRuntimeDialect, mnemonic, traits> {
 }
 
 //===----------------------------------------------------------------------===//
-// TFRT CPU Runtime op definitions to facilitate runtime lowerings.
+// TFRT JIT Runtime op definitions to facilitate runtime lowerings.
 //===----------------------------------------------------------------------===//
 
-def CallOp : CPURT_Op<"call", [NoSideEffect]> {
+def CallOp : JITRT_Op<"call", [NoSideEffect]> {
   let summary = "cpurt function call operation";
   let description = [{
     This operation is used in graph rewrites to call compiled functions. This
@@ -65,10 +65,10 @@ def CallOp : CPURT_Op<"call", [NoSideEffect]> {
 }
 
 //===----------------------------------------------------------------------===//
-// TFRT CPU Runtime op definitions for native graph execution.
+// TFRT JIT Runtime op definitions for native graph execution.
 //===----------------------------------------------------------------------===//
 
-def CompileOp : CPURT_Op<"compile"> {
+def CompileOp : JITRT_Op<"compile"> {
   let summary = "cpurt compile operation";
   let description = [{
     `cpurt.compile` compiles a mlir CPU program to the cpurt JIT executable
@@ -105,7 +105,7 @@ def CompileOp : CPURT_Op<"compile"> {
 
 
 
-def ExecuteOp : CPURT_Op<"execute"> {
+def ExecuteOp : JITRT_Op<"execute"> {
   let summary = "cpurt execute operation";
   let description = [{
     `cpurt.execute` takes an executable produced by the `cpurt.compile`
@@ -148,10 +148,10 @@ def ExecuteOp : CPURT_Op<"execute"> {
 }
 
 //===----------------------------------------------------------------------===//
-// TFRT CPU Runtime op definitions for CoreRT interop.
+// TFRT JIT Runtime op definitions for CoreRT interop.
 //===----------------------------------------------------------------------===//
 
-def CoreRtCompileOp : CPURT_Op<"corert.compile"> {
+def CoreRtCompileOp : JITRT_Op<"corert.compile"> {
   let summary = "cpurt compile operation with CoreRT interop";
   let description = [{
     `cpurt.corert.compile` is almost identical to the cpurt.compile op, it only
@@ -165,7 +165,7 @@ def CoreRtCompileOp : CPURT_Op<"corert.compile"> {
   let assemblyFormat = "attr-dict";
 }
 
-def CoreRtExecuteOp : CPURT_Op<"corert.execute"> {
+def CoreRtExecuteOp : JITRT_Op<"corert.execute"> {
   let summary = "cpurt execute operation with CoreRT interop";
   let description = [{
     `cpurt.corert.execute` provides integration with the CoreRT by taking
@@ -189,4 +189,4 @@ def CoreRtExecuteOp : CPURT_Op<"corert.execute"> {
   }];
 }
 
-#endif // CPURT_OPS
+#endif // JITRT_OPS

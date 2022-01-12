@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The TensorFlow Runtime Authors
+ * Copyright 2022 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 // MLIR Async Runtime API integration with TFRT based AsyncRuntime.
 
-#ifndef TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_API_H_
-#define TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_API_H_
+#ifndef TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_API_H_
+#define TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_API_H_
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
@@ -75,4 +75,4 @@ llvm::orc::SymbolMap AsyncRuntimeMemoryAllocationSymbolMap(
 }  // namespace cpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_API_H_
+#endif  // TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_API_H_

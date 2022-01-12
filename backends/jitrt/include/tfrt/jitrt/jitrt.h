@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The TensorFlow Runtime Authors
+ * Copyright 2022 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 // MLIR framework (generating kernels at runtime from hight level MLIR
 // dialects, e.g. generating dense linear algebra kernels from Linalg dialect).
 
-#ifndef TFRT_BACKENDS_CPU_JIT_CPURT_H_
-#define TFRT_BACKENDS_CPU_JIT_CPURT_H_
+#ifndef TFRT_BACKENDS_JITRT_JITRT_H_
+#define TFRT_BACKENDS_JITRT_JITRT_H_
 
 #include <sys/types.h>
 
@@ -1297,4 +1297,4 @@ using JitExecutableCache = AsyncValuesCache<intptr_t, JitExecutable>;
 }  // namespace cpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_CPU_JIT_CPURT_H_
+#endif  // TFRT_BACKENDS_JITRT_JITRT_H_

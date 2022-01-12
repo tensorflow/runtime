@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The TensorFlow Runtime Authors
+ * Copyright 2022 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 // MLIR Async Runtime implemented on top of TFRT HostContext and host
 // concurrency primitives.
 
-#ifndef TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_
-#define TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_
+#ifndef TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_H_
+#define TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_H_
 
 #define EIGEN_USE_THREADS
 
@@ -195,4 +195,4 @@ void AsyncRuntime::AwaitGroup(Group* group, F&& f) {
 }  // namespace cpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_
+#endif  // TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_H_

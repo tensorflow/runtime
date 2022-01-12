@@ -16,8 +16,8 @@
 
 // RT dialect operations.
 
-#ifndef TFRT_BACKENDS_CPU_JIT_RT_OPS_H_
-#define TFRT_BACKENDS_CPU_JIT_RT_OPS_H_
+#ifndef TFRT_BACKENDS_JITRT_RT_OPS_H_
+#define TFRT_BACKENDS_JITRT_RT_OPS_H_
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
@@ -31,4 +31,4 @@
 #define GET_TYPEDEF_CLASSES
 #include "tfrt/jitrt/opdefs/rt_types.h.inc"
 
-#endif  // TFRT_BACKENDS_CPU_JIT_RT_OPS_H_
+#endif  // TFRT_BACKENDS_JITRT_RT_OPS_H_

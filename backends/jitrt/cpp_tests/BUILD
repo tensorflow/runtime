@@ -13,7 +13,7 @@ tfrt_cc_test(
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
-        "@tf_runtime//backends/jitrt:cpurt",
+        "@tf_runtime//backends/jitrt",
     ],
 )
 
@@ -25,6 +25,6 @@ tfrt_cc_test(
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
-        "@tf_runtime//backends/jitrt:cpurt",
+        "@tf_runtime//backends/jitrt",
     ],
 )

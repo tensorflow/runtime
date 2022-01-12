@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s --codegen-math-optimization | FileCheck %s
-// RUN: cpurt_opt %s --codegen-math-optimization=enable-avx2 \
+// RUN: jitrt_opt %s --codegen-math-optimization | FileCheck %s
+// RUN: jitrt_opt %s --codegen-math-optimization=enable-avx2 \
 // RUN: | FileCheck --check-prefix=AVX2 %s
 
 // CHECK-LABEL: @pow_noop

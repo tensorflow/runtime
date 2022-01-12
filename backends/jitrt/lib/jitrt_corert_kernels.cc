@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-//===- cpurt_kernels.cc - CPURT kernels -----------------------------------===//
+//===- jitrt_corert_kernels.cc - CpuRT <-> CoreRT kernels -----------------===//
 //
-// This file defines the C++ kernels for the CPURT dialect.
+// C++ kernels for the JitRT <-> CoreRT interop.
 
 #include <sys/types.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <utility>
 
+#include "tfrt/core_runtime/core_runtime.h"
+#include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
@@ -34,13 +37,15 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
-#include "tfrt/jitrt/cpurt.h"
+#include "tfrt/jitrt/jitrt.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
+#include "tfrt/tensor/tensor_metadata.h"
+#include "tfrt/tensor/tensor_serialize_utils.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
@@ -100,7 +105,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 }
 
 // -------------------------------------------------------------------------- //
-// Execute compiled CPURT kernels.
+// Execute compiled CPURT kernels with CoreRT interop.
 // -------------------------------------------------------------------------- //
 
 namespace {
@@ -108,13 +113,15 @@ namespace {
 struct ConversionCtx {};
 }  // namespace
 
-static Error ConvertTensorOperandsToMemrefDesc(
-    RepeatedArguments<Tensor> operands, SmallVectorImpl<MemrefDesc>* memrefs) {
+static Error ConvertTensorHandleOperandsToMemrefDesc(
+    RepeatedArguments<TensorHandle> operands,
+    SmallVectorImpl<MemrefDesc>* memrefs) {
   assert(memrefs->empty() && "memrefs must be empty");
   memrefs->reserve(operands.size());
 
   for (unsigned i = 0; i < operands.size(); ++i) {
-    Expected<MemrefDesc> memref = ConvertTensorToMemrefDesc(operands[i]);
+    const Tensor& tensor = operands[i].GetAsyncTensor()->get<Tensor>();
+    Expected<MemrefDesc> memref = ConvertTensorToMemrefDesc(tensor);
     if (auto err = memref.takeError()) return err;
     memrefs->push_back(std::move(*memref));
   }
@@ -124,30 +131,75 @@ static Error ConvertTensorOperandsToMemrefDesc(
 
 static void ExecuteImpl(const Executable& executable,
                         const SmallVectorImpl<MemrefDesc>& memrefs,
-                        RepeatedArguments<Tensor> operands,
+                        RepeatedArguments<TensorHandle> operands,
                         RemainingResults results,
                         const ExecutionContext& exec_ctx) {
-  // If execution failed errors will be automatically allocated for all results.
-  ReturnValueConverter<ConversionCtx> converter(results);
-  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
-  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
-  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+  HostContext* host = exec_ctx.host();
 
-  if (auto err = executable.Execute(memrefs, converter, exec_ctx)) return;
+  // Allocate storage for compiled kernel results.
+  SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
+  kernel_ret.resize(executable.num_results());
+
+  // Execute compiled kernel and get back raw return values that we'll need to
+  // wrap into TensorHandles later on.
+  ReturnValueConverter<ConversionCtx> converter{RemainingResults(kernel_ret)};
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
+  // We skip error handling at this point and rely on error forwarding to the
+  // kernel results below.
+  auto err = executable.Execute(memrefs, converter, exec_ctx);
+  (void)err;
+
+  // Compiled kernel should populate all expected results.
+  assert(llvm::all_of(kernel_ret, [](RCReference<AsyncValue>& ref) -> bool {
+    return ref.get() != nullptr;
+  }));
+
+  // If we have unavailable kernel results we'll need to extend operands
+  // lifetime.
+  bool unavailable_kernel_ret = false;
+
+  // Convert Tensors returned from compiled kernel to TensorHandles.
+  for (size_t i = 0; i < results.size(); ++i) {
+    const RCReference<AsyncValue>& handle = results.AllocateAt<TensorHandle>(i);
+    AsyncValue* ret = kernel_ret[i].get();
+
+    // Fast path for forwarding errors to TensorHandle results.
+    if (ret->IsError()) {
+      results[i] = FormRef(ret);
+      continue;
+    }
+
+    // Fast path when Tensor (and tensor metadata) is available synchronously.
+    if (ret->IsAvailable()) {
+      Tensor& tensor = ret->get<Tensor>();
+      handle->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
+                                    AsyncValueRef<Tensor>(kernel_ret[i]));
+      continue;
+    }
+
+    // Slow path when result Tensor is not available synchronously.
+    unavailable_kernel_ret = true;
+    ret->AndThen([host, handle = handle, ref = kernel_ret[i]]() mutable {
+      Tensor& tensor = ref->get<Tensor>();
+      handle->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
+                                    AsyncValueRef<Tensor>(std::move(ref)));
+    });
+  }
 
   // Keep operands alive if we have unavailable results.
-  RunWhenReady(results.values(),
-               [operands = RCArray<AsyncValue>(operands.values())] {});
+  if (unavailable_kernel_ret)
+    RunWhenReady(kernel_ret, [o = RCArray<AsyncValue>(operands.values())] {});
 }
 
 static void Execute(Argument<JitExecutable> jit_executable,
-                    Argument<Chain> in_chain,
-                    RepeatedArguments<Tensor> operands,
+                    RepeatedArguments<TensorHandle> operands,
                     RemainingResults results,
                     const ExecutionContext& exec_ctx) {
-  // Extract Memrefs from Tensor operands.
+  // Extract tensors from tensor handle operands to pass them as the compiled
+  // kernel arguments.
   SmallVector<MemrefDesc, 4> memrefs;
-  if (auto err = ConvertTensorOperandsToMemrefDesc(operands, &memrefs))
+  if (auto err = ConvertTensorHandleOperandsToMemrefDesc(operands, &memrefs))
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // Get an executable that might be specialized to the operands.
@@ -156,7 +208,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
   if (auto err = executable.takeError())
     return EmitErrors(results, std::move(err), exec_ctx);
 
-  // If specialization is available execute it inline.
+  // If executable is available execute it inline.
   if (executable->IsAvailable()) {
     if (executable->IsError()) {
       EmitErrors(results, executable->GetError(), exec_ctx);
@@ -185,7 +237,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
     results_storage.resize(r.size());
 
     // Reconstruct arguments and results from captured async values.
-    RepeatedArguments<Tensor> operands(o.values());
+    RepeatedArguments<TensorHandle> operands(o.values());
     RemainingResults results(results_storage);
 
     if (executable.IsError()) {
@@ -201,9 +253,9 @@ static void Execute(Argument<JitExecutable> jit_executable,
   });
 }
 
-void RegisterCpuRuntimeKernels(KernelRegistry* registry) {
-  registry->AddKernel("cpurt.compile", TFRT_KERNEL(Compile));
-  registry->AddKernel("cpurt.execute", TFRT_KERNEL(Execute));
+void RegisterCpuRuntimeCoreRtKernels(KernelRegistry* registry) {
+  registry->AddKernel("cpurt.corert.compile", TFRT_KERNEL(Compile));
+  registry->AddKernel("cpurt.corert.execute", TFRT_KERNEL(Execute));
 }
 
 }  // namespace jit

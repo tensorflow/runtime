@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The TensorFlow Runtime Authors
+ * Copyright 2022 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-// CPU Runtime Operations.
+// JIT Runtime Operations.
 
-#ifndef TFRT_BACKENDS_CPU_JIT_CPURT_OPS_H_
-#define TFRT_BACKENDS_CPU_JIT_CPURT_OPS_H_
+#ifndef TFRT_BACKENDS_JITRT_JITRT_OPS_H_
+#define TFRT_BACKENDS_JITRT_JITRT_OPS_H_
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
-// Dialect for CPU runtime operations.
-#include "tfrt/jitrt/opdefs/cpurt_ops_dialect.h.inc"
+// Dialect for JIT runtime operations.
+#include "tfrt/jitrt/opdefs/jitrt_ops_dialect.h.inc"
 
 #define GET_OP_CLASSES
-#include "tfrt/jitrt/opdefs/cpurt_ops.h.inc"
+#include "tfrt/jitrt/opdefs/jitrt_ops.h.inc"
 
-#endif  // TFRT_BACKENDS_CPU_JIT_CPURT_OPS_H_
+#endif  // TFRT_BACKENDS_JITRT_JITRT_OPS_H_

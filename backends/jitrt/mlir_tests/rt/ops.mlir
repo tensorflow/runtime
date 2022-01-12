@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s | FileCheck %s
+// RUN: jitrt_opt %s | FileCheck %s
 
 // CHECK-LABEL: func @pass_context(
 // CHECK:  %[[CTX:.*]]: !rt.kernel_context

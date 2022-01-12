@@ -50,10 +50,10 @@ tfrt_cc_library(
 )
 
 td_library(
-    name = "cpurt_ops_td_files",
+    name = "jitrt_ops_td_files",
     srcs = [
-        "include/tfrt/jitrt/opdefs/cpurt_base.td",
-        "include/tfrt/jitrt/opdefs/cpurt_ops.td",
+        "include/tfrt/jitrt/opdefs/jitrt_base.td",
+        "include/tfrt/jitrt/opdefs/jitrt_ops.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = ["include"],
@@ -65,7 +65,7 @@ td_library(
 )
 
 gentbl_cc_library(
-    name = "cpurt_opdefs_inc_gen",
+    name = "jitrt_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
@@ -73,37 +73,37 @@ gentbl_cc_library(
                 "-gen-dialect-decls",
                 "-dialect=cpurt",
             ],
-            "include/tfrt/jitrt/opdefs/cpurt_ops_dialect.h.inc",
+            "include/tfrt/jitrt/opdefs/jitrt_ops_dialect.h.inc",
         ),
         (
             [
                 "-gen-dialect-defs",
                 "-dialect=cpurt",
             ],
-            "include/tfrt/jitrt/opdefs/cpurt_ops_dialect.cpp.inc",
+            "include/tfrt/jitrt/opdefs/jitrt_ops_dialect.cpp.inc",
         ),
         (
             ["-gen-op-decls"],
-            "include/tfrt/jitrt/opdefs/cpurt_ops.h.inc",
+            "include/tfrt/jitrt/opdefs/jitrt_ops.h.inc",
         ),
         (
             ["-gen-op-defs"],
-            "include/tfrt/jitrt/opdefs/cpurt_ops.cpp.inc",
+            "include/tfrt/jitrt/opdefs/jitrt_ops.cpp.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/jitrt/opdefs/cpurt_ops.td",
-    deps = [":cpurt_ops_td_files"],
+    td_file = "include/tfrt/jitrt/opdefs/jitrt_ops.td",
+    deps = [":jitrt_ops_td_files"],
 )
 
 tfrt_cc_library(
-    name = "cpurt_opdefs",
-    srcs = ["lib/opdefs/cpurt_ops.cc"],
-    hdrs = ["include/tfrt/jitrt/opdefs/cpurt_ops.h"],
+    name = "jitrt_opdefs",
+    srcs = ["lib/opdefs/jitrt_ops.cc"],
+    hdrs = ["include/tfrt/jitrt/opdefs/jitrt_ops.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":cpurt_opdefs_inc_gen",
+        ":jitrt_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
@@ -114,10 +114,10 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cpurt",
-    srcs = ["lib/cpurt.cc"],
+    name = "jitrt",
+    srcs = ["lib/jitrt.cc"],
     hdrs = [
-        "include/tfrt/jitrt/cpurt.h",
+        "include/tfrt/jitrt/jitrt.h",
         "include/tfrt/jitrt/runtime.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
@@ -126,10 +126,10 @@ tfrt_cc_library(
         ":async_runtime",
         ":async_runtime_api",
         ":codegen_transforms",
-        ":cpurt_support",
         ":rt_conversion",
         ":rt_opdefs",
         ":rt_transforms",
+        ":support",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",
@@ -183,8 +183,8 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cpurt_support",
-    hdrs = ["include/tfrt/jitrt/cpurt_support.h"],
+    name = "support",
+    hdrs = ["include/tfrt/jitrt/support.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
@@ -193,12 +193,12 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cpurt_kernels",
-    srcs = ["lib/cpurt_kernels.cc"],
-    alwayslink_static_registration_src = "lib/cpurt_kernels_registration.cc",
+    name = "jitrt_kernels",
+    srcs = ["lib/jitrt_kernels.cc"],
+    alwayslink_static_registration_src = "lib/jitrt_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":cpurt",
+        ":jitrt",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -207,12 +207,12 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cpurt_corert_kernels",
-    srcs = ["lib/cpurt_corert_kernels.cc"],
-    alwayslink_static_registration_src = "lib/cpurt_corert_kernels_registration.cc",
+    name = "jitrt_corert_kernels",
+    srcs = ["lib/jitrt_corert_kernels.cc"],
+    alwayslink_static_registration_src = "lib/jitrt_corert_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":cpurt",
+        ":jitrt",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
@@ -222,8 +222,8 @@ tfrt_cc_library(
 )
 
 tfrt_cc_binary(
-    name = "cpurt_opt",
-    srcs = ["tools/cpurt_opt.cc"],
+    name = "jitrt_opt",
+    srcs = ["tools/jitrt_opt.cc"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [

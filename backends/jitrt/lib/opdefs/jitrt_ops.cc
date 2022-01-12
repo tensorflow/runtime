@@ -16,7 +16,7 @@
 
 // This file implements MLIR operations for the TFRT CPU Runtime dialect.
 
-#include "tfrt/jitrt/opdefs/cpurt_ops.h"
+#include "tfrt/jitrt/opdefs/jitrt_ops.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -30,10 +30,10 @@
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 
 //===----------------------------------------------------------------------===//
-// CpuRuntimeDialect Dialect
+// JitRuntimeDialect Dialect
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/jitrt/opdefs/cpurt_ops_dialect.cpp.inc"
+#include "tfrt/jitrt/opdefs/jitrt_ops_dialect.cpp.inc"
 
 namespace tfrt {
 namespace cpu {
@@ -44,7 +44,7 @@ void CpuRuntimeDialect::initialize() {
 
   addOperations<
 #define GET_OP_LIST
-#include "tfrt/jitrt/opdefs/cpurt_ops.cpp.inc"
+#include "tfrt/jitrt/opdefs/jitrt_ops.cpp.inc"
       >();
 }
 
@@ -53,4 +53,4 @@ void CpuRuntimeDialect::initialize() {
 }  // end namespace tfrt
 
 #define GET_OP_CLASSES
-#include "tfrt/jitrt/opdefs/cpurt_ops.cpp.inc"
+#include "tfrt/jitrt/opdefs/jitrt_ops.cpp.inc"

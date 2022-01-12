@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TFRT_BACKENDS_CPU_JIT_TRANSFORMS_RT_PASSES_H_
-#define TFRT_BACKENDS_CPU_JIT_TRANSFORMS_RT_PASSES_H_
+#ifndef TFRT_BACKENDS_JITRT_TRANSFORMS_RT_PASSES_H_
+#define TFRT_BACKENDS_JITRT_TRANSFORMS_RT_PASSES_H_
 
 #include <memory>
 
@@ -37,4 +37,4 @@ CreateConvertToKernelFunction();
 }  // namespace cpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_CPU_JIT_TRANSFORMS_RT_PASSES_H_
+#endif  // TFRT_BACKENDS_JITRT_TRANSFORMS_RT_PASSES_H_

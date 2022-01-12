@@ -21,7 +21,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
-#include "tfrt/jitrt/cpurt.h"
+#include "tfrt/jitrt/jitrt.h"
 #include "tfrt/support/logging.h"
 
 namespace tfrt {

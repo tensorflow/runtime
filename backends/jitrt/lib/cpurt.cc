@@ -60,6 +60,8 @@
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
+#include "mlir/Dialect/Tensor/IR/TensorInferTypeOpInterfaceImpl.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -1130,11 +1132,12 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   mlir::DialectRegistry registry;
 
   // Register MLIR dialects supported by the compiled kernels.
-  registry.insert<mlir::AffineDialect, mlir::async::AsyncDialect,
-                  mlir::linalg::LinalgDialect, mlir::memref::MemRefDialect,
+  registry.insert<mlir::AffineDialect, mlir::arith::ArithmeticDialect,
+                  mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
+                  mlir::math::MathDialect, mlir::memref::MemRefDialect,
                   mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::arith::ArithmeticDialect, mlir::math::MathDialect,
-                  mlir::vector::VectorDialect, RuntimeDialect>();
+                  mlir::tensor::TensorDialect, mlir::vector::VectorDialect,
+                  RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);
@@ -1142,6 +1145,9 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   mlir::registerArmSVEDialectTranslation(registry);
   mlir::registerLLVMDialectTranslation(registry);
   mlir::registerX86VectorDialectTranslation(registry);
+
+  // Register other information needed for passes.
+  mlir::tensor::registerInferTypeOpInterfaceExternalModels(registry);
 
   // Register additional dialects provided via compilation options.
   if (opts.register_dialects) opts.register_dialects(registry);

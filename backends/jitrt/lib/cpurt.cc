@@ -931,6 +931,10 @@ unsigned Executable::num_results() const {
   return runtime_signature_.num_results();
 }
 
+std::chrono::milliseconds Executable::time_to_compile() const {
+  return time_to_compile_;
+}
+
 //----------------------------------------------------------------------------//
 // Setup MLIR pass pipeline to lower to LLVM dialect, and use ORC JIT to codegen
 // functions at runtime.
@@ -1194,6 +1198,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   mlir::FuncOp entry_func = ctx->entrypoint();
   std::string entrypoint = entry_func.getName().str();
 
+  // We track end-to-end time to compile the final executable.
+  auto compilation_start = std::chrono::steady_clock::now();
+
   // Get the signature of the original entrypoint function.
   auto signature = FunctionType::Convert(entry_func.getType());
   if (auto err = signature.takeError()) return std::move(err);
@@ -1255,10 +1262,17 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
       (*engine)->lookupPacked(entrypoint);
   if (auto err = kernel_fn.takeError()) return std::move(err);
 
+  // At this point compilation is completed, and all symbols in the LLVM module
+  // materialized as addresses (entrypoint is an executable function pointer).
+  auto time_to_compile = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - compilation_start);
+
   return Executable(ctx->name().str(), std::move(*engine), *kernel_fn,
                     std::move(*signature), std::move(*runtime_signature),
                     std::move(*results_memory_layout), specialization,
-                    ctx->options().num_worker_threads);
+                    ctx->options().num_worker_threads,
+
+                    time_to_compile);
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.

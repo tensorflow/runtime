@@ -23,6 +23,7 @@
 
 #include <sys/types.h>
 
+#include <chrono>  // NOLINT(build/c++11)
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -880,7 +881,8 @@ class Executable {
              KernelFunctionPtr fptr, FunctionType signature,
              FunctionType runtime_signature,
              ResultsMemoryLayout results_memory_layout,
-             Optional<size_t> specialization, int num_worker_threads)
+             Optional<size_t> specialization, int num_worker_threads,
+             std::chrono::milliseconds time_to_compile)
       : name_(name.str()),
         engine_(std::move(engine)),
         fptr_(fptr),
@@ -888,7 +890,8 @@ class Executable {
         runtime_signature_(std::move(runtime_signature)),
         results_memory_layout_(std::move(results_memory_layout)),
         specialization_(specialization),
-        num_worker_threads_(num_worker_threads) {
+        num_worker_threads_(num_worker_threads),
+        time_to_compile_(time_to_compile) {
     assert(fptr_ != nullptr && "kernel function must be not null");
   }
 
@@ -942,6 +945,8 @@ class Executable {
   int num_worker_threads() const { return num_worker_threads_; }
 
   unsigned num_results() const;
+
+  std::chrono::milliseconds time_to_compile() const;
 
   // CallFrame provides a pointer-stable storage for packed function arguments
   // and storage for returned values.
@@ -1064,6 +1069,8 @@ class Executable {
   Optional<size_t> specialization_;
   // The number of worker threads this executable was compiled for.
   int num_worker_threads_;
+  // The time it took to compile this binary.
+  std::chrono::milliseconds time_to_compile_;
 };
 
 //----------------------------------------------------------------------------//

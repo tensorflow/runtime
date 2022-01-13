@@ -63,9 +63,9 @@ namespace jitrt {
 //
 //   module @kernel attributes { tfrt.compiled } {
 //     func @main(
-//       %input0: memref<*xf32>   { cpurt.constraint = "rank"  },
-//       %input1: memref<?x?xf32> { cpurt.constraint = "shape" },
-//       %perm: memref<4xi32>     { cpurt.constraint = "value" }
+//       %input0: memref<*xf32>   { jitrt.constraint = "rank"  },
+//       %input1: memref<?x?xf32> { jitrt.constraint = "shape" },
+//       %perm: memref<4xi32>     { jitrt.constraint = "value" }
 //     ) -> !async.value<memref<?x?xf32>> {
 //       ...
 //       return %result : !async.value<memref<?x?xf32>>
@@ -85,14 +85,14 @@ namespace jitrt {
 //
 // (a) Rank constraint:
 //
-//     %arg : tensor<*xf32> { cpurt.constraint = "rank" }
+//     %arg : tensor<*xf32> { jitrt.constraint = "rank" }
 //
 //     Before compiling the function, unranked input type will be updated to the
 //     corresponding ranked input type (e.g. unranked tensor -> ranked tensor).
 //
 // (b) Shape constraint:
 //
-//     %arg : tensor<?x?xf32> { cpurt.constraint = "shape" }
+//     %arg : tensor<?x?xf32> { jitrt.constraint = "shape" }
 //
 //     Shape of the runtime argument will be used to specialize the compiled
 //     function, if this shape seen the first time, it will trigger function
@@ -100,7 +100,7 @@ namespace jitrt {
 //
 // (c) Value constraint:
 //
-//     %reduction_dimension : tensor<i32> { cpurt.constraint = "value" }
+//     %reduction_dimension : tensor<i32> { jitrt.constraint = "value" }
 //
 //     Runtime value will be sunk into the body of a function as a constant,
 //     and the function will be recompiled. For example this can be used to sink
@@ -200,13 +200,13 @@ struct CompilationOptions {
   std::function<void(mlir::DialectRegistry&)> register_dialects;
 
   // Register a pass pipeline that lowers compiled module from high level
-  // dialects to the dialects supported by the CPURT lowering to LLVM. In the
+  // dialects to the dialects supported by the JITRT lowering to LLVM. In the
   // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
   // the Linalg on buffers via the MHLO->Linalg lowering.
   std::function<void(mlir::OpPassManager&)> register_pass_pipeline;
 
   // Type converter that lowers compiled module entrypoint function types to the
-  // types supported by the CPURT at runtime (e.g. converts tensors to
+  // types supported by the JITRT at runtime (e.g. converts tensors to
   // memrefs). This type converter must do an identical type conversion to
   // the custom lowering pass pipeline configured by `register_pass_pipeline`.
   mlir::TypeConverter type_converter;
@@ -1045,7 +1045,7 @@ class Executable {
   FunctionType signature_;
 
   // Signature of the compiled module entrypoint function after lowering it from
-  // high level dialects to the dialects supported by the cpurt runtime.
+  // high level dialects to the dialects supported by the jitrt runtime.
   //
   // - Operands and results types converted to the types with well-defined ABI
   //   (e.g. tensors converted to memrefs).
@@ -1171,7 +1171,7 @@ class JitExecutable {
  public:
   struct Listener;
 
-  static constexpr const char* const kConstraint = "cpurt.constraint";
+  static constexpr const char* const kConstraint = "jitrt.constraint";
 
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates

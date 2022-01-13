@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//===- jitrt_corert_kernels.cc - CpuRT <-> CoreRT kernels -----------------===//
+//===- jitrt_corert_kernels.cc - JitRT <-> CoreRT kernels -----------------===//
 //
 // C++ kernels for the JitRT <-> CoreRT interop.
 
@@ -66,7 +66,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
   auto* jit_executable_cache =
-      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache");
+      res_ctx->GetOrCreateResource<JitExecutableCache>("jitrt.cache");
 
   // TODO(ezhulenev): Compute cache key based on the content of MLIR module, or
   // better keep module fingerprint in the BEF file.
@@ -104,7 +104,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 }
 
 // -------------------------------------------------------------------------- //
-// Execute compiled CPURT kernels with CoreRT interop.
+// Execute compiled JitRT kernels with CoreRT interop.
 // -------------------------------------------------------------------------- //
 
 namespace {
@@ -253,8 +253,8 @@ static void Execute(Argument<JitExecutable> jit_executable,
 }
 
 void RegisterCpuRuntimeCoreRtKernels(KernelRegistry* registry) {
-  registry->AddKernel("cpurt.corert.compile", TFRT_KERNEL(Compile));
-  registry->AddKernel("cpurt.corert.execute", TFRT_KERNEL(Execute));
+  registry->AddKernel("jitrt.corert.compile", TFRT_KERNEL(Compile));
+  registry->AddKernel("jitrt.corert.execute", TFRT_KERNEL(Execute));
 }
 
 }  // namespace jitrt

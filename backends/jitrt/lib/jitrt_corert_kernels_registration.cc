@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// This file uses a static constructor to automatically register CpuRT kernels
+// This file uses a static constructor to automatically register JitRT kernels
 // that could handle CoreRt TensorHandle inputs. These kernels depend on the
 // CoreRT library.
 

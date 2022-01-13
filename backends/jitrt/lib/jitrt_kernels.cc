@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-//===- jitrt_kernels.cc - CPURT kernels -----------------------------------===//
+//===- jitrt_kernels.cc - JitRT kernels -----------------------------------===//
 //
-// This file defines the C++ kernels for the CPURT dialect.
+// This file defines the C++ kernels for the JitRT dialect.
 
 #include <sys/types.h>
 
@@ -61,7 +61,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
   auto* jit_executable_cache =
-      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache");
+      res_ctx->GetOrCreateResource<JitExecutableCache>("jitrt.cache");
 
   // TODO(ezhulenev): Compute cache key based on the content of MLIR module, or
   // better keep module fingerprint in the BEF file.
@@ -99,7 +99,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 }
 
 // -------------------------------------------------------------------------- //
-// Execute compiled CPURT kernels.
+// Execute compiled JitRT kernels.
 // -------------------------------------------------------------------------- //
 
 namespace {
@@ -201,8 +201,8 @@ static void Execute(Argument<JitExecutable> jit_executable,
 }
 
 void RegisterCpuRuntimeKernels(KernelRegistry* registry) {
-  registry->AddKernel("cpurt.compile", TFRT_KERNEL(Compile));
-  registry->AddKernel("cpurt.execute", TFRT_KERNEL(Execute));
+  registry->AddKernel("jitrt.compile", TFRT_KERNEL(Compile));
+  registry->AddKernel("jitrt.execute", TFRT_KERNEL(Execute));
 }
 
 }  // namespace jitrt

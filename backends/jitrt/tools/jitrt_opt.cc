@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- CpuRt-Opt utility --------------------------------------------------===//
+//===- JitRT-Opt utility --------------------------------------------------===//
 //
 // Load MLIR and apply required passes on it.
 

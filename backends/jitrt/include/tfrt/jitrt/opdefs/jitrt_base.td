@@ -27,7 +27,7 @@
 //===----------------------------------------------------------------------===//
 
 def JitRuntimeDialect : Dialect {
-  let name = "cpurt";
+  let name = "jitrt";
 
   let description = [{
     The CPU runtime dialect.
@@ -40,8 +40,8 @@ def JitRuntimeDialect : Dialect {
   let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
-def JitExecutableType : OpaqueType<"cpurt", "jit_executable",
-                                   "!cpurt.jit_executable type">;
+def JitExecutableType : OpaqueType<"jitrt", "jit_executable",
+                                   "!jitrt.jit_executable type">;
 
 
 #endif // JITRT_BASE

@@ -104,8 +104,8 @@ namespace jitrt {
 constexpr int64_t MemrefType::kDynamicSize;
 
 // Enable IR printing during the kernel compilation pipeline execution.
-static bool DebugCpurtCompile() {
-#if defined(DEBUG_CPURT)
+static bool DebugJitrtCompile() {
+#if defined(DEBUG_JITRT)
   return true;
 #else
   return false;
@@ -123,7 +123,7 @@ static llvm::orc::SymbolMap CRunnerUtilsSymbolMap(llvm::orc::MangleAndInterner);
 //----------------------------------------------------------------------------//
 namespace runtime {
 
-// Runtime KernelContext encapsulates all the CPURT data that is required to
+// Runtime KernelContext encapsulates all the JitRT data that is required to
 // implement codegen<->runtime API.
 struct KernelContext {
   // Results memory layout is owned by the executable, and stays alive after
@@ -951,7 +951,7 @@ static void InitializeCompiler() {
 static void SetupPassDebugging(mlir::MLIRContext* context,
                                mlir::PassManager& pm) {
   // Print IR after all passes.
-  if (DebugCpurtCompile()) {
+  if (DebugJitrtCompile()) {
     context->disableMultithreading();
     pm.enableIRPrinting([](mlir::Pass*, mlir::Operation*) { return false; },
                         [](mlir::Pass*, mlir::Operation*) { return true; },
@@ -962,8 +962,8 @@ static void SetupPassDebugging(mlir::MLIRContext* context,
 }
 
 // Runs the custom pipeline that lowers loaded module to dialects supported by
-// the CPURT (Linalg on buffers).
-static mlir::LogicalResult LowerToCpurt(mlir::ModuleOp module,
+// the JitRT (Linalg on buffers).
+static mlir::LogicalResult LowerToJitrt(mlir::ModuleOp module,
                                         const CompilationOptions& opts) {
   if (!opts.register_pass_pipeline) return mlir::success();
 
@@ -1170,7 +1170,7 @@ JitCompilationContext::JitCompilationContext(CompilationOptions opts,
       handler_(source_mgr_, context_.get(), diagnostic_os_),
       specialized_(false) {
   source_mgr_.AddNewSourceBuffer(
-      llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
+      llvm::MemoryBuffer::getMemBuffer(mlir_module, "jitrt.kernel"),
       llvm::SMLoc());
   module_ = mlir::parseSourceFile(source_mgr_, context_.get());
   if (module_) entrypoint_ = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
@@ -1202,9 +1202,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto signature = FunctionType::Convert(entry_func.getType());
   if (auto err = signature.takeError()) return std::move(err);
 
-  // Lower loaded module to dialects supported by the CPURT to LLVM pipeline.
-  if (failed(LowerToCpurt(ctx->module(), ctx->options())))
-    return ctx->Error("failed to lower module to CPURT dialects");
+  // Lower loaded module to dialects supported by the JitRT to LLVM pipeline.
+  if (failed(LowerToJitrt(ctx->module(), ctx->options())))
+    return ctx->Error("failed to lower module to JitRT dialects");
 
   // Prepend KernelContext to the arguments of the entrypoint function.
   PrependKernelContextType(ctx->entrypoint());
@@ -1391,7 +1391,7 @@ llvm::Error JitCompilationContext::Specialize(
     for (unsigned d = 0; d < rank; ++d)
       values[d] = mlir::IntegerAttr::get(i64, shape[d]);
 
-    func.setArgAttr(i, "cpurt.symbolic_shape",
+    func.setArgAttr(i, "jitrt.symbolic_shape",
                     mlir::DenseElementsAttr::get(tensor, values));
   }
 

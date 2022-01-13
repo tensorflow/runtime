@@ -44,18 +44,18 @@ func @BM_compiled_add_f32() {
   %output = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
 
   // Compile simple addition implemented as a Linalg generic operation.
-  %executable = cpurt.compile { kernel = @kernels::@main }
+  %executable = jitrt.compile { kernel = @kernels::@main }
 
   // Run compiled kernel benchmark.
   tfrt_test.benchmark "BM_compiled_add_f32"(
-      %executable  : !cpurt.jit_executable,
+      %executable  : !jitrt.jit_executable,
       %input_ready : !tfrt.chain,
       %input       : !t.tensor,
       %output      : !t.tensor
   )
   duration_secs = 3, max_count = 100000, num_warmup_runs = 10
   {
-    %executed = cpurt.execute %executable[%input_ready]
+    %executed = jitrt.execute %executable[%input_ready]
                 (%input, %output) : (!t.tensor, !t.tensor) -> !tfrt.chain
     tfrt.return %executed : !tfrt.chain
   }

@@ -71,14 +71,14 @@ gentbl_cc_library(
         (
             [
                 "-gen-dialect-decls",
-                "-dialect=cpurt",
+                "-dialect=jitrt",
             ],
             "include/tfrt/jitrt/opdefs/jitrt_ops_dialect.h.inc",
         ),
         (
             [
                 "-gen-dialect-defs",
-                "-dialect=cpurt",
+                "-dialect=jitrt",
             ],
             "include/tfrt/jitrt/opdefs/jitrt_ops_dialect.cpp.inc",
         ),

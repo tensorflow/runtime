@@ -38,10 +38,10 @@ func @runtime_error() -> !tfrt.chain {
   %input = tfrt_dht.create_uninitialized_tensor.f32.1 [16 : i64]
   %input_ready = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
 
-  %executable = cpurt.compile { kernel = @kernels::@main }
+  %executable = jitrt.compile { kernel = @kernels::@main }
 
   // expected-error @+1 {{Dimension 0 must have size 0}}
-  %output = cpurt.execute %executable[%input_ready](%input)
+  %output = jitrt.execute %executable[%input_ready](%input)
               : (!t.tensor) -> (!t.tensor)
 
   tfrt.return %ch0 : !tfrt.chain

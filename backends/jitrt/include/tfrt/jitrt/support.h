@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Support library to be used by the CPURT library and related code,
+// Support library to be used by the JitRT library and related code,
 // without the latter having to link the former (and its dependencies).
 
 #ifndef TFRT_BACKENDS_JITRT_SUPPORT_H_

@@ -41,7 +41,7 @@ class JITRT_Op<string mnemonic, list<OpTrait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def CallOp : JITRT_Op<"call", [NoSideEffect]> {
-  let summary = "cpurt function call operation";
+  let summary = "jitrt function call operation";
   let description = [{
     This operation is used in graph rewrites to call compiled functions. This
     operation is expanded into the pair of compile/execute operations during
@@ -69,10 +69,10 @@ def CallOp : JITRT_Op<"call", [NoSideEffect]> {
 //===----------------------------------------------------------------------===//
 
 def CompileOp : JITRT_Op<"compile"> {
-  let summary = "cpurt compile operation";
+  let summary = "jitrt compile operation";
   let description = [{
-    `cpurt.compile` compiles a mlir CPU program to the cpurt JIT executable
-    using LLVM JIT APIs and returns a cached `!cpurt.jit_executable` result.
+    `jitrt.compile` compiles a mlir CPU program to the jitrt JIT executable
+    using LLVM JIT APIs and returns a cached `!jitrt.jit_executable` result.
 
     JIT executables support limited function signatures:
 
@@ -94,7 +94,7 @@ def CompileOp : JITRT_Op<"compile"> {
         }
       }
 
-      %executable = cpurt.compile { kernel = @kernel::@main }
+      %executable = jitrt.compile { kernel = @kernel::@main }
     ```
   }];
 
@@ -106,9 +106,9 @@ def CompileOp : JITRT_Op<"compile"> {
 
 
 def ExecuteOp : JITRT_Op<"execute"> {
-  let summary = "cpurt execute operation";
+  let summary = "jitrt execute operation";
   let description = [{
-    `cpurt.execute` takes an executable produced by the `cpurt.compile`
+    `jitrt.execute` takes an executable produced by the `jitrt.compile`
     operation and executes it with provided operands. It takes an async chain as
     a dependency (all operands are ready).
 
@@ -126,7 +126,7 @@ def ExecuteOp : JITRT_Op<"execute"> {
 
       // Wait for the completion of previous operation and execute compiled
       // kernel.
-      %executed = cpurt.execute %executable [%buffers_ready]
+      %executed = jitrt.execute %executable [%buffers_ready]
                   (%tensor0, %tensor1) : (!t.tensor, !t.tensor) -> !tfrt.chain
     ```
   }];
@@ -152,9 +152,9 @@ def ExecuteOp : JITRT_Op<"execute"> {
 //===----------------------------------------------------------------------===//
 
 def CoreRtCompileOp : JITRT_Op<"corert.compile"> {
-  let summary = "cpurt compile operation with CoreRT interop";
+  let summary = "jitrt compile operation with CoreRT interop";
   let description = [{
-    `cpurt.corert.compile` is almost identical to the cpurt.compile op, it only
+    `jitrt.corert.compile` is almost identical to the jitrt.compile op, it only
     does additional compiled kernel verification to ensure that returned types
     could be converted to TensorHandles (return values must be async values of
     ranked memref type, async tokens are not supported).
@@ -166,9 +166,9 @@ def CoreRtCompileOp : JITRT_Op<"corert.compile"> {
 }
 
 def CoreRtExecuteOp : JITRT_Op<"corert.execute"> {
-  let summary = "cpurt execute operation with CoreRT interop";
+  let summary = "jitrt execute operation with CoreRT interop";
   let description = [{
-    `cpurt.corert.execute` provides integration with the CoreRT by taking
+    `jitrt.corert.execute` provides integration with the CoreRT by taking
     `!corert.tensorhandle` operands and automatically converting all returned
     tensors to the CoreRT tensor handles, so that the user program does not
     have to do explicit `handle <-> tensor` conversions.

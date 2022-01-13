@@ -35,7 +35,7 @@ namespace runtime {
 //  - Memory allocation and buffer forwarding that relies on fine grained
 //    information available only to the runtime (e.g. reference count).
 //
-// CPURT compilation pipeline sets up passes to convert the regular functions
+// JitRT compilation pipeline sets up passes to convert the regular functions
 // to the so called "kernels" integrated with the runtime using the API defined
 // below, e.g. instead of conventional returns all results are returned via the
 // runtimeGetResultStorage API. At MLIR level these operations correspond to the

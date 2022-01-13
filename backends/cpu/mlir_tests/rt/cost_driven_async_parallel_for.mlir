@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s -split-input-file -cost-driven-async-parallel-for="legacy-behavior=false" -verify-diagnostics | FileCheck %s
+// RUN: jitrt_opt %s -split-input-file -cost-driven-async-parallel-for="legacy-behavior=false" -verify-diagnostics | FileCheck %s
 
 // CHECK-LABEL: func @loop1d
 func @loop1d(%arg: memref<?xf32>) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// This file uses a static constructor to automatically register all of CpuRT
+// This file uses a static constructor to automatically register all of JitRT
 // native kernels (kernels for graph execution).
 
 #include "tfrt/host_context/kernel_registry.h"

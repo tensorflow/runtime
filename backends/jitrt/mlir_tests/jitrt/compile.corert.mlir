@@ -68,10 +68,10 @@ func @compiled_add_f32_corert() -> !tfrt.chain {
       shape = [2, 3] } : 1
 
   // Compile simple addition implemented as a Linalg generic operation.
-  %executable = cpurt.corert.compile { kernel = @kernels::@main }
+  %executable = jitrt.corert.compile { kernel = @kernels::@main }
 
   // Execute compiled kernel with tensor handle operands.
-  %result = cpurt.corert.execute %executable (%operand)
+  %result = jitrt.corert.execute %executable (%operand)
               : (!corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 3]

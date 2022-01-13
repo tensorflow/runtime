@@ -48,4 +48,36 @@ def MathOptimizationPass : FunctionPass<"codegen-math-optimization"> {
   ];
 }
 
+def CostDrivenAsyncParallelFor : Pass<"cost-driven-async-parallel-for", "mlir::ModuleOp"> {
+  let summary = "Convert scf.parallel operations to multiple async compute ops "
+                "executed concurrently for non-overlapping iteration ranges "
+                "using a cost model to drive the determination of "
+                "parallelization granularity";
+  let constructor = "::tfrt::cpu::jit::CreateCostDrivenAsyncParallelForPass()";
+
+  let options = [
+    Option<"async_dispatch_", "async-dispatch",
+      "bool", /*default=*/"true",
+      "Dispatch async compute tasks using recursive work splitting. If `false` "
+      "async compute tasks will be launched using simple for loop in the "
+      "caller thread.">,
+
+    Option<"num_worker_threads_", "num-workers",
+      "int32_t", /*default=*/"8",
+      "The number of available workers to execute async operations.">,
+
+    // Temporary for bringup, should be removed.
+    Option<"legacy_behavior_", "legacy-behavior", "bool",
+            /*default=*/"true",
+           "Emulate the upstream AsyncParallelFor behavior by producing a "
+           "fixed cost for all inputs.">,
+  ];
+
+  let dependentDialects = [
+    "::mlir::arith::ArithmeticDialect",
+    "::mlir::async::AsyncDialect",
+    "::mlir::scf::SCFDialect"
+  ];
+}
+
 #endif  // CODEGEN_PASSES

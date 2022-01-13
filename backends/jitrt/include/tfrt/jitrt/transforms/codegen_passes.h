@@ -19,7 +19,9 @@
 
 #include <memory>
 
+#include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/Dialect/X86Vector/X86VectorDialect.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -34,6 +36,11 @@ std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
 
 std::unique_ptr<mlir::FunctionPass> CreateMathOptimizationPass(
     bool enable_avx2 = false);
+
+std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass();
+
+std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass(
+    bool async_dispatch, int32_t num_worker_threads, bool legacy_behavior);
 
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/transforms/codegen_gen_passes.h.inc"

@@ -185,6 +185,9 @@ struct CompilationOptions {
   // can be used for parallelizing compute intensive parts of the kernel.
   int num_worker_threads = 0;
 
+  // Use experimental cost model for lowering scf.parallel to async dialect.
+  bool cost_driven_async_parallel_for = false;
+
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
 

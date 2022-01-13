@@ -24,6 +24,7 @@
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
@@ -67,6 +68,7 @@ void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
   registry.insert<mlir::math::MathDialect>();
   registry.insert<mlir::memref::MemRefDialect>();
   registry.insert<mlir::vector::VectorDialect>();
+  registry.insert<mlir::scf::SCFDialect>();
 }
 
 }  // namespace tfrt

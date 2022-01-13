@@ -33,8 +33,7 @@
 #include "unsupported/Eigen/CXX11/ThreadPool"  // from @eigen_archive
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 // Forward declare a base class for async runtime objects.
 class AsyncRuntimeObject;
@@ -191,8 +190,7 @@ void AsyncRuntime::AwaitGroup(Group* group, F&& f) {
   AsyncRuntime::GetAsyncValue(group)->AndThen(std::forward<F>(f));
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_H_

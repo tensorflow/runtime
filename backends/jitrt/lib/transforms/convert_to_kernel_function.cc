@@ -22,8 +22,7 @@ limitations under the License.
 #include "tfrt/jitrt/transforms/rt_passes.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 namespace {
 
 using mlir::AssertOp;
@@ -113,6 +112,5 @@ std::unique_ptr<mlir::OperationPass<ModuleOp>> CreateConvertToKernelFunction() {
   return std::make_unique<ConvertToKernelFunctionPass>();
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

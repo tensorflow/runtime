@@ -33,7 +33,7 @@ def RuntimeDialect : Dialect {
     This dialect contains operations to interact with the TFRT run-time.
   }];
 
-  let cppNamespace = "::tfrt::cpu::jit";
+  let cppNamespace = "::tfrt::jitrt";
 
   let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
@@ -43,7 +43,7 @@ class RT_Type<string name, string typeMnemonic> : TypeDef<RuntimeDialect,
   let mnemonic = typeMnemonic;
 }
 
-// This is an opaque handle to tfrt::cpu::jit::KernelContextType.
+// This is an opaque handle to tfrt::jitrt::KernelContextType.
 def KernelContextType : RT_Type<"KernelContext", "kernel_context"> {
   let summary = "Kernel Context type";
   let description = [{

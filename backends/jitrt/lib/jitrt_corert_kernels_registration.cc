@@ -21,8 +21,7 @@
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 void RegisterCpuRuntimeCoreRtKernels(KernelRegistry* registry);
 
@@ -30,6 +29,5 @@ namespace kernels {
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCpuRuntimeCoreRtKernels);
 }  // namespace kernels
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

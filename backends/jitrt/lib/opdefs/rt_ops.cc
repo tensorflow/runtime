@@ -34,8 +34,7 @@
 #include "tfrt/jitrt/opdefs/rt_dialect.cpp.inc"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 void RuntimeDialect::initialize() {
   allowUnknownTypes();
@@ -50,8 +49,7 @@ void RuntimeDialect::initialize() {
       >();
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // end namespace tfrt
 
 #define GET_OP_CLASSES
@@ -61,8 +59,7 @@ void RuntimeDialect::initialize() {
 #include "tfrt/jitrt/opdefs/rt_types.cpp.inc"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 /// Print a type registered to this dialect.
 void RuntimeDialect::printType(mlir::Type type,
@@ -82,6 +79,5 @@ mlir::Type RuntimeDialect::parseType(mlir::DialectAsmParser &parser) const {
   return {};
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // end namespace tfrt

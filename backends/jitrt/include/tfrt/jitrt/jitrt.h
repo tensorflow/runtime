@@ -57,8 +57,7 @@ namespace tfrt {
 class ExecutionContext;
 class Tensor;
 
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 // Compiled module example:
 //
@@ -1296,8 +1295,7 @@ class JitExecutable {
 // Resource context caches all JitExecutables in the async value cache.
 using JitExecutableCache = AsyncValuesCache<intptr_t, JitExecutable>;
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_JITRT_H_

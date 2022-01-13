@@ -33,8 +33,7 @@ limitations under the License.
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 namespace {
 
 using mlir::CallOp;
@@ -266,6 +265,5 @@ std::unique_ptr<OperationPass<ModuleOp>> CreateConvertRuntimeToLLVMPass() {
   return std::make_unique<ConvertRuntimeToLLVMPass>();
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

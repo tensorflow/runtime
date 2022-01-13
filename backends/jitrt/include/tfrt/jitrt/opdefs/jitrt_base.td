@@ -26,7 +26,7 @@
 // TFRT JIT Runtime dialect definitions
 //===----------------------------------------------------------------------===//
 
-def CpuRuntimeDialect : Dialect {
+def JitRuntimeDialect : Dialect {
   let name = "cpurt";
 
   let description = [{
@@ -35,7 +35,7 @@ def CpuRuntimeDialect : Dialect {
     This dialect contains common CPU runtime operations.
   }];
 
-  let cppNamespace = "::tfrt::cpu::jit";
+  let cppNamespace = "::tfrt::jitrt";
 
   let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }

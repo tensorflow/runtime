@@ -28,8 +28,7 @@
 #include "mlir/Pass/Pass.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
     int64_t alignment = 64);
@@ -45,8 +44,7 @@ std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass(
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/transforms/codegen_gen_passes.h.inc"
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_TRANSFORMS_CODEGEN_PASSES_H_

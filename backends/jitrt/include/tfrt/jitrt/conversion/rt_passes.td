@@ -19,7 +19,7 @@ include "mlir/Pass/PassBase.td"
 
 def ConvertRuntimeToLLVMPass : Pass<"rt-to-llvm", "ModuleOp"> {
   let summary = "Convert RT dialect to LLVM dialect";
-  let constructor = "::tfrt::cpu::jit::CreateConvertRuntimeToLLVMPass()";
+  let constructor = "::tfrt::jitrt::CreateConvertRuntimeToLLVMPass()";
   let dependentDialects = ["LLVM::LLVMDialect"];
 }
 

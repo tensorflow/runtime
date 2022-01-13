@@ -24,8 +24,7 @@
 #include "mlir/IR/Types.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 // Returns true iff the shape can be sunk into the function body at run time
 // via value specialization.
@@ -36,8 +35,7 @@ inline bool SupportsValueSpecialization(mlir::Type type) {
           shaped.getElementType().isInteger(64));
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_SUPPORT_H_

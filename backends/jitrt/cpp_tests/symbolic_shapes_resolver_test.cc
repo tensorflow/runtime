@@ -24,13 +24,13 @@
 
 namespace tfrt {
 
-using ::tfrt::cpu::jit::FunctionType;
-using ::tfrt::cpu::jit::MemrefDesc;
-using ::tfrt::cpu::jit::MemrefType;
-using ::tfrt::cpu::jit::OperandConstraint;
-using ::tfrt::cpu::jit::SymbolicShapesResolver;
-using ::tfrt::cpu::jit::Type;
-using ::tfrt::cpu::jit::UnrankedMemrefType;
+using ::tfrt::jitrt::FunctionType;
+using ::tfrt::jitrt::MemrefDesc;
+using ::tfrt::jitrt::MemrefType;
+using ::tfrt::jitrt::OperandConstraint;
+using ::tfrt::jitrt::SymbolicShapesResolver;
+using ::tfrt::jitrt::Type;
+using ::tfrt::jitrt::UnrankedMemrefType;
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 

@@ -29,11 +29,11 @@ namespace {
 
 using ::llvm::SmallVector;
 
-using ::tfrt::cpu::jit::CompilationOptions;
-using ::tfrt::cpu::jit::Executable;
-using ::tfrt::cpu::jit::JitExecutable;
-using ::tfrt::cpu::jit::MemrefDesc;
-using ::tfrt::cpu::jit::SymbolicShapesResolver;
+using ::tfrt::jitrt::CompilationOptions;
+using ::tfrt::jitrt::Executable;
+using ::tfrt::jitrt::JitExecutable;
+using ::tfrt::jitrt::MemrefDesc;
+using ::tfrt::jitrt::SymbolicShapesResolver;
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 

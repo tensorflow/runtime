@@ -54,8 +54,8 @@ def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "mlir::ModuleOp"> {
       ```
   }];
 
-  let constructor = "::tfrt::cpu::jit::CreateConvertToKernelFunction()";
-  let dependentDialects = ["tfrt::cpu::jit::RuntimeDialect"];
+  let constructor = "::tfrt::jitrt::CreateConvertToKernelFunction()";
+  let dependentDialects = ["tfrt::jitrt::RuntimeDialect"];
 }
 
 #endif  // RT_PASSES

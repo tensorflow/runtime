@@ -36,10 +36,9 @@
 #include "tfrt/jitrt/opdefs/jitrt_ops_dialect.cpp.inc"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
-void CpuRuntimeDialect::initialize() {
+void JitRuntimeDialect::initialize() {
   allowUnknownTypes();
 
   addOperations<
@@ -48,8 +47,7 @@ void CpuRuntimeDialect::initialize() {
       >();
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // end namespace tfrt
 
 #define GET_OP_CLASSES

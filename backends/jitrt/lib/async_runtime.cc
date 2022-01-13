@@ -48,7 +48,7 @@ using tfrt::AsyncValueRef;
 using tfrt::HostBuffer;
 using tfrt::HostContext;
 using tfrt::MakeConstructedAsyncValueRef;
-using tfrt::cpu::jit::AsyncRuntimeObject;
+using tfrt::jitrt::AsyncRuntimeObject;
 
 class AsyncToken : public AsyncRuntimeObject {
  public:
@@ -172,8 +172,7 @@ class AsyncGroup : public AsyncRuntimeObject {
 // -------------------------------------------------------------------------- //
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 /*static*/ void* AsyncRuntime::GetStorage(Value* value) {
   return value->GetStorage();
@@ -319,6 +318,5 @@ void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {
   Await(group->GetCompletionAsyncValue());
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

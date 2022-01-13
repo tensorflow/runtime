@@ -32,8 +32,7 @@ limitations under the License.
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 namespace {
 
 namespace vector = mlir::vector;
@@ -405,6 +404,5 @@ std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass(
       async_dispatch, num_worker_threads, legacy_behavior);
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

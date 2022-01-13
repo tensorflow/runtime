@@ -98,8 +98,7 @@
 #include "tfrt/tensor/tensor.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 // PRE-C++17: Static constexpr class members are required to have a definition.
 constexpr int64_t MemrefType::kDynamicSize;
@@ -280,11 +279,11 @@ static Expected<DType> ConvertElementType(mlir::Type type) {
 }
 
 static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
-  // mlir::async::TokenType -> tfrt::cpu::jit::AsyncTokenType
+  // mlir::async::TokenType -> tfrt::jitrt::AsyncTokenType
   if (type.isa<mlir::async::TokenType>())
     return std::make_unique<AsyncTokenType>();
 
-  // mlir::async::ValueType -> tfrt::cpu::jit::AsyncValueType
+  // mlir::async::ValueType -> tfrt::jitrt::AsyncValueType
   if (auto value = type.dyn_cast<mlir::async::ValueType>()) {
     if (!value.getValueType().isa<mlir::MemRefType>())
       return MakeStringError("async value can only hold memref type");
@@ -295,35 +294,35 @@ static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
     return std::make_unique<AsyncValueType>(std::move(*value_type));
   }
 
-  // mlir::RankedTensorType -> tfrt::cpu::jit::RankedTensorType
+  // mlir::RankedTensorType -> tfrt::jitrt::RankedTensorType
   if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
     auto element_type = ConvertElementType(tensor.getElementType());
     if (auto err = element_type.takeError()) return std::move(err);
     return std::make_unique<RankedTensorType>(tensor.getShape(), *element_type);
   }
 
-  // mlir::UnrankedTensorType -> tfrt::cpu::jit::UnrankedTensorType
+  // mlir::UnrankedTensorType -> tfrt::jitrt::UnrankedTensorType
   if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
     auto element_type = ConvertElementType(tensor.getElementType());
     if (auto err = element_type.takeError()) return std::move(err);
     return std::make_unique<UnrankedTensorType>(*element_type);
   }
 
-  // mlir::MemrefType -> tfrt::cpu::jit::MemrefType
+  // mlir::MemrefType -> tfrt::jitrt::MemrefType
   if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
     auto element_type = ConvertElementType(memref.getElementType());
     if (auto err = element_type.takeError()) return std::move(err);
     return std::make_unique<MemrefType>(memref.getShape(), *element_type);
   }
 
-  // mlir::UnrankedMemrefType -> tfrt::cpu::jit::UnrankedMemrefType
+  // mlir::UnrankedMemrefType -> tfrt::jitrt::UnrankedMemrefType
   if (auto memref = type.dyn_cast<mlir::UnrankedMemRefType>()) {
     auto element_type = ConvertElementType(memref.getElementType());
     if (auto err = element_type.takeError()) return std::move(err);
     return std::make_unique<UnrankedMemrefType>(*element_type);
   }
 
-  // KernelContextType -> KernelContextOperandType (both in tfrt::cpu::jit).
+  // KernelContextType -> KernelContextOperandType (both in tfrt::jitrt).
   if (auto ctx = type.dyn_cast<KernelContextType>())
     return std::make_unique<KernelContextOperandType>();
 
@@ -1988,6 +1987,5 @@ llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {
 
 }  // namespace runtime
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

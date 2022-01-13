@@ -48,7 +48,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<compiler::TFRTDialect>();
   registry.insert<corert::CoreRTDialect>();
   registry.insert<corert_sync::CoreRTSyncDialect>();
-  registry.insert<cpu::jit::CpuRuntimeDialect>();
+  registry.insert<jitrt::JitRuntimeDialect>();
   registry.insert<data::DataDialect>();
   registry.insert<ts::TensorShapeDialect>();
   registry.insert<dht::DenseHostTensorDialect>();
@@ -61,7 +61,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
 }
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
-  registry.insert<cpu::jit::RuntimeDialect>();
+  registry.insert<jitrt::RuntimeDialect>();
   registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect>();
   registry.insert<mlir::async::AsyncDialect>();
   registry.insert<mlir::linalg::LinalgDialect>();

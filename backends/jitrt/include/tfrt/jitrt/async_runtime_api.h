@@ -28,8 +28,7 @@ namespace tfrt {
 
 class Chain;
 
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 // Set the AsyncRuntime that will be implicitly propagated to all async tasks.
 //
@@ -71,8 +70,7 @@ llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
 llvm::orc::SymbolMap AsyncRuntimeMemoryAllocationSymbolMap(
     llvm::orc::MangleAndInterner mangle);
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_ASYNC_RUNTIME_API_H_

@@ -25,8 +25,7 @@ limitations under the License.
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 namespace {
 
 #define GEN_PASS_CLASSES
@@ -60,6 +59,5 @@ std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
   return std::make_unique<AlignedAllocationsPass>(alignment);
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

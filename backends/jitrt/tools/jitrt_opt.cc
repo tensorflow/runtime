@@ -26,8 +26,8 @@
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTCompiledDialects(registry);
-  tfrt::cpu::jit::registerRuntimeConversionPasses();
-  tfrt::cpu::jit::registerCodegenTransformsPasses();
-  tfrt::cpu::jit::registerRuntimeTransformsPasses();
+  tfrt::jitrt::registerRuntimeConversionPasses();
+  tfrt::jitrt::registerCodegenTransformsPasses();
+  tfrt::jitrt::registerRuntimeTransformsPasses();
   return failed(mlir::MlirOptMain(argc, argv, "JITRT pass driver\n", registry));
 }

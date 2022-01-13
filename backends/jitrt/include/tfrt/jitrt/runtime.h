@@ -20,8 +20,7 @@
 #include <stdint.h>
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 namespace runtime {
 
 //===----------------------------------------------------------------------===//
@@ -57,8 +56,7 @@ extern "C" void *runtimeGetResultStorage(KernelContext *, int64_t);
 extern "C" void runtimeSetError(KernelContext *, const char *);
 
 }  // namespace runtime
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_RUNTIME_H_

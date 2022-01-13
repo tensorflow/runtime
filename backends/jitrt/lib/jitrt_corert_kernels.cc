@@ -49,8 +49,7 @@
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 // -------------------------------------------------------------------------- //
 // Compile compilation unit attribute to an executable result.
@@ -258,6 +257,5 @@ void RegisterCpuRuntimeCoreRtKernels(KernelRegistry* registry) {
   registry->AddKernel("cpurt.corert.execute", TFRT_KERNEL(Execute));
 }
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt

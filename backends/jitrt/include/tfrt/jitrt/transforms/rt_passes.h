@@ -24,8 +24,7 @@
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 
 namespace tfrt {
-namespace cpu {
-namespace jit {
+namespace jitrt {
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 CreateConvertToKernelFunction();
@@ -33,8 +32,7 @@ CreateConvertToKernelFunction();
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/transforms/rt_gen_passes.h.inc"
 
-}  // namespace jit
-}  // namespace cpu
+}  // namespace jitrt
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_JITRT_TRANSFORMS_RT_PASSES_H_

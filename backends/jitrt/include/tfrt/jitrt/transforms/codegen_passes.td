@@ -24,7 +24,7 @@ def AlignedAllocationsPass : FunctionPass<"codegen-aligned-allocations"> {
     have such an attribute yet, or which have a smaller alignment than the one
     configured for this pass.
   }];
-  let constructor = "::tfrt::cpu::jit::CreateAlignedAllocationsPass()";
+  let constructor = "::tfrt::jitrt::CreateAlignedAllocationsPass()";
   let options = [
    Option<"alignment_", "alignment", "int64_t", "64",
           "Byte alignment for allocated memrefs.">
@@ -37,7 +37,7 @@ def MathOptimizationPass : FunctionPass<"codegen-math-optimization"> {
     This pass performs algebraic simplification and polynomial approximation for
     ops from the Math dialect.
   }];
-  let constructor = "::tfrt::cpu::jit::CreateMathOptimizationPass()";
+  let constructor = "::tfrt::jitrt::CreateMathOptimizationPass()";
   let dependentDialects = [
     "mlir::vector::VectorDialect",
     "mlir::x86vector::X86VectorDialect"
@@ -53,7 +53,7 @@ def CostDrivenAsyncParallelFor : Pass<"cost-driven-async-parallel-for", "mlir::M
                 "executed concurrently for non-overlapping iteration ranges "
                 "using a cost model to drive the determination of "
                 "parallelization granularity";
-  let constructor = "::tfrt::cpu::jit::CreateCostDrivenAsyncParallelForPass()";
+  let constructor = "::tfrt::jitrt::CreateCostDrivenAsyncParallelForPass()";
 
   let options = [
     Option<"async_dispatch_", "async-dispatch",

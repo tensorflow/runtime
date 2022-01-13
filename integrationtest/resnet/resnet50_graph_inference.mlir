@@ -1695,9 +1695,9 @@ func @resnet50() {
     %tensor_175_3 = "tfrt_test.broadcast.f32.2"(%tensor_175_1, %tensor_175_2, %c0) : (!t.tensor, !ts.shape, !tfrt.chain) -> !t.tensor
     %c191 = "eigen.matmul.f32"(%one, %tensor_174_0, %tensor_175_0, %one, %tensor_175_3, %c190) : (f32, !t.tensor, !t.tensor, f32, !t.tensor, !tfrt.chain) -> !tfrt.chain
     %cmp, %c192 = "tfrt_dht.tensor_allclose.2000ulp.f32"(%expected_prob, %tensor_175_3, %c191) : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
-      %c193 = tfrt_dht.print_tensor %tensor_175_3, %c192
+    %c193 = tfrt_dht.print_tensor %tensor_175_3, %c192
     // CHECK: int1 = 1
-    %c194 = "tfrt.print.i1"(%cmp, %c0) : (i1, !tfrt.chain) -> !tfrt.chain
+    %c194 = "tfrt.print.i1"(%cmp, %c193) : (i1, !tfrt.chain) -> !tfrt.chain
     tfrt.return %c194 : !tfrt.chain
   }
   tfrt.return

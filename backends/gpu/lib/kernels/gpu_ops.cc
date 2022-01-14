@@ -368,7 +368,7 @@ Type tfrt::gpu::GpuDialect::parseType(DialectAsmParser &parser) const {
   Type genType;
   if (failed(parser.parseKeyword(&typeTag))) return nullptr;
   if (generatedTypeParser(parser, typeTag, genType).hasValue()) return genType;
-  auto identifier = Identifier::get(getDialectNamespace(), parser.getContext());
+  auto identifier = StringAttr::get(parser.getContext(), getDialectNamespace());
   return OpaqueType::get(identifier, typeTag);
 }
 

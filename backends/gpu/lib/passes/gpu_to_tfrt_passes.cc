@@ -943,7 +943,8 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
   // Otherwise, allocate memory and initialize it.
   Value allocator = rewriter.create<AllocatorCreateOp>(loc, context);
   Value stream = rewriter.create<StreamCreateOp>(loc, context);
-  uint64_t size_bytes = (global_op.type().getSizeInBits() + 7) / 8;
+  uint64_t size_bytes =
+      (global_op.type().cast<ShapedType>().getSizeInBits() + 7) / 8;
   Value size = rewriter.create<compiler::ConstantI64Op>(loc, size_bytes);
   Value chain = rewriter.create<compiler::NewChainOp>(loc);
   Value buffer =

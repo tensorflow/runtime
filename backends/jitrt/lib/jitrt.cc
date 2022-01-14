@@ -623,7 +623,7 @@ static void AddMemrefArgument(const MemrefDesc& memref,
   assert(memref.sizes.size() == memref.strides.size());
 
   size_t size = args->size();
-  args->set_size(size + GetArgsCount(memref));
+  args->resize(size + GetArgsCount(memref));
 
   auto* storage = &(*args)[size];
   auto add_arg = [&](const void* p) {

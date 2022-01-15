@@ -199,6 +199,9 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type) {
     os << "*x" << memref->element_type();
     os << ">";
 
+  } else if (auto* kernel_context = dyn_cast<KernelContextOperandType>(&type)) {
+    os << "!rt.kernel_context";
+
   } else {
     assert(false && "pretty printing is not implemented");
     os << "<unknown type>";

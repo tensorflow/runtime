@@ -57,27 +57,3 @@ void RuntimeDialect::initialize() {
 
 #define GET_TYPEDEF_CLASSES
 #include "tfrt/jitrt/opdefs/rt_types.cpp.inc"
-
-namespace tfrt {
-namespace jitrt {
-
-/// Print a type registered to this dialect.
-void RuntimeDialect::printType(mlir::Type type,
-                               mlir::DialectAsmPrinter &os) const {
-  if (failed(generatedTypePrinter(type, os)))
-    llvm_unreachable("unexpected 'rt' type kind");
-}
-
-/// Parse a type registered to this dialect.
-mlir::Type RuntimeDialect::parseType(mlir::DialectAsmParser &parser) const {
-  llvm::StringRef typeTag;
-  if (parser.parseKeyword(&typeTag)) return mlir::Type();
-  mlir::Type genType;
-  auto parseResult = generatedTypeParser(parser, typeTag, genType);
-  if (parseResult.hasValue()) return genType;
-  parser.emitError(parser.getNameLoc(), "unknown rt type: ") << typeTag;
-  return {};
-}
-
-}  // namespace jitrt
-}  // end namespace tfrt

@@ -1019,11 +1019,11 @@ static void SetupPassDebugging(mlir::MLIRContext* context,
 // the JitRT (Linalg on buffers).
 static mlir::LogicalResult LowerToJitrt(mlir::ModuleOp module,
                                         const CompilationOptions& opts) {
-  if (!opts.register_pass_pipeline) return mlir::success();
+  if (!opts.register_compilation_pipeline) return mlir::success();
 
   mlir::PassManager pm(module.getContext());
   SetupPassDebugging(module.getContext(), pm);
-  opts.register_pass_pipeline(pm);
+  opts.register_compilation_pipeline(pm);
   return pm.run(module);
 }
 
@@ -1260,13 +1260,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   if (failed(LowerToJitrt(ctx->module(), ctx->options())))
     return ctx->Error("failed to lower module to JitRT dialects");
 
-  // TODO(b/210116436): We have to call calling convention converter after we
-  // lower to JitRt dialects, because in case of tf_jitrt we have to run shape
-  // inference before we can get the runtime signature in order to support
-  // unranked tensors.
-
-  // Use the user-provided calling convention to get the runtime type of the
-  // entrypoint function with a well-defined ABI.
+  // Get the calling convention for the entrypoint function.
   if (!ctx->options().calling_convention)
     return ctx->Error("calling convention is not defined");
 
@@ -1283,6 +1277,10 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto results_memory_layout =
       Executable::GetResultsMemoryLayout(*runtime_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
+
+  // Lower loaded module to dialects supported by the JitRT to LLVM pipeline.
+  if (failed(LowerToJitrt(ctx->module(), ctx->options())))
+    return ctx->Error("failed to lower module to JitRT dialects");
 
   // Prepend KernelContext to the arguments of the entrypoint function.
   PrependKernelContextType(ctx->entrypoint());
@@ -1493,6 +1491,16 @@ llvm::Error JitCompilationContext::Specialize(
     llvm::SmallVector<mlir::DictionaryAttr> specialized_attrs;
     func.getAllArgAttrs(specialized_attrs);
     listener->notifyModuleSpecialized(specialized_inputs, specialized_attrs);
+  }
+
+  // Run the user-provided specialization pipeline to take advantage of the
+  // specialized operands and sunk constants.
+  if (opts_.register_specialization_pipeline) {
+    mlir::PassManager pm(ctx);
+    SetupPassDebugging(ctx, pm);
+    opts_.register_specialization_pipeline(pm);
+    if (failed(pm.run(*module_)))
+      return Error("failed to run specialization pipeline");
   }
 
   return Error::success();

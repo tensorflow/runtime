@@ -208,11 +208,24 @@ struct CompilationOptions {
   // Register dialects that are allowed in the serialized module.
   std::function<void(mlir::DialectRegistry&)> register_dialects;
 
+  // Register a pass pipeline that is called whenever the compiled module
+  // gets specialized. This pipeline can use refined shape information and
+  // symbolic shape attributes to do the shape inference and canonicalization.
+  //
+  // Original input module might have an undefined calling convention (e.g.
+  // JitRt does not support unranked tensors), and specialization can be
+  // required as a precondition for compilation.
+  std::function<void(mlir::OpPassManager&)> register_specialization_pipeline;
+
+  // TODO(b/210116436): Compilation pipeline must lower module down to LLVM
+  // dialect. Update documentation to include requirements for this pipeline to
+  // include passes that connect compiled functions with the runtime.
+  //
   // Register a pass pipeline that lowers compiled module from high level
   // dialects to the dialects supported by the JITRT lowering to LLVM. In the
   // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
   // the Linalg on buffers via the MHLO->Linalg lowering.
-  std::function<void(mlir::OpPassManager&)> register_pass_pipeline;
+  std::function<void(mlir::OpPassManager&)> register_compilation_pipeline;
 
   // Calling convention converts the compiled module entrypoint function type to
   // the function type with a well defined ABI (e.g. tensors do not have an ABI,

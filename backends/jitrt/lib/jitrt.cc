@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <memory>
 #include <numeric>
 #include <string>
@@ -334,6 +335,8 @@ static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
 
 /*static*/ Expected<FunctionType> FunctionType::Convert(
     mlir::FunctionType type) {
+  assert(type && "function type must be not null");
+
   llvm::SmallVector<std::unique_ptr<Type>> operands;
   llvm::SmallVector<std::unique_ptr<Type>> results;
 
@@ -938,6 +941,54 @@ std::chrono::milliseconds Executable::time_to_compile() const {
 }
 
 //----------------------------------------------------------------------------//
+// Default calling convention for kernels compiled for JitRt.
+//----------------------------------------------------------------------------//
+
+using CallingConvention = CompilationOptions::CallingConvention;
+
+/*static*/ CallingConvention CompilationOptions::DefaultCallingConvention() {
+  return [](mlir::FunctionType func) {
+    mlir::MLIRContext* ctx = func.getContext();
+
+    llvm::SmallVector<mlir::Type> inputs = {KernelContextType::get(ctx)};
+    inputs.reserve(1 + func.getNumInputs());
+    llvm::append_range(inputs, func.getInputs());
+
+    return mlir::FunctionType::get(ctx, inputs, func.getResults());
+  };
+}
+
+/*static*/ CallingConvention CompilationOptions::DefaultCallingConvention(
+    mlir::TypeConverter type_converter) {
+  return [c = std::move(type_converter)](mlir::FunctionType func) mutable {
+    mlir::MLIRContext* ctx = func.getContext();
+
+    // Track if all type conversions were successful.
+    bool failed_conversion = false;
+    auto convert = [&](mlir::Type type) -> mlir::Type {
+      auto converted = c.convertType(type);
+      if (!converted) failed_conversion = true;
+      return converted;
+    };
+
+    // Add kernel context as the first argument.
+    llvm::SmallVector<mlir::Type> inputs = {KernelContextType::get(ctx)};
+    inputs.reserve(1 + func.getNumInputs());
+    llvm::transform(func.getInputs(), std::back_inserter(inputs), convert);
+
+    // Apply type conversion to all results types.
+    llvm::SmallVector<mlir::Type> results;
+    results.reserve(func.getNumResults());
+    llvm::transform(func.getResults(), std::back_inserter(results), convert);
+
+    // Return null if any of the type conversions failed.
+    if (failed_conversion) return mlir::FunctionType();
+
+    return mlir::FunctionType::get(ctx, inputs, results);
+  };
+}
+
+//----------------------------------------------------------------------------//
 // Setup MLIR pass pipeline to lower to LLVM dialect, and use ORC JIT to codegen
 // functions at runtime.
 //----------------------------------------------------------------------------//
@@ -1201,7 +1252,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // We track end-to-end time to compile the final executable.
   auto compilation_start = std::chrono::steady_clock::now();
 
-  // Get the signature of the original entrypoint function.
+  // Get the signature of the entrypoint function.
   auto signature = FunctionType::Convert(entry_func.getType());
   if (auto err = signature.takeError()) return std::move(err);
 
@@ -1209,19 +1260,32 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   if (failed(LowerToJitrt(ctx->module(), ctx->options())))
     return ctx->Error("failed to lower module to JitRT dialects");
 
-  // Prepend KernelContext to the arguments of the entrypoint function.
-  PrependKernelContextType(ctx->entrypoint());
+  // TODO(b/210116436): We have to call calling convention converter after we
+  // lower to JitRt dialects, because in case of tf_jitrt we have to run shape
+  // inference before we can get the runtime signature in order to support
+  // unranked tensors.
 
-  // Get the signature of the entrypoint function after lowering to the dialects
-  // supported by the runtime (at this point all operands and results should
-  // have well-defined ABI).
-  auto runtime_signature = FunctionType::Convert(entry_func.getType());
+  // Use the user-provided calling convention to get the runtime type of the
+  // entrypoint function with a well-defined ABI.
+  if (!ctx->options().calling_convention)
+    return ctx->Error("calling convention is not defined");
+
+  // Calling convention conversion can fail if some types are not supported.
+  auto runtime_type = ctx->options().calling_convention(entry_func.getType());
+  if (!runtime_type)
+    return ctx->Error("calling convention failed to convert entrypoint type");
+
+  // Get the runtime signature of the entrypoint function.
+  auto runtime_signature = FunctionType::Convert(runtime_type);
   if (auto err = runtime_signature.takeError()) return std::move(err);
 
   // Get the memory layout for returning function results.
   auto results_memory_layout =
       Executable::GetResultsMemoryLayout(*runtime_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
+
+  // Prepend KernelContext to the arguments of the entrypoint function.
+  PrependKernelContextType(ctx->entrypoint());
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
   if (failed(LowerToLlvm(ctx->module(), ctx->options())))
@@ -1270,9 +1334,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   return Executable(ctx->name().str(), std::move(*engine), *kernel_fn,
                     std::move(*signature), std::move(*runtime_signature),
                     std::move(*results_memory_layout), specialization,
-                    ctx->options().num_worker_threads,
-
-                    time_to_compile);
+                    ctx->options().num_worker_threads, time_to_compile);
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.

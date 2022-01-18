@@ -164,6 +164,18 @@ class JitExecutable;
 class Executable;
 
 struct CompilationOptions {
+  // Calling convention defines an ABI for JitRt to call a compiled kernel. See
+  // documentation and example below.
+  using CallingConvention =
+      std::function<mlir::FunctionType(mlir::FunctionType)>;
+
+  // Returns a calling convention that only adds the kernel context argument.
+  static CallingConvention DefaultCallingConvention();
+
+  // Returns a calling convention that uses user-provided type converter to
+  // convert all inputs and results types, and adds the kernel context argument.
+  static CallingConvention DefaultCallingConvention(mlir::TypeConverter);
+
   // Compiled kernel can be specialized and recompiled at runtime to the
   // concrete input shapes and sometimes values (e.g. reduciton dimension).
   enum class Specialization {
@@ -202,11 +214,45 @@ struct CompilationOptions {
   // the Linalg on buffers via the MHLO->Linalg lowering.
   std::function<void(mlir::OpPassManager&)> register_pass_pipeline;
 
-  // Type converter that lowers compiled module entrypoint function types to the
-  // types supported by the JITRT at runtime (e.g. converts tensors to
-  // memrefs). This type converter must do an identical type conversion to
-  // the custom lowering pass pipeline configured by `register_pass_pipeline`.
-  mlir::TypeConverter type_converter;
+  // Calling convention converts the compiled module entrypoint function type to
+  // the function type with a well defined ABI (e.g. tensors do not have an ABI,
+  // and must be passed across the function boundary as memrefs). In a nutshell
+  // it tells the JitRt how to call the compiled kernel at run time, and how to
+  // return results back to the JitRt.
+  //
+  // If conversion is not possible, calling convention must return a null value.
+  //
+  // Example: abstract kernel defined in high level dialect, e.g. MHLO
+  //
+  //   ```mlir
+  //     func @kernel(%arg0: tensor<?xf32>,
+  //                  %arg1: tensor<?xf32>) -> tensor<?x?xf32> { ... }
+  //   ```
+  //
+  //   after calling convention conversion becomes:
+  //
+  //   ```mlir
+  //     func @kernel(%ctx: !rt.kernel_context,
+  //                  %arg0: memref<?xf32>,
+  //                  %arg1: memref<?xf32>) -> memref<?x?xf32> { ... }
+  //   ```
+  //
+  // Calling convention function type is not the same as the entrypoint function
+  // type produced by the compilation pipeline for several reasons:
+  //
+  // 1) Compilation pipeline produces LLVM functions with LLVM types, and high
+  //    level information is lost, e.g. all memrefs are deconstructed into
+  //    primitive fields when passed as inputs.
+  //
+  // 2) Compiled kernel function always returns void, and uses runtime API to
+  //    return results back to the caller (see `rt-to-kernel-function` pass).
+  //
+  // Calling convention function type is a JitRt-compatible description of the
+  // compiled kernel ABI, so that JitRt can correctly initialize CallFrame
+  // arguments, allocate memory for returned results, and then correctly decode
+  // results memory into the high level types (e.g. convert returned memref
+  // descriptor to a Tensorfow tensor).
+  CallingConvention calling_convention = DefaultCallingConvention();
 
   // Enables math approximations that emit AVX2 intrinsics.
 #ifdef __AVX2__

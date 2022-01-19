@@ -107,6 +107,7 @@ static void print(OpAsmPrinter &p, DoAsyncOp op) {
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
   p.shadowRegionArgs(op.region(), op.getOperands());
+  p << ' ';
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 
@@ -242,6 +243,7 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
   p.shadowRegionArgs(op.region(), op.getOperands());
+  p << ' ';
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 

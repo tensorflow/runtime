@@ -212,9 +212,11 @@ void print(OpAsmPrinter &p, IfOp op) {
   // the region.
   auto arg_name_values = llvm::drop_begin(op.getOperands(), 1);
   p.shadowRegionArgs(op.then_region(), arg_name_values);
+  p << ' ';
   p.printRegion(op.then_region(), /*printEntryBlockArgs=*/false);
   p << " else ";
   p.shadowRegionArgs(op.else_region(), arg_name_values);
+  p << ' ';
   p.printRegion(op.else_region(), /*printEntryBlockArgs=*/false);
 }
 
@@ -328,6 +330,7 @@ static void print(OpAsmPrinter &p, RepeatI32Op op) {
   // the region.
   SmallVector<Value, 4> arg_name_values(llvm::drop_begin(op.getOperands(), 1));
   p.shadowRegionArgs(op.region(), arg_name_values);
+  p << ' ';
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 
@@ -428,6 +431,7 @@ static void print(OpAsmPrinter &p, ParallelForI32Op op) {
   arg_name_values.erase(arg_name_values.begin() + 2);
 
   p.shadowRegionArgs(op.region(), arg_name_values);
+  p << ' ';
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 

@@ -21,7 +21,7 @@ func @test_wrap_async_execute() {
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: "tfrt_gpu_conversion.async.execute"() ( {
+  // CHECK: "tfrt_gpu_conversion.async.execute"() ({
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
   // CHECK:   "wrap.op"() : () -> ()
   // CHECK:   "wrap.op"() : () -> ()
@@ -32,7 +32,7 @@ func @test_wrap_async_execute() {
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: "tfrt_gpu_conversion.async.execute"() ( {
+  // CHECK: "tfrt_gpu_conversion.async.execute"() ({
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
   // CHECK:   "wrap.op"() : () -> ()
   // CHECK:   "wrap.op"() : () -> ()

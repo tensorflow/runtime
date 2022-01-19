@@ -1236,7 +1236,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   return Executable(ctx->name().str(), std::move(*engine), *kernel_fn,
                     std::move(*signature), std::move(*runtime_signature),
                     std::move(*results_memory_layout), specialization,
-                    ctx->options().num_worker_threads, time_to_compile);
+                    time_to_compile);
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.

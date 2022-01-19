@@ -188,17 +188,6 @@ struct CompilationOptions {
     kAlways,
   };
 
-  // Byte alignment for allocated memrefs. Depending on the compiler flags
-  // Tensorflow requires tensors to be aligned on 16, 32 or 64 bytes.
-  int alignment = 0;
-
-  // The number of worker threads (host context concurrent work queue size) that
-  // can be used for parallelizing compute intensive parts of the kernel.
-  int num_worker_threads = 0;
-
-  // Use experimental cost model for lowering scf.parallel to async dialect.
-  bool cost_driven_async_parallel_for = false;
-
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
 
@@ -266,13 +255,6 @@ struct CompilationOptions {
   // results memory into the high level types (e.g. convert returned memref
   // descriptor to a Tensorfow tensor).
   CallingConvention calling_convention = DefaultCallingConvention();
-
-  // Enables math approximations that emit AVX2 intrinsics.
-#ifdef __AVX2__
-  bool math_avx2 = true;
-#else
-  bool math_avx2 = false;
-#endif
 };
 
 //----------------------------------------------------------------------------//
@@ -939,7 +921,7 @@ class Executable {
              KernelFunctionPtr fptr, FunctionType signature,
              FunctionType runtime_signature,
              ResultsMemoryLayout results_memory_layout,
-             Optional<size_t> specialization, int num_worker_threads,
+             Optional<size_t> specialization,
              std::chrono::milliseconds time_to_compile)
       : name_(name.str()),
         engine_(std::move(engine)),
@@ -948,7 +930,6 @@ class Executable {
         runtime_signature_(std::move(runtime_signature)),
         results_memory_layout_(std::move(results_memory_layout)),
         specialization_(specialization),
-        num_worker_threads_(num_worker_threads),
         time_to_compile_(time_to_compile) {
     assert(fptr_ != nullptr && "kernel function must be not null");
   }
@@ -999,8 +980,6 @@ class Executable {
   llvm::StringRef name() const { return name_; }
 
   Optional<size_t> specialization() const { return specialization_; }
-
-  int num_worker_threads() const { return num_worker_threads_; }
 
   unsigned num_results() const;
 
@@ -1125,8 +1104,6 @@ class Executable {
   // Specialization id if this executable is a specialization, or an empty
   // optional if this executable is a default one.
   Optional<size_t> specialization_;
-  // The number of worker threads this executable was compiled for.
-  int num_worker_threads_;
   // The time it took to compile this binary.
   std::chrono::milliseconds time_to_compile_;
 };

@@ -365,14 +365,6 @@ static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
   return FunctionType(std::move(operands), std::move(results));
 }
 
-// Prepends a KernelContextType to `func`'s arguments.
-// TODO(ecg): notify the listener, just like we do in Specialize().
-static void PrependKernelContextType(mlir::FuncOp func) {
-  mlir::Type new_type = KernelContextType::get(func.getContext());
-  mlir::DictionaryAttr attr = mlir::DictionaryAttr::get(func.getContext());
-  func.insertArguments({0}, {new_type}, {attr}, {});
-}
-
 // Returns true if all function operands have statically known shape.
 static bool HasStaticShapeOperands(const FunctionType& signature) {
   auto is_static = [](ArrayRef<Index> sizes) -> bool {
@@ -1274,12 +1266,14 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
       Executable::GetResultsMemoryLayout(*runtime_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
 
+  // Mark entrypoint function with a JitRt attribute, so it can be converted
+  // to a kernel function (see `rt-to-kernel-function` pass).
+  auto unit_attr = mlir::UnitAttr::get(entry_func.getContext());
+  entry_func->setAttr(kJitRtEntrypointAttrName, unit_attr);
+
   // Lower loaded module to dialects supported by the JitRT to LLVM pipeline.
   if (failed(LowerToJitrt(ctx->module(), ctx->options())))
     return ctx->Error("failed to lower module to JitRT dialects");
-
-  // Prepend KernelContext to the arguments of the entrypoint function.
-  PrependKernelContextType(ctx->entrypoint());
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
   if (failed(LowerToLlvm(ctx->module(), ctx->options())))

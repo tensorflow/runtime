@@ -93,14 +93,23 @@ static void ConvertAssertOperations(FuncOp func, Value kernel_ctx) {
   }
 }
 
-static void ConvertToKernelFunction(FuncOp func) {
-  // We only convert functions with kernel context as the first argument.
-  bool is_candidate = !func.isDeclaration() && func.getNumArguments();
-  Value kernel_ctx = is_candidate ? func.getArgument(0) : Value();
-  if (!kernel_ctx || !kernel_ctx.getType().isa<KernelContextType>()) return;
+static Value PrependKernelContextArgument(mlir::FuncOp func) {
+  mlir::Type new_type = KernelContextType::get(func.getContext());
+  mlir::DictionaryAttr attr = mlir::DictionaryAttr::get(func.getContext());
+  func.insertArguments({0}, {new_type}, {attr}, {});
+  return func.getArgument(0);
+}
 
+static void ConvertToKernelFunction(FuncOp func) {
+  // Skip functions that are not JitRt entrypoints.
+  if (!func->hasAttr(kJitRtEntrypointAttrName)) return;
+
+  Value kernel_ctx = PrependKernelContextArgument(func);
   ConvertReturnOperations(func, kernel_ctx);
   ConvertAssertOperations(func, kernel_ctx);
+
+  // After conversion !rt.kernel_context is a marker of an entrypoint function.
+  func->removeAttr(kJitRtEntrypointAttrName);
 }
 
 void ConvertToKernelFunctionPass::runOnOperation() {

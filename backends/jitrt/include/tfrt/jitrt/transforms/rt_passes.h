@@ -26,6 +26,8 @@
 namespace tfrt {
 namespace jitrt {
 
+static constexpr char const* kJitRtEntrypointAttrName = "jitrt.entrypoint";
+
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 CreateConvertToKernelFunction();
 

@@ -18,18 +18,19 @@
 include "mlir/Pass/PassBase.td"
 
 def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "mlir::ModuleOp"> {
-  let summary = "Converts entrypoint function to kernel function";
+  let summary = "Converts JitRt entrypoint function to a kernel function";
 
   let description = [{
-    Converts function with !rt.kernel_context as the first argument to a
-    kernel function, i.e.:
+    Converts function with a `jitrt.entrypoint` unit attribute to a kernel
+    function, i.e.:
+     - kernel function accepts `!rt.kernel_context` as the first argument
      - all results returned via the `rt.set_result` operation
      - failed asserts set the kernel error via the `rt.set_error` operation
 
     Example:
 
       ```mlir
-      func @compute(%ctx: !rt.kernel_context, ...) -> memref<?xf32> {
+      func @compute(...) -> memref<?xf32> attributes { jitrt.entrypoint } {
         %0 = ... : i1
         assert %0, "Oops"
         %1 = ... : memref<?xf32>

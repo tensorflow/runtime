@@ -16,35 +16,33 @@
 
 // CHECK: func @single_result(
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
-// CHECK:   %[[RET:.*]]: memref<?xf32>
+// CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: ) {
-func @single_result(%arg0: !rt.kernel_context, %arg1: memref<?xf32>)
-    -> memref<?xf32> {
-  // CHECK: rt.set_output %[[CTX]], 0, %[[RET]] : memref<?xf32>
+func @single_result(%arg0: memref<?xf32>) -> memref<?xf32>
+  attributes { jitrt.entrypoint } {
+  // CHECK: rt.set_output %[[CTX]], 0, %[[ARG]] : memref<?xf32>
   // CHECK: return
-  return %arg1 : memref<?xf32>
+  return %arg0 : memref<?xf32>
 }
 
 // CHECK: func @two_results(
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
-// CHECK:   %[[RET:.*]]: memref<?xf32>
+// CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: ) {
-func @two_results(%arg0: !rt.kernel_context, %arg1: memref<?xf32>)
-    -> (memref<?xf32>, memref<?xf32>) {
-  // CHECK: rt.set_output %[[CTX]], 0, %[[RET]] : memref<?xf32>
-  // CHECK: rt.set_output %[[CTX]], 1, %[[RET]] : memref<?xf32>
+func @two_results(%arg0: memref<?xf32>) -> (memref<?xf32>, memref<?xf32>)
+  attributes { jitrt.entrypoint } {
+  // CHECK: rt.set_output %[[CTX]], 0, %[[ARG]] : memref<?xf32>
+  // CHECK: rt.set_output %[[CTX]], 1, %[[ARG]] : memref<?xf32>
   // CHECK: return
-  return %arg1, %arg1 : memref<?xf32>, memref<?xf32>
+  return %arg0, %arg0 : memref<?xf32>, memref<?xf32>
 }
 
-// CHECK: func @invalid_position(
-// CHECK:   %[[RET:.*]]: memref<?xf32>,
-// CHECK:   %[[CTX:.*]]: !rt.kernel_context
+// CHECK: func @not_an_entrypoint(
+// CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: ) -> memref<?xf32> {
-func @invalid_position(%arg0: memref<?xf32>, %arg1: !rt.kernel_context)
-    -> memref<?xf32> {
+func @not_an_entrypoint(%arg0: memref<?xf32>) -> memref<?xf32> {
   // CHECK-NOT: rt.set_output
-  // CHECK: return %[[RET]]
+  // CHECK: return %[[ARG]]
   return %arg0 : memref<?xf32>
 }
 
@@ -52,13 +50,13 @@ func @invalid_position(%arg0: memref<?xf32>, %arg1: !rt.kernel_context)
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
 // CHECK:   %[[ASSERT:.*]]: i1
 // CHECK: ) {
-func @assert_to_error(%arg0: !rt.kernel_context, %arg1: i1) {
+func @assert_to_error(%arg0: i1) attributes { jitrt.entrypoint } {
   // CHECK: cond_br %[[ASSERT]], ^[[OK:.*]], ^[[ERR:.*]]
   // CHECK: ^[[OK]]:
   // CHECK:   return
   // CHECK: ^[[ERR]]:
   // CHECK:   rt.set_error %[[CTX]], "Failed precondition"
   // CHECK:   return
-  assert %arg1, "Failed precondition"
+  assert %arg0, "Failed precondition"
   return
 }

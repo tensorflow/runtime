@@ -46,6 +46,7 @@ typedef enum {
   miopenInt8 = 3,
   miopenInt8x4 = 4,
   miopenBFloat16 = 5,
+  miopenDouble = 6,
 } miopenDataType_t;
 
 typedef enum {

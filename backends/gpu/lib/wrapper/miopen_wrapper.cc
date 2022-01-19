@@ -21,9 +21,6 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template llvm::raw_ostream& internal::operator<<(
-    llvm::raw_ostream&, const ErrorData<miopenStatus_t>&);
-
 Expected<miopenDataType_t> ParseMiopenDataType(llvm::StringRef name) {
   if (name == "miopenHalf") return miopenHalf;
   if (name == "miopenFloat") return miopenFloat;

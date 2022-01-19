@@ -64,19 +64,16 @@ enum class MemAttachFlags {
 };
 
 namespace internal {
-template <typename E>
-using IfEnumOperators =
-    std::enable_if_t<std::is_same<E, CtxFlags>::value ||
-                         std::is_same<E, StreamFlags>::value ||
-                         std::is_same<E, EventFlags>::value ||
-                         std::is_same<E, MemHostAllocFlags>::value ||
-                         std::is_same<E, MemHostRegisterFlags>::value,
-                     E>;
+template <typename E, typename... Ts>
+using IfOneOf =
+    std::enable_if_t<!AllFalse<(std::is_same<E, Ts>::value)...>::value, E>;
 }  // namespace internal
 
 // Binary operators for bitmask enums.
 template <typename E>
-internal::IfEnumOperators<E> operator|(E lhs, E rhs) {
+internal::IfOneOf<E, CtxFlags, StreamFlags, EventFlags, MemHostAllocFlags,
+                  MemHostRegisterFlags>
+operator|(E lhs, E rhs) {
   using underlying = typename std::underlying_type<E>::type;
   return static_cast<E>(static_cast<underlying>(lhs) |
                         static_cast<underlying>(rhs));

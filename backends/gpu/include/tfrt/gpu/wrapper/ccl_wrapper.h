@@ -39,6 +39,9 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+// Temporary typedef for XLIR to transition to a separate type.
+using CclDataType = ncclDataType_t;
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result);
 
 template <>

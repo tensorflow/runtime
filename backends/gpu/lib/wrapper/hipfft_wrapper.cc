@@ -116,6 +116,46 @@ llvm::Error HipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* input_data,
   return TO_ERROR(hipfftExecZ2D(plan, input_data, output_data));
 }
 
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipfftResult_t result) {
+  switch (result) {
+    case HIPFFT_SUCCESS:
+      return os << "HIPFFT_SUCCESS";
+    case HIPFFT_INVALID_PLAN:
+      return os << "HIPFFT_INVALID_PLAN";
+    case HIPFFT_ALLOC_FAILED:
+      return os << "HIPFFT_ALLOC_FAILED";
+    case HIPFFT_INVALID_TYPE:
+      return os << "HIPFFT_INVALID_TYPE";
+    case HIPFFT_INVALID_VALUE:
+      return os << "HIPFFT_INVALID_VALUE";
+    case HIPFFT_INTERNAL_ERROR:
+      return os << "HIPFFT_INTERNAL_ERROR";
+    case HIPFFT_EXEC_FAILED:
+      return os << "HIPFFT_EXEC_FAILED";
+    case HIPFFT_SETUP_FAILED:
+      return os << "HIPFFT_SETUP_FAILED";
+    case HIPFFT_INVALID_SIZE:
+      return os << "HIPFFT_INVALID_SIZE";
+    case HIPFFT_UNALIGNED_DATA:
+      return os << "HIPFFT_UNALIGNED_DATA";
+    case HIPFFT_INCOMPLETE_PARAMETER_LIST:
+      return os << "HIPFFT_INCOMPLETE_PARAMETER_LIST";
+    case HIPFFT_INVALID_DEVICE:
+      return os << "HIPFFT_INVALID_DEVICE";
+    case HIPFFT_PARSE_ERROR:
+      return os << "HIPFFT_PARSE_ERROR";
+    case HIPFFT_NO_WORKSPACE:
+      return os << "HIPFFT_NO_WORKSPACE";
+    case HIPFFT_NOT_IMPLEMENTED:
+      return os << "HIPFFT_NOT_IMPLEMENTED";
+    case HIPFFT_NOT_SUPPORTED:
+      return os << "HIPFFT_NOT_SUPPORTED";
+    default:
+      return os << llvm::formatv("hipfftResult_t({0})",
+                                 static_cast<int>(result));
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

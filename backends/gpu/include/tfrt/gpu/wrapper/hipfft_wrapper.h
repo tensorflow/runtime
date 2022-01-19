@@ -25,6 +25,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipfftResult_t result);
+
 llvm::Expected<LibraryVersion> HipfftGetVersion();
 
 // Frees all GPU resources associated with the plan and destroys internal data

@@ -21,9 +21,6 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template llvm::raw_ostream& internal::operator<<(
-    llvm::raw_ostream&, const ErrorData<cublasStatus_t>&);
-
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current) {
   CheckCudaContext(current);
   cublasHandle_t handle = nullptr;

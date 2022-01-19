@@ -21,7 +21,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template llvm::raw_ostream& internal::operator<<(
+// Defined in rocblas_wrapper.cc.
+extern template llvm::raw_ostream& internal::operator<<(
     llvm::raw_ostream&, const ErrorData<rocblas_status>&);
 
 llvm::Expected<OwningSolverHandle> RocsolverCreate() {

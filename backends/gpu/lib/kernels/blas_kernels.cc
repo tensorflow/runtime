@@ -178,11 +178,11 @@ static Error BlasTrsmBatch(
   // TODO(hanbinyoon): Also support the ROCm function corresponding to
   // cublas<t>trsmBatched.
   auto platform = handle->platform();
-  if (platform != wrapper::Platform::CUDA)
+  if (platform != wrapper::Platform::CUDA && platform != wrapper::Platform::ROCm)
     return MakeStringError("Unsupported platform ", platform);
 
-  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
-  auto alpha_ptr = GetScalePointer(alpha, data_type);
+  rocblas_datatype data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto alpha_ptr = GetScalePointer(alpha, static_cast<wrapper::BlasDataType>(data_type));
   if (!alpha_ptr) return alpha_ptr.takeError();
 
   auto call = [&](auto dummy) {
@@ -200,7 +200,7 @@ static Error BlasTrsmBatch(
     const T** a_array = const_cast<const T**>(b_array + batchCount);
 
     auto side_mode = wrapper::BlasSideMode::FromOpaqueValue(*sideMode);
-    ptrdiff_t a_batch_stride = side_mode == CUBLAS_SIDE_LEFT ? m * m : n * n;
+    ptrdiff_t a_batch_stride = (side_mode == rocblas_side_left) ? m * m : n * n;
     ptrdiff_t b_batch_stride = m * n;
     const T* a_ptr = static_cast<const T*>(A.pointer().raw(platform));
     T* b_ptr = static_cast<T*>(B.pointer().raw(platform));
@@ -213,23 +213,24 @@ static Error BlasTrsmBatch(
     wrapper::Pointer<T*> b_array_ptr(b_array, platform);
     auto cast_alpha_ptr = static_cast<wrapper::Pointer<const T>>(*alpha_ptr);
 
-    return wrapper::CublasTrsmBatched(
-        *current, handle.get(), side_mode,
-        wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
-        wrapper::BlasOperation::FromOpaqueValue(*trans),
-        wrapper::BlasDiagType::FromOpaqueValue(*diagType), m, n, cast_alpha_ptr,
-        a_array_ptr, heightA, b_array_ptr, heightB, batchCount);
+    
+    return wrapper::RocblasTrsmBatched(
+         *current, handle.get(), side_mode,
+         wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
+         wrapper::BlasOperation::FromOpaqueValue(*trans),
+         wrapper::BlasDiagType::FromOpaqueValue(*diagType), m, n, cast_alpha_ptr,
+         a_array_ptr, heightA, b_array_ptr, heightB, batchCount);
   };
 
   switch (data_type) {
-    case CUDA_R_32F:
+    case rocblas_datatype_f32_r:
       return call(float{});
-    case CUDA_R_64F:
+    case rocblas_datatype_f64_r:
       return call(double{});
-    case CUDA_C_32F:
-      return call(cuComplex{});
-    case CUDA_C_64F:
-      return call(cuDoubleComplex{});
+    case rocblas_datatype_f32_c:
+      return call(rocblas_float_complex{});
+    case rocblas_datatype_f64_c:
+      return call(rocblas_double_complex{});
     default:
       return MakeStringError("Unsupported data type ", data_type);
   }

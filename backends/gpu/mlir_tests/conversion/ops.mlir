@@ -110,48 +110,48 @@ func @blas_ops() {
   // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate %[[allocator]], %[[stream]], %[[size]], %{{.*}}
   %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
 
-  // CHECK: %[[blas:.*]] = tfrt_gpu.blas.create %[[stream]]
-  %blas = tfrt_gpu.blas.create %stream
+  // CHECK: %[[blas:.*]] = tfrt_gpu.blas.create %[[context]]
+  %blas = tfrt_gpu.blas.create %context
   // CHECK: %[[width:.*]] = tfrt.constant.i32 2
   %width = tfrt.constant.i32 2
   // CHECK: %[[stride:.*]] = tfrt.constant.i32 1
   %stride = tfrt.constant.i32 1
   // CHECK: %[[alpha:.*]] = tfrt.constant.f32 1.0
   %alpha = tfrt.constant.f32 1.0
-  // CHECK: tfrt_gpu.blas.axpy %[[blas]], %[[width]], %[[alpha]], CUDA_R_32F,
+  // CHECK: tfrt_gpu.blas.axpy %[[blas]], %[[stream]], %[[width]], %[[alpha]], CUDA_R_32F,
   // CHECK-SAME: %[[buffer]], CUDA_R_32F, %[[stride]], %[[buffer]], CUDA_R_32F,
   // CHECK-SAME: %[[stride]], CUDA_R_32F, %{{.*}}
-  %ch1 = tfrt_gpu.blas.axpy %blas, %width, %alpha, CUDA_R_32F,
+  %ch1 = tfrt_gpu.blas.axpy %blas, %stream, %width, %alpha, CUDA_R_32F,
     %buffer, CUDA_R_32F, %stride, %buffer, CUDA_R_32F, %stride,
     CUDA_R_32F, %ch0
 
   // CHECK: %[[algo:.*]] = tfrt_gpu.blas.gemm.algo CUBLAS_GEMM_ALGO0
   %algo = tfrt_gpu.blas.gemm.algo CUBLAS_GEMM_ALGO0
-  // CHECK: tfrt_gpu.blas.gemm %[[blas]], CUBLAS_OP_N, CUBLAS_OP_N,
+  // CHECK: tfrt_gpu.blas.gemm %[[blas]], %[[stream]], CUBLAS_OP_N, CUBLAS_OP_N,
   // CHECK-SAME: %[[stride]], %[[stride]], %[[stride]], %[[alpha]], %[[buffer]],
   // CHECK-SAME: CUDA_R_32F, %[[stride]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: CUBLAS_COMPUTE_32F, %[[algo]], %{{.*}}
-  %ch2 = tfrt_gpu.blas.gemm %blas, CUBLAS_OP_N, CUBLAS_OP_N,
+  %ch2 = tfrt_gpu.blas.gemm %blas, %stream, CUBLAS_OP_N, CUBLAS_OP_N,
     %stride, %stride, %stride, %alpha, %buffer,
     CUDA_R_32F, %stride, %buffer, CUDA_R_32F, %stride,
     %alpha, %buffer, CUDA_R_32F, %stride, CUBLAS_COMPUTE_32F,
     %algo, %ch1
-  // CHECK: tfrt_gpu.blas.gemm.batch %[[blas]], CUBLAS_OP_N, CUBLAS_OP_N,
+  // CHECK: tfrt_gpu.blas.gemm.batch %[[blas]], %[[stream]], CUBLAS_OP_N, CUBLAS_OP_N,
   // CHECK-SAME: %[[stride]], %[[stride]], %[[stride]], %[[alpha]], %[[buffer]],
   // CHECK-SAME: CUDA_R_32F, %[[stride]], %[[size]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: %[[size]], %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]], %[[size]], %[[stride]],
   // CHECK-SAME: CUBLAS_COMPUTE_32F, %[[algo]], %{{.*}}
-  %ch3 = tfrt_gpu.blas.gemm.batch %blas, CUBLAS_OP_N, CUBLAS_OP_N,
+  %ch3 = tfrt_gpu.blas.gemm.batch %blas, %stream, CUBLAS_OP_N, CUBLAS_OP_N,
     %stride, %stride, %stride, %alpha, %buffer,
     CUDA_R_32F, %stride, %size, %buffer, CUDA_R_32F, %stride,
     %size, %alpha, %buffer, CUDA_R_32F, %stride, %size, %stride,
     CUBLAS_COMPUTE_32F, %algo, %ch2
-  // CHECK: tfrt_gpu.blas.trsm.batch %[[blas]], CUBLAS_SIDE_LEFT,
+  // CHECK: tfrt_gpu.blas.trsm.batch %[[blas]], %[[stream]], CUBLAS_SIDE_LEFT,
   // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT,
   // CHECK-SAME: %[[stride]], %[[stride]], CUDA_R_32F, %[[alpha]], %[[buffer]],
   // CHECK-SAME: %[[stride]], %[[buffer]], %[[stride]], %[[stride]], %{{.*}}
-  %ch4 = tfrt_gpu.blas.trsm.batch %blas, CUBLAS_SIDE_LEFT,
+  %ch4 = tfrt_gpu.blas.trsm.batch %blas, %stream, CUBLAS_SIDE_LEFT,
     CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT, %stride, %stride,
     CUDA_R_32F, %alpha, %buffer, %stride, %buffer, %stride, %stride, %ch3
 
@@ -168,8 +168,8 @@ func @dnn_ops() {
   // CHECK: %[[stream:.*]] = tfrt_gpu.stream.create %[[context]]
   %stream = tfrt_gpu.stream.create %context
 
-  // CHECK: %[[cudnn:.*]] = tfrt_gpu.dnn.create %[[stream]]
-  %cudnn = tfrt_gpu.dnn.create %stream
+  // CHECK: %[[cudnn:.*]] = tfrt_gpu.dnn.create %[[context]]
+  %cudnn = tfrt_gpu.dnn.create %context
   // TODO(csigg): cover other dnn ops.
 
   tfrt.return
@@ -196,20 +196,20 @@ func @solver_ops() {
   // CHECK: %[[n:.*]] = tfrt.constant.i32 1
   %n = tfrt.constant.i32 1
 
-  // CHECK: %[[solver:.*]] = tfrt_gpu.solver.create %[[stream]]
-  %solver = tfrt_gpu.solver.create %stream
+  // CHECK: %[[solver:.*]] = tfrt_gpu.solver.create %[[context]]
+  %solver = tfrt_gpu.solver.create %context
   // CHECK: %[[workspace_size:.*]] = tfrt_gpu.solver.potrf.buffer_size %[[solver]],
-  // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, %[[n]], CUDA_R_32F, %[[n]], %{{.*}}
-  %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver,
+  // CHECK-SAME: %[[stream]], CUBLAS_FILL_MODE_LOWER, %[[n]], CUDA_R_32F, %[[n]], %{{.*}}
+  %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver, %stream,
     CUBLAS_FILL_MODE_LOWER, %n, CUDA_R_32F, %n, %ch0
-  // CHECK: tfrt_gpu.solver.potrf %[[solver]], CUBLAS_FILL_MODE_LOWER, %[[n]],
+  // CHECK: tfrt_gpu.solver.potrf %[[solver]], %[[stream]], CUBLAS_FILL_MODE_LOWER, %[[n]],
   // CHECK-SAME: CUDA_R_32F, %[[buffer]], %[[n]], %[[buffer]], %[[buffer]], %{{.*}}
-  %ch1 = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %n, CUDA_R_32F,
+  %ch1 = tfrt_gpu.solver.potrf %solver, %stream, CUBLAS_FILL_MODE_LOWER, %n, CUDA_R_32F,
     %buffer, %n, %buffer, %buffer, %ch0
-  // CHECK: tfrt_gpu.solver.potrf.batch %[[solver]], CUBLAS_FILL_MODE_LOWER,
+  // CHECK: tfrt_gpu.solver.potrf.batch %[[solver]], %[[stream]], CUBLAS_FILL_MODE_LOWER,
   // CHECK-SAME: %[[n]], CUDA_R_32F, %[[buffer]], %[[n]], %[[buffer]], %[[n]],
   // CHECK-SAME: %{{.*}}
-  %ch2 = tfrt_gpu.solver.potrf.batch %solver, CUBLAS_FILL_MODE_LOWER, %n,
+  %ch2 = tfrt_gpu.solver.potrf.batch %solver, %stream, CUBLAS_FILL_MODE_LOWER, %n,
     CUDA_R_32F, %buffer, %n, %buffer, %n, %ch1
 
   tfrt.return

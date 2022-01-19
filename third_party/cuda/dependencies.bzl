@@ -1,12 +1,12 @@
 """CUDA headers repository."""
 
-def _download_nvidia_headers(repository_ctx, url, sha256, strip_prefix):
+def _download_and_extract(repository_ctx, url, sha256, strip_prefix):
     # Keep the mirror up-to-date manually (see b/154869892) with:
     # /google/bin/releases/tensorflow-devinfra-team/cli_tools/tf_mirror <url>
     repository_ctx.download_and_extract(
         url = [
-            "http://gitlab.com/nvidia/headers/" + url,
-            "http://mirror.tensorflow.org/gitlab.com/nvidia/headers/" + url,
+            "http://mirror.tensorflow.org/" + url,
+            "http://" + url,
         ],
         sha256 = sha256,
         stripPrefix = strip_prefix,
@@ -37,9 +37,13 @@ def _cuda_headers_impl(repository_ctx):
         ("nvjpeg", "70a756a6ad813adab5eb77a6ae92154280d3847d005ca145485e04178893cc94"),
         ("nvrtc", "b38d791cdd0d90eb941b765ee592644a358790536d27508b48e21c029e960aa5"),
     ]:
-        url = "cuda-individual/{name}/-/archive/{tag}/{name}-{tag}.tar.gz".format(name = name, tag = tag)
+        url = "{repo}/{name}/-/archive/{tag}/{name}-{tag}.tar.gz".format(
+            repo = "gitlab.com/nvidia/headers/cuda-individual",
+            name = name,
+            tag = tag,
+        )
         strip_prefix = "{name}-{tag}".format(name = name, tag = tag)
-        _download_nvidia_headers(repository_ctx, url, sha256, strip_prefix)
+        _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
@@ -49,10 +53,13 @@ def _cudnn_headers_impl(repository_ctx):
     patch_file = Label("//third_party/cuda:cudnn_headers.patch")
 
     tag = "v8.2.4.15"
-    url = "cudnn/-/archive/{tag}/cudnn-{tag}.tar.gz".format(tag = tag)
+    url = "{repo}/-/archive/{tag}/cudnn-{tag}.tar.gz".format(
+        repo = "gitlab.com/nvidia/headers/cudnn",
+        tag = tag,
+    )
     strip_prefix = "cudnn-{tag}".format(tag = tag)
     sha256 = "a5a2749cee42dd0a175d6dfcfbab7e64acee55210febe2f32d4605eef32591af"
-    _download_nvidia_headers(repository_ctx, url, sha256, strip_prefix)
+    _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
@@ -61,17 +68,13 @@ def _cudnn_frontend_impl(repository_ctx):
     build_file = Label("//third_party/cuda:cudnn_frontend.BUILD")
 
     version = "0.4.1"
-    url = "archive/refs/tags/v{version}.tar.gz".format(version = version)
+    url = "{repo}/archive/refs/tags/v{version}.tar.gz".format(
+        repo = "github.com/NVIDIA/cudnn-frontend",
+        version = version,
+    )
     strip_prefix = "cudnn-frontend-{version}".format(version = version)
     sha256 = "e0cef5e4440d24115c770160ba4a08821ae24c357a1623a7e9ca736ed685131c"
-    repository_ctx.download_and_extract(
-        url = [
-            "http://github.com/NVIDIA/cudnn-frontend/" + url,
-            "http://mirror.tensorflow.org/github.com/NVIDIA/cudnn-frontend/" + url,
-        ],
-        sha256 = sha256,
-        stripPrefix = strip_prefix,
-    )
+    _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
 
@@ -80,21 +83,31 @@ def _nccl_headers_impl(repository_ctx):
     patch_file = Label("//third_party/cuda:nccl_headers.patch")
 
     tag = "2.8.3-1"
-    url = "nccl/archive/v{tag}.tar.gz".format(tag = tag)
+    url = "{repo}/archive/refs/tags/v{tag}.tar.gz".format(
+        repo = "github.com/NVIDIA/nccl",
+        tag = tag,
+    )
     strip_prefix = "nccl-{tag}".format(tag = tag)
     sha256 = "3ae89ddb2956fff081e406a94ff54ae5e52359f5d645ce977c7eba09b3b782e6"
-    repository_ctx.download_and_extract(
-        url = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/nvidia/" + url,
-            "https://github.com/nvidia/" + url,
-        ],
-        sha256 = sha256,
-        stripPrefix = strip_prefix,
-    )
+    _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
     repository_ctx.symlink("src/nccl.h.in", "src/nccl.h")
+
+def _nvtx_headers_impl(repository_ctx):
+    build_file = Label("//third_party/cuda:nvtx_headers.BUILD")
+
+    tag = "release-v3"
+    url = "{repo}/archive/refs/heads/{tag}.tar.gz".format(
+        repo = "github.com/NVIDIA/NVTX",
+        tag = tag,
+    )
+    strip_prefix = "NVTX-{tag}".format(tag = tag)
+    sha256 = "c3ec4fcd2f752445eabdba494ba2f319441d222f93480dff2a7a8f9ca4f39a96"
+    _download_and_extract(repository_ctx, url, sha256, strip_prefix)
+
+    repository_ctx.symlink(build_file, "BUILD")
 
 _cuda_headers = repository_rule(
     implementation = _cuda_headers_impl,
@@ -116,8 +129,14 @@ _nccl_headers = repository_rule(
     # remotable = True,
 )
 
+_nvtx_headers = repository_rule(
+    implementation = _nvtx_headers_impl,
+    # remotable = True,
+)
+
 def cuda_dependencies():
     _cuda_headers(name = "cuda_headers")
     _cudnn_headers(name = "cudnn_headers")
     _cudnn_frontend(name = "cudnn_frontend")
     _nccl_headers(name = "nccl_headers")
+    _nvtx_headers(name = "nvtx_headers")

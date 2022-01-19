@@ -37,7 +37,7 @@ def SolverCreateOp : GPU_Op<"solver.create"> {
 
     This will be explicitly passed to every subsequent SOLVER library call.
   }];
-  let arguments = (ins GPU_StreamType);
+  let arguments = (ins GPU_ContextType);
   let results = (outs GPU_SolverHandleType);
 }
 
@@ -45,13 +45,13 @@ def SolverPotrfBufferSizeOp : GPU_Op<"solver.potrf.buffer_size"> {
   let description = [{
     Calculates the work buffer size for tfrt_gpu.solver.portf.
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
+  let arguments = (ins GPU_SolverHandleType:$handle, GPU_StreamType:$stream,
                    GPU_BlasFillModeAttr:$fillMode, I32:$n,
                    GPU_BlasDataTypeAttr:$dataType, I32:$stride,
                    TFRT_ChainType:$chain);
   let results = (outs I64:$workspaceSize);
   let assemblyFormat = [{
-    $handle`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
+    $handle`,` $stream`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
     $stride`,` $chain attr-dict
   }];
 }
@@ -60,14 +60,14 @@ def SolverPotrfOp : GPU_Op<"solver.potrf"> {
   let description = [{
     Computes the Cholesky factorization of a Hermitian positive-definite matrix.
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
+  let arguments = (ins GPU_SolverHandleType:$handle, GPU_StreamType:$stream,
                    GPU_BlasFillModeAttr:$fillMode, I32:$n,
                    GPU_BlasDataTypeAttr:$dataType, GPU_BufferType:$buffer,
                    I32:$stride, GPU_BufferType:$workspace, GPU_BufferType:$devInfo,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
+    $handle`,` $stream`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
     $buffer`,` $stride`,` $workspace`,` $devInfo`,` $chain attr-dict
   }];
 }
@@ -77,14 +77,14 @@ def SolverPotrfBatchOp : GPU_Op<"solver.potrf.batch"> {
     Computes the Cholesky factorization of a Hermitian positive-definite matrix
     using the specified batch size.
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
+  let arguments = (ins GPU_SolverHandleType:$handle, GPU_StreamType:$stream,
                    GPU_BlasFillModeAttr:$fillMode, I32:$n,
                    GPU_BlasDataTypeAttr:$dataType, GPU_BufferType:$buffer,
                    I32:$stride, GPU_BufferType:$devInfo, I32:$batch_size,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
+    $handle`,` $stream`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
     $buffer`,` $stride`,` $devInfo`,` $batch_size`,` $chain attr-dict
   }];
 }

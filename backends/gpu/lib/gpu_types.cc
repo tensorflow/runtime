@@ -29,7 +29,8 @@ Expected<wrapper::HostMemory<void>> GpuContext::HostMemoryPool::Allocate(
     wrapper::CurrentContext current, size_t size_bytes) {
   mutex_lock lock(mutex_);
   auto it = pool_.lower_bound(size_bytes);
-  if (it != pool_.end()) {
+  // Heuristic: use pool entry if it's at most 4 times the requested size.
+  if (it != pool_.end() && it->first <= size_bytes * 4) {
     auto result = std::move(it->second);
     pool_.erase(it);
     return std::move(result);
@@ -67,18 +68,6 @@ GpuStream::~GpuStream() = default;
 wrapper::Stream GpuStream::release() {
   context_.reset();
   return stream_.release();
-}
-
-BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
-                                     wrapper::Stream stream)
-    : context_(MakeAvailableAsyncValueRef<GpuContext>(
-          wrapper::OwningContext(context))),
-      stream_(MakeAvailableAsyncValueRef<GpuStream>(
-          context_.CopyRef(), wrapper::OwningStream(stream))) {}
-
-BorrowedGpuStream::~BorrowedGpuStream() {
-  stream_->release();
-  context_->release();
 }
 
 GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
@@ -195,9 +184,9 @@ Error GpuBuffer::Deallocate(wrapper::Stream stream) {
   return allocator_->Deallocate(pointer, stream);
 }
 
-GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuStream> stream,
+GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuContext> context,
                              wrapper::OwningBlasHandle handle)
-    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+    : context_(std::move(context)), handle_(std::move(handle)) {}
 
 GpuBlasHandle::~GpuBlasHandle() = default;
 
@@ -226,15 +215,15 @@ wrapper::CclComm GpuCclHandle::release() {
   return comm_.release();
 }
 
-GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuStream> stream,
+GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuContext> context,
                            wrapper::OwningDnnHandle handle)
-    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+    : context_(std::move(context)), handle_(std::move(handle)) {}
 
 GpuDnnHandle::~GpuDnnHandle() = default;
 
-GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuStream> stream,
+GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuContext> context,
                                  wrapper::OwningSolverHandle handle)
-    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+    : context_(std::move(context)), handle_(std::move(handle)) {}
 
 GpuSolverHandle::~GpuSolverHandle() = default;
 

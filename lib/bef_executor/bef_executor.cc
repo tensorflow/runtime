@@ -31,8 +31,9 @@
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/tracing/tracing.h"
 
-#ifdef DEBUG_BEF_EXECUTOR
+#ifdef TFRT_BEF_EXECUTOR_DEBUG
 #define DEBUG_PRINT(...) fprintf(stderr, __VA_ARGS__)
 #else
 #define DEBUG_PRINT(...)
@@ -369,7 +370,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
 
 void BEFExecutor::DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
                                   AsyncValue* result) {
-#ifdef DEBUG_BEF_EXECUTOR
+#ifdef TFRT_BEF_EXECUTOR_DEBUG
   // Print the error in debug mode.
   if (result->IsError()) {
     std::string error_message;
@@ -441,6 +442,10 @@ void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
     // error.
     kernel_frame->SetLocation(
         {BefFile()->location_handler(), kernel.kernel_location()});
+
+    // TODO(b/210018544): Move tracing and debugging code to kernel registration
+    // so that we don't have extra bookkeeping in bef executor.
+    TFRT_TRACE_SCOPE(Debug, BefFile()->GetKernelName(kernel.kernel_code()));
 
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.

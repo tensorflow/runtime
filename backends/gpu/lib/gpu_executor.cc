@@ -33,6 +33,9 @@
 #include "mlir/Support/FileUtilities.h"
 #include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/wrapper/cuda_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -50,11 +53,48 @@
 
 namespace tfrt {
 
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(llvm::Error error) {
+static RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(llvm::Error error) {
   return MakeErrorAsyncValueRef(llvm::toString(std::move(error)));
 }
 
 namespace gpu {
+
+// Releases the wrapped OwnedContext or OwnedStream so that it is not destroyed
+// along with the AsyncValue. The `value` must hold the last reference.
+template <typename T>
+static void ReleaseGpuResource(AsyncValueRef<T> value) {
+  assert(value.GetAsyncValue()->NumRef() == 1 && "dangling reference");
+  value->release();
+}
+
+GpuContextCache::~GpuContextCache() {
+  for (auto& pair : map_) {
+    delete pair.second.second;
+    ReleaseGpuResource<GpuContext>(std::move(pair.second.first));
+  }
+}
+
+GpuContextCache::Pair GpuContextCache::GetOrCreate(wrapper::Context context) {
+  auto pair = map_.try_emplace(context);
+  if (pair.second) {
+    auto gpu_context =
+        MakeAvailableAsyncValueRef<GpuContext>(wrapper::OwningContext(context));
+    pair.first->second =
+        std::make_pair(std::move(gpu_context), new ResourceContext());
+  }
+  return pair.first->second;
+}
+
+void BorrowedStreamDeleter::operator()(AsyncValue* ptr) {
+  ReleaseGpuResource(AsyncValueRef<GpuStream>(TakeRef(ptr)));
+}
+
+BorrowedStream MakeBorrowedStream(AsyncValueRef<GpuContext> context,
+                                  wrapper::Stream stream) {
+  auto gpu_stream = MakeAvailableAsyncValueRef<GpuStream>(
+      std::move(context), wrapper::OwningStream(stream));
+  return BorrowedStream(gpu_stream.release());
+}
 
 namespace {
 // Owns the buffer with sufficient alignment.
@@ -99,7 +139,7 @@ static mlir::Location GetLocation(llvm::Optional<DecodedLocation> loc,
   }
   if (loc->is<OpaqueLocation>()) {
     auto identifier =
-        mlir::Identifier::get(loc->get<OpaqueLocation>().loc, context);
+        mlir::StringAttr::get(context, loc->get<OpaqueLocation>().loc);
     return mlir::NameLoc::get(identifier);
   }
   return mlir::UnknownLoc::get(context);

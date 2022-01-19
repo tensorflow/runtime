@@ -316,7 +316,7 @@ template <typename OpHandlerTraits>
   {
     TFRT_TRACE_SCOPE(
         Default,
-        tfrt::tracing::IsAboveTracingLevel(tracing::TracingLevel::Debug)
+        tfrt::tracing::GetCurrentTracingLevel() >= tracing::TracingLevel::Debug
             ? GetOpDebugString(op_entry.op_name, inputs, attrs, result_mds,
                                exec_ctx)
             : StrCat("RunDispatch: ", op_entry.op_name));

@@ -28,14 +28,12 @@
 namespace tfrt {
 namespace gpu {
 
-static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context()->get());
+static Expected<GpuBlasHandle> BlasCreate(Argument<GpuContext> context) {
+  auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
   auto handle = wrapper::BlasCreate(*current);
   if (!handle) return handle.takeError();
-  if (auto error = wrapper::BlasSetStream(handle->get(), stream->get()))
-    return std::move(error);
-  return GpuBlasHandle(stream.ValueRef(), std::move(*handle));
+  return GpuBlasHandle(context.ValueRef(), std::move(*handle));
 }
 
 template <typename T>
@@ -80,13 +78,17 @@ static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
   return GetScalePointer(value, type_id, compute_type.platform());
 }
 
-static Error BlasAxpy(const GpuBlasHandle& handle, int32_t n, AsyncValue* alpha,
-                      const GpuBuffer& x, int32_t strideX, const GpuBuffer& y,
-                      int32_t strideY, Attribute<int32_t> executionType,
+static Error BlasAxpy(const GpuBlasHandle& handle, const GpuStream& stream,
+                      int32_t n, AsyncValue* alpha, const GpuBuffer& x,
+                      int32_t strideX, const GpuBuffer& y, int32_t strideY,
+                      Attribute<int32_t> executionType,
                       Attribute<int32_t> typeAlpha, Attribute<int32_t> typeX,
                       Attribute<int32_t> typeY) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
 
   auto type_alpha = wrapper::BlasDataType::FromOpaqueValue(*typeAlpha);
   auto alpha_ptr = GetScalePointer(alpha, type_alpha);
@@ -103,17 +105,20 @@ static wrapper::BlasGemmAlgo BlasGemmAlgo(Attribute<int32_t> algo) {
   return wrapper::BlasGemmAlgo::FromOpaqueValue(*algo);
 }
 
-static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                      int32_t k, AsyncValue* alpha, const GpuBuffer& A,
-                      int32_t heightA, const GpuBuffer& B, int32_t heightB,
-                      AsyncValue* beta, const GpuBuffer& C, int32_t heightC,
-                      wrapper::BlasGemmAlgo algo,
+static Error BlasGemm(const GpuBlasHandle& handle, const GpuStream& stream,
+                      int32_t m, int32_t n, int32_t k, AsyncValue* alpha,
+                      const GpuBuffer& A, int32_t heightA, const GpuBuffer& B,
+                      int32_t heightB, AsyncValue* beta, const GpuBuffer& C,
+                      int32_t heightC, wrapper::BlasGemmAlgo algo,
                       // Needs to be sorted alphabetically by attribute name!
                       Attribute<int32_t> computeType, Attribute<int32_t> transA,
                       Attribute<int32_t> transB, Attribute<int32_t> typeA,
                       Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
   auto alpha_ptr = GetScalePointer(alpha, compute_type);
@@ -131,17 +136,20 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
 }
 
 static Error BlasGemmBatch(
-    const GpuBlasHandle& handle, int32_t m, int32_t n, int32_t k,
-    AsyncValue* alpha, const GpuBuffer& A, int32_t heightA, int64_t strideA,
-    const GpuBuffer& B, int32_t heightB, int64_t strideB, AsyncValue* beta,
-    const GpuBuffer& C, int32_t heightC, int64_t strideC, int32_t batchCount,
-    wrapper::BlasGemmAlgo algo,
+    const GpuBlasHandle& handle, const GpuStream& stream, int32_t m, int32_t n,
+    int32_t k, AsyncValue* alpha, const GpuBuffer& A, int32_t heightA,
+    int64_t strideA, const GpuBuffer& B, int32_t heightB, int64_t strideB,
+    AsyncValue* beta, const GpuBuffer& C, int32_t heightC, int64_t strideC,
+    int32_t batchCount, wrapper::BlasGemmAlgo algo,
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> computeType, Attribute<int32_t> transA,
     Attribute<int32_t> transB, Attribute<int32_t> typeA,
     Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
   auto alpha_ptr = GetScalePointer(alpha, compute_type);
@@ -160,9 +168,9 @@ static Error BlasGemmBatch(
 }
 
 static Error BlasTrsmBatch(
-    const GpuBlasHandle& handle, int32_t m, int32_t n, AsyncValue* alpha,
-    const GpuBuffer& A, int32_t heightA, const GpuBuffer& B, int32_t heightB,
-    int32_t batchCount,
+    const GpuBlasHandle& handle, const GpuStream& stream, int32_t m, int32_t n,
+    AsyncValue* alpha, const GpuBuffer& A, int32_t heightA, const GpuBuffer& B,
+    int32_t heightB, int32_t batchCount,
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> dataType, Attribute<int32_t> diagType,
     Attribute<int32_t> fillMode, Attribute<int32_t> sideMode,
@@ -170,16 +178,19 @@ static Error BlasTrsmBatch(
   // TODO(hanbinyoon): Also support the ROCm function corresponding to
   // cublas<t>trsmBatched.
   auto platform = handle->platform();
-  if (platform != wrapper::Platform::CUDA)
+  if (platform != wrapper::Platform::CUDA && platform != wrapper::Platform::ROCm)
     return MakeStringError("Unsupported platform ", platform);
 
-  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
-  auto alpha_ptr = GetScalePointer(alpha, data_type);
+  rocblas_datatype data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto alpha_ptr = GetScalePointer(alpha, static_cast<wrapper::BlasDataType>(data_type));
   if (!alpha_ptr) return alpha_ptr.takeError();
 
   auto call = [&](auto dummy) {
     auto current = wrapper::CtxSetCurrent(handle.context()->get());
     if (!current) return current.takeError();
+
+    if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+      return error;
 
     using T = decltype(dummy);
     auto pointer_array =
@@ -189,7 +200,7 @@ static Error BlasTrsmBatch(
     const T** a_array = const_cast<const T**>(b_array + batchCount);
 
     auto side_mode = wrapper::BlasSideMode::FromOpaqueValue(*sideMode);
-    ptrdiff_t a_batch_stride = side_mode == CUBLAS_SIDE_LEFT ? m * m : n * n;
+    ptrdiff_t a_batch_stride = (side_mode == rocblas_side_left) ? m * m : n * n;
     ptrdiff_t b_batch_stride = m * n;
     const T* a_ptr = static_cast<const T*>(A.pointer().raw(platform));
     T* b_ptr = static_cast<T*>(B.pointer().raw(platform));
@@ -202,23 +213,24 @@ static Error BlasTrsmBatch(
     wrapper::Pointer<T*> b_array_ptr(b_array, platform);
     auto cast_alpha_ptr = static_cast<wrapper::Pointer<const T>>(*alpha_ptr);
 
-    return wrapper::CublasTrsmBatched(
-        *current, handle.get(), side_mode,
-        wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
-        wrapper::BlasOperation::FromOpaqueValue(*trans),
-        wrapper::BlasDiagType::FromOpaqueValue(*diagType), m, n, cast_alpha_ptr,
-        a_array_ptr, heightA, b_array_ptr, heightB, batchCount);
+    
+    return wrapper::RocblasTrsmBatched(
+         *current, handle.get(), side_mode,
+         wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
+         wrapper::BlasOperation::FromOpaqueValue(*trans),
+         wrapper::BlasDiagType::FromOpaqueValue(*diagType), m, n, cast_alpha_ptr,
+         a_array_ptr, heightA, b_array_ptr, heightB, batchCount);
   };
 
   switch (data_type) {
-    case CUDA_R_32F:
+    case rocblas_datatype_f32_r:
       return call(float{});
-    case CUDA_R_64F:
+    case rocblas_datatype_f64_r:
       return call(double{});
-    case CUDA_C_32F:
-      return call(cuComplex{});
-    case CUDA_C_64F:
-      return call(cuDoubleComplex{});
+    case rocblas_datatype_f32_c:
+      return call(rocblas_float_complex{});
+    case rocblas_datatype_f64_c:
+      return call(rocblas_double_complex{});
     default:
       return MakeStringError("Unsupported data type ", data_type);
   }

@@ -142,7 +142,7 @@ mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 
   // TODO(tfrt-devs): Every type should be properly defined. Remove
   // OpaqueType here once all types are defined in corerrt.
-  return mlir::OpaqueType::get(mlir::Identifier::get("corert", getContext()),
+  return mlir::OpaqueType::get(mlir::StringAttr::get(getContext(), "corert"),
                                data);
 }
 

@@ -1,4 +1,4 @@
-load(":build_defs.bzl", "if_google", "if_oss", "tfrt_cc_library")
+load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library")
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
@@ -328,6 +328,19 @@ tfrt_cc_library(
     ],
 )
 
+# Change the maximum reported tracing levels with:
+# --//third_party/tf_runtime:TFRT_MAX_TRACING_LEVEL=<value>
+make_variable(
+    name = "TFRT_MAX_TRACING_LEVEL",
+    build_setting_default = "Verbose",
+    values = [
+        "None",
+        "Default",
+        "Verbose",
+        "Debug",
+    ],
+)
+
 tfrt_cc_library(
     name = "tracing",
     srcs = [
@@ -337,6 +350,8 @@ tfrt_cc_library(
         "include/tfrt/tracing/tracing.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    defines = ["TFRT_MAX_TRACING_LEVEL=$(TFRT_MAX_TRACING_LEVEL)"],
+    toolchains = [":TFRT_MAX_TRACING_LEVEL"],
     visibility = [":friends"],
     deps = [
         ":support",
@@ -346,34 +361,42 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "simple_tracing_sink",
-    srcs = [
-        "lib/tracing/simple_tracing_sink/simple_tracing_sink.cc",
-    ],
-    hdrs = [
-        "include/tfrt/tracing/simple_tracing_sink/simple_tracing_sink.h",
-    ],
-    alwayslink_static_registration_src =
-        "lib/tracing/simple_tracing_sink/static_registration.cc",
+    srcs = ["lib/tracing/simple_tracing_sink.cc"],
     visibility = [":friends"],
     deps = [
         ":support",
         ":tracing",
         "@llvm-project//llvm:Support",
     ],
+    alwayslink = True,
 )
 
 tfrt_cc_library(
     name = "debug_tracing_sink",
-    srcs = [
-        "lib/tracing/debug_tracing_sink.cc",
-    ],
+    srcs = ["lib/tracing/debug_tracing_sink.cc"],
     visibility = [":friends"],
     deps = [
         ":support",
         ":tracing",
         "@llvm-project//llvm:Support",
     ],
-    alwayslink = 1,
+    alwayslink = True,
+)
+
+tfrt_cc_library(
+    name = "nvtx_tracing_sink",
+    srcs = ["lib/tracing/nvtx_tracing_sink.cc"],
+    hdrs = ["include/tfrt/tracing/nvtx_tracing_sink.h"],
+    visibility = [":friends"],
+    deps = [
+        ":support",
+        ":tracing",
+        "@llvm-project//llvm:Support",
+    ] + if_google(
+        ["@cuda_headers"],
+        ["@nvtx_headers"],
+    ),
+    alwayslink = True,
 )
 
 tfrt_cc_library(
@@ -1637,9 +1660,11 @@ tfrt_cc_library(
         "@llvm-project//mlir:LinalgOps",
         "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:MemRefDialect",
+        "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:StandardOps",
-        "@tf_runtime//backends/cpu:cpurt_opdefs",
-        "@tf_runtime//backends/cpu:rt_opdefs",
+        "@llvm-project//mlir:VectorOps",
+        "@tf_runtime//backends/jitrt:jitrt_opdefs",
+        "@tf_runtime//backends/jitrt:rt_opdefs",
     ],
 )
 

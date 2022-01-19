@@ -16,6 +16,7 @@
 
 #include <chrono>
 #include <future>
+#include <string>
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
@@ -32,89 +33,79 @@ class BenchmarkTracingSink : TracingSink {
  public:
   BenchmarkTracingSink() {
     RegisterTracingSink(this);
-#ifndef TFRT_BM_DISABLE_TRACING_REQUEST
     tfrt::tracing::RequestTracing(true);
-    EXPECT_TRUE(IsTracingEnabled());
-#endif
   }
-  ~BenchmarkTracingSink() override {
-    tfrt::tracing::RequestTracing(false);
-    EXPECT_FALSE(IsTracingEnabled());
-    EXPECT_EQ(num_completed_, num_scopes_ + num_ranges_);
-  }
+  ~BenchmarkTracingSink() override { tfrt::tracing::RequestTracing(false); }
   Error RequestTracing(bool enable) override { return Error::success(); }
 
  public:
-  void RecordTracingEvent(NameGenerator gen_name) override { ++num_events_; }
-  void PushTracingScope(NameGenerator gen_name) override { ++num_scopes_; }
-  void PopTracingScope() override { ++num_completed_; }
+  void RecordTracingEvent(NameGenerator gen_name) override { gen_name(); }
+  void PushTracingScope(NameGenerator gen_name) override { gen_name(); }
+  void PopTracingScope() override {}
 
  private:
-  uint64_t num_events_ = 0;
-  uint64_t num_scopes_ = 0;
-  uint64_t num_ranges_ = 0;
-  uint64_t num_completed_ = 0;
 };
 
-void BM_EmptyLoop(benchmark::State& state) {
+template <typename F>
+static void BenchmarkImpl(benchmark::State& state, F func) {
   BenchmarkTracingSink sink;
-  uint64_t dummy = 0;
   for (auto _ : state) {
-    dummy++;
+    func();
   }
+}
+
+static void BM_EmptyLoop(benchmark::State& state) {
+  BenchmarkImpl(state, [] {});
 }
 BENCHMARK(BM_EmptyLoop);
 
-void BM_TracingEvents(benchmark::State& state) {
-  BenchmarkTracingSink sink;
-  for (auto _ : state) {
-    RecordTracingEvent(TracingLevel::Default, [] { return "event"; });
-  }
-}
-BENCHMARK(BM_TracingEvents);
+static std::string StrName() { return "name"; }
+static std::string StrCatName() { return StrCat("name"); }
 
-void BM_StrCatTracingEvents(benchmark::State& state) {
-  BenchmarkTracingSink sink;
-  for (auto _ : state) {
-    RecordTracingEvent(TracingLevel::Default,
-                       [] { return StrCat("event", ""); });
-  }
+template <TracingLevel level, std::string (*gen_name)()>
+static void RecordEvent() {
+  RecordTracingEvent(level, gen_name);
 }
+
+static void BM_DebugTracingEvents(benchmark::State& state) {
+  BenchmarkImpl(state, RecordEvent<TracingLevel::Debug, StrName>);
+}
+static void BM_VerboseTracingEvents(benchmark::State& state) {
+  BenchmarkImpl(state, RecordEvent<TracingLevel::Verbose, StrName>);
+}
+static void BM_DefaultTracingEvents(benchmark::State& state) {
+  BenchmarkImpl(state, RecordEvent<TracingLevel::Default, StrName>);
+}
+static void BM_StrCatTracingEvents(benchmark::State& state) {
+  BenchmarkImpl(state, RecordEvent<TracingLevel::Default, StrCatName>);
+}
+BENCHMARK(BM_DebugTracingEvents);
+BENCHMARK(BM_VerboseTracingEvents);
+BENCHMARK(BM_DefaultTracingEvents);
 BENCHMARK(BM_StrCatTracingEvents);
 
-void BM_TracingScopes(benchmark::State& state) {
-  BenchmarkTracingSink sink;
-  for (auto _ : state) {
-    TracingScope(TracingLevel::Default, [] { return "scope"; });
-  }
+template <TracingLevel level, std::string (*gen_name)()>
+static void RecordScope() {
+  TracingScope(level, gen_name);
 }
-BENCHMARK(BM_TracingScopes);
 
-void BM_StrCatTracingScopes(benchmark::State& state) {
-  BenchmarkTracingSink sink;
-  for (auto _ : state) {
-    TracingScope(TracingLevel::Default, [&] { return StrCat("scope", ""); });
-  }
+static void BM_DebugTracingScopes(benchmark::State& state) {
+  BenchmarkImpl(state, RecordScope<TracingLevel::Debug, StrName>);
 }
+static void BM_VerboseTracingScopes(benchmark::State& state) {
+  BenchmarkImpl(state, RecordScope<TracingLevel::Verbose, StrName>);
+}
+static void BM_DefaultTracingScopes(benchmark::State& state) {
+  BenchmarkImpl(state, RecordScope<TracingLevel::Default, StrName>);
+}
+static void BM_StrCatTracingScopes(benchmark::State& state) {
+  BenchmarkImpl(state, RecordScope<TracingLevel::Default, StrCatName>);
+}
+BENCHMARK(BM_DebugTracingScopes);
+BENCHMARK(BM_VerboseTracingScopes);
+BENCHMARK(BM_DefaultTracingScopes);
 BENCHMARK(BM_StrCatTracingScopes);
 
-void BM_InactiveTracingEvents(benchmark::State& state) {
-  BenchmarkTracingSink sink;
-  tfrt::tracing::SetTracingLevel(tfrt::tracing::TracingLevel::Default);
-  for (auto _ : state) {
-    TFRT_TRACE_EVENT(Debug, "event");
-  }
-}
-BENCHMARK(BM_InactiveTracingEvents);
-
-void BM_InactiveTracingScopes(benchmark::State& state) {
-  BenchmarkTracingSink sink;
-  tfrt::tracing::SetTracingLevel(tfrt::tracing::TracingLevel::Default);
-  for (auto _ : state) {
-    TFRT_TRACE_SCOPE(Debug, "scope");
-  }
-}
-BENCHMARK(BM_InactiveTracingScopes);
 }  // namespace
 }  // namespace tracing
 }  // namespace tfrt

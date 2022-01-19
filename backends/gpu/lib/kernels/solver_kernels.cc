@@ -31,25 +31,26 @@ namespace tfrt {
 namespace gpu {
 
 static llvm::Expected<GpuSolverHandle> SolverCreate(
-    Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context()->get());
+    Argument<GpuContext> context) {
+  auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
   auto handle = wrapper::SolverCreate(current->platform());
   if (!handle) return handle.takeError();
-  if (auto error = wrapper::SolverSetStream(handle->get(), stream->get()))
-    return std::move(error);
-  return GpuSolverHandle(stream.ValueRef(), std::move(*handle));
+  return GpuSolverHandle(context.ValueRef(), std::move(*handle));
 }
 
 static llvm::Expected<int64_t> SolverPotrfBufferSize(
-    const GpuSolverHandle& handle, int32_t n, int32_t stride,
-    Attribute<int32_t> dataType, Attribute<int32_t> fillMode) {
+    const GpuSolverHandle& handle, const GpuStream& stream, int32_t n,
+    int32_t stride, Attribute<int32_t> dataType, Attribute<int32_t> fillMode) {
   auto platform = handle->platform();
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::SolverSetStream(handle.get(), stream.get()))
+    return std::move(error);
 
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
@@ -75,8 +76,8 @@ static llvm::Expected<int64_t> SolverPotrfBufferSize(
   }
 }
 
-static Error SolverPotrf(const GpuSolverHandle& handle, int32_t n,
-                         const GpuBuffer& buffer, int32_t stride,
+static Error SolverPotrf(const GpuSolverHandle& handle, const GpuStream& stream,
+                         int32_t n, const GpuBuffer& buffer, int32_t stride,
                          const GpuBuffer& workspace, const GpuBuffer& devInfo,
                          Attribute<int32_t> dataType,
                          Attribute<int32_t> fillMode) {
@@ -91,6 +92,9 @@ static Error SolverPotrf(const GpuSolverHandle& handle, int32_t n,
 
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
+
+  if (auto error = wrapper::SolverSetStream(handle.get(), stream.get()))
+    return error;
 
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
@@ -118,7 +122,8 @@ static Error SolverPotrf(const GpuSolverHandle& handle, int32_t n,
   }
 }
 
-static Error SolverPotrfBatch(const GpuSolverHandle& handle, int32_t n,
+static Error SolverPotrfBatch(const GpuSolverHandle& handle,
+                              const GpuStream& stream, int32_t n,
                               const GpuBuffer& buffer, int32_t stride,
                               const GpuBuffer& devInfo, int32_t batch_size,
                               Attribute<int32_t> dataType,
@@ -136,6 +141,9 @@ static Error SolverPotrfBatch(const GpuSolverHandle& handle, int32_t n,
   auto call = [&](auto dummy) {
     auto current = wrapper::CtxSetCurrent(handle.context()->get());
     if (!current) return current.takeError();
+
+    if (auto error = wrapper::SolverSetStream(handle.get(), stream.get()))
+      return error;
 
     using T = decltype(dummy);
     auto pointer_array =

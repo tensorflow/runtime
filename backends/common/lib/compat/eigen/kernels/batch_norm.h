@@ -72,7 +72,7 @@ static AsyncValueRef<Chain> FusedBatchNormV3Impl(
   depth_by_one.set(0, depth);
 
   // Reshape and broadcast vectors of [depth] to [rest_size, depth] tensor.
-  auto to_rest_by_depth = [&](const auto& vec) -> auto {
+  auto to_rest_by_depth = [&](const auto& vec) {
     return vec.reshape(one_by_depth).broadcast(rest_by_one);
   };
 

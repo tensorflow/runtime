@@ -21,17 +21,19 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
-#include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
+#include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/Dialect/Vector/VectorOps.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
-#include "tfrt/cpu/jit/opdefs/cpurt_ops.h"
-#include "tfrt/cpu/jit/opdefs/rt_ops.h"
 #include "tfrt/data/opdefs/data_ops.h"
 #include "tfrt/distributed_runtime/opdefs/kernels.h"
+#include "tfrt/jitrt/opdefs/jitrt_ops.h"
+#include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/tensor/opdefs/coo_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor_sync.h"
@@ -46,7 +48,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<compiler::TFRTDialect>();
   registry.insert<corert::CoreRTDialect>();
   registry.insert<corert_sync::CoreRTSyncDialect>();
-  registry.insert<cpu::jit::CpuRuntimeDialect>();
+  registry.insert<jitrt::JitRuntimeDialect>();
   registry.insert<data::DataDialect>();
   registry.insert<ts::TensorShapeDialect>();
   registry.insert<dht::DenseHostTensorDialect>();
@@ -59,12 +61,14 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
 }
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
-  registry.insert<cpu::jit::RuntimeDialect>();
+  registry.insert<jitrt::RuntimeDialect>();
   registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect>();
   registry.insert<mlir::async::AsyncDialect>();
   registry.insert<mlir::linalg::LinalgDialect>();
   registry.insert<mlir::math::MathDialect>();
   registry.insert<mlir::memref::MemRefDialect>();
+  registry.insert<mlir::vector::VectorDialect>();
+  registry.insert<mlir::scf::SCFDialect>();
 }
 
 }  // namespace tfrt

@@ -16,11 +16,11 @@
 
 #include "tfrt/gpu/device/gpu_config.h"
 
+#include <functional>
 #include <unordered_map>
 
 #include "llvm/ADT/Optional.h"
 #include "tfrt/gpu/memory/bfc_gpu_allocator.h"
-#include "tfrt/gpu/wrapper/hash_utils.h"
 #include "tfrt/support/mutex.h"
 
 namespace tfrt {
@@ -47,8 +47,21 @@ class GpuResourcesMap {
   }
 
  private:
+  struct DeviceHash {
+    // Algorithm of boost::hash_combine
+    static std::size_t HashCombine(std::size_t x, std::size_t y) {
+      return x + 0x9e3779b9 + (y << 6) + (y >> 2);
+    }
+    std::size_t operator()(const wrapper::Device& device) const {
+      auto platform = device.platform();
+      auto id = device.id(platform);
+      std::hash<int> hash;
+      return HashCombine(hash(id), hash(static_cast<int>(platform)));
+    }
+  };
+
   mutable mutex mu_;
-  std::unordered_map<wrapper::Device, GpuResources> map_;
+  std::unordered_map<wrapper::Device, GpuResources, DeviceHash> map_;
 };
 
 }  // namespace

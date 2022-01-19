@@ -14,32 +14,29 @@
  * limitations under the License.
  */
 
-// Defines DenseMapInfo specializations
-//
-// Defines specializations for llvm::DenseMapInfo. This allows some gpu::stream
-// classes to be used as keys in llvm::DenseMap.
+// Defines llvm::DenseMapInfo specializations for tfrt::gpu::wrapper::Resource.
+
 #ifndef TFRT_GPU_WRAPPER_DENSE_MAP_UTILS_H_
 #define TFRT_GPU_WRAPPER_DENSE_MAP_UTILS_H_
 
 #include "llvm/ADT/DenseMapInfo.h"
-#include "tfrt/gpu/wrapper/hash_utils.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace llvm {
 
-template <>
-struct DenseMapInfo<tfrt::gpu::wrapper::Stream> {
-  using Stream = tfrt::gpu::wrapper::Stream;
-  static inline Stream getEmptyKey() {
-    return Stream(DenseMapInfo<void*>::getEmptyKey());
+template <typename CudaT, typename HipT>
+struct DenseMapInfo<tfrt::gpu::wrapper::Resource<CudaT, HipT>> {
+  using Resource = tfrt::gpu::wrapper::Resource<CudaT, HipT>;
+  static inline Resource getEmptyKey() {
+    return Resource(DenseMapInfo<void*>::getEmptyKey());
   }
-  static inline Stream getTombstoneKey() {
-    return Stream(DenseMapInfo<void*>::getTombstoneKey());
+  static inline Resource getTombstoneKey() {
+    return Resource(DenseMapInfo<void*>::getTombstoneKey());
   }
-  static unsigned getHashValue(const Stream& stream) {
-    return std::hash<Stream>{}(stream);
+  static unsigned getHashValue(const Resource& resource) {
+    return static_cast<unsigned>(hash(resource));
   }
-  static bool isEqual(const Stream& lhs, const Stream& rhs) {
+  static bool isEqual(const Resource& lhs, const Resource& rhs) {
     return lhs == rhs;
   }
 };

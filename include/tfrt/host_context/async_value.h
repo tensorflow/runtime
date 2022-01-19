@@ -28,6 +28,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <type_traits>
 
@@ -619,7 +620,8 @@ class ConcreteAsyncValue : public AsyncValue {
   // Data and error layout when the payload inherits from
   // KeepAsyncValuePayloadOnError. This type does to destruct the payload value
   // on error. It may keep both data and error alive at the same time.
-  struct DataAndError {
+  class DataAndError {
+   public:
     explicit DataAndError(DecodedDiagnostic diag) { SetError(diag); }
 
     template <typename... Args>
@@ -628,44 +630,38 @@ class ConcreteAsyncValue : public AsyncValue {
     }
 
     void Destroy(State s) {
-      delete error_and_has_data_.getPointer();
-
       if (HasData()) data().~T();
-      error_and_has_data_.setPointerAndInt(nullptr, false);
+      error_.reset();
+      has_data_ = false;
     }
 
     void SetError(State s, DecodedDiagnostic diag) {
-      assert(!HasError());
-      error_and_has_data_.setPointer(new DecodedDiagnostic(std::move(diag)));
+      assert(!error_);
+      error_ = std::make_unique<DecodedDiagnostic>(std::move(diag));
     }
 
     template <typename... Args>
     void EmplaceData(Args&&... args) {
       assert(!HasData());
       new (&data_) T(std::forward<Args>(args)...);
-      error_and_has_data_.setInt(true);
+      has_data_ = true;
     }
 
     T& data() { return *reinterpret_cast<T*>(&data_); }
     const T& data() const { return *reinterpret_cast<const T*>(&data_); }
 
-    bool HasData(State s) const { return HasData(); }
-    bool HasData() const { return error_and_has_data_.getInt(); }
-    bool HasError() const {
-      return error_and_has_data_.getPointer() != nullptr;
-    }
-    const DecodedDiagnostic& error() const {
-      return *error_and_has_data_.getPointer();
-    }
-    DecodedDiagnostic& error() { return *error_and_has_data_.getPointer(); }
+    bool HasData(State s) const { return has_data_; }
+    bool HasData() const { return has_data_; }
+    const DecodedDiagnostic& error() const { return *error_; }
+    DecodedDiagnostic& error() { return *error_; }
 
    private:
     friend class ConcreteAsyncValue;
     using StorageT = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
-    using ErrorPtrAndBool = llvm::PointerIntPair<DecodedDiagnostic*, 1, bool>;
 
     StorageT data_;
-    ErrorPtrAndBool error_and_has_data_;
+    bool has_data_ = false;
+    std::unique_ptr<DecodedDiagnostic> error_;
   };
 
   using DataStoreT = std::conditional_t<
@@ -856,7 +852,9 @@ const T& AsyncValue::get() const {
       return GetConcreteValue<T>();
     case Kind::kIndirect:
       TFRT_DLOG_IF(FATAL, s != State::kConcrete)
-          << "Cannot call get() when IndirectAsyncValue isn't ok; state: " << s;
+          << "Cannot call get() when IndirectAsyncValue isn't concrete; state: "
+          << s
+          << ", error message: " << (IsError() ? StrCat(GetError()) : "None");
       auto* iv_value = cast<IndirectAsyncValue>(this)->value_;
       assert(iv_value && "Indirect value not resolved");
       return iv_value->get<T>();

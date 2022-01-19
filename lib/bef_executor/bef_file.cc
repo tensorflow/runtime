@@ -225,7 +225,7 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
   size_t num_kernels;
   if (!reader.ReadVbrInt(&num_kernels)) return format_error();
 
-#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+#if defined(TFRT_BEF_EXECUTOR_DEBUG)
   bef_file_->kernel_names_.reserve(num_kernels);
 #endif
 
@@ -244,7 +244,7 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
     const char* kernel_name = reinterpret_cast<const char*>(
         &bef_file_->string_section_[kernel_name_offset]);
 
-#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+#if defined(TFRT_BEF_EXECUTOR_DEBUG)
     bef_file_->kernel_names_.push_back(kernel_name);
 #endif
 
@@ -571,12 +571,14 @@ Optional<DebugInfo> BEFFileImpl::GetDebugInfo(size_t location_position_offset) {
   return GetDebugInfoFromBefLocation(location_strings_section_, loc);
 }
 
-#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
 const char* BEFFileImpl::GetKernelName(size_t kernel_id) const {
+#if defined(TFRT_BEF_EXECUTOR_DEBUG)
   return (kernel_id >= kernel_names_.size()) ? "(invalid kernel_id)"
                                              : kernel_names_[kernel_id];
-}
+#else
+  return "unknown";
 #endif
+}
 
 // Read a list of function names out of the BEF file function index.
 void BEFFile::GetFunctionList(SmallVectorImpl<const Function*>* results) const {

@@ -26,8 +26,8 @@
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm_derived/Support/raw_ostream.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/Identifier.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/FileUtilities.h"
@@ -100,7 +100,7 @@ int RunBefExecutor(
                                        file_loc.line, file_loc.column);
     };
     return mlir::NameLoc::get(
-        mlir::Identifier::get(loc->get<OpaqueLocation>().loc, &context));
+        mlir::StringAttr::get(&context, loc->get<OpaqueLocation>().loc));
   };
 
   auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {

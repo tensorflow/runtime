@@ -17,7 +17,9 @@
 #ifndef THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_PIPELINE_H_
 #define THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_PIPELINE_H_
 
-#include "mlir/Pass/PassManager.h"
+namespace mlir {
+class PassManager;
+}  // namespace mlir
 
 namespace tfrt {
 namespace jitrt {

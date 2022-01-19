@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <numeric>
@@ -987,32 +988,28 @@ static void SetupPassDebugging(mlir::MLIRContext* context,
   }
 }
 
-// Runs the custom pipeline that lowers loaded module to dialects supported by
-// the JitRT (Linalg on buffers).
-static mlir::LogicalResult LowerToJitrt(mlir::ModuleOp module,
-                                        const CompilationOptions& opts) {
-  if (!opts.register_compilation_pipeline) return mlir::success();
+static mlir::LogicalResult RunPipeline(
+    mlir::ModuleOp module,
+    const std::function<void(mlir::PassManager&)>& register_pipeline) {
+  if (!register_pipeline) return mlir::success();
 
   mlir::PassManager pm(module.getContext());
   SetupPassDebugging(module.getContext(), pm);
-  opts.register_compilation_pipeline(pm);
+  register_pipeline(pm);
+
   return pm.run(module);
 }
 
-// Runs the pipeline to lower kernel IR to LLVM dialect.
-static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
-                                       const CompilationOptions& opts) {
-  mlir::PassManager pm(module.getContext());
-  SetupPassDebugging(module.getContext(), pm);
+// Runs the user-provided compilation pipeline to compile the module to LLVM.
+static mlir::LogicalResult RunCompilationPipeline(
+    mlir::ModuleOp module, const CompilationOptions& opts) {
+  return RunPipeline(module, opts.register_compilation_pipeline);
+}
 
-  CompilationPipelineOptions copts;
-  copts.alignment = opts.alignment;
-  copts.num_worker_threads = opts.num_worker_threads;
-  copts.cost_driven_async_parallel_for = opts.cost_driven_async_parallel_for;
-  copts.math_avx2 = opts.math_avx2;
-  RegisterDefaultJitRtCompilationPipeline(pm, copts);
-
-  return pm.run(module);
+// Runs the user-provided specialization pipeline.
+static mlir::LogicalResult RunSpecializationPipeline(
+    mlir::ModuleOp module, const CompilationOptions& opts) {
+  return RunPipeline(module, opts.register_specialization_pipeline);
 }
 
 //----------------------------------------------------------------------------//
@@ -1192,13 +1189,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto unit_attr = mlir::UnitAttr::get(entry_func.getContext());
   entry_func->setAttr(kJitRtEntrypointAttrName, unit_attr);
 
-  // Lower loaded module to dialects supported by the JitRT to LLVM pipeline.
-  if (failed(LowerToJitrt(ctx->module(), ctx->options())))
-    return ctx->Error("failed to lower module to JitRT dialects");
-
-  // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
-  if (failed(LowerToLlvm(ctx->module(), ctx->options())))
-    return ctx->Error("failed to lower module to LLVM");
+  // Run the compilation pipeline to lower the module to LLVM dialect.
+  if (failed(RunCompilationPipeline(ctx->module(), ctx->options())))
+    return ctx->Error("failed to run compilation pipeline");
 
   // Prepare JIT target machine for code generation.
   auto builder = llvm::orc::JITTargetMachineBuilder::detectHost();
@@ -1406,13 +1399,8 @@ llvm::Error JitCompilationContext::Specialize(
 
   // Run the user-provided specialization pipeline to take advantage of the
   // specialized operands and sunk constants.
-  if (opts_.register_specialization_pipeline) {
-    mlir::PassManager pm(ctx);
-    SetupPassDebugging(ctx, pm);
-    opts_.register_specialization_pipeline(pm);
-    if (failed(pm.run(*module_)))
-      return Error("failed to run specialization pipeline");
-  }
+  if (failed(RunSpecializationPipeline(*module_, opts_)))
+    return Error("failed to run specialization pipeline");
 
   return Error::success();
 }

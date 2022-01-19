@@ -35,6 +35,7 @@
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/jitrt_pipeline.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/rc_array.h"
@@ -78,8 +79,13 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
   // Compile kernel asynchronously in the host context thread pool.
   EnqueueWork(exec_ctx, [kernel, host, ref = entry.ptr.CopyRef()]() {
+    CompilationPipelineOptions copts;
+    copts.num_worker_threads = host->GetNumWorkerThreads();
+
     CompilationOptions opts;
-    opts.num_worker_threads = host->GetNumWorkerThreads();
+    opts.register_compilation_pipeline = [copts](mlir::PassManager& pm) {
+      RegisterDefaultJitRtCompilationPipeline(pm, copts);
+    };
 
     string_view entrypoint = kernel.nested_symbols()[0];
     string_view module = kernel.serialized_operation();

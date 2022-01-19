@@ -37,30 +37,15 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
-#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
-#include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
-#include "mlir/Conversion/LLVMCommon/LoweringOptions.h"
-#include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
-#include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
-#include "mlir/Conversion/MathToLibm/MathToLibm.h"
-#include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
-#include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
-#include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
-#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
-#include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
 #include "mlir/Dialect/Async/IR/Async.h"
-#include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
-#include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/Dialect/StandardOps/Transforms/Passes.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tensor/IR/TensorInferTypeOpInterfaceImpl.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
@@ -70,7 +55,6 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser.h"
-#include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/Dialect/AMX/AMXToLLVMIRTranslation.h"
@@ -79,19 +63,15 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Transforms/Passes.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
-#include "tfrt/jitrt/conversion/rt_passes.h"
-#include "tfrt/jitrt/opdefs/rt_ops.h"
+#include "tfrt/jitrt/jitrt_pipeline.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/support.h"
-#include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
@@ -1025,74 +1005,12 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   mlir::PassManager pm(module.getContext());
   SetupPassDebugging(module.getContext(), pm);
 
-  pm.addPass(mlir::createInlinerPass());
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
-
-  // Optimize operations from the math dialect before outlining compute regions
-  // into functions to see all constant operands.
-  pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass(opts.math_avx2));
-
-  // Convert all linalg operations to parallel loops.
-  pm.addNestedPass<mlir::FuncOp>(
-      mlir::createConvertLinalgToParallelLoopsPass());
-  // Canonicalize generated scf.parallel operations to remove single iterations.
-  pm.addPass(mlir::createCanonicalizerPass());
-
-  // Convert scf.parallel operations into async work sharding loops.
-  if (opts.num_worker_threads > 1) {
-    pm.addPass(CreateCostDrivenAsyncParallelForPass(
-        /*asyncDispatch=*/false, /*numWorkerThreads=*/opts.num_worker_threads,
-        /*legacyBehavior=*/!opts.cost_driven_async_parallel_for));
-
-    // Run canonicalization after async-parallel-for pass to remove async
-    // operations that are not needed for executing small and cheap loops.
-    pm.addPass(mlir::createCanonicalizerPass());
-
-    // Cleanup unused async work dispatch functions after canonicalization.
-    pm.addPass(mlir::createSymbolDCEPass());
-  }
-
-  // Lower from high level async operations to async runtime.
-  pm.addPass(mlir::createAsyncToAsyncRuntimePass());
-
-  // Add async.runtime reference counting operations.
-  pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
-
-  // Expand math operations into std/arith dialect operations.
-  pm.addNestedPass<mlir::FuncOp>(mlir::arith::createArithmeticExpandOpsPass());
-  pm.addNestedPass<mlir::FuncOp>(mlir::createStdExpandOpsPass());
-
-  // Add alignment attribute to all memref allocations.
-  pm.addNestedPass<mlir::FuncOp>(CreateAlignedAllocationsPass(opts.alignment));
-
-  // Lower everything down to LLVM dialect.
-  pm.addPass(mlir::createConvertLinalgToLLVMPass());
-  pm.addPass(mlir::createConvertAsyncToLLVMPass());
-  pm.addPass(mlir::createLowerAffinePass());
-  pm.addPass(mlir::createLowerToCFGPass());
-
-  // Convert the entrypoint function to a kernel function (all results and
-  // errors returned via the runtime API calls).
-  pm.addPass(CreateConvertToKernelFunction());
-  pm.addPass(CreateConvertRuntimeToLLVMPass());
-
-  {
-    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
-    fpm.addPass(mlir::createConvertMathToLLVMPass());
-  }
-
-  pm.addPass(mlir::createConvertMathToLibmPass());
-
-  mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
-  if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
-  pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
-  pm.addPass(mlir::createMemRefToLLVMPass());
-
-  mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
-  pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
-
-  pm.addPass(mlir::createReconcileUnrealizedCastsPass());
+  CompilationPipelineOptions copts;
+  copts.alignment = opts.alignment;
+  copts.num_worker_threads = opts.num_worker_threads;
+  copts.cost_driven_async_parallel_for = opts.cost_driven_async_parallel_for;
+  copts.math_avx2 = opts.math_avx2;
+  RegisterDefaultJitRtCompilationPipeline(pm, copts);
 
   return pm.run(module);
 }
@@ -1177,6 +1095,9 @@ class JitCompilationContext {
 static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
     const CompilationOptions& opts) {
   mlir::DialectRegistry registry;
+
+  // TODO(b/210116436): Dialects and translation registration should be
+  // controlled by the `opts.register_dialects` similar to passes.
 
   // Register MLIR dialects supported by the compiled kernels.
   registry.insert<mlir::AffineDialect, mlir::arith::ArithmeticDialect,

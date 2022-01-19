@@ -215,17 +215,17 @@ struct CompilationOptions {
   // Original input module might have an undefined calling convention (e.g.
   // JitRt does not support unranked tensors), and specialization can be
   // required as a precondition for compilation.
-  std::function<void(mlir::OpPassManager&)> register_specialization_pipeline;
+  std::function<void(mlir::PassManager&)> register_specialization_pipeline;
 
-  // TODO(b/210116436): Compilation pipeline must lower module down to LLVM
-  // dialect. Update documentation to include requirements for this pipeline to
-  // include passes that connect compiled functions with the runtime.
-  //
   // Register a pass pipeline that lowers compiled module from high level
-  // dialects to the dialects supported by the JITRT lowering to LLVM. In the
-  // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
-  // the Linalg on buffers via the MHLO->Linalg lowering.
-  std::function<void(mlir::OpPassManager&)> register_compilation_pipeline;
+  // dialects to the LLVM dialect. JitRt will use the LLVM ORC compiler API
+  // to compile the LLVM module at run time (https://llvm.org/docs/ORCv2.html).
+  //
+  // This compilation pipeline must create the entrypoint function with an ABI
+  // compatible with the calling convention advertised to the JitRt through the
+  // `calling_convention` type conversion, and for that it usually must include
+  // `rt-to-kernel-function` pass to convert regular functions to "kernels".
+  std::function<void(mlir::PassManager&)> register_compilation_pipeline;
 
   // Calling convention converts the compiled module entrypoint function type to
   // the function type with a well defined ABI (e.g. tensors do not have an ABI,

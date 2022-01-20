@@ -202,8 +202,8 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "jitrt_kernels",
-    srcs = ["lib/jitrt_kernels.cc"],
-    alwayslink_static_registration_src = "lib/jitrt_kernels_registration.cc",
+    srcs = ["lib/kernels/jitrt_kernels.cc"],
+    alwayslink_static_registration_src = "lib/kernels/jitrt_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":jitrt",
@@ -217,8 +217,8 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "jitrt_corert_kernels",
-    srcs = ["lib/jitrt_corert_kernels.cc"],
-    alwayslink_static_registration_src = "lib/jitrt_corert_kernels_registration.cc",
+    srcs = ["lib/kernels/jitrt_corert_kernels.cc"],
+    alwayslink_static_registration_src = "lib/kernels/jitrt_corert_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":jitrt",

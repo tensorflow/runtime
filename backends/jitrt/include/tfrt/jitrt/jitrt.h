@@ -44,6 +44,7 @@
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
+#include "tfrt/jitrt/constraints.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"
 
@@ -1112,32 +1113,6 @@ class Executable {
 // JitExecutable to manage multiple compiled executables.
 //----------------------------------------------------------------------------//
 
-// Constraints on what operand information must be available at compile time in
-// order to successfully compile the executable:
-//
-//   `rank`  : operand must have statically known rank.
-//   `shape` : operand must have statically known shape.
-//   `value` : operand must have statically known value, and such operands
-//             replaced with constants inside the compiled function body and
-//             removed from the compiled function signature.
-//
-// If JitExecutable entrypoint function signature can't resolve all operands
-// constraints, then default executable will not be available, and the client
-// must compile a specialized version for the given operands at runtime.
-enum class OperandConstraint {
-  // Constraint was resolved based on the static information in the function
-  // signature type or it was never specified by the operand attribute.
-  kResolved = 0,
-  kRank = 1,
-  kShape = 2,
-  kValue = 3
-};
-
-// Resolve operand constraint based on the operand type, if constraint is fully
-// satisfied by the type, returns `kResolved`.
-Expected<OperandConstraint> ResolveOperandConstraint(
-    OperandConstraint operand_constraint, mlir::Type operand_type);
-
 // Symbolic shapes resolver computes the symbolic shapes of the operands based
 // on the function signature, and concrete shapes of the operands at runtime.
 //
@@ -1203,8 +1178,6 @@ class SymbolicShapesResolver {
 class JitExecutable {
  public:
   struct Listener;
-
-  static constexpr const char* const kConstraint = "jitrt.constraint";
 
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates

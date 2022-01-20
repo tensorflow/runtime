@@ -125,6 +125,7 @@ tfrt_cc_library(
     deps = [
         ":async_runtime",
         ":async_runtime_api",
+        ":constraints",
         ":rt_transforms",
         ":support",
         "@llvm-project//llvm:OrcJIT",
@@ -187,6 +188,20 @@ tfrt_cc_library(
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:VectorToLLVM",
         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
+    ],
+)
+
+tfrt_cc_library(
+    name = "constraints",
+    srcs = ["lib/constraints.cc"],
+    hdrs = ["include/tfrt/jitrt/constraints.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@tf_runtime//:support",
     ],
 )
 

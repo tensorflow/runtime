@@ -55,6 +55,7 @@
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
+#include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
@@ -1378,117 +1379,6 @@ llvm::Error JitCompilationContext::Specialize(
 }
 
 //----------------------------------------------------------------------------//
-// Resolving JitExecutable OperandConstraint.
-//----------------------------------------------------------------------------//
-
-using Specialization = CompilationOptions::Specialization;
-
-constexpr const char* const JitExecutable::kConstraint;
-
-static raw_ostream& operator<<(raw_ostream& os,
-                               const OperandConstraint& constraint) {
-  auto str = [](OperandConstraint constraint) -> string_view {
-    switch (constraint) {
-      case OperandConstraint::kResolved:
-        return "resolved";
-      case OperandConstraint::kRank:
-        return "rank";
-      case OperandConstraint::kShape:
-        return "shape";
-      case OperandConstraint::kValue:
-        return "value";
-      default:
-        llvm_unreachable("unknown operand constraint");
-    }
-  };
-
-  os << str(constraint);
-  return os;
-}
-
-static raw_ostream& operator<<(raw_ostream& os,
-                               ArrayRef<OperandConstraint> constraints) {
-  os << "[";
-  llvm::interleaveComma(constraints, os);
-  os << "]";
-  return os;
-}
-
-// Returns kResolved if the constraint can be resolved at compile time.
-// Returns kValue for value specialization if it can be resolved at run time.
-// Returns an error when the constraint cannot be resolved.
-Expected<OperandConstraint> ResolveOperandConstraint(
-    OperandConstraint operand_constraint, mlir::Type operand_type) {
-  // Operand must be a shaped type: memref or tensor.
-  auto shaped = operand_type.dyn_cast<mlir::ShapedType>();
-  if (!shaped)
-    return MakeStringError("unsupported operand type: ", operand_type);
-
-  // Resolve `rank` constraint if rank is known at compile time.
-  if (operand_constraint == OperandConstraint::kRank && shaped.hasRank())
-    return OperandConstraint::kResolved;
-
-  // Resolve `shape` constraint if shape is known at compile time.
-  if (operand_constraint == OperandConstraint::kShape &&
-      shaped.hasStaticShape())
-    return OperandConstraint::kResolved;
-
-  // Leave the `value` constraint unmodified if the operand is sinkable.
-  if (operand_constraint == OperandConstraint::kValue) {
-    if (SupportsValueSpecialization(shaped)) return operand_constraint;
-    return MakeStringError("Cannot sink operand type: ", operand_type);
-  }
-
-  return operand_constraint;
-}
-
-static Expected<OperandConstraint> ParseOperandConstraints(string_view str) {
-  if (str == "rank") return OperandConstraint::kRank;
-  if (str == "shape") return OperandConstraint::kShape;
-  if (str == "value") return OperandConstraint::kValue;
-  return MakeStringError("unknown operand constraint: ", str);
-}
-
-// Returns operands constraints inferred from the entrypoint signature.
-static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
-    mlir::FuncOp func) {
-  llvm::SmallVector<OperandConstraint> constraints;
-
-  auto parse = [](mlir::Attribute attr) -> Expected<OperandConstraint> {
-    // If attribute is not defined it means that there is no operand constraint.
-    if (!attr) return OperandConstraint::kResolved;
-
-    // Otherwise try to parse constraint from the string attribute.
-    auto str = attr.dyn_cast_or_null<mlir::StringAttr>();
-    if (!str)
-      return MakeStringError("unexpected ", JitExecutable::kConstraint,
-                             " attribute");
-    return ParseOperandConstraints(str.getValue());
-  };
-
-  for (int i = 0; i < func.getNumArguments(); ++i) {
-    auto operand_type = func.getType().getInput(i);
-
-    auto constraint = parse(func.getArgAttr(i, JitExecutable::kConstraint));
-    if (auto err = constraint.takeError()) return std::move(err);
-
-    auto resolved = ResolveOperandConstraint(*constraint, operand_type);
-    if (auto err = resolved.takeError()) return std::move(err);
-
-    constraints.push_back(*resolved);
-  }
-
-  return constraints;
-}
-
-// Returns true if any of the operands have an unresolved constraint.
-static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
-  return llvm::any_of(constraints, [](OperandConstraint constraint) {
-    return constraint != OperandConstraint::kResolved;
-  });
-}
-
-//----------------------------------------------------------------------------//
 // SymbolicShapesResolver implementation.
 //----------------------------------------------------------------------------//
 
@@ -1633,6 +1523,14 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
 //----------------------------------------------------------------------------//
 // JitExecutable implementation.
 //----------------------------------------------------------------------------//
+
+using Specialization = CompilationOptions::Specialization;
+
+static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
+  return llvm::any_of(constraints, [](OperandConstraint constraint) {
+    return constraint != OperandConstraint::kResolved;
+  });
+}
 
 /*static*/ void JitExecutable::DefaultCompilationTaskRunner(
     size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,

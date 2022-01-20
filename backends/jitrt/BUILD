@@ -128,10 +128,10 @@ tfrt_cc_library(
         ":constraints",
         ":rt_transforms",
         ":support",
+        ":types",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
-        "@llvm-project//mlir:Async",
         "@llvm-project//mlir:ExecutionEngine",
         "@llvm-project//mlir:ExecutionEngineUtils",
         "@llvm-project//mlir:IR",
@@ -201,6 +201,22 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "types",
+    srcs = ["lib/types.cc"],
+    hdrs = ["include/tfrt/jitrt/types.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":rt_opdefs",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:IR",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:support",
     ],
 )

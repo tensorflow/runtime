@@ -35,7 +35,7 @@
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/jitrt/jitrt.h"
-#include "tfrt/jitrt/jitrt_pipeline.h"
+#include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/rc_array.h"

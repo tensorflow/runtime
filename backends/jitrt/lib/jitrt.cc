@@ -38,18 +38,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Async/IR/Async.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
-#include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/SCF/SCF.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Tensor/IR/TensorInferTypeOpInterfaceImpl.h"
-#include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -58,11 +47,6 @@
 #include "mlir/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Target/LLVMIR/Dialect/AMX/AMXToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Dialect/ArmNeon/ArmNeonToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Dialect/ArmSVE/ArmSVEToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -70,7 +54,7 @@
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
-#include "tfrt/jitrt/jitrt_pipeline.h"
+#include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
@@ -1093,26 +1077,7 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
     const CompilationOptions& opts) {
   mlir::DialectRegistry registry;
 
-  // TODO(b/210116436): Dialects and translation registration should be
-  // controlled by the `opts.register_dialects` similar to passes.
-
-  // Register MLIR dialects supported by the compiled kernels.
-  registry.insert<mlir::AffineDialect, mlir::arith::ArithmeticDialect,
-                  mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
-                  mlir::math::MathDialect, mlir::memref::MemRefDialect,
-                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::tensor::TensorDialect, mlir::vector::VectorDialect,
-                  RuntimeDialect>();
-
-  // Register MLIR dialects that can be translated to LLVM IR.
-  mlir::registerArmNeonDialectTranslation(registry);
-  mlir::registerAMXDialectTranslation(registry);
-  mlir::registerArmSVEDialectTranslation(registry);
-  mlir::registerLLVMDialectTranslation(registry);
-  mlir::registerX86VectorDialectTranslation(registry);
-
-  // Register other information needed for passes.
-  mlir::tensor::registerInferTypeOpInterfaceExternalModels(registry);
+  RegisterDefaultJitRtDialects(registry);
 
   // Register additional dialects provided via compilation options.
   if (opts.register_dialects) opts.register_dialects(registry);

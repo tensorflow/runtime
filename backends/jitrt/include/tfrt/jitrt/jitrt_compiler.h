@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_PIPELINE_H_
-#define THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_PIPELINE_H_
+#ifndef THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_COMPILER_H_
+#define THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_COMPILER_H_
 
 namespace mlir {
+class DialectRegistry;
 class PassManager;
 }  // namespace mlir
 
 namespace tfrt {
 namespace jitrt {
+
+// Register dialects, interfaces and dialects translations with the registry
+// required by the default JitRt compilation pipeline.
+void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry);
 
 struct CompilationPipelineOptions {
   // Byte alignment for allocated memrefs. Depending on the compiler flags
@@ -64,4 +69,4 @@ void RegisterDefaultJitRtCompilationPipeline(
 }  // namespace jitrt
 }  // namespace tfrt
 
-#endif  // THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_PIPELINE_H_
+#endif  // THIRD_PARTY_TF_RUNTIME_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_COMPILER_H_

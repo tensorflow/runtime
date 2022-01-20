@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-//===- jitrt_pipeline.cc - ------------------------------------------------===//
-// Default JitRt compilation pipeline for lowering from Linalg to LLVM.
+//===- jitrt_compiler.cc - ------------------------------------------------===//
+// Reference JitRt compiler for lowering from Linalg to LLVM.
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/jitrt/jitrt_pipeline.h"
+#include "tfrt/jitrt/jitrt_compiler.h"
 
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
@@ -35,7 +35,13 @@
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
+#include "mlir/Dialect/Tensor/IR/TensorInferTypeOpInterfaceImpl.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Target/LLVMIR/Dialect/AMX/AMXToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/ArmNeon/ArmNeonToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/ArmSVE/ArmSVEToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
@@ -43,6 +49,26 @@
 
 namespace tfrt {
 namespace jitrt {
+
+void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
+  // Register MLIR dialects supported by the compiled kernels.
+  registry.insert<mlir::AffineDialect, mlir::arith::ArithmeticDialect,
+                  mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
+                  mlir::math::MathDialect, mlir::memref::MemRefDialect,
+                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
+                  mlir::tensor::TensorDialect, mlir::vector::VectorDialect,
+                  RuntimeDialect>();
+
+  // Register MLIR dialects that can be translated to LLVM IR.
+  mlir::registerArmNeonDialectTranslation(registry);
+  mlir::registerAMXDialectTranslation(registry);
+  mlir::registerArmSVEDialectTranslation(registry);
+  mlir::registerLLVMDialectTranslation(registry);
+  mlir::registerX86VectorDialectTranslation(registry);
+
+  // Register other information needed for JitRt passes.
+  mlir::tensor::registerInferTypeOpInterfaceExternalModels(registry);
+}
 
 void RegisterDefaultJitRtCompilationPipeline(
     mlir::PassManager& pm, const CompilationPipelineOptions& opts) {

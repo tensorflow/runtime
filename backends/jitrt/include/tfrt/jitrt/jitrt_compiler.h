@@ -25,7 +25,7 @@ class PassManager;
 namespace tfrt {
 namespace jitrt {
 
-// Register dialects, interfaces and dialects translations with the registry
+// Registers dialects, interfaces and dialects translations with the registry
 // required by the default JitRt compilation pipeline.
 void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry);
 
@@ -49,7 +49,7 @@ struct CompilationPipelineOptions {
 #endif
 };
 
-// Register the default JitRt compilation pipeline that lowers from the Linalg
+// Creates the default JitRt compilation pipeline that lowers from the Linalg
 // on buffers to the LLVM dialect. This is a very simple pipeline that is mostly
 // intended for writing tests for the JitRt inside the TFRT project, and it is
 // expected that all end users will construct their own compilation pipelines
@@ -63,7 +63,7 @@ struct CompilationPipelineOptions {
 //  - only dialects available in upstream MLIR are supported
 //  - program must be bufferized: inputs and results must be memrefs, no tensors
 //    in the function body are allowed
-void RegisterDefaultJitRtCompilationPipeline(
+void CreateDefaultJitRtCompilationPipeline(
     mlir::PassManager& pm, const CompilationPipelineOptions& opts);
 
 }  // namespace jitrt

@@ -89,8 +89,8 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
     CompilationOptions opts;
     opts.register_dialects = RegisterDefaultJitRtDialects;
-    opts.register_compilation_pipeline = [copts](mlir::PassManager& pm) {
-      RegisterDefaultJitRtCompilationPipeline(pm, copts);
+    opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+      CreateDefaultJitRtCompilationPipeline(pm, copts);
     };
 
     string_view entrypoint = kernel.nested_symbols()[0];

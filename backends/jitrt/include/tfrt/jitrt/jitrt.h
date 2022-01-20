@@ -197,16 +197,16 @@ struct CompilationOptions {
   // Register dialects that are allowed in the serialized module.
   std::function<void(mlir::DialectRegistry&)> register_dialects;
 
-  // Register a pass pipeline that is called whenever the compiled module
+  // Create a pass pipeline that is called whenever the compiled module
   // gets specialized. This pipeline can use refined shape information and
   // symbolic shape attributes to do the shape inference and canonicalization.
   //
   // Original input module might have an undefined calling convention (e.g.
   // JitRt does not support unranked tensors), and specialization can be
   // required as a precondition for compilation.
-  std::function<void(mlir::PassManager&)> register_specialization_pipeline;
+  std::function<void(mlir::PassManager&)> create_specialization_pipeline;
 
-  // Register a pass pipeline that lowers compiled module from high level
+  // Create a pass pipeline that lowers compiled module from high level
   // dialects to the LLVM dialect. JitRt will use the LLVM ORC compiler API
   // to compile the LLVM module at run time (https://llvm.org/docs/ORCv2.html).
   //
@@ -214,7 +214,7 @@ struct CompilationOptions {
   // compatible with the calling convention advertised to the JitRt through the
   // `calling_convention` type conversion, and for that it usually must include
   // `rt-to-kernel-function` pass to convert regular functions to "kernels".
-  std::function<void(mlir::PassManager&)> register_compilation_pipeline;
+  std::function<void(mlir::PassManager&)> create_compilation_pipeline;
 
   // Calling convention converts the compiled module entrypoint function type to
   // the function type with a well defined ABI (e.g. tensors do not have an ABI,

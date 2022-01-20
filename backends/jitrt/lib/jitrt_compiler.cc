@@ -70,7 +70,7 @@ void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
   mlir::tensor::registerInferTypeOpInterfaceExternalModels(registry);
 }
 
-void RegisterDefaultJitRtCompilationPipeline(
+void CreateDefaultJitRtCompilationPipeline(
     mlir::PassManager& pm, const CompilationPipelineOptions& opts) {
   pm.addPass(mlir::createInlinerPass());
   pm.addPass(mlir::createCanonicalizerPass());

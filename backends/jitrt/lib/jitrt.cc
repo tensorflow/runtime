@@ -973,12 +973,12 @@ static void SetupPassDebugging(mlir::MLIRContext* context,
 
 static mlir::LogicalResult RunPipeline(
     mlir::ModuleOp module,
-    const std::function<void(mlir::PassManager&)>& register_pipeline) {
-  if (!register_pipeline) return mlir::success();
+    const std::function<void(mlir::PassManager&)>& create_pipeline) {
+  if (!create_pipeline) return mlir::success();
 
   mlir::PassManager pm(module.getContext());
   SetupPassDebugging(module.getContext(), pm);
-  register_pipeline(pm);
+  create_pipeline(pm);
 
   return pm.run(module);
 }
@@ -986,13 +986,13 @@ static mlir::LogicalResult RunPipeline(
 // Runs the user-provided compilation pipeline to compile the module to LLVM.
 static mlir::LogicalResult RunCompilationPipeline(
     mlir::ModuleOp module, const CompilationOptions& opts) {
-  return RunPipeline(module, opts.register_compilation_pipeline);
+  return RunPipeline(module, opts.create_compilation_pipeline);
 }
 
 // Runs the user-provided specialization pipeline.
 static mlir::LogicalResult RunSpecializationPipeline(
     mlir::ModuleOp module, const CompilationOptions& opts) {
-  return RunPipeline(module, opts.register_specialization_pipeline);
+  return RunPipeline(module, opts.create_specialization_pipeline);
 }
 
 //----------------------------------------------------------------------------//

@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <tuple>
+#include <utility>
 
 #include "llvm/Support/Error.h"
 #include "llvm_derived/Support/raw_ostream.h"
@@ -85,8 +86,14 @@ static Error GpuStreamWait(const GpuStream& stream, const GpuEvent& event) {
 static AsyncValueRef<Chain> GpuStreamSynchronize(
     Argument<GpuStream> stream, const ExecutionContext& exec_ctx) {
   return EnqueueBlockingWork(
-      exec_ctx.host(), [stream = stream.ValueRef()]() -> Expected<Chain> {
-        if (auto error = wrapper::StreamSynchronize(stream->get()))
+      exec_ctx.host(),
+      [stream = stream.ValueRef()]() mutable -> Expected<Chain> {
+        // Move to local so that the stream is released before returning, or
+        // else, the stream will be released when this lambda is destructed,
+        // which is after returning.
+        auto moved_stream = std::move(stream);
+
+        if (auto error = wrapper::StreamSynchronize(moved_stream->get()))
           return std::move(error);
         return Chain();
       });

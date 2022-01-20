@@ -54,7 +54,6 @@
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
-#include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
@@ -1077,9 +1076,7 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
     const CompilationOptions& opts) {
   mlir::DialectRegistry registry;
 
-  RegisterDefaultJitRtDialects(registry);
-
-  // Register additional dialects provided via compilation options.
+  // Call user-provided callback to register all required dialects.
   if (opts.register_dialects) opts.register_dialects(registry);
 
   // TODO(ezhulenev): Wrap host context work queue into the llvm ThreadPool API

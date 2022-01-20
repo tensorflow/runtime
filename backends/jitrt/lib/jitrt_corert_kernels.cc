@@ -88,6 +88,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     copts.num_worker_threads = host->GetNumWorkerThreads();
 
     CompilationOptions opts;
+    opts.register_dialects = RegisterDefaultJitRtDialects;
     opts.register_compilation_pipeline = [copts](mlir::PassManager& pm) {
       RegisterDefaultJitRtCompilationPipeline(pm, copts);
     };

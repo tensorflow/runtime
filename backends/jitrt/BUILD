@@ -125,7 +125,6 @@ tfrt_cc_library(
     deps = [
         ":async_runtime",
         ":async_runtime_api",
-        ":jitrt_compiler",
         ":rt_transforms",
         ":support",
         "@llvm-project//llvm:OrcJIT",

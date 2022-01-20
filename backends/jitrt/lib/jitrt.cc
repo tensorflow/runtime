@@ -39,6 +39,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -1291,11 +1292,22 @@ llvm::Error JitCompilationContext::Specialize(
 
   // Update function entry block arguments.
   mlir::Block& entry_block = func.getBlocks().front();
+  mlir::OpBuilder builder = mlir::OpBuilder::atBlockBegin(&entry_block);
+  mlir::Location loc = func.getLoc();
 
-  // Forward original block arguments to arguments with specialized type.
+  // Forward original block arguments to arguments with specialized type. We
+  // need to insert casts to ensure the users still get the correct type and
+  // avoid illegal IR. This can be optimized away by the user-provided
+  // specialization pipeline, e.g., in Tensorflow these casts will be optimized
+  // away by the shape inference pass.
   for (int i = 0; i < num_inputs; ++i) {
-    mlir::BlockArgument arg = entry_block.addArgument(specialized_inputs[i]);
-    entry_block.getArgument(i).replaceAllUsesWith(arg);
+    mlir::Value new_arg = entry_block.addArgument(specialized_inputs[i]);
+    mlir::Value old_arg = entry_block.getArgument(i);
+    if (new_arg.getType() != old_arg.getType()) {
+      new_arg =
+          builder.create<mlir::tensor::CastOp>(loc, old_arg.getType(), new_arg);
+    }
+    old_arg.replaceAllUsesWith(new_arg);
   }
 
   // Erase all the original block arguments.
@@ -1325,9 +1337,7 @@ llvm::Error JitCompilationContext::Specialize(
   }
 
   // Sink small constants into the function body.
-  mlir::OpBuilder builder = mlir::OpBuilder::atBlockBegin(&func.front());
-  mlir::Location loc = func.getLoc();
-
+  builder.setInsertionPointToStart(&func.getBody().front());
   for (int i = 0; i < constraints.size(); ++i) {
     if (constraints[i] != OperandConstraint::kValue) continue;
 

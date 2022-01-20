@@ -242,7 +242,8 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   patterns.insert<SetOutputOpLowering, SetErrorOpLowering>(llvmConverter, ctx);
 
   // Convert function signatures and call sites.
-  mlir::populateFunctionLikeTypeConversionPattern<FuncOp>(patterns, converter);
+  mlir::populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns,
+                                                                 converter);
   populateCallOpTypeConversionPattern(patterns, converter);
 
   // Set up conversion target to rewrite all runtime operations.

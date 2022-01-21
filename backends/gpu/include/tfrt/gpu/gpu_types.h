@@ -29,7 +29,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
-#include "tfrt/gpu/wrapper/ccl_wrapper.h"
+#include "tfrt/gpu/wrapper/ccl_types.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
@@ -45,7 +45,7 @@ namespace gpu {
 // Types that do not need a wrapper class go here.
 using GpuPointer = wrapper::Pointer<void>;
 using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
-using GpuCclId = ncclUniqueId;
+using GpuCclId = wrapper::CclUniqueId;
 
 class GpuContext {
   class HostMemoryPool {

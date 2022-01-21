@@ -28,9 +28,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def GPU_CclIdType : GPU_Type<"CclId"> { let mnemonic = "ccl.id"; }
 
-def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp"> {
-  let returnType = "::ncclRedOp_t";
-}
+def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp">;
 
 def GPU_CclUniqueIdOp : GPU_Op<"ccl.unique_id"> {
   let description = [{

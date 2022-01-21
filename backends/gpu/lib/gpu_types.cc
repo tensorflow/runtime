@@ -16,8 +16,10 @@
 #include "tfrt/gpu/gpu_types.h"
 
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
+#include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"

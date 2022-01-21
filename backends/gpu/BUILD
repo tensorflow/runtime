@@ -180,6 +180,7 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/gpu/wrapper/blas_wrapper.h",
+        "include/tfrt/gpu/wrapper/ccl_types.h",
         "include/tfrt/gpu/wrapper/ccl_wrapper.h",
         "include/tfrt/gpu/wrapper/cublas_wrapper.h",
         "include/tfrt/gpu/wrapper/cuda_wrapper.h",

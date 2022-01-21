@@ -22,6 +22,24 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+template <>
+Expected<CclDataType> Parse<CclDataType>(llvm::StringRef name) {
+  return Parse<ncclDataType_t>(name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CclDataType value) {
+  return os << static_cast<ncclDataType_t>(value);
+}
+
+template <>
+Expected<CclReductionOp> Parse<CclReductionOp>(llvm::StringRef name) {
+  return Parse<ncclRedOp_t>(name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CclReductionOp value) {
+  return os << static_cast<ncclRedOp_t>(value);
+}
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result) {
   switch (result) {
     case ncclSuccess:

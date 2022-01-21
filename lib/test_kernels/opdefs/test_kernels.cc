@@ -88,6 +88,7 @@ static ParseResult parseDoAsyncOp(OpAsmParser &parser, OperationState &result) {
   return failure(parser.resolveOperands(operands, types.getInputs(), type_loc,
                                         result.operands) ||
                  parser.parseRegion(*body, operands, types.getInputs(),
+                                    /*argLocations=*/{},
                                     /*enableNameShadowing=*/true));
 }
 
@@ -192,7 +193,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
   setDefaultAttrIfUnset("num_warmup_runs", 1);
 
   Region *target = result.addRegion();
-  return parser.parseRegion(*target, operands, types,
+  return parser.parseRegion(*target, operands, types, /*argLocations=*/{},
                             /*enableNameShadowing=*/true);
 }
 

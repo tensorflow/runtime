@@ -44,6 +44,7 @@
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/constraints.h"
+#include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/types.h"
 #include "tfrt/support/forward_decls.h"
@@ -938,8 +939,6 @@ class Executable {
 // constraints.
 class JitExecutable {
  public:
-  struct Listener;
-
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates
   // the internal state of the `JitExecutable`. This runner can be used by the
@@ -990,27 +989,11 @@ class JitExecutable {
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
       ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
-      const Listener* listener = nullptr);
+      const SpecializationListener* listener = nullptr);
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;
   JitExecutable(JitExecutable&&) = default;
-
-  // Listener class to control notifications during specialization.
-  struct Listener {
-    virtual ~Listener() {}
-
-    // Called at the end of module specialization.
-    // - 'operands' is a reference to the specialized operands' types.
-    // - `attrs` is a list of attributes attached to operands.
-    virtual void notifyModuleSpecialized(
-        ArrayRef<mlir::Type> operands,
-        ArrayRef<mlir::DictionaryAttr> attrs) const {}
-
-    // Called once for every value-specialized argument.
-    virtual void notifyValueSpecialized(unsigned index, mlir::Type type,
-                                        mlir::Attribute value) const {}
-  };
 
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,

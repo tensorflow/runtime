@@ -39,7 +39,6 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -57,6 +56,7 @@
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/runtime.h"
+#include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 #include "tfrt/support/error_util.h"
@@ -163,122 +163,6 @@ Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
 
   return ResultsMemoryLayout{has_async_results, results_size_bytes,
                              std::move(results_offsets_bytes)};
-}
-
-static bool areCompatibleTypes(DType type1, DType type2) {
-  auto compatible = [&](DType fromType, DType toType) {
-    return (type1 == fromType && type2 == toType) ||
-           (type1 == toType && type2 == fromType);
-  };
-  // I1 and I8 types are compatible since they both are 1-byte size at runtime.
-  if (compatible(DType::I1, DType::I8)) return true;
-
-  // Signed and unsigned integers of the same size are compatible in memory.
-  if (compatible(DType::I8, DType::UI8) ||
-      compatible(DType::I16, DType::UI16) ||
-      compatible(DType::I32, DType::UI32) ||
-      compatible(DType::I64, DType::UI64))
-    return true;
-
-  return type1 == type2;
-}
-
-// -------------------------------------------------------------------------- //
-// Verify that signature operands types are matching runtime operands types.
-// -------------------------------------------------------------------------- //
-
-static Error VerifyMemrefOperand(unsigned index, DType element_type,
-                                 Optional<ArrayRef<Index>> sizes,
-                                 const MemrefDesc& memref) {
-  // Format memref operand and expected type for user-friendly error messages.
-  auto format_operands = [&]() -> std::string {
-    std::string err;
-    llvm::raw_string_ostream os(err);
-
-    auto dim = [](Index d) -> std::string {
-      return d == MemrefType::kDynamicSize ? "?" : std::to_string(d);
-    };
-
-    auto print_shaped = [&](Optional<ArrayRef<Index>> dims, DType dtype) {
-      if (!dims.hasValue()) {
-        os << "[*x" << dtype << "]";
-        return;
-      }
-
-      if (dims->empty()) {
-        os << "[" << dtype << "]";
-        return;
-      }
-
-      os << "[" << dim((*dims)[0]);
-      for (int i = 1; i < dims->size(); ++i) os << "x" << dim((*dims)[i]);
-      os << "x" << dtype << "]";
-    };
-
-    os << "got ";
-    print_shaped({memref.sizes}, memref.dtype);
-    os << " vs expected ";
-    print_shaped(sizes, element_type);
-
-    return err;
-  };
-
-  // Check that memref data type is compatible with the operand element type.
-  if (!areCompatibleTypes(element_type, memref.dtype)) {
-    return MakeStringError(
-        "operand #", index,
-        " type is not compatible with the expected element type: ",
-        memref.dtype, " vs ", element_type, " (", format_operands(), ")");
-  }
-
-  // Skip sizes verification if they are not available.
-  if (!sizes.hasValue()) return Error::success();
-
-  // Check that memref rank is the same as operand rank.
-  if (memref.sizes.size() != sizes->size())
-    return MakeStringError(
-        "operand #", index,
-        " rank does not match expected input rank: ", memref.sizes.size(),
-        " vs ", sizes->size(), " (", format_operands(), ")");
-
-  // Check that all statically known dimensions matches the memref dimensions.
-  for (const auto& pair : llvm::enumerate(llvm::zip(memref.sizes, *sizes))) {
-    Index operand_dim = std::get<0>(pair.value());
-    Index expected_dim = std::get<1>(pair.value());
-
-    bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
-
-    if (operand_dim != expected_dim && !is_dynamic_dim)
-      return MakeStringError(
-          "operand #", index, " dimension #", pair.index(),
-          " does not match expected input dimension: ", operand_dim, " vs ",
-          expected_dim, " (", format_operands(), ")");
-  }
-
-  return Error::success();
-}
-
-static Error VerifyMemrefOperand(unsigned index, const RankedTensorType& type,
-                                 const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.element_type(), type.sizes(), memref);
-}
-
-static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
-                                 const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.element_type(), type.sizes(), memref);
-}
-
-static Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
-                                 const MemrefDesc& memref) {
-  auto element_type = ConvertElementType(type.getElementType());
-  if (auto err = element_type.takeError()) return err;
-
-  // We do not support unranked memrefs at runtime, however we need to verify
-  // operand types when we do compiled kernel specialization to shape.
-  return VerifyMemrefOperand(
-      index, *element_type,
-      type.hasRank() ? Optional<ArrayRef<Index>>{type.getShape()} : llvm::None,
-      memref);
 }
 
 // -------------------------------------------------------------------------- //
@@ -785,12 +669,16 @@ class JitCompilationContext {
   // - attach symbolic shape attribute to the operands
   // - sink small constants into the function body
   //
+  // After entrypoint signature is updated, and all constant operands
+  // materialized in the function body, runs the user-provided specialization
+  // pipeline to optimize the module based on the new information in the IR.
+  //
   // Returns error if operands are not compatible with compiled module
   // entrypoint signature.
   llvm::Error Specialize(ArrayRef<MemrefDesc> operands,
                          ArrayRef<SymbolicShape> symbolic_shapes,
                          ArrayRef<OperandConstraint> constraints,
-                         const JitExecutable::Listener* listener);
+                         const SpecializationListener* listener);
 
   const CompilationOptions& options() const { return opts_; }
 
@@ -1006,106 +894,18 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
 llvm::Error JitCompilationContext::Specialize(
     ArrayRef<MemrefDesc> operands, ArrayRef<SymbolicShape> symbolic_shapes,
     ArrayRef<OperandConstraint> constraints,
-    const JitExecutable::Listener* listener) {
+    const SpecializationListener* listener) {
   assert(!specialized_ && "can specialize executable only once");
   specialized_ = true;
 
   mlir::FuncOp func = entrypoint();
-  unsigned num_inputs = func.getNumArguments();
 
-  mlir::MLIRContext* ctx = func.getContext();
-
-  // Specialize all function inputs to the given operands.
-  llvm::SmallVector<mlir::Type> specialized_inputs(num_inputs);
-  for (unsigned i = 0; i < num_inputs; ++i) {
-    auto specialized = SpecializeOperandType(i, func.getType().getInput(i),
-                                             operands[i], symbolic_shapes[i]);
-    if (auto err = specialized.takeError()) return err;
-    specialized_inputs[i] = *specialized;
-  }
-
-  // Update function type to a new specialized one.
-  auto specialized = mlir::FunctionType::get(ctx, specialized_inputs,
-                                             func.getType().getResults());
-  func.setType(specialized);
-
-  // Update function entry block arguments.
-  mlir::Block& entry_block = func.getBlocks().front();
-  mlir::OpBuilder builder = mlir::OpBuilder::atBlockBegin(&entry_block);
-  mlir::Location loc = func.getLoc();
-
-  // Forward original block arguments to arguments with specialized type. We
-  // need to insert casts to ensure the users still get the correct type and
-  // avoid illegal IR. This can be optimized away by the user-provided
-  // specialization pipeline, e.g., in Tensorflow these casts will be optimized
-  // away by the shape inference pass.
-  for (int i = 0; i < num_inputs; ++i) {
-    mlir::Value new_arg = entry_block.addArgument(specialized_inputs[i]);
-    mlir::Value old_arg = entry_block.getArgument(i);
-    if (new_arg.getType() != old_arg.getType()) {
-      new_arg =
-          builder.create<mlir::tensor::CastOp>(loc, old_arg.getType(), new_arg);
-    }
-    old_arg.replaceAllUsesWith(new_arg);
-  }
-
-  // Erase all the original block arguments.
-  llvm::SmallVector<unsigned> erase_block_args(num_inputs);
-  std::iota(erase_block_args.begin(), erase_block_args.end(), 0);
-  entry_block.eraseArguments(erase_block_args);
-
-  // Add symbolic shapes as arguments attributes.
-  for (unsigned i = 0; i < num_inputs; ++i) {
-    const SymbolicShape& shape = symbolic_shapes[i];
-    int64_t rank = shape.size();
-
-    // Skip statically known shapes.
-    if (llvm::all_of(shape, [](int64_t dim) { return dim >= 0; })) continue;
-
-    // Symbolic shape attribute stored as 1d tensor attribute.
-    auto i64 = mlir::IntegerType::get(ctx, 64);
-    auto tensor = mlir::RankedTensorType::get({rank}, i64);
-
-    // Create i64 attributes from the symbolic shape values.
-    llvm::SmallVector<mlir::Attribute> values(rank);
-    for (unsigned d = 0; d < rank; ++d)
-      values[d] = mlir::IntegerAttr::get(i64, shape[d]);
-
-    func.setArgAttr(i, "jitrt.symbolic_shape",
-                    mlir::DenseElementsAttr::get(tensor, values));
-  }
-
-  // Sink small constants into the function body.
-  builder.setInsertionPointToStart(&func.getBody().front());
-  for (int i = 0; i < constraints.size(); ++i) {
-    if (constraints[i] != OperandConstraint::kValue) continue;
-
-    // We only support sinking of Tensor operands into the function body.
-    mlir::Type input_ty = func.getType().getInput(i);
-    mlir::TensorType tensor_ty = input_ty.dyn_cast<mlir::TensorType>();
-    if (!tensor_ty || !SupportsValueSpecialization(tensor_ty)) {
-      return MakeStringError("non-sinkable operand was marked for sinking: ",
-                             input_ty);
-    }
-
-    // Get the operand value from the runtime memref operand.
-    mlir::DenseElementsAttr value =
-        GetMemrefValues(builder, tensor_ty, operands[i]);
-    if (!value) {
-      return MakeStringError("cannot get value from operand type: ", input_ty);
-    }
-
-    auto cst =
-        builder.create<mlir::arith::ConstantOp>(loc, value.getType(), value);
-    entry_block.getArgument(i).replaceAllUsesWith(cst);
-
-    if (listener) listener->notifyValueSpecialized(i, value.getType(), value);
-  }
-
-  if (listener) {
-    llvm::SmallVector<mlir::DictionaryAttr> specialized_attrs;
-    func.getAllArgAttrs(specialized_attrs);
-    listener->notifyModuleSpecialized(specialized_inputs, specialized_attrs);
+  // Update function signature and sink constant operands into the body.
+  if (auto err = SpecializeFunction(func, operands, symbolic_shapes,
+                                    constraints, listener)) {
+    // No need to call this->Error() because we don't have diagnostic to report
+    // in case of a failed specialization.
+    return MakeStringError("failed to specialize: ", err);
   }
 
   // Run the user-provided specialization pipeline to take advantage of the
@@ -1303,7 +1103,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
 // is not available, and the number of specializations is above N?
 Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
-    const Listener* listener) {
+    const SpecializationListener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();

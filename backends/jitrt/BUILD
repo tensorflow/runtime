@@ -127,6 +127,7 @@ tfrt_cc_library(
         ":async_runtime_api",
         ":constraints",
         ":rt_transforms",
+        ":specialization",
         ":support",
         ":symbolic_shape",
         ":types",
@@ -141,7 +142,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:TensorDialect",
         "@llvm-project//mlir:ToLLVMIRTranslation",
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:mlir_c_runner_utils",
@@ -189,6 +189,24 @@ tfrt_cc_library(
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:VectorToLLVM",
         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
+    ],
+)
+
+tfrt_cc_library(
+    name = "specialization",
+    srcs = ["lib/specialization.cc"],
+    hdrs = ["include/tfrt/jitrt/specialization.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":constraints",
+        ":support",
+        ":symbolic_shape",
+        ":types",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:TensorDialect",
+        "@tf_runtime//:support",
     ],
 )
 

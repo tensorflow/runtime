@@ -219,6 +219,25 @@ struct MemrefDesc {
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 
+// -------------------------------------------------------------------------- //
+// Verify that operands types are matching runtime values.
+// -------------------------------------------------------------------------- //
+
+// We pass operand index to all verification functions to get a user-friendly
+// error messages in case of an error.
+
+Error VerifyMemrefOperand(unsigned index, DType element_type,
+                          Optional<ArrayRef<Index>> sizes,
+                          const MemrefDesc& memref);
+
+Error VerifyMemrefOperand(unsigned index, const RankedTensorType& type,
+                          const MemrefDesc& memref);
+
+Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
+                          const MemrefDesc& memref);
+
+Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
+                          const MemrefDesc& memref);
 }  // namespace jitrt
 }  // namespace tfrt
 

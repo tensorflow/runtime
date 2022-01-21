@@ -85,15 +85,16 @@ GpuContextCache::Pair GpuContextCache::GetOrCreate(wrapper::Context context) {
   return pair.first->second;
 }
 
-void BorrowedStreamDeleter::operator()(AsyncValue* ptr) {
-  ReleaseGpuResource(AsyncValueRef<GpuStream>(TakeRef(ptr)));
+void BorrowedStreamDeleter::operator()(pointer ptr) {
+  ReleaseGpuResource(AsyncValueRef<GpuStream>(TakeRef(ptr.value())));
 }
 
 BorrowedStream MakeBorrowedStream(AsyncValueRef<GpuContext> context,
                                   wrapper::Stream stream) {
   auto gpu_stream = MakeAvailableAsyncValueRef<GpuStream>(
       std::move(context), wrapper::OwningStream(stream));
-  return BorrowedStream(gpu_stream.release());
+  BorrowedStream::pointer pointer(gpu_stream.release());
+  return BorrowedStream(pointer);
 }
 
 namespace {

@@ -233,5 +233,22 @@ Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
   return FunctionType(std::move(operands), std::move(results));
 }
 
+raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
+  auto print_arr = [&](string_view name, ArrayRef<Index> arr) {
+    os << " " << name << ": [";
+    if (!arr.empty()) {
+      os << arr[0];
+      for (int i = 1; i < arr.size(); ++i) os << ", " << arr[i];
+    }
+    os << "]";
+  };
+
+  os << "MemrefDesc: dtype: " << desc.dtype << " offset: " << desc.offset;
+  print_arr("sizes", desc.sizes);
+  print_arr("strides", desc.strides);
+
+  return os;
+}
+
 }  // namespace jitrt
 }  // namespace tfrt

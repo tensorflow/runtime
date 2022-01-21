@@ -197,6 +197,28 @@ Expected<DType> ConvertElementType(mlir::Type type);
 // Converts MLIR type to the corresponding JitRt type.
 Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type);
 
+//----------------------------------------------------------------------------//
+// Types for passing compiled kernel arguments and passing back results.
+//----------------------------------------------------------------------------//
+
+struct MemrefDesc {
+  MemrefDesc() = default;
+
+  // Ensure that MemrefDesc is always moved around instead of copying.
+  MemrefDesc(const MemrefDesc&) = delete;
+  MemrefDesc& operator=(const MemrefDesc&) = delete;
+  MemrefDesc(MemrefDesc&&) = default;
+  MemrefDesc& operator=(MemrefDesc&&) = default;
+
+  DType dtype;
+  void* data;
+  Index offset;
+  llvm::SmallVector<Index, 4> sizes;
+  llvm::SmallVector<Index, 4> strides;
+};
+
+raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
+
 }  // namespace jitrt
 }  // namespace tfrt
 

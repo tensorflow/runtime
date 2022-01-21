@@ -128,6 +128,7 @@ tfrt_cc_library(
         ":constraints",
         ":rt_transforms",
         ":support",
+        ":symbolic_shape",
         ":types",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
@@ -201,6 +202,20 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "symbolic_shape",
+    srcs = ["lib/symbolic_shape.cc"],
+    hdrs = ["include/tfrt/jitrt/symbolic_shape.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":constraints",
+        ":types",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ],
 )

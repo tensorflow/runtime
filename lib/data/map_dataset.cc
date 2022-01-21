@@ -41,7 +41,7 @@ IterationResult MapDatasetIterator::GetNext(const ExecutionContext& exec_ctx) {
 
   // IDEA(donglin): consider extending RCArray to support CopyRef() without
   // doing shallow copy.
-  SmallVector<RCReference<AsyncValue>, 4> arguments;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> arguments;
   for (auto* value : parent_dataset_->additional_fn_args_.values())
     arguments.push_back(FormRef(value));
   for (auto& value : values) arguments.push_back(std::move(value));

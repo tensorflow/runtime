@@ -244,7 +244,7 @@ class PartialTensorShape {
   // We store dims in SmallVector here since PartialTensorShape is designed
   // for use in shape computations where we could alter the shape by adding/
   // removing dimensions.
-  Optional<SmallVector<Index, 4>> dims_;
+  Optional<llvm::SmallVector<Index, 4>> dims_;
 };
 
 //

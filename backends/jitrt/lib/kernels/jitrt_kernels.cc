@@ -152,7 +152,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
                     RemainingResults results,
                     const ExecutionContext& exec_ctx) {
   // Extract Memrefs from Tensor operands.
-  SmallVector<MemrefDesc, 4> memrefs;
+  llvm::SmallVector<MemrefDesc, 4> memrefs;
   if (auto err = ConvertTensorOperandsToMemrefDesc(operands, &memrefs))
     return EmitErrors(results, std::move(err), exec_ctx);
 

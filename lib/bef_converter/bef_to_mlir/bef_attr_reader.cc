@@ -207,7 +207,7 @@ mlir::Attribute BefAttrReader::ReadArrayAttribute(
   element_count = *(reinterpret_cast<const AttrSizeT*>(&attributes_[offset]));
   offset += sizeof(AttrSizeT);
 
-  SmallVector<mlir::Attribute, 8> elements;
+  llvm::SmallVector<mlir::Attribute, 8> elements;
   elements.reserve(element_count);
 
   for (int idx = 0; idx < element_count; ++idx) {
@@ -237,7 +237,7 @@ mlir::Attribute BefAttrReader::ReadDenseAttribute(size_t offset) {
     return mlir::DenseElementsAttr::getFromRawBuffer(type, raw_data, is_splat);
   }
 
-  SmallVector<mlir::Attribute, 8> elements;
+  llvm::SmallVector<mlir::Attribute, 8> elements;
   elements.reserve(element_count);
   offset += attr.GetPrefixSize();
   for (int idx = 0; idx < element_count; ++idx) {
@@ -254,7 +254,7 @@ mlir::Attribute BefAttrReader::ReadAggregateAttribute(size_t offset) {
   const size_t element_count = attr.GetNumElements();
   if (element_count == 0) return mlir::ArrayAttr::get(&context_, {});
 
-  SmallVector<mlir::Attribute, 8> elements;
+  llvm::SmallVector<mlir::Attribute, 8> elements;
   elements.reserve(element_count);
   for (int idx = 0; idx < element_count; ++idx) {
     elements.push_back(ReadAttribute(attr.GetElementType(idx),

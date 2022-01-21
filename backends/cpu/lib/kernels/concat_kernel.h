@@ -90,7 +90,7 @@ Expected<TensorMetadata> ConcatMetadataKernel(const TensorRange& args,
   }
 
   // Build output tensor dimensions.
-  SmallVector<Index, 4> output_dims;
+  llvm::SmallVector<Index, 4> output_dims;
   for (int d = 0; d < axis; ++d)
     output_dims.push_back(arg0_shape.GetDimensionSize(d));
   output_dims.push_back(concat_axis_dim_size);

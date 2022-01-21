@@ -143,7 +143,7 @@ static void ExecuteImpl(const Executable& executable,
   HostContext* host = exec_ctx.host();
 
   // Allocate storage for compiled kernel results.
-  SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
   kernel_ret.resize(executable.num_results());
 
   // Execute compiled kernel and get back raw return values that we'll need to
@@ -204,7 +204,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
                     const ExecutionContext& exec_ctx) {
   // Extract tensors from tensor handle operands to pass them as the compiled
   // kernel arguments.
-  SmallVector<MemrefDesc, 4> memrefs;
+  llvm::SmallVector<MemrefDesc, 4> memrefs;
   if (auto err = ConvertTensorHandleOperandsToMemrefDesc(operands, &memrefs))
     return EmitErrors(results, std::move(err), exec_ctx);
 

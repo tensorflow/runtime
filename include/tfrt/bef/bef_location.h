@@ -151,7 +151,7 @@ class BefFusedLocation : public BefLocation {
 
  private:
   size_t size_;
-  SmallVector<const uint8_t *, 4> bases_;
+  llvm::SmallVector<const uint8_t *, 4> bases_;
 };
 
 // Decode a BefLocation to DecodedLocation.

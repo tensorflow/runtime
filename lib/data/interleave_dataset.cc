@@ -77,11 +77,11 @@ void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
     // Read value from the input iterator.
     auto input_value = input_iterator_->GetNext(exec_ctx);
     // Construct dataset = func_(input_value).
-    SmallVector<AsyncValue*, 4> fn_args;
+    llvm::SmallVector<AsyncValue*, 4> fn_args;
     for (const auto& value : input_value.values) {
       fn_args.push_back(value.get());
     }
-    SmallVector<RCReference<AsyncValue>, 1> fn_results;
+    llvm::SmallVector<RCReference<AsyncValue>, 1> fn_results;
     fn_results.resize(1);
     parent_dataset_->func_->Execute(exec_ctx, fn_args, fn_results);
 

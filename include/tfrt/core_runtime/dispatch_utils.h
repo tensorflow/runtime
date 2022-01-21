@@ -117,7 +117,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
 using MetadataIsReadyCallback = llvm::unique_function<void(
     const ExecutionContext& exec_ctx, MutableArrayRef<TensorHandle> arguments,
     const OpAttrsRef& attrs, size_t num_results,
-    const SmallVector<TensorMetadata, 4>& result_mds,
+    const llvm::SmallVector<TensorMetadata, 4>& result_mds,
     SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
     AsyncValueRef<Chain>* chain)>;
 
@@ -169,11 +169,12 @@ class AsyncOpDispatcher {
   // The following accessors have a `_ref` suffix to indicate that they return a
   // mutable reference.
 
-  SmallVector<RCReference<IndirectAsyncValue>, 4>& result_ind_avs_ref() {
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4>& result_ind_avs_ref() {
     return result_ind_avs_;
   }
 
-  SmallVector<AsyncValueRef<TensorMetadata>, 4>& result_missing_md_avs_ref() {
+  llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4>&
+  result_missing_md_avs_ref() {
     return result_missing_md_avs_;
   }
 
@@ -207,18 +208,18 @@ class AsyncOpDispatcher {
 
   ExecutionContext exec_ctx_;
   OpAttrsRef frozen_attrs_;
-  SmallVector<TensorMetadata, 4> result_mds_;
+  llvm::SmallVector<TensorMetadata, 4> result_mds_;
 
   AsyncValueRef<Chain> chain_;
-  SmallVector<RCReference<AsyncValue>, 4> arguments_;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> arguments_;
 
   // These are the IndirectAsyncValue's for the results, that we need to
   // fulfill.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_ind_avs_;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_ind_avs_;
 
   // If we had no metadata function, then these will be the AsyncValues that
   // need to be fulfilled with a TensorMetadata.
-  SmallVector<AsyncValueRef<TensorMetadata>, 4> result_missing_md_avs_;
+  llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> result_missing_md_avs_;
 
   typename OpHandlerTraits::OpEntryTy op_entry_;
   typename OpHandlerTraits::OpHandlerInfoTy op_handler_info_;
@@ -254,7 +255,7 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   }
 
   // Finally, run the dispatch function.
-  SmallVector<RCReference<AsyncValue>, 4> result_tensors;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> result_tensors;
   RunDispatchFunctionSync(op_entry_, op_handler_info_, arguments_,
                           frozen_attrs_, result_ind_avs_.size(), result_mds_,
                           result_missing_md_avs_, &result_tensors,
@@ -289,7 +290,7 @@ template <typename OpHandlerTraits>
     MutableArrayRef<AsyncValueRef<TensorMetadata>> result_missing_md_avs,
     SmallVectorImpl<RCReference<AsyncValue>>* results,
     AsyncValueRef<Chain>* chain, const ExecutionContext& exec_ctx) {
-  SmallVector<InputTensorTy*, 4> arg_tensors;
+  llvm::SmallVector<InputTensorTy*, 4> arg_tensors;
   arg_tensors.reserve(inputs.size());
   for (auto& arg : inputs) {
     arg_tensors.push_back(GetInputTensor<InputTensorTy>(arg));
@@ -374,7 +375,7 @@ template <typename OpHandlerTraits>
 void ExecuteWithResultMetadataResolved(
     const ExecutionContext& exec_ctx, MutableArrayRef<TensorHandle> arguments,
     const OpAttrsRef& attrs, size_t num_results,
-    const SmallVector<TensorMetadata, 4>& result_mds,
+    const llvm::SmallVector<TensorMetadata, 4>& result_mds,
     SmallVectorImpl<AsyncValueRef<TensorMetadata>>* result_md_avs,
     SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
     AsyncValueRef<Chain>* chain, bool update_chain,
@@ -392,9 +393,9 @@ void ExecuteWithResultMetadataResolved(
 
   // Keep track of all the non-resolved values to see if we can dispatch the
   // kernel immediately. If not we will "and then" on these non-resolved values.
-  SmallVector<AsyncValue*, 4> async_args;
+  llvm::SmallVector<AsyncValue*, 4> async_args;
   async_args.reserve(arguments.size() + 1);
-  SmallVector<RCReference<AsyncValue>, 4> arg_tensors;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> arg_tensors;
   arg_tensors.reserve(arguments.size());
 
   assert((!update_chain || (chain && *chain)) &&
@@ -422,8 +423,8 @@ void ExecuteWithResultMetadataResolved(
   if (async_args.empty()) {
     // All input tensor and input chain are available. We can immediately
     // dispatch the kernel synchronously.
-    SmallVector<RCReference<AsyncValue>, 4> result_tensors;
-    SmallVector<AsyncValueRef<TensorMetadata>, 0> empty_md_avs;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> result_tensors;
+    llvm::SmallVector<AsyncValueRef<TensorMetadata>, 0> empty_md_avs;
     internal::AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunctionSync(
         op_entry, op_handler_info, arg_tensors, attrs, num_results, result_mds,
         result_md_avs ? *result_md_avs : empty_md_avs, &result_tensors,
@@ -479,12 +480,13 @@ LLVM_ATTRIBUTE_NOINLINE void ExecuteWithMetadataAsync(
   ExecuteWhenMetadataIsReady(
       invocation, op_entry.metadata_fn, update_chain, std::move(device),
       [op_entry = std::move(op_entry),
-       op_handler_info = std::move(op_handler_info), update_chain](
-          const ExecutionContext& exec_ctx,
-          MutableArrayRef<TensorHandle> arguments, const OpAttrsRef& attrs,
-          size_t num_results, const SmallVector<TensorMetadata, 4>& result_mds,
-          SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
-          AsyncValueRef<Chain>* chain) mutable {
+       op_handler_info = std::move(op_handler_info),
+       update_chain](const ExecutionContext& exec_ctx,
+                     MutableArrayRef<TensorHandle> arguments,
+                     const OpAttrsRef& attrs, size_t num_results,
+                     const llvm::SmallVector<TensorMetadata, 4>& result_mds,
+                     SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
+                     AsyncValueRef<Chain>* chain) mutable {
         ExecuteWithResultMetadataResolved<OpHandlerTraits>(
             exec_ctx, arguments, attrs, num_results, result_mds,
             /*result_md_avs=*/nullptr, result_tensor_avs, chain, update_chain,
@@ -506,7 +508,7 @@ bool ExecuteOnOpHandlerImpl(
 
   // This gets filled in with the TensorMetadata's for the op results if it has
   // a registered metadata function.
-  SmallVector<TensorMetadata, 4> result_mds;
+  llvm::SmallVector<TensorMetadata, 4> result_mds;
 
   // If the op has a metadata function, then we make sure to execute it, because
   // it may be checking the op invariants, and the op implementation may be slow
@@ -530,8 +532,8 @@ bool ExecuteOnOpHandlerImpl(
   // Okay, now that the metadata function returned successfully, we can run our
   // op.
 
-  SmallVector<AsyncValueRef<TensorMetadata>, 8> result_md_avs;
-  SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
+  llvm::SmallVector<AsyncValueRef<TensorMetadata>, 8> result_md_avs;
+  llvm::SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
 
   // Don't pass a pointer to result_md_avs if we had a metadata function.
   auto* result_md_avs_ptr = op_entry.metadata_fn ? nullptr : &result_md_avs;

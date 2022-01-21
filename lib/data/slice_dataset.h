@@ -73,7 +73,7 @@ class SliceDatasetIterator : public Iterator {
       return IterationResult::Eof(host, 1);
     }
 
-    SmallVector<RCReference<AsyncValue>, 1> values;
+    llvm::SmallVector<RCReference<AsyncValue>, 1> values;
     values.push_back(MakeAvailableAsyncValueRef<T>(host, *iterator_));
     iterator_++;
     return IterationResult::Values(std::move(values), host);
@@ -105,7 +105,7 @@ inline IterationResult SliceDatasetIterator<DenseHostTensor>::GetNext(
     return IterationResult::Eof(host, 1);
   }
 
-  SmallVector<RCReference<AsyncValue>, 1> values;
+  llvm::SmallVector<RCReference<AsyncValue>, 1> values;
   values.push_back(
       MakeAvailableAsyncValueRef<DenseHostTensor>(host, iterator_->CopyRef()));
   iterator_++;

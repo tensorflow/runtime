@@ -359,8 +359,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
   tfrt::ExecutionContext exec_ctx{std::move(*req_ctx)};
 
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
-  SmallVector<AsyncValue*, 4> arguments;
-  SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
+  llvm::SmallVector<AsyncValue*, 4> arguments;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
   arguments.reserve(fn->argument_types().size());
   arguments_ref.reserve(fn->argument_types().size());
   // Allow the first argument to be `DistributedContext`.
@@ -410,7 +410,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
     arguments_ref.push_back(val);
     arguments.push_back(val.get());
   }
-  auto results = std::make_unique<SmallVector<RCReference<AsyncValue>, 4>>();
+  auto results =
+      std::make_unique<llvm::SmallVector<RCReference<AsyncValue>, 4>>();
   results->resize(fn->result_types().size());
 
   fn->Execute(exec_ctx, arguments, *results);

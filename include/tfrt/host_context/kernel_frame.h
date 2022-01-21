@@ -266,8 +266,8 @@ class AsyncKernelFrame {
   //
   // TODO(tfrt-devs): Use RCReference<AsyncValue> instead of AsyncValue* so
   // the ownership is clearer.
-  SmallVector<AsyncValue*, 8> arguments_;
-  SmallVector<RCReference<AsyncValue>, 8> results_;
+  llvm::SmallVector<AsyncValue*, 8> arguments_;
+  llvm::SmallVector<RCReference<AsyncValue>, 8> results_;
 
   ArrayRef<uint8_t> attribute_section_;
   ArrayRef<uint32_t> attribute_offsets_;

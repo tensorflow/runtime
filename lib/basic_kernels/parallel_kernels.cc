@@ -47,12 +47,12 @@ static AsyncValueRef<Chain> ExecuteAsyncParallelForBody(
     auto end_arg = MakeAvailableAsyncValueRef<int32_t>(
         host, static_cast<int32_t>(end + offset));
 
-    SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
-                                           end_arg.GetAsyncValue()};
+    llvm::SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
+                                                 end_arg.GetAsyncValue()};
     for (AsyncValue* arg : args.values()) fn_args.push_back(arg);
 
     // Function returns single AsyncValueRef<Chain>.
-    SmallVector<RCReference<AsyncValue>, 1> fn_results;
+    llvm::SmallVector<RCReference<AsyncValue>, 1> fn_results;
     fn_results.resize(1);
     body_fn->Execute(exec_ctx, fn_args, fn_results);
     assert(fn_results.size() == 1);
@@ -92,12 +92,12 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
     auto end_arg = MakeAvailableAsyncValueRef<int32_t>(
         host, static_cast<int32_t>(end + offset));
 
-    SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
-                                           end_arg.GetAsyncValue()};
+    llvm::SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
+                                                 end_arg.GetAsyncValue()};
     for (AsyncValue* arg : args.values()) fn_args.push_back(arg);
 
     // Function must have empty results.
-    SmallVector<RCReference<AsyncValue>, 0> fn_results;
+    llvm::SmallVector<RCReference<AsyncValue>, 0> fn_results;
     body_fn->Execute(exec_ctx, fn_args, fn_results);
     assert(fn_results.empty());
   };

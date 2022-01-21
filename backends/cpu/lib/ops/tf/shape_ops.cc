@@ -46,7 +46,7 @@ static AsyncValueRef<DenseHostTensor> TfShapeOp(
     return EmitErrorAsync(exec_ctx, "out of memory allocating result");
   }
 
-  SmallVector<Index, 4> dims(input.shape().GetRank());
+  llvm::SmallVector<Index, 4> dims(input.shape().GetRank());
   input.shape().GetDimensions(dims);
 
   if (output_md.dtype == DType::I32) {
@@ -116,7 +116,7 @@ static AsyncValueRef<Tensor> TfExpandDimsOp(const Tensor& input,
       *expected_axis < 0 ? *expected_axis + input_rank + 1 : *expected_axis;
 
   // Compute the new tensor shape after expansion.
-  SmallVector<Index, 4> output_dims(input_rank + 1);
+  llvm::SmallVector<Index, 4> output_dims(input_rank + 1);
   for (int d = 0; d < expand_axis; ++d) {
     output_dims[d] = input_shape.GetDimensionSize(d);
   }

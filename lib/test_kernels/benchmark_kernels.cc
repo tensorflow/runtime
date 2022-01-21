@@ -213,7 +213,7 @@ class AsyncBenchmarkRunner {
 
   BenchmarkStats bm_stats_;
   RCReference<const Function> func_;
-  SmallVector<AsyncValue*, 4> args_;
+  llvm::SmallVector<AsyncValue*, 4> args_;
   ExecutionContext exec_ctx_;
   // Clean up function to run after the end of the benchmark.
   llvm::unique_function<void()> clean_up_;
@@ -293,7 +293,7 @@ static Error TestSyncBenchmark(RemainingSyncArguments args,
   BenchmarkStats bm_stats{fn->name(), *num_warmup_runs, *max_count,
                           std::chrono::seconds(*duration_secs)};
 
-  SmallVector<Value*, 16> func_args;
+  llvm::SmallVector<Value*, 16> func_args;
   for (auto i = 0; i < args.size(); ++i) {
     func_args.emplace_back(args[i]);
   }

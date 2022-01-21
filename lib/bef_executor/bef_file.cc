@@ -41,8 +41,8 @@ struct FunctionIndex {
   FunctionKind kind;
   size_t function_offset;
   size_t name_offset;
-  SmallVector<TypeName, 4> arguments;
-  SmallVector<TypeName, 4> results;
+  llvm::SmallVector<TypeName, 4> arguments;
+  llvm::SmallVector<TypeName, 4> results;
 };
 
 // This class is a direct reflection of some of the BEF file contents in memory,
@@ -164,7 +164,7 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
 
   // This gets run before the functionindex is processed, but we want to use it
   // below.
-  SmallVector<FunctionIndex, 8> function_indices;
+  llvm::SmallVector<FunctionIndex, 8> function_indices;
   if (!ReadFunctionIndexSectionInternal(&function_indices)) {
     bef_file_->EmitFormatError(error_message.c_str());
     return false;
@@ -173,7 +173,7 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
   // The unknown kernel must be referenced by some function in the program,
   // and each kernel record has location info.  Scan through to see if we can
   // figure out where the reference is coming from.
-  SmallVector<size_t, 4> result_regs;
+  llvm::SmallVector<size_t, 4> result_regs;
 
   for (const auto& function_index : function_indices) {
     if (function_index.kind == FunctionKind::kNativeFunction) continue;
@@ -309,8 +309,8 @@ bool BEFFileReader::ReadFunctionIndexSectionInternal(
   function_indices->clear();
   function_indices->reserve(num_functions);
 
-  SmallVector<TypeName, 4> arguments;
-  SmallVector<TypeName, 4> results;
+  llvm::SmallVector<TypeName, 4> arguments;
+  llvm::SmallVector<TypeName, 4> results;
   while (num_functions--) {
     function_indices->emplace_back();
     auto& function_index = function_indices->back();
@@ -363,7 +363,7 @@ bool BEFFileReader::ReadFunctionIndexSection() {
     return false;
   };
 
-  SmallVector<FunctionIndex, 8> function_indices;
+  llvm::SmallVector<FunctionIndex, 8> function_indices;
   if (!ReadFunctionIndexSectionInternal(&function_indices))
     return format_error("Failed to read the FunctionIndex section");
 

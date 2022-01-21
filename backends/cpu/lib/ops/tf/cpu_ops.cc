@@ -104,7 +104,7 @@ struct MeanHelper {
 
   // Unlike the input reduction_indices, this one contains only positive
   // numbers.
-  SmallVector<int32_t, 4> positive_reduction_indices;
+  llvm::SmallVector<int32_t, 4> positive_reduction_indices;
 };
 
 static Expected<MeanHelper> TfMeanOutputMd(

@@ -253,8 +253,8 @@ AsyncValueRef<Chain> Execute(const ExecutionContext& exec_ctx,
     return MakeErrorAsyncValueRef(std::move(error));
   }
 
-  SmallVector<AsyncValue*, 4> arguments = {chain.GetAsyncValue(),
-                                           stream.GetAsyncValue()};
+  llvm::SmallVector<AsyncValue*, 4> arguments = {chain.GetAsyncValue(),
+                                                 stream.GetAsyncValue()};
   llvm::transform(buffers, std::back_inserter(arguments),
                   [](const AsyncValueRef<GpuBuffer>& buffer) {
                     return buffer.GetAsyncValue();

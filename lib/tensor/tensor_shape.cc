@@ -44,7 +44,7 @@ llvm::SmallVector<Index, 4> ComputeInnerDims(
 
 raw_ostream& operator<<(raw_ostream& os, const TensorShape& value) {
   os << '[';
-  SmallVector<Index, 8> dims;
+  llvm::SmallVector<Index, 8> dims;
   value.GetDimensions(&dims);
   if (!dims.empty()) {
     os << dims[0];
@@ -207,8 +207,8 @@ raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value) {
 
 PartialTensorShape::PartialTensorShape(Optional<ArrayRef<Index>> dims) {
   if (dims.hasValue()) {
-    SmallVector<Index, 4> dims_vec{dims.getValue().begin(),
-                                   dims.getValue().end()};
+    llvm::SmallVector<Index, 4> dims_vec{dims.getValue().begin(),
+                                         dims.getValue().end()};
     dims_ = std::move(dims_vec);
   }
 }
@@ -260,7 +260,7 @@ Expected<TensorShape> PartialTensorShape::ToTensorShape() const {
     return MakeStringError("Unknown rank");
   }
 
-  SmallVector<Index, 4> unknown_dims;
+  llvm::SmallVector<Index, 4> unknown_dims;
   for (int i = 0; i < dims_->size(); i++) {
     if (IsUnknownDim(dims_.getValue()[i])) {
       unknown_dims.push_back(i);

@@ -417,7 +417,7 @@ static bool ReturnAfterHandlingError(
 static bool ReturnAfterHandlingError(
     AsyncValue *condition, ArrayRef<RCReference<AsyncValue>> args,
     MutableArrayRef<RCReference<IndirectAsyncValue>> results) {
-  SmallVector<AsyncValue *, 4> arg_avs;
+  llvm::SmallVector<AsyncValue *, 4> arg_avs;
   for (auto &arg_ref : args) arg_avs.push_back(arg_ref.get());
   return ReturnAfterHandlingError(condition, arg_avs, results);
 }
@@ -472,7 +472,7 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
   // We need to create all the result values eagerly so we can return them
   // from the HexIf function, even though we don't know their types.  Use
   // an IndirectAsyncValue for this, because it can lazily get resolved.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (int i = 0, e = results.size(); i != e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);
@@ -497,7 +497,7 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
         }
 
         const Function *fn = predicate.get() ? true_fn : false_fn;
-        SmallVector<RCReference<AsyncValue>, 8> results;
+        llvm::SmallVector<RCReference<AsyncValue>, 8> results;
         results.resize(result_refs.size());
         fn->Execute(exec_ctx, arg_refs.drop_front(), results);
 
@@ -586,8 +586,8 @@ static Expected<TensorHandle> TransferToDeviceInferredType(
 static void CoreRtWhileLoopIteration(
     const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
     RCReference<const Function> body_fn_ref,
-    SmallVector<RCReference<AsyncValue>, 4> arg_refs,
-    SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs);
+    llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs,
+    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs);
 
 // This is a helper function that runs a single iteration (or zero iterations if
 // the condition is not met) of CoreRtWhileLoop.
@@ -595,8 +595,8 @@ static void CoreRtWhileLoopIterationImpl(
     const ExecutionContext &exec_ctx, const Tensor &condition,
     RCReference<const Function> cond_fn_ref,
     RCReference<const Function> body_fn_ref,
-    SmallVector<RCReference<AsyncValue>, 4> arg_refs,
-    SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
+    llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs,
+    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
   // Determine whether to execute the loop body function.
   llvm::Expected<bool> predicate = GetTensorPredicateValue(condition);
   if (!predicate) {
@@ -617,9 +617,9 @@ static void CoreRtWhileLoopIterationImpl(
   }
 
   // Execute the loop body function.
-  SmallVector<AsyncValue *, 4> args;
+  llvm::SmallVector<AsyncValue *, 4> args;
   for (RCReference<AsyncValue> &arg : arg_refs) args.push_back(arg.get());
-  SmallVector<RCReference<AsyncValue>, 4> passed_args;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> passed_args;
   passed_args.resize(result_refs.size());
   body_fn_ref->Execute(exec_ctx, args, passed_args);
 
@@ -638,14 +638,14 @@ static void CoreRtWhileLoopIterationImpl(
 static void CoreRtWhileLoopIteration(
     const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
     RCReference<const Function> body_fn_ref,
-    SmallVector<RCReference<AsyncValue>, 4> arg_refs,
-    SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
+    llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs,
+    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
   // TODO(hanbinyoon): Look for ways to avoid allocating this args SmallVector
   // on each iteration of the loop. For example, consider the reuse of
   // passed_args in TFRTRepeatI32Block().
-  SmallVector<AsyncValue *, 4> args;
+  llvm::SmallVector<AsyncValue *, 4> args;
   for (RCReference<AsyncValue> &arg : arg_refs) args.push_back(arg.get());
-  SmallVector<RCReference<AsyncValue>, 2> condition;
+  llvm::SmallVector<RCReference<AsyncValue>, 2> condition;
   condition.resize(2);
   cond_fn_ref->Execute(exec_ctx, args, condition);
 
@@ -744,7 +744,7 @@ static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
   // RCReferences are destroyed. arg_refs is captured by the lambda (in
   // CoreRtWhileLoopIteration) so the kernel's arguments will be available when
   // the closure runs.
-  SmallVector<RCReference<AsyncValue>, 4> arg_refs;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs;
   for (AsyncValue *arg : args.values()) {
     arg_refs.push_back(FormRef(arg));
   }
@@ -758,7 +758,7 @@ static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
   // last iteration of the loop.
   // TODO(hanbinyoon): Consider using concrete types; the first is a Chain and
   // the rest are TensorHandles.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (int i = 0, e = results.size(); i != e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);

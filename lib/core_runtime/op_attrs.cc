@@ -585,7 +585,7 @@ OpAttrsRef OpAttrs::freeze() const {
 
 RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   // Sort the elements by attribute name.
-  SmallVector<const OpAttrsRawEntry *, 16> sorted_attrs;
+  llvm::SmallVector<const OpAttrsRawEntry *, 16> sorted_attrs;
   GetSortedAttrs(OpAttrsRef(attrs), &sorted_attrs);
 
   // Figure out how much space we need to hold these attributes.
@@ -844,7 +844,7 @@ void OpAttrsRef::Print(raw_ostream &os) const {
   os << "OpAttrs contains " << GetNumEntries() << " entries:\n";
 
   // Sort the elements by attribute name.
-  SmallVector<const OpAttrsRawEntry *, 16> sorted_attrs;
+  llvm::SmallVector<const OpAttrsRawEntry *, 16> sorted_attrs;
   GetSortedAttrs(*this, &sorted_attrs);
 
   // Print out the attributes in stable order.

@@ -63,7 +63,7 @@ void RunWhenReady(ArrayRef<AsyncValue*> values,
                   llvm::unique_function<void()> callee) {
   // Perform a quick scan of the arguments.  If they are all available, or if
   // any is already an error, then we can run the callee synchronously.
-  SmallVector<AsyncValue*, 4> unavailable_values;
+  llvm::SmallVector<AsyncValue*, 4> unavailable_values;
   for (auto i : values) {
     if (!i->IsAvailable()) unavailable_values.push_back(i);
   }
@@ -106,7 +106,7 @@ void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
       values, [](const RCReference<AsyncValue>& ref) -> AsyncValue* {
         return ref.get();
       });
-  SmallVector<AsyncValue*, 8> values_ptr(mapped.begin(), mapped.end());
+  llvm::SmallVector<AsyncValue*, 8> values_ptr(mapped.begin(), mapped.end());
   RunWhenReady(values_ptr, std::move(callee));
 }
 

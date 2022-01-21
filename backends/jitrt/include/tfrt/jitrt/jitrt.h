@@ -274,8 +274,8 @@ struct MemrefDesc {
   DType dtype;
   void* data;
   Index offset;
-  SmallVector<Index, 4> sizes;
-  SmallVector<Index, 4> strides;
+  llvm::SmallVector<Index, 4> sizes;
+  llvm::SmallVector<Index, 4> strides;
 };
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
@@ -394,7 +394,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   }
 
   std::unique_ptr<ConversionContext> context_;
-  SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+  llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
 };
 
 // -------------------------------------------------------------------------- //

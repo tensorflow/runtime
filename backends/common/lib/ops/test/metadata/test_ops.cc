@@ -122,7 +122,7 @@ static Expected<TensorMetadata> ReduceOpShape(const TensorMetadata& arg,
   auto rank = arg.shape.GetRank();
   if (axis >= rank) return MakeStringError("axis must less than input rank");
 
-  SmallVector<Index, 4> result_dims;
+  llvm::SmallVector<Index, 4> result_dims;
   result_dims.resize(rank - 1);
   size_t out_axis = 0;
   for (size_t in_axis = 0; in_axis < rank; ++in_axis) {

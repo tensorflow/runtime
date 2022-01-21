@@ -210,7 +210,7 @@ int RunBefExecutor(
     return mlir::failed(source_mgr_handler.verify());
   }
 
-  SmallVector<const Function*, 8> function_list;
+  llvm::SmallVector<const Function*, 8> function_list;
 
   if (run_config.functions.empty()) {
     // No functions specified in the command line. Try to run all functions in

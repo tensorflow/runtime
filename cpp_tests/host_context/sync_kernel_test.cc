@@ -81,10 +81,10 @@ class SyncKernelTest : public ::testing::Test {
            .build())};
 
   // Tests can use up to 16 registers.
-  SmallVector<const void*, 16> attributes_;
-  SmallVector<Value*, 16> registers_;
-  SmallVector<uint32_t, 16> argument_indices_;
-  SmallVector<uint32_t, 16> result_indices_;
+  llvm::SmallVector<const void*, 16> attributes_;
+  llvm::SmallVector<Value*, 16> registers_;
+  llvm::SmallVector<uint32_t, 16> argument_indices_;
+  llvm::SmallVector<uint32_t, 16> result_indices_;
 };
 
 TEST_F(SyncKernelTest, IntConstant) {

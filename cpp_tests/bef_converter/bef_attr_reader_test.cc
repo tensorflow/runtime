@@ -254,7 +254,7 @@ TEST_F(BefAttrReaderTest, ReadDenseAttribute) {
   tensor_view.Fill(1.5f);
 
   const auto& md = dht.metadata();
-  SmallVector<int64_t, 2> shape;
+  llvm::SmallVector<int64_t, 2> shape;
   for (int i = 0; i < md.shape.GetRank(); ++i) {
     shape.push_back(md.shape.GetDimensionSize(i));
   }
@@ -294,7 +294,7 @@ constexpr float kTestAggregateAttr3 = 3.14;
 TEST_F(BefAttrReaderTest, EmitAggregateAttribute) {
   mlir::Builder builder(&context_);
 
-  SmallVector<mlir::Attribute, 4> elements;
+  llvm::SmallVector<mlir::Attribute, 4> elements;
 
   elements.push_back(mlir::IntegerAttr::get(
       mlir::IntegerType::get(&context_, 32, mlir::IntegerType::Signed),

@@ -38,7 +38,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
   // the metadata function asynchronously - and enqueue the execution of the
   // kernel implementation to run when the shape results are resolved and
   // chain is available.
-  SmallVector<TensorMetadata, 4> argument_mds;
+  llvm::SmallVector<TensorMetadata, 4> argument_mds;
   auto arguments = invocation.arguments;
   argument_mds.reserve(arguments.size());
   for (size_t i = 0, e = arguments.size(); i != e; ++i) {
@@ -89,9 +89,9 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
   auto arguments = invocation.arguments;
   auto results = invocation.results;
 
-  SmallVector<AsyncValue*, 8> async_mds;
+  llvm::SmallVector<AsyncValue*, 8> async_mds;
   async_mds.reserve(arguments.size());
-  SmallVector<TensorHandle, 4> arguments_copy;
+  llvm::SmallVector<TensorHandle, 4> arguments_copy;
   arguments_copy.reserve(arguments.size());
   for (size_t i = 0, e = arguments.size(); i != e; ++i) {
     // Collect the unavailable async metadata values that caused us to get into
@@ -109,7 +109,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
 
   // Our lambda will produce two AsyncValue's for each TensorHandle result - one
   // is the metadata result, and one is the tensor result.
-  SmallVector<RCReference<AsyncValue>, 8> result_th_avs;
+  llvm::SmallVector<RCReference<AsyncValue>, 8> result_th_avs;
   result_th_avs.reserve(results.size() * 2);
 
   auto host = invocation.exec_ctx.host();
@@ -161,7 +161,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
 
     // This lambda will run when all of the async_shapes are resolved,
     // allowing us to run the shape function and then carry on.
-    SmallVector<TensorMetadata, 4> argument_mds;
+    llvm::SmallVector<TensorMetadata, 4> argument_mds;
     argument_mds.reserve(arguments.size());
     for (size_t i = 0, e = arguments.size(); i != e; ++i) {
       // If any input is an error, then propagate the error to all outputs
@@ -176,7 +176,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
 
     // Okay, the shapes are available as we expect, run the metadata
     // function to get the result shapes.
-    SmallVector<TensorMetadata, 4> result_mds(num_results);
+    llvm::SmallVector<TensorMetadata, 4> result_mds(num_results);
     if (auto error =
             metadata_fn(exec_ctx, argument_mds, frozen_attrs, result_mds)) {
       // If the metadata function produced an error, propagate it.
@@ -190,7 +190,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
       result_th_avs[i * 2]->emplace<TensorMetadata>(result_mds[i]);
 
     // Now that we have the result shapes, we can run/enqueue the kernel.
-    SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
+    llvm::SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
     callback(exec_ctx, arguments, frozen_attrs, result_mds.size(), result_mds,
              &result_tensor_avs, &chain);
 

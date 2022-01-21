@@ -57,7 +57,7 @@ static T* ToCuda(Pointer<T> ptr) {
 }
 
 template <typename T>
-static SmallVector<T*, 16> ToCuda(llvm::ArrayRef<Pointer<T>> ptrs) {
+static llvm::SmallVector<T*, 16> ToCuda(llvm::ArrayRef<Pointer<T>> ptrs) {
   llvm::SmallVector<T*, 16> result;
   result.reserve(ptrs.size());
   llvm::transform(ptrs, std::back_inserter(result),

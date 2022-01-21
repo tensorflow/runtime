@@ -50,7 +50,7 @@ DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<Index> dims) {
   const TensorMetadata& meta = tensor.metadata();
   assert(dims.size() <= meta.shape.GetRank());
   const size_t offset = OffsetOf(meta.shape, dims);
-  SmallVector<Index, 4> new_shape;
+  llvm::SmallVector<Index, 4> new_shape;
   new_shape.reserve(meta.shape.GetRank() - 1);
   for (int i = dims.size(); i < meta.shape.GetRank(); i++) {
     new_shape.push_back(meta.shape.GetDimensionSize(i));

@@ -117,7 +117,7 @@ void FilterDatasetIterator::MaybeScheduleBackgroundTask(
   auto input = std::move(next.first);
   auto predicate = std::move(next.second);
 
-  SmallVector<AsyncValue*, 4> async_value_ptrs;
+  llvm::SmallVector<AsyncValue*, 4> async_value_ptrs;
   for (auto& value : input.values) async_value_ptrs.push_back(value.get());
   async_value_ptrs.push_back(input.eof.GetAsyncValue());
   async_value_ptrs.push_back(predicate.values[0].get());

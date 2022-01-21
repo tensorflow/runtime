@@ -43,7 +43,7 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
   // We need to create all the result values eagerly so we can return them
   // from the TestDoAsync function, even though we don't know their types.  Use
   // an IndirectAsyncValue for this, because it can lazily get resolved.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (int i = 0, e = results.size(); i != e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);
@@ -55,7 +55,7 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
   EnqueueWork(exec_ctx, [exec_ctx, body = FormRef(&body_fn.get()),
                          arg_refs = std::move(arg_refs),
                          result_refs = std::move(result_refs)]() {
-    SmallVector<RCReference<AsyncValue>, 8> results;
+    llvm::SmallVector<RCReference<AsyncValue>, 8> results;
     results.resize(result_refs.size());
 
     body->Execute(exec_ctx, arg_refs.values(), results);

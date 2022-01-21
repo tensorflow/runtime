@@ -76,8 +76,8 @@ struct BEFFunction {
   string_view name;
   FunctionKind kind;
 
-  SmallVector<mlir::Type, 4> argument_types;
-  SmallVector<mlir::Type, 4> result_types;
+  llvm::SmallVector<mlir::Type, 4> argument_types;
+  llvm::SmallVector<mlir::Type, 4> result_types;
 
   // Named functions are actual MLIR functions (eg. a mlir::FuncOp) in the MLIR
   // program. It may be a concrete function with region bodies and may also be
@@ -316,7 +316,7 @@ class BEFFunctionReader {
   mlir::Location location_;
   std::vector<RegisterInfo> register_table_;
   std::vector<KernelTableEntry> kernel_table_;
-  SmallVector<int, 2> result_regs_;
+  llvm::SmallVector<int, 2> result_regs_;
 };
 
 mlir::LogicalResult BEFToMLIRConverter::ReadHeader() {
@@ -468,7 +468,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctionIndex(
 
     // And populate argument/result types of this function.
     auto read_types =
-        [this, &function_index_reader](SmallVector<mlir::Type, 4>* out) {
+        [this, &function_index_reader](llvm::SmallVector<mlir::Type, 4>* out) {
           std::vector<size_t> indices;
           if (mlir::failed(ReadIntArray(&function_index_reader, &indices)))
             return mlir::failure();
@@ -533,8 +533,8 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
     std::unique_ptr<mlir::Region> region) {
   // Use return_op's operand types as function result types.
   auto& return_op = region->front().back();
-  SmallVector<mlir::Type, 4> result_types(return_op.operand_type_begin(),
-                                          return_op.operand_type_end());
+  llvm::SmallVector<mlir::Type, 4> result_types(return_op.operand_type_begin(),
+                                                return_op.operand_type_end());
 
   // If it is a named function, create a top level mlir function.
   auto function_type = mlir::FunctionType::get(

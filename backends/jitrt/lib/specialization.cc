@@ -133,7 +133,7 @@ Error SpecializeFunction(mlir::FuncOp func, ArrayRef<MemrefDesc> operands,
   // specialization pipeline, e.g., in Tensorflow these casts will be optimized
   // away by the shape inference pass.
   for (int i = 0; i < num_inputs; ++i) {
-    mlir::Value new_arg = entry_block.addArgument(specialized_inputs[i]);
+    mlir::Value new_arg = entry_block.addArgument(specialized_inputs[i], loc);
     mlir::Value old_arg = entry_block.getArgument(i);
     if (new_arg.getType() != old_arg.getType()) {
       new_arg =

@@ -51,7 +51,7 @@ static void ConvertReturnOperations(FuncOp func, Value kernel_ctx) {
     ImplicitLocOpBuilder b(ret.getLoc(), ret);
 
     // Return all outputs via the `rt.set_output` operation.
-    for (auto pair : llvm::enumerate(ret.getOperands())) {
+    for (auto& pair : llvm::enumerate(ret.getOperands())) {
       b.create<SetOutputOp>(kernel_ctx, pair.index(), pair.value());
     }
 
@@ -96,7 +96,7 @@ static void ConvertAssertOperations(FuncOp func, Value kernel_ctx) {
 static Value PrependKernelContextArgument(mlir::FuncOp func) {
   mlir::Type new_type = KernelContextType::get(func.getContext());
   mlir::DictionaryAttr attr = mlir::DictionaryAttr::get(func.getContext());
-  func.insertArguments({0}, {new_type}, {attr}, {});
+  func.insertArguments({0}, {new_type}, {attr}, {func.getLoc()});
   return func.getArgument(0);
 }
 

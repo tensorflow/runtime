@@ -636,7 +636,9 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
   rewriter.updateRootInPlace(func_op, [&] {
     auto types = GetTypes<compiler::ChainType, StreamType>(rewriter);
-    func_op.insertArguments({0, 0}, types, /*argAttrs=*/{}, /*argLocs=*/{});
+    func_op.insertArguments(
+        {0, 0}, types, /*argAttrs=*/{},
+        SmallVector<Location, 2>(types.size(), func_op.getLoc()));
     func_op.insertResult(0, types.front(), /*resultAttrs=*/nullptr);
   });
 
@@ -1199,7 +1201,9 @@ LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
   Location loc = exec_op->getLoc();
   auto do_op = rewriter.create<test::DoAsyncOp>(loc, result_types, arguments);
   Region *region = &do_op.getRegion();
-  Block *block = rewriter.createBlock(region, region->end(), arg_types);
+  Block *block =
+      rewriter.createBlock(region, region->end(), arg_types,
+                           SmallVector<Location, 2>(arg_types.size(), loc));
   BlockAndValueMapping mapping;
   mapping.map(arguments, block->getArguments());
   rewriter.cloneRegionBefore(exec_op.getRegion(), *region, region->end(),

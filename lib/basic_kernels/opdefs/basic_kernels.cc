@@ -191,7 +191,8 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
 
     mlir::OpBuilder builder(result.getContext());
     auto *block = builder.createBlock(else_region);
-    block->addArguments(body_types);
+    block->addArguments(
+        body_types, SmallVector<Location>(body_types.size(), result.location));
     builder.create<ReturnOp>(result.location);
   }
 

@@ -656,7 +656,9 @@ BEFFunctionReader::ReadFunction(BefLocationReader* location_reader,
   auto region = std::make_unique<mlir::Region>();
   region->push_back(new mlir::Block());
   auto* block = &region->back();
-  block->addArguments(bef_function_.argument_types);
+  auto& arg_types = bef_function_.argument_types;
+  block->addArguments(arg_types, llvm::SmallVector<mlir::Location, 2>(
+                                     arg_types.size(), location_));
 
   // Kernels are 4-byte aligned.
   if (!function_reader_.ReadAlignment(kKernelEntryAlignment) ||

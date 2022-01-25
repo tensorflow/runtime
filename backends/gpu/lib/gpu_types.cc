@@ -192,11 +192,19 @@ GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuContext> context,
 
 GpuBlasHandle::~GpuBlasHandle() = default;
 
-GpuCclHandle::GpuCclHandle(AsyncValueRef<GpuContext> context,
-                           wrapper::OwningCclComm comm)
-    : context_(std::move(context)), comm_(std::move(comm)) {}
+GpuCclHandle::GpuCclHandle(
+    AsyncValueRef<GpuContext> context, wrapper::OwningCclComm comm,
+    llvm::unique_function<void(wrapper::CclComm)> custom_deleter)
+    : context_(std::move(context)),
+      comm_(std::move(comm)),
+      custom_deleter_(std::move(custom_deleter)) {}
 
-GpuCclHandle::~GpuCclHandle() = default;
+GpuCclHandle::~GpuCclHandle() {
+  if (custom_deleter_) {
+    // Using the custom deleter instead.
+    custom_deleter_(comm_.release());
+  }
+}
 
 void GpuCclHandle::AddCallback(Callback callback) {
   callbacks_.push_back(std::move(callback));
@@ -210,11 +218,6 @@ llvm::Error GpuCclHandle::ExecuteCallbacks(wrapper::CurrentContext current,
   if (auto error = wrapper::CclGroupEnd(current.platform())) return error;
   callbacks_.clear();
   return llvm::Error::success();
-}
-
-wrapper::CclComm GpuCclHandle::release() {
-  context_.reset();
-  return comm_.release();
 }
 
 GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuContext> context,

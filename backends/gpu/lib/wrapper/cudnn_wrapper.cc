@@ -34,7 +34,7 @@ static std::string& CudnnLogTop() {
 
 llvm::raw_ostream& internal::operator<<(llvm::raw_ostream& os,
                                         const ErrorData<cudnnStatus_t>& data) {
-  operator<<<cudnnStatus_t>(os, data);
+  operator<< /**/<cudnnStatus_t>(os, data);
   if (data.log.empty()) return os;
   if (!data.stack_trace) os << '\n';
   return os << data.log;

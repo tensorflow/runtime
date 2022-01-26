@@ -310,6 +310,7 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
 
 void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDenseHostTensorKernelsForType<uint8_t>(registry, "ui8");
+  RegisterDenseHostTensorKernelsForType<uint32_t>(registry, "ui32");
   RegisterDenseHostTensorKernelsForType<float>(registry, "f32");
   RegisterDenseHostTensorKernelsForType<double>(registry, "f64");
   RegisterDenseHostTensorKernelsForType<int32_t>(registry, "i32");

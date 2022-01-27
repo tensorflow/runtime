@@ -71,7 +71,7 @@ class TensorShape {
 
   // Return all of the dimensions in this TensorShape in a way that is easy to
   // process.
-  void GetDimensions(SmallVectorImpl<Index>* result) const;
+  void GetDimensions(llvm::SmallVectorImpl<Index>* result) const;
 
   // A more optimized version than the above.
   template <size_t N>
@@ -91,7 +91,7 @@ class TensorShape {
   //
   // See address calculation section for details:
   // https://en.wikipedia.org/wiki/Row-_and_column-major_order
-  void GetStrides(SmallVectorImpl<Index>* result) const;
+  void GetStrides(llvm::SmallVectorImpl<Index>* result) const;
 
   template <size_t N>
   void GetStrides(Index (&result)[N]) const {

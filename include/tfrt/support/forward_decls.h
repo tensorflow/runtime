@@ -41,8 +41,6 @@ template <typename T>
 class MutableArrayRef;
 template <typename T>
 class Optional;
-template <typename T>
-class SmallVectorImpl;
 class StringRef;
 
 template <typename FunctionT>
@@ -77,8 +75,6 @@ template <typename T>
 using MutableArrayRef = llvm::MutableArrayRef<T>;
 template <typename T>
 using Optional = llvm::Optional<T>;
-template <typename T>
-using SmallVectorImpl = llvm::SmallVectorImpl<T>;
 using string_view = llvm::StringRef;
 
 // Casting operators.

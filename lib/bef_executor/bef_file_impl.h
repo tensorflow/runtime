@@ -295,7 +295,7 @@ class BEFFileImpl : public BEFFile {
   // affect the performance.
   bool ReadFunction(size_t function_offset, ArrayRef<TypeName> results,
                     size_t* location_offset, FunctionInfo* function_info,
-                    SmallVectorImpl<size_t>* result_regs,
+                    llvm::SmallVectorImpl<size_t>* result_regs,
                     HostAllocator* host_allocator);
 
   // Given an offset into the LocationPositions section, decode it and return

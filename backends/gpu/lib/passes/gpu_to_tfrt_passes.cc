@@ -1296,7 +1296,7 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
   converter.addConversion([](Type type) { return type; });
   // !async.value<T> -> !async.value<convert(T)>...
   converter.addConversion(
-      [&](mlir::async::ValueType type, SmallVectorImpl<Type> &results) {
+      [&](mlir::async::ValueType type, llvm::SmallVectorImpl<Type> &results) {
         if (failed(converter.convertType(type.getValueType(), results)))
           return failure();
         llvm::transform(results, results.begin(), [](Type type) {
@@ -1306,7 +1306,7 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
       });
   // !gpu.async.token -> !tfrt.chain, !tfrt_gpu.event
   converter.addConversion(
-      [](mlir::gpu::AsyncTokenType type, SmallVectorImpl<Type> &results) {
+      [](mlir::gpu::AsyncTokenType type, llvm::SmallVectorImpl<Type> &results) {
         results.push_back(compiler::ChainType::get(type.getContext()));
         results.push_back(EventType::get(type.getContext()));
         return success();

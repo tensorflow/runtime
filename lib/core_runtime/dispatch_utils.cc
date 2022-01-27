@@ -24,7 +24,7 @@ namespace tfrt {
 namespace internal {
 MDFunctionExecResult ExecuteMetadataFunction(
     const OpMetadataFn& metadata_fn, const OpInvocation& invocation,
-    SmallVectorImpl<TensorMetadata>& result_mds) {
+    llvm::SmallVectorImpl<TensorMetadata>& result_mds) {
   auto propagate_error = [&](RCReference<AsyncValue> error) {
     for (auto& result : invocation.results)
       result = TensorHandle::CreateError(error);

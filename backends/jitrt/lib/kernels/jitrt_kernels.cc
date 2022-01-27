@@ -115,7 +115,8 @@ struct ConversionCtx {};
 }  // namespace
 
 static Error ConvertTensorOperandsToMemrefDesc(
-    RepeatedArguments<Tensor> operands, SmallVectorImpl<MemrefDesc>* memrefs) {
+    RepeatedArguments<Tensor> operands,
+    llvm::SmallVectorImpl<MemrefDesc>* memrefs) {
   assert(memrefs->empty() && "memrefs must be empty");
   memrefs->reserve(operands.size());
 
@@ -129,7 +130,7 @@ static Error ConvertTensorOperandsToMemrefDesc(
 }
 
 static void ExecuteImpl(const Executable& executable,
-                        const SmallVectorImpl<MemrefDesc>& memrefs,
+                        const llvm::SmallVectorImpl<MemrefDesc>& memrefs,
                         RepeatedArguments<Tensor> operands,
                         RemainingResults results,
                         const ExecutionContext& exec_ctx) {

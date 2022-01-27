@@ -283,7 +283,7 @@ static void print(OpAsmPrinter &p, ExecuteOpSeq op) {
 }
 
 void ExecuteOp::getOpAttrs(
-    SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
+    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
   ArrayRef<Attribute> op_attr_array = this->op_attrs().getValue();

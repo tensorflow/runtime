@@ -83,7 +83,7 @@ static void print(OpAsmPrinter &p, ExecuteOp op) {
 }
 
 void ExecuteOp::getOpAttrs(
-    SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
+    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
   auto op_attr_array = this->op_attrs().getValue();
@@ -98,7 +98,7 @@ void ExecuteOp::getOpAttrs(
 }
 
 LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
-                              SmallVectorImpl<OpFoldResult> &results) {
+                              llvm::SmallVectorImpl<OpFoldResult> &results) {
   if (op_name() == "tf.Const") {
     auto op_attr_array = op_attrs().getValue();
     assert(!op_attr_array.empty());

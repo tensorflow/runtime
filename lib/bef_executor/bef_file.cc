@@ -65,7 +65,7 @@ class BEFFileReader : public BEFReader {
 
  private:
   bool ReadFunctionIndexSectionInternal(
-      SmallVectorImpl<FunctionIndex>* function_indices);
+      llvm::SmallVectorImpl<FunctionIndex>* function_indices);
   bool DiagnoseUnknownKernel(size_t kernel_idx, const char* kernel_name,
                              HostAllocator* host_allocator);
 
@@ -299,7 +299,7 @@ bool BEFFileReader::ReadTypesSection() {
 // Read the FunctionIndex section from a BEF file, and put the information into
 // `function_indices`.
 bool BEFFileReader::ReadFunctionIndexSectionInternal(
-    SmallVectorImpl<FunctionIndex>* function_indices) {
+    llvm::SmallVectorImpl<FunctionIndex>* function_indices) {
   BEFReader reader(bef_file_->function_index_section_);
 
   size_t num_functions;
@@ -491,7 +491,7 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
                                ArrayRef<TypeName> results,
                                size_t* location_offset,
                                FunctionInfo* function_info,
-                               SmallVectorImpl<size_t>* result_regs,
+                               llvm::SmallVectorImpl<size_t>* result_regs,
                                HostAllocator* host_allocator) {
   auto format_error = [&]() -> bool {
     EmitFormatError("invalid Function section in BEF file");
@@ -581,7 +581,8 @@ const char* BEFFileImpl::GetKernelName(size_t kernel_id) const {
 }
 
 // Read a list of function names out of the BEF file function index.
-void BEFFile::GetFunctionList(SmallVectorImpl<const Function*>* results) const {
+void BEFFile::GetFunctionList(
+    llvm::SmallVectorImpl<const Function*>* results) const {
   auto* impl = static_cast<const BEFFileImpl*>(this);
 
   results->reserve(impl->functions_.size());

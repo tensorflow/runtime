@@ -305,8 +305,9 @@ const char *GetNameString(OpAttrType type) {
   }
 }
 
-static void GetSortedAttrs(const OpAttrsRef &attrs,
-                           SmallVectorImpl<const OpAttrsRawEntry *> *result) {
+static void GetSortedAttrs(
+    const OpAttrsRef &attrs,
+    llvm::SmallVectorImpl<const OpAttrsRawEntry *> *result) {
   // Collect the attributes in non-determinstic order.
   attrs.IterateEntries(
       [&](const OpAttrsRawEntry &entry) { result->push_back(&entry); });

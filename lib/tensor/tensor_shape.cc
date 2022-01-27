@@ -156,13 +156,13 @@ void TensorShape::GetStrides(MutableArrayRef<Index> result) const {
 
 // Return all of the dimensions in this TensorShape in a way that is easy to
 // process.
-void TensorShape::GetDimensions(SmallVectorImpl<Index>* result) const {
+void TensorShape::GetDimensions(llvm::SmallVectorImpl<Index>* result) const {
   result->resize(GetRank());
   GetDimensions(*result);
 }
 
 // Return strides of this TensorShape in a way that is easy to process.
-void TensorShape::GetStrides(SmallVectorImpl<Index>* result) const {
+void TensorShape::GetStrides(llvm::SmallVectorImpl<Index>* result) const {
   result->resize(GetRank());
   GetStrides(*result);
 }

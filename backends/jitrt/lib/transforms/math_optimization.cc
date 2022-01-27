@@ -40,7 +40,7 @@ struct MathOptimizationPass
 }  // namespace
 
 void MathOptimizationPass::runOnFunction() {
-  mlir::OwningRewritePatternList patterns(&getContext());
+  mlir::RewritePatternSet patterns(&getContext());
   mlir::populateMathAlgebraicSimplificationPatterns(patterns);
   mlir::MathPolynomialApproximationOptions approx_options;
   approx_options.enableAvx2 = enable_avx2_;

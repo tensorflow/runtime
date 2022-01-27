@@ -314,8 +314,8 @@ static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
 
 template <class OpTy>
 static LogicalResult VerifyBlasGemmOp(OpTy op) {
-  if (!AllEqual({op.typeA(), op.typeB(), op.typeC()})) {
-    return op.emitOpError("typeA, typeB and typeC need to match");
+  if (op.typeA() != op.typeB()) {
+    return op.emitOpError("typeA and typeB need to match");
   }
   return mlir::success();
 }

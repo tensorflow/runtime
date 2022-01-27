@@ -63,6 +63,9 @@ static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
     return GetScalePointer<std::complex<double>>(
         value, mlir::TypeID::get<std::complex<double>>(), platform);
   }
+  if (value->IsType<int32_t>()) {
+    return GetScalePointer<int32_t>(value, typeId, platform);
+  }
   return MakeStringError("pointer type not supported");
 }
 

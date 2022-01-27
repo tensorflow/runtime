@@ -45,6 +45,9 @@ namespace mlir {
 namespace runtime {
 
 using tfrt::AsyncValueRef;
+using tfrt::Chain;
+using tfrt::GetReadyChain;
+using tfrt::HostAllocator;
 using tfrt::HostBuffer;
 using tfrt::HostContext;
 using tfrt::MakeConstructedAsyncValueRef;
@@ -54,12 +57,12 @@ class AsyncToken : public AsyncRuntimeObject {
  public:
   explicit AsyncToken(HostContext* host, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        chain_(MakeConstructedAsyncValueRef<tfrt::Chain>(host)) {}
+        chain_(MakeConstructedAsyncValueRef<Chain>(host)) {}
 
   tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
 
  private:
-  AsyncValueRef<tfrt::Chain> chain_;
+  AsyncValueRef<Chain> chain_;
 };
 
 class AsyncValue : public AsyncRuntimeObject {
@@ -91,7 +94,7 @@ class AsyncValue : public AsyncRuntimeObject {
     static const int kAlign = alignof(std::max_align_t);
 
     Storage() : is_inline(true) {}
-    Storage(tfrt::HostAllocator* allocator, size_t size, size_t alignment)
+    Storage(HostAllocator* allocator, size_t size, size_t alignment)
         : is_inline(false),
           host_buffer(
               HostBuffer::CreateUninitialized(size, alignment, allocator)
@@ -109,7 +112,7 @@ class AsyncValue : public AsyncRuntimeObject {
     bool is_inline;
     union {
       std::aligned_storage<kSize, kAlign>::type inline_buffer;
-      tfrt::HostBuffer* host_buffer;
+      HostBuffer* host_buffer;
     };
   };
 
@@ -120,17 +123,18 @@ class AsyncGroup : public AsyncRuntimeObject {
  public:
   explicit AsyncGroup(int64_t size, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
+        size_(size),
         rank_(0),
         pending_tokens_(size),
         num_errors_(0),
-        completed_(tfrt::MakeConstructedAsyncValueRef<tfrt::Chain>()) {
-    // If group size is zero, mark completion async value ready.
-    assert(size >= 0 && "size can't be negative");
-    if (size == 0) completed_.SetStateConcrete();
+        completed_(size == 0 ? GetReadyChain()
+                             : MakeConstructedAsyncValueRef<Chain>()) {
+    assert(size_ >= 0 && "size can't be negative");
   }
 
   size_t AddToken(AsyncToken* token) {
     size_t rank = rank_.fetch_add(1, std::memory_order_relaxed);
+    assert(rank < size_ && "can't add more tokens than the group size");
 
     // When token becomes available drop the number of pending tokens and maybe
     // make the group completion async value available.
@@ -157,13 +161,14 @@ class AsyncGroup : public AsyncRuntimeObject {
   bool IsError() const { return num_errors_.load() != 0; }
 
  private:
+  int64_t size_;
   std::atomic<int64_t> rank_;
   std::atomic<int64_t> pending_tokens_;
   std::atomic<int64_t> num_errors_;
 
   // Async value that keeps track the group completion, it will become available
   // when the number of pending tokens will drop to zero.
-  AsyncValueRef<tfrt::Chain> completed_;
+  AsyncValueRef<Chain> completed_;
 };
 
 }  // namespace runtime
@@ -210,12 +215,12 @@ void AsyncRuntime::Await(AsyncValue* awaitable) {
 }
 
 /*static*/ void AsyncRuntime::AddRef(AsyncRuntimeObject* obj, unsigned count) {
-  assert(count == 1 && "tfrt::ReferenceCounted can add just one ref");
+  assert(count == 1 && "AsyncRuntimeObject can add just one ref");
   obj->AddRef();
 }
 
 /*static*/ void AsyncRuntime::DropRef(AsyncRuntimeObject* obj, unsigned count) {
-  assert(count == 1 && "tfrt::ReferenceCounted can drop just one ref");
+  assert(count == 1 && "AsyncRuntimeObject can drop just one ref");
   obj->DropRef();
 }
 

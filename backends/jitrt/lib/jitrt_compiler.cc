@@ -34,7 +34,7 @@
 #include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
-#include "mlir/Dialect/StandardOps/Transforms/Passes.h"
+#include "mlir/Dialect/MemRef/Transforms/Passes.h"
 #include "mlir/Dialect/Tensor/IR/TensorInferTypeOpInterfaceImpl.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/AMX/AMXToLLVMIRTranslation.h"
@@ -108,7 +108,7 @@ void CreateDefaultJitRtCompilationPipeline(
 
   // Expand math operations into std/arith dialect operations.
   pm.addNestedPass<mlir::FuncOp>(mlir::arith::createArithmeticExpandOpsPass());
-  pm.addNestedPass<mlir::FuncOp>(mlir::createStdExpandOpsPass());
+  pm.addNestedPass<mlir::FuncOp>(mlir::memref::createExpandOpsPass());
 
   // Add alignment attribute to all memref allocations.
   pm.addNestedPass<mlir::FuncOp>(CreateAlignedAllocationsPass(opts.alignment));

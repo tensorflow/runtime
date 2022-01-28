@@ -277,7 +277,7 @@ func @tfrt_while_test() -> !tfrt.chain {
   %iteration = tfrt.constant.i32 0
   %arg = tfrt.constant.i32 0
 
-  %ch1, %final_iteration, %final_arg = tfrt.while %cond @tfrt_while_body(%ch0, %iteration, %arg) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, i32, i32)
+  %ch1, %final_iteration, %final_arg = tfrt.while %cond @tfrt_while_body(%ch0, %iteration, %arg) parallel_iterations(1) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, i32, i32)
 
   // CHECK: int32 = 30
   %ch2 = tfrt.print.i32 %final_arg, %ch1
@@ -306,7 +306,7 @@ func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
   %iteration = tfrt.constant.i32 0
   %arg = tfrt.constant.i32 0
 
-  %ch1, %final_iteration, %final_arg = tfrt.while %cond @tfrt_while_error_body(%ch0, %iteration, %arg) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, i32, i32)
+  %ch1, %final_iteration, %final_arg = tfrt.while %cond @tfrt_while_error_body(%ch0, %iteration, %arg) parallel_iterations(1) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, i32, i32)
 
   // CHECK: 'tfrt_while_error_test' returned <<error: Cancelled>>,<<error: Cancelled>>,<<error: Cancelled>>
   tfrt.return %ch1, %final_iteration, %final_arg : !tfrt.chain, i32, i32

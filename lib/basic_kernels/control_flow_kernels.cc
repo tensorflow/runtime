@@ -331,6 +331,7 @@ static void TFRTWhileImpl(
 //  return results
 //
 static void TFRTWhile(RemainingArguments args, RemainingResults results,
+                      Attribute<int64_t> parallel_iterations,
                       Attribute<Function> body_fn_const,
                       const ExecutionContext& exec_ctx) {
   assert(args.size() > 1);

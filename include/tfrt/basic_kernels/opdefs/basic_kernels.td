@@ -228,6 +228,7 @@ def WhileOp : TFRT_Op<"while"> {
       are the same as the number and types of operands.
     body_fn: The body function that takes the arguments and returns the results
       and an I1 value to indicate whether next iteration should be executed.
+    parallel_iterations: The max number of iterations that can be dispatched in parallel.
 
     The pseudo code:
 
@@ -241,13 +242,20 @@ def WhileOp : TFRT_Op<"while"> {
 
   let arguments = (ins I1:$cond,
                        Variadic<AnyType>:$operands,
-                       FlatSymbolRefAttr:$body_fn);
+                       FlatSymbolRefAttr:$body_fn,
+                       I64Attr:$parallel_iterations);
 
   let results = (outs Variadic<AnyType>:$results);
 
   let assemblyFormat = [{
-    $cond $body_fn `(` $operands `)` attr-dict `:` `(` type($operands) `)` `->` `(` type($results) `)`
+    $cond $body_fn `(` $operands `)` attr-dict `parallel_iterations` `(` $parallel_iterations `)` `:` `(` type($operands) `)` `->` `(` type($results) `)`
   }];
+
+  let builders = [
+    OpBuilder<(ins "::mlir::TypeRange":$results, "::mlir::Value":$cond, "::mlir::ValueRange":$operands, "::llvm::StringRef":$body_fn, CArg<"int64_t", "1">:$parallel_iterations), [{
+      build($_builder, $_state, results, cond, operands, ::mlir::FlatSymbolRefAttr::get($_builder.getStringAttr(body_fn)), $_builder.getI64IntegerAttr(parallel_iterations));
+    }]>
+  ];
 
   let verifier = ?;
 }

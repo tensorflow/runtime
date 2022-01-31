@@ -24,7 +24,9 @@
 namespace mlir {
 class Location;
 class MLIRContext;
-class OwningModuleRef;
+class ModuleOp;
+template <typename OpTy>
+class OwningOpRef;
 }  // namespace mlir
 
 namespace tfrt {
@@ -35,9 +37,9 @@ namespace tfrt {
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns a null module.
-mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
-                                       ArrayRef<uint8_t> bef_file,
-                                       mlir::MLIRContext* context);
+mlir::OwningOpRef<mlir::ModuleOp> ConvertBEFToMLIR(mlir::Location location,
+                                                   ArrayRef<uint8_t> bef_file,
+                                                   mlir::MLIRContext* context);
 
 }  // namespace tfrt
 

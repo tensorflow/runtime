@@ -272,7 +272,7 @@ void RequestHandler::HandleRegisterFunction(
     return;
   }
   mlir::MLIRContext context;
-  mlir::OwningModuleRef module =
+  mlir::OwningOpRef<mlir::ModuleOp> module =
       pass->ParseMlirProgram(request->program(), &context);
   if (!module) {
     done(llvm::make_error<MalformattedMlirFileErrorInfo>(

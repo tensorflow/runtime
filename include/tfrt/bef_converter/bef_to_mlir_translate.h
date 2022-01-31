@@ -28,13 +28,15 @@ class SourceMgr;
 
 namespace mlir {
 class MLIRContext;
-class OwningModuleRef;
+class ModuleOp;
+template <typename OpTy>
+class OwningOpRef;
 }  // namespace mlir
 
 namespace tfrt {
 
-mlir::OwningModuleRef BEFToMLIRTranslate(llvm::SourceMgr &source_mgr,
-                                         mlir::MLIRContext *context);
+mlir::OwningOpRef<mlir::ModuleOp> BEFToMLIRTranslate(
+    llvm::SourceMgr &source_mgr, mlir::MLIRContext *context);
 
 }  // namespace tfrt
 

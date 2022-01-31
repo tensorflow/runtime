@@ -692,8 +692,9 @@ class JitCompilationContext {
   llvm::raw_string_ostream diagnostic_os_;
   llvm::SourceMgr source_mgr_;
   mlir::SourceMgrDiagnosticHandler handler_;
-  mlir::OwningModuleRef module_;  // can be null if failed to parse the module
-  mlir::FuncOp entrypoint_;       // can be null if failed to parse the module
+  mlir::OwningOpRef<mlir::ModuleOp>
+      module_;               // can be null if failed to parse the module
+  mlir::FuncOp entrypoint_;  // can be null if failed to parse the module
   bool specialized_;
 };
 }  // namespace

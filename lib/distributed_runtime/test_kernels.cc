@@ -237,7 +237,7 @@ class FakeCompilerPass : public CompilerPass {
                    const llvm::SmallVector<std::string, 4>& output_devices)
       : compiled_program_(compiled_program), output_devices_(output_devices) {}
 
-  mlir::OwningModuleRef ParseMlirProgram(
+  mlir::OwningOpRef<mlir::ModuleOp> ParseMlirProgram(
       string_view program, mlir::MLIRContext* context) const override {
     mlir::DialectRegistry registry;
     tfrt::RegisterTFRTDialects(registry);

@@ -616,7 +616,7 @@ mlir::LogicalResult BEFToMLIRConverter::AddCompilationUnits(
         llvm::MemoryBuffer::getMemBuffer(blob, "<unknown>"), llvm::SMLoc());
 
     // Parse a compilation unit source code into the MLIR Module.
-    mlir::OwningModuleRef compilation_unit_module(
+    mlir::OwningOpRef<mlir::ModuleOp> compilation_unit_module(
         mlir::parseSourceFile(source_mgr, &context_));
     if (!compilation_unit_module) {
       EmitError(loc, "Failed to parse compilation unit.");
@@ -939,9 +939,9 @@ BEFFunctionReader::RegisterInfo& BEFFunctionReader::GetRegister(
 
 }  // namespace
 
-mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
-                                       ArrayRef<uint8_t> bef_file,
-                                       mlir::MLIRContext* context) {
+mlir::OwningOpRef<mlir::ModuleOp> ConvertBEFToMLIR(mlir::Location location,
+                                                   ArrayRef<uint8_t> bef_file,
+                                                   mlir::MLIRContext* context) {
   auto emit_error = [&location](string_view message) {
     EmitError(location, message);
     return nullptr;
@@ -986,7 +986,7 @@ mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
 
   // The third phase resolves all functions as either top level MLIR functions
   // or nested regions for MLIR operations.
-  mlir::OwningModuleRef module(mlir::ModuleOp::create(location));
+  mlir::OwningOpRef<mlir::ModuleOp> module(mlir::ModuleOp::create(location));
   if (mlir::failed(converter.ResolveFunctions(&function_context, module.get())))
     return emit_error("Failed to resolve functions.");
 

@@ -29,8 +29,8 @@
 
 namespace tfrt {
 
-mlir::OwningModuleRef BEFToMLIRTranslate(llvm::SourceMgr &source_mgr,
-                                         mlir::MLIRContext *context) {
+mlir::OwningOpRef<mlir::ModuleOp> BEFToMLIRTranslate(
+    llvm::SourceMgr &source_mgr, mlir::MLIRContext *context) {
   mlir::DialectRegistry registry;
   RegisterTFRTDialects(registry);
   RegisterTFRTCompiledDialects(registry);

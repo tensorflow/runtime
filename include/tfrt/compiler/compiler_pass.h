@@ -34,13 +34,13 @@ namespace tfrt {
 class CompilerPass {
  public:
   struct CompilationOutput {
-    mlir::OwningModuleRef module;
+    mlir::OwningOpRef<mlir::ModuleOp> module;
     llvm::SmallVector<std::string, 4> output_devices;
   };
 
   virtual ~CompilerPass() {}
 
-  virtual mlir::OwningModuleRef ParseMlirProgram(
+  virtual mlir::OwningOpRef<mlir::ModuleOp> ParseMlirProgram(
       string_view program, mlir::MLIRContext* context) const = 0;
   virtual llvm::Expected<CompilationOutput> Compile(
       mlir::ModuleOp module, mlir::MLIRContext* context) const = 0;

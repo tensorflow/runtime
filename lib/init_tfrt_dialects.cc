@@ -26,7 +26,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/Dialect/Vector/VectorOps.h"
+#include "mlir/Dialect/Vector/IR/VectorOps.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"

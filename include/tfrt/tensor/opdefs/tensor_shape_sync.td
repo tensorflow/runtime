@@ -42,7 +42,7 @@ def TensorShapeSyncDialect : Dialect {
 }
 
 // Base class for the operation in this dialect
-class TS_SYNC_Op<string mnemonic, list<OpTrait> traits = []> :
+class TS_SYNC_Op<string mnemonic, list<Trait> traits = []> :
     Op<TensorShapeSyncDialect, mnemonic, traits> {
   let parser = [{ return tfrt::ts::parse$cppClass(parser, result); }];
   let printer = " return tfrt::ts::printOpWithOperands(p, *this)" "; ";

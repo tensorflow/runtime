@@ -23,7 +23,7 @@ include "tfrt/core_runtime/opdefs/corert_traits.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Base class for corert dialect ops.
-class CoreRT_Op<string mnemonic, list<OpTrait> traits = []> :
+class CoreRT_Op<string mnemonic, list<Trait> traits = []> :
     Op<CoreRT_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
   // Each registered op in the corert namespace needs to provide all of a
   // verifier, a printer and a parser.

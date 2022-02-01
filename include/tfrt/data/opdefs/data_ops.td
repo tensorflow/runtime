@@ -50,7 +50,7 @@ def Data_IteratorType :
 
 
 // Base class for Data dialect ops.
-class Data_Op<string mnemonic, list<OpTrait> traits = []> :
+class Data_Op<string mnemonic, list<Trait> traits = []> :
     Op<Data_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 
   // Each registered op in the Data namespace needs to provide a parser.

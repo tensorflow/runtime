@@ -42,7 +42,7 @@ def Test_Dialect : Dialect {
 def ProtoExampleType : OpaqueType<"proto", "example", "!proto.example type">;
 
 // Base class for Test dialect ops.
-class Test_Op<string mnemonic, list<OpTrait> traits = []> :
+class Test_Op<string mnemonic, list<Trait> traits = []> :
     Op<Test_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 
   // Each registered op in the Test namespace needs to provide all of a printer,

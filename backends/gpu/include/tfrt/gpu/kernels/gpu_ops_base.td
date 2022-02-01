@@ -43,7 +43,7 @@ def GPU_Dialect : Dialect {
 }
 
 // Base class for GPU dialect ops.
-class GPU_Op<string mnemonic, list<OpTrait> traits = []> :
+class GPU_Op<string mnemonic, list<Trait> traits = []> :
     Op<GPU_Dialect, mnemonic, traits> {
   let summary = !strconcat("tfrt_gpu.", mnemonic, " operation");
   let assemblyFormat = "operands attr-dict";

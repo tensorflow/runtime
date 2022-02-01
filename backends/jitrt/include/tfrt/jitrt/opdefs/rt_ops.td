@@ -28,7 +28,7 @@ include "tfrt/jitrt/opdefs/rt_base.td"
 // Op definitions.
 //===----------------------------------------------------------------------===//
 
-class RT_Op<string mnemonic, list<OpTrait> traits = []> :
+class RT_Op<string mnemonic, list<Trait> traits = []> :
       Op<RuntimeDialect, mnemonic, traits> {
 }
 

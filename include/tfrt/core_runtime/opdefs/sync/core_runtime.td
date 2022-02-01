@@ -40,7 +40,7 @@ def CoreRTSync_Dialect : Dialect {
 }
 
 // Base class for corert dialect ops.
-class CoreRTSync_Op<string mnemonic, list<OpTrait> traits = []> :
+class CoreRTSync_Op<string mnemonic, list<Trait> traits = []> :
     Op<CoreRTSync_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
   // Each registered op in the corert namespace needs to provide all of a
   // verifier, a printer and a parser.

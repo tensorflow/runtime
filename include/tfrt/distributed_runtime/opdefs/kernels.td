@@ -68,7 +68,7 @@ def PayloadType :
   BuildableType<"$_builder.getType<tfrt::dist::PayloadType>()">;
 
 // Base class for the operation in this dialect
-class DistOp<string mnemonic, list<OpTrait> traits = []>
+class DistOp<string mnemonic, list<Trait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 }
 

@@ -28,7 +28,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 
 // Base class for TFRT dialect ops.
-class TFRT_Op<string mnemonic, list<OpTrait> traits = []> :
+class TFRT_Op<string mnemonic, list<Trait> traits = []> :
     Op<TFRT_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 
   // Each registered op in the TFRT namespace needs to provide all of a printer,

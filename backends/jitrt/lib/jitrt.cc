@@ -971,10 +971,16 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   return true;
 }
 
-/*static*/ void JitExecutable::DefaultCompilationTaskRunner(
+/*static*/ void JitExecutable::ConcurrentCompilationTaskRunner(
     size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,
     TaskFunction task, const ExecutionContext& exec_ctx) {
   EnqueueWork(exec_ctx, std::move(task));
+}
+
+/*static*/ void JitExecutable::InlineCompilationTaskRunner(
+    size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,
+    TaskFunction task, const ExecutionContext& exec_ctx) {
+  task();
 }
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(

@@ -949,9 +949,15 @@ class JitExecutable {
       size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
       const ExecutionContext&)>;
 
-  // Default compilation task runner enqueues compilation task into the host
+  // Concurrent compilation task runner enqueues compilation task into the host
   // context concurrent work queue.
-  static void DefaultCompilationTaskRunner(
+  static void ConcurrentCompilationTaskRunner(
+      size_t num_specializations, ArrayRef<OperandConstraint> constraints,
+      ArrayRef<MemrefDesc> operands, TaskFunction task,
+      const ExecutionContext& exec_ctx);
+
+  // Inline compilation task runner runs compilation task in the caller thread.
+  static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
       ArrayRef<MemrefDesc> operands, TaskFunction task,
       const ExecutionContext& exec_ctx);
@@ -959,7 +965,7 @@ class JitExecutable {
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
       CompilationOptions compilation_opts,
-      CompilationTaskRunner runner = DefaultCompilationTaskRunner);
+      CompilationTaskRunner runner = InlineCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.

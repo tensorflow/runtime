@@ -293,7 +293,7 @@ ReturnValueConverterBase::ReturnValueConverterBase(RemainingResults results)
 
 ReturnValueConverterBase::~ReturnValueConverterBase() {}
 
-void ReturnValueConverterBase::EmitErrors(
+void ReturnValueConverterBase::ReturnErrors(
     RCReference<ErrorAsyncValue> error) const {
   results_[0] = std::move(error);
   for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
@@ -393,21 +393,18 @@ mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
 // Execute compiled function with kernel operands.
 // -------------------------------------------------------------------------- //
 
-void EmitErrors(RemainingResults results, Error error,
-                const ExecutionContext& exec_ctx) {
-  auto async_error = EmitErrorAsync(exec_ctx, std::move(error));
+void ReturnErrors(RemainingResults results, Error error) {
+  auto async_error = MakeErrorAsyncValueRef(StrCat(error));
   for (int i = 0; i < results.size(); ++i) results[i] = async_error;
 }
 
-void EmitErrors(RemainingResults results, DecodedDiagnostic error,
-                const ExecutionContext& exec_ctx) {
-  return EmitErrors(results, MakeStringError(error), exec_ctx);
+void ReturnErrors(RemainingResults results, DecodedDiagnostic error) {
+  return ReturnErrors(results, MakeStringError(error));
 }
 
-Error EmitErrors(const ReturnValueConverterBase& results, Error error,
-                 const ExecutionContext& exec_ctx) {
-  auto async_error = EmitErrorAsync(exec_ctx, StrCat(error));
-  results.EmitErrors(async_error);
+Error ReturnErrors(const ReturnValueConverterBase& results, Error error) {
+  auto async_error = MakeErrorAsyncValueRef(StrCat(error));
+  results.ReturnErrors(async_error);
   return error;
 }
 
@@ -449,7 +446,7 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
   if (auto err = InitializeCallFrame(operands, &call_frame))
-    return EmitErrors(results, std::move(err), exec_ctx);
+    return ReturnErrors(results, std::move(err));
 
   Execute(call_frame, exec_ctx, opts);
 
@@ -489,8 +486,7 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
   // TODO(ezhulenev): Forward the underlying error to all results once it will
   // be supported by the runtime API.
   if (call_frame->is_error) {
-    results.EmitErrors(EmitErrorAsync(
-        exec_ctx,
+    results.ReturnErrors(MakeErrorAsyncValueRef(
         StrCat("compiled kernel run time error: ", call_frame->error)));
     return Error::success();
   }

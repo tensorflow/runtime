@@ -206,18 +206,18 @@ static void Execute(Argument<JitExecutable> jit_executable,
   // kernel arguments.
   llvm::SmallVector<MemrefDesc, 4> memrefs;
   if (auto err = ConvertTensorHandleOperandsToMemrefDesc(operands, &memrefs))
-    return EmitErrors(results, std::move(err), exec_ctx);
+    return ReturnErrors(results, std::move(err));
 
   // Get an executable that might be specialized to the operands.
   Expected<AsyncValuePtr<Executable>> executable =
       jit_executable->GetExecutable(memrefs, exec_ctx);
   if (auto err = executable.takeError())
-    return EmitErrors(results, std::move(err), exec_ctx);
+    return ReturnErrors(results, std::move(err));
 
   // If executable is available execute it inline.
   if (executable->IsAvailable()) {
     if (executable->IsError()) {
-      EmitErrors(results, executable->GetError(), exec_ctx);
+      ReturnErrors(results, executable->GetError());
     } else {
       ExecuteImpl(executable->get(), memrefs, operands, results, exec_ctx);
     }
@@ -247,7 +247,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
     RemainingResults results(results_storage);
 
     if (executable.IsError()) {
-      EmitErrors(results, executable.GetError(), exec_ctx);
+      ReturnErrors(results, executable.GetError());
     } else {
       ExecuteImpl(*executable, memrefs, operands, results, exec_ctx);
     }

@@ -291,8 +291,8 @@ class ReturnValueConverterBase {
                                           const Type* runtime_type,
                                           void* ret) const = 0;
 
-  // Forward error to all remaining results.
-  virtual void EmitErrors(RCReference<ErrorAsyncValue> error) const;
+  // Returns error for all remaining results (copy of the `error` argument).
+  virtual void ReturnErrors(RCReference<ErrorAsyncValue> error) const;
 
  protected:
   RemainingResults results() const { return results_; }
@@ -372,7 +372,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   static mlir::LogicalResult UnsupportedReturnType(
       ConversionContext& ctx, RemainingResults results, unsigned result_index,
       const Type* t, const Type* rt, const void*) {
-    results.EmitErrorAt(result_index, StrCat("unsupported return type: ", *rt,
+    results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
                                              " (derived from: ", *t, ")"));
     return mlir::failure();
   }
@@ -492,7 +492,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
       // TODO(ezhulenev): To simplify conversion from a void* pointer to memref
       // descriptor we rely on the StridedMemrefType<T, rank> and dispatch
       // only up to a fixed rank.
-      results.EmitErrorAt(result_index,
+      results.MakeErrorAt(result_index,
                           StrCat("unsupported returned memref rank: ", rank));
   };
 
@@ -532,7 +532,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
       rank_dispatch(int64_t{});
       break;
     default:
-      results.EmitErrorAt(
+      results.MakeErrorAt(
           result_index,
           StrCat("unsupported returned memref element type: ", element_type));
   }
@@ -617,7 +617,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
       // type after conversion via the conversion context. Emplace function can
       // query all the information it needs from the conversion context, e.g.
       // expected result type rank and data type.
-      results.EmitErrorAt(result_index,
+      results.MakeErrorAt(result_index,
                           StrCat("unsupported returned memref rank: ", rank));
   };
 
@@ -637,7 +637,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
       rank_dispatch(int64_t{});
       break;
     default:
-      results.EmitErrorAt(
+      results.MakeErrorAt(
           result_index,
           StrCat("unsupported returned memref element type: ", element_type));
   }
@@ -650,16 +650,12 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
 //----------------------------------------------------------------------------//
 
 // Constructs error async value from the `error` and returns it for all results.
-void EmitErrors(RemainingResults results, Error error,
-                const ExecutionContext& exec_ctx);
-
-void EmitErrors(RemainingResults results, DecodedDiagnostic error,
-                const ExecutionContext& exec_ctx);
+void ReturnErrors(RemainingResults results, Error error);
+void ReturnErrors(RemainingResults results, DecodedDiagnostic error);
 
 // Constructs error async value from the `error` and returns it for all results.
 // Returns the original error to the caller.
-Error EmitErrors(const ReturnValueConverterBase& results, Error error,
-                 const ExecutionContext& exec_ctx);
+Error ReturnErrors(const ReturnValueConverterBase& results, Error error);
 
 //----------------------------------------------------------------------------//
 // Cache for async values (values that become available asynchronously).

@@ -686,6 +686,10 @@ class AsyncValuesCache {
   // new async value was allocated, it will be reflected in the size.
   Entry Allocate(Key key);
 
+  // Returns an async value that becomes available once all entries added to
+  // the cache are available.
+  AsyncValueRef<Chain> AllAvailable() const;
+
   struct Entry {
     AsyncValuePtr<Value> ptr;
     bool allocated;
@@ -716,6 +720,18 @@ auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
   auto emplaced = cache_.try_emplace(key, std::move(allocated));
   assert(emplaced.second && "emplace must be successful");
   return {emplaced.first->getSecond().AsPtr(), true, cache_.size()};
+}
+
+template <typename Key, typename Value>
+AsyncValueRef<Chain> AsyncValuesCache<Key, Value>::AllAvailable() const {
+  tfrt::mutex_lock lock(mu_);
+
+  llvm::SmallVector<AsyncValue*> avs;
+  for (auto& it : cache_) avs.push_back(it.getSecond().GetAsyncValue());
+
+  AsyncValueRef<Chain> chain = MakeConstructedAsyncValueRef<Chain>();
+  RunWhenReady(avs, [chain]() { chain.SetStateConcrete(); });
+  return chain;
 }
 
 //----------------------------------------------------------------------------//
@@ -992,6 +1008,10 @@ class JitExecutable {
   Expected<AsyncValuePtr<Executable>> GetExecutable(
       ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
       const SpecializationListener* listener = nullptr);
+
+  // Returns an async value that becomes ready when all executables owned by
+  // this JitExecutable are compiled (no pending compilation tasks).
+  AsyncValueRef<Chain> AllExecutablesCompiled() const;
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;

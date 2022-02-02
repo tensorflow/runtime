@@ -1212,6 +1212,10 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     return has_default_executable_ ? DefaultExecutable() : entry.ptr;
 }
 
+AsyncValueRef<Chain> JitExecutable::AllExecutablesCompiled() const {
+  return specializations_->AllAvailable();
+}
+
 //----------------------------------------------------------------------------//
 // Register MLIR C Runner Utils symbols with JIT execution engine.
 //----------------------------------------------------------------------------//

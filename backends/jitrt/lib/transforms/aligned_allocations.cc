@@ -34,19 +34,19 @@ namespace {
 struct AlignedAllocationsPass
     : public AlignedAllocationsPassBase<AlignedAllocationsPass> {
   explicit AlignedAllocationsPass(int64_t alignment) { alignment_ = alignment; }
-  void runOnFunction() override;
+  void runOnOperation() override;
 };
 
 }  // namespace
 
-void AlignedAllocationsPass::runOnFunction() {
+void AlignedAllocationsPass::runOnOperation() {
   assert(alignment_ >= 0 && "alignment must be larger or equal to 0");
   if (alignment_ == 0) return;
 
   auto i64 = mlir::IntegerType::get(&getContext(), 64);
   auto alignment_attr = mlir::IntegerAttr::get(i64, alignment_);
 
-  getFunction().walk([&](mlir::memref::AllocOp alloc) {
+  getOperation().walk([&](mlir::memref::AllocOp alloc) {
     // Add alignment attribute only if the alignment attribute is missing or the
     // current alignment is smaller.
     if (!alloc.alignment().hasValue() || *alloc.alignment() < alignment_)
@@ -54,7 +54,7 @@ void AlignedAllocationsPass::runOnFunction() {
   });
 }
 
-std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
+std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateAlignedAllocationsPass(
     int64_t alignment) {
   return std::make_unique<AlignedAllocationsPass>(alignment);
 }

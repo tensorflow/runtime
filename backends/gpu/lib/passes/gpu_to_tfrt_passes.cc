@@ -444,9 +444,9 @@ struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
 // A pass which rewrites a function to take extra !tfrt.chain and
 // !tfrt_gpu.stream arguments and return a !tfrt.chain.
 struct AddChainAndStreamToFuncPass
-    : public PassWrapper<AddChainAndStreamToFuncPass, FunctionPass> {
+    : public PassWrapper<AddChainAndStreamToFuncPass, OperationPass<FuncOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<GpuDialect, compiler::TFRTDialect>();
   }
@@ -456,9 +456,10 @@ struct AddChainAndStreamToFuncPass
 // A pass which rewrites !async.execute and related ops to use !tfrt.chain and
 // !tfrt_gpu.stream instead of !gpu.async.token.
 struct ConvertAsyncToChainAndEventPass
-    : public PassWrapper<ConvertAsyncToChainAndEventPass, FunctionPass> {
+    : public PassWrapper<ConvertAsyncToChainAndEventPass,
+                         OperationPass<FuncOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   StringRef getArgument() const override { return "async-tfrt-streamify"; }
 };
 
@@ -494,9 +495,9 @@ struct ReconcileCastsPass
 
 // A pass which converts from async dialect to tfrt dialect.
 struct ConvertAsyncToTfrtPass
-    : public PassWrapper<ConvertAsyncToTfrtPass, FunctionPass> {
+    : public PassWrapper<ConvertAsyncToTfrtPass, OperationPass<FuncOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<test::TestDialect>();
   }
@@ -1283,14 +1284,14 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
   return success();
 }
 
-void AddChainAndStreamToFuncPass::runOnFunction() {
+void AddChainAndStreamToFuncPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   patterns.insert<AddChainAndStreamToFuncPattern>(&getContext());
   if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
     return signalPassFailure();
 }
 
-void ConvertAsyncToChainAndEventPass::runOnFunction() {
+void ConvertAsyncToChainAndEventPass::runOnOperation() {
   TypeConverter converter;
   // T -> T
   converter.addConversion([](Type type) { return type; });
@@ -1387,7 +1388,7 @@ void ReconcileCastsPass::runOnOperation() {
   }
 }
 
-void ConvertAsyncToTfrtPass::runOnFunction() {
+void ConvertAsyncToTfrtPass::runOnOperation() {
   TypeConverter converter;
   // T -> T
   converter.addConversion([](Type type) { return type; });

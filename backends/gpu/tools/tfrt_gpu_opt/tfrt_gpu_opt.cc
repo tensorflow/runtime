@@ -43,10 +43,11 @@ namespace {
 
 // Test pass to wrap tfrt_gpu ops in tfrt_gpu_conversion.async.execute.
 struct TestGpuAsyncConversionPass
-    : public mlir::PassWrapper<TestGpuAsyncConversionPass, FunctionPass> {
+    : public mlir::PassWrapper<TestGpuAsyncConversionPass,
+                               OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-gpu-async-conversion"; }
 
-  void runOnFunction() override {
+  void runOnOperation() override {
     TypeConverter converter;
     converter.addConversion([](Type type) { return type; });
     auto buffer_type = tfrt::gpu::BufferType::get(&getContext());

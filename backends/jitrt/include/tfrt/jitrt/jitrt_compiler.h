@@ -19,7 +19,7 @@
 
 namespace mlir {
 class DialectRegistry;
-class PassManager;
+class OpPassManager;
 }  // namespace mlir
 
 namespace tfrt {
@@ -64,7 +64,7 @@ struct CompilationPipelineOptions {
 //  - program must be bufferized: inputs and results must be memrefs, no tensors
 //    in the function body are allowed
 void CreateDefaultJitRtCompilationPipeline(
-    mlir::PassManager& pm, const CompilationPipelineOptions& opts);
+    mlir::OpPassManager& pm, const CompilationPipelineOptions& opts);
 
 }  // namespace jitrt
 }  // namespace tfrt

@@ -191,6 +191,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:VectorToLLVM",
         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
     ],
+    alwayslink = 1,
 )
 
 tfrt_cc_library(
@@ -303,6 +304,7 @@ tfrt_cc_binary(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":codegen_transforms",
+        ":jitrt_compiler",
         ":rt_conversion",
         ":rt_transforms",
         "@llvm-project//mlir:MlirOptLib",

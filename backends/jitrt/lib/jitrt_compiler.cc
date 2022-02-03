@@ -71,7 +71,7 @@ void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
 }
 
 void CreateDefaultJitRtCompilationPipeline(
-    mlir::PassManager& pm, const CompilationPipelineOptions& opts) {
+    mlir::OpPassManager& pm, const CompilationPipelineOptions& opts) {
   pm.addPass(mlir::createInlinerPass());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
@@ -135,12 +135,18 @@ void CreateDefaultJitRtCompilationPipeline(
   if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
   pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
   pm.addPass(mlir::createMemRefToLLVMPass());
-
-  mlir::LowerToLLVMOptions lower_to_llvm_opts(pm.getContext());
-  pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
-
+  pm.addPass(mlir::createLowerToLLVMPass());
   pm.addPass(mlir::createReconcileUnrealizedCastsPass());
 }
+
+static void CreateJitRtCompilationPipeline(mlir::OpPassManager& pm) {
+  CompilationPipelineOptions copts;
+  CreateDefaultJitRtCompilationPipeline(pm, copts);
+}
+
+static mlir::PassPipelineRegistration<> jitrt_pipeline(
+    "jitrt-default-pipeline", "Default JitRt compilation pipeline",
+    CreateJitRtCompilationPipeline);
 
 }  // namespace jitrt
 }  // namespace tfrt

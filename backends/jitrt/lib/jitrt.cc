@@ -783,6 +783,10 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Prepare JIT target machine for code generation.
   auto builder = llvm::orc::JITTargetMachineBuilder::detectHost();
   if (!builder) return builder.takeError();
+  // Initialize asm parser and printer so that we can handle the inline assembly
+  // generated in MLIR for some operations.
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
 
   auto target_machine = builder->createTargetMachine();
   if (!target_machine) return target_machine.takeError();

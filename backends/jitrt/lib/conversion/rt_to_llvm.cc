@@ -239,7 +239,7 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   llvmConverter.addConversion(RuntimeTypeConverter::convertKernelContextType);
 
   // Lower from the runtime operations to the runtime API function calls.
-  patterns.insert<SetOutputOpLowering, SetErrorOpLowering>(llvmConverter, ctx);
+  patterns.add<SetOutputOpLowering, SetErrorOpLowering>(llvmConverter, ctx);
 
   // Convert function signatures and call sites.
   mlir::populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns,

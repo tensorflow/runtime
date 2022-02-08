@@ -1286,7 +1286,7 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
 
 void AddChainAndStreamToFuncPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
-  patterns.insert<AddChainAndStreamToFuncPattern>(&getContext());
+  patterns.add<AddChainAndStreamToFuncPattern>(&getContext());
   if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
     return signalPassFailure();
 }

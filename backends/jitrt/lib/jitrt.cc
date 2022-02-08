@@ -204,17 +204,15 @@ static size_t GetArgsCount(ArrayRef<MemrefDesc> operands) {
 
 // Unpack `memref` argument into pointers to the data to be compatible with
 // compiled MLIR function ABI.
-static void AddMemrefArgument(const MemrefDesc& memref,
+static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
                               llvm::SmallVectorImpl<void*>* args) {
   assert(memref.sizes.size() == memref.strides.size());
 
-  size_t size = args->size();
-  args->resize(size + GetArgsCount(memref));
-
-  auto* storage = &(*args)[size];
+  auto* storage = args->data() + *offset;
   auto add_arg = [&](const void* p) {
     *storage = const_cast<void*>(p);
     ++storage;
+    ++*offset;
   };
 
   add_arg(&memref.data);  // memref.basePtr
@@ -262,20 +260,24 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   }
 
   size_t n_args_elems = 1 + GetArgsCount(operands);
-  call_frame->args.reserve(n_args_elems);
+  call_frame->args.resize_for_overwrite(n_args_elems);
 
   // Add a placeholder for the kernel context as the first argument.
-  call_frame->args.push_back(nullptr);
+  call_frame->args[0] = nullptr;
+
+  // Keep offset of the next argument in the `args` array, and update it every
+  // time we pack a new argument.
+  size_t offset = 1;
 
   // Pack all Memref operands as pointers to the call frame arguments.
   for (const MemrefDesc& desc : operands)
-    AddMemrefArgument(desc, &call_frame->args);
+    AddMemrefArgument(desc, &offset, &call_frame->args);
+
+  assert(offset == n_args_elems &&
+         "reserved number of args must match the argument offset");
 
   // Allocate storage for results.
   call_frame->results.resize_for_overwrite(results_memory_layout_.size);
-
-  assert(call_frame->args.size() == n_args_elems &&
-         "reserved number of args must match the actual number");
 
   // Mark results memory initialized to supress potential msan errors.
   TFRT_MSAN_MEMORY_IS_INITIALIZED(call_frame->results.data(),

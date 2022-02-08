@@ -1656,6 +1656,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:Affine",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:ControlFlowOps",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:LinalgOps",
         "@llvm-project//mlir:MathDialect",

@@ -28,7 +28,7 @@
 #include "mlir/Conversion/MathToLibm/MathToLibm.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
-#include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
+#include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
@@ -53,11 +53,11 @@ namespace jitrt {
 void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
   // Register MLIR dialects supported by the compiled kernels.
   registry.insert<mlir::AffineDialect, mlir::arith::ArithmeticDialect,
-                  mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
-                  mlir::math::MathDialect, mlir::memref::MemRefDialect,
-                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::tensor::TensorDialect, mlir::vector::VectorDialect,
-                  RuntimeDialect>();
+                  mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
+                  mlir::linalg::LinalgDialect, mlir::math::MathDialect,
+                  mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
+                  mlir::StandardOpsDialect, mlir::tensor::TensorDialect,
+                  mlir::vector::VectorDialect, RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);
@@ -117,7 +117,7 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(mlir::createConvertLinalgToLLVMPass());
   pm.addPass(mlir::createConvertAsyncToLLVMPass());
   pm.addPass(mlir::createLowerAffinePass());
-  pm.addPass(mlir::createLowerToCFGPass());
+  pm.addPass(mlir::createConvertSCFToCFPass());
 
   // Convert the entrypoint function to a kernel function (all results and
   // errors returned via the runtime API calls).

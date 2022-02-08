@@ -506,6 +506,7 @@ tfrt_cc_library(
         ":rt_opdefs",
         ":rt_transforms_passes_inc_gen",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ControlFlowOps",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",

@@ -21,6 +21,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
@@ -126,9 +127,9 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
   registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect,
-                  mlir::async::AsyncDialect, mlir::gpu::GPUDialect,
-                  mlir::memref::MemRefDialect, tfrt::compiler::TFRTDialect,
-                  tfrt::gpu::GpuDialect,
+                  mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
+                  mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
+                  tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
                   tfrt::gpu::conversion::GpuConversionDialect,
                   tfrt::test::TestDialect>();
   PassRegistration<TestGpuAsyncConversionPass>();

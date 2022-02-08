@@ -43,6 +43,7 @@
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
+#include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
@@ -656,83 +657,6 @@ void ReturnErrors(RemainingResults results, DecodedDiagnostic error);
 // Constructs error async value from the `error` and returns it for all results.
 // Returns the original error to the caller.
 Error ReturnErrors(const ReturnValueConverterBase& results, Error error);
-
-//----------------------------------------------------------------------------//
-// Cache for async values (values that become available asynchronously).
-//----------------------------------------------------------------------------//
-
-template <typename Key, typename Value>
-class AsyncValuesCache {
- public:
-  struct Entry;
-
-  AsyncValuesCache() = default;
-
-  // Returns a pointer to the cached value if it exists, otherwise returns
-  // nullptr. It is the caller's responsibility to form an async reference and
-  // extend its lifetime if the lifetime of the cached async value can be
-  // larger than the lifetime of the cache.
-  AsyncValuePtr<Value> Find(Key key) const;
-
-  // Allocates an async value in the unconstructed state to store the cached
-  // value with the given key.
-  //
-  // The `entry.allocated` value is `true` if the new async value was allocated,
-  // and the caller is responsible for eventually setting the error or emplacing
-  // the value. If it is false, then it means that the storage was already
-  // allocated, and someone else will eventually update it.
-  //
-  // The returned `entry.size` value is equal to the size of the cache. If the
-  // new async value was allocated, it will be reflected in the size.
-  Entry Allocate(Key key);
-
-  // Returns an async value that becomes available once all entries added to
-  // the cache are available.
-  AsyncValueRef<Chain> AllAvailable() const;
-
-  struct Entry {
-    AsyncValuePtr<Value> ptr;
-    bool allocated;
-    size_t size;
-  };
-
- private:
-  mutable tfrt::mutex mu_;
-  llvm::DenseMap<Key, AsyncValueRef<Value>> cache_ TFRT_GUARDED_BY(mu_);
-};
-
-template <typename Key, typename Value>
-AsyncValuePtr<Value> AsyncValuesCache<Key, Value>::Find(Key key) const {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  return it != cache_.end() ? it->getSecond().AsPtr() : AsyncValuePtr<Value>();
-}
-
-template <typename Key, typename Value>
-auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end())
-    return {it->getSecond().AsPtr(), false, cache_.size()};
-
-  AsyncValueRef<Value> allocated = MakeUnconstructedAsyncValueRef<Value>();
-
-  auto emplaced = cache_.try_emplace(key, std::move(allocated));
-  assert(emplaced.second && "emplace must be successful");
-  return {emplaced.first->getSecond().AsPtr(), true, cache_.size()};
-}
-
-template <typename Key, typename Value>
-AsyncValueRef<Chain> AsyncValuesCache<Key, Value>::AllAvailable() const {
-  tfrt::mutex_lock lock(mu_);
-
-  llvm::SmallVector<AsyncValue*> avs;
-  for (auto& it : cache_) avs.push_back(it.getSecond().GetAsyncValue());
-
-  AsyncValueRef<Chain> chain = MakeConstructedAsyncValueRef<Chain>();
-  RunWhenReady(avs, [chain]() { chain.SetStateConcrete(); });
-  return chain;
-}
 
 //----------------------------------------------------------------------------//
 // Result of compiling MLIR module to executable kernel function.

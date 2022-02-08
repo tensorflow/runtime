@@ -125,6 +125,7 @@ tfrt_cc_library(
     deps = [
         ":async_runtime",
         ":async_runtime_api",
+        ":async_values_cache",
         ":constraints",
         ":rt_transforms",
         ":specialization",
@@ -192,6 +193,46 @@ tfrt_cc_library(
         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
     ],
     alwayslink = 1,
+)
+
+# Generates 'async_values_cache.h' based on the :std_thread flag.
+#
+# Internally we use more efficient AsyncValuesCache implemented on
+# top of the RCU primitive. In open source we rely on mutex for
+# synchronizing access to shared data strucures.
+#
+# This avoids a (non-transitive) copts setting to include one or the other
+# header file by the preprocessor.
+genrule(
+    name = "async_values_cache_hdr",
+    srcs = select({
+        "@tf_runtime//:use_std_thread": ["include/tfrt/jitrt/async_values_cache_std.h"],
+        "//conditions:default": ["include/tfrt/jitrt/async_values_cache_rcu.h"],
+    }),
+    outs = ["include/tfrt/jitrt/async_values_cache.h"],
+    cmd = "cp $< $@",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+)
+
+tfrt_cc_library(
+    name = "async_values_cache",
+    hdrs = ["include/tfrt/jitrt/async_values_cache.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+    ] + select({
+        "@tf_runtime//:use_std_thread": [
+            "@tf_runtime//:support",
+        ],
+        "//conditions:default": [
+            # copybara:uncomment_begin(internal targets, remove for bazel query)
+            # "//concurrent/rcu:view",
+            # copybara:uncomment_end
+        ],
+    }),
 )
 
 tfrt_cc_library(

@@ -58,7 +58,6 @@ class ThreadPoolInterface;
 
 namespace tfrt {
 
-class ExecutionContext;
 class Tensor;
 
 namespace jitrt {
@@ -710,7 +709,6 @@ class Executable {
   // If compiled function execution finished with an error (error flag is `true`
   // in the call frame) emits error async value for all results.
   Error ReturnResults(const ReturnValueConverterBase& results,
-                      const ExecutionContext& exec_ctx,
                       CallFrame* call_frame) const;
 
   // Executes compiled function with given operands. If operands passed at
@@ -722,15 +720,13 @@ class Executable {
   // async value for all results.
   Error Execute(ArrayRef<MemrefDesc> operands,
                 const ReturnValueConverterBase& results,
-                const ExecutionContext& exec_ctx,
-                const ExecuteOpts& opts = {}) const;
+                const ExecuteOpts& opts) const;
 
   // Executes compiled function using user provided call frame.
   //
   // It is the caller responsibility to handle the compiled function results
   // stored in the call frame.
-  void Execute(CallFrame& call_frame, const ExecutionContext& exec_ctx,
-               const ExecuteOpts& opts = {}) const;
+  void Execute(CallFrame& call_frame, const ExecuteOpts& opts) const;
 
   bool IsAsync() const { return results_memory_layout_.has_async_results; }
 
@@ -918,7 +914,7 @@ class JitExecutable {
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
-      ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
+      ArrayRef<MemrefDesc> operands,
       const SpecializationListener* listener = nullptr);
 
   // Returns an async value that becomes ready when all executables owned by

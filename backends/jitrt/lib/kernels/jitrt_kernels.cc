@@ -154,7 +154,7 @@ static void ExecuteImpl(const Executable& executable,
   Executable::ExecuteOpts opts;
   opts.async_task_runner = &runner_ctx.runner;
 
-  if (auto err = executable.Execute(memrefs, converter, exec_ctx, opts)) return;
+  if (auto err = executable.Execute(memrefs, converter, opts)) return;
 
   // Keep operands alive if we have unavailable results.
   RunWhenReady(results.values(),
@@ -173,7 +173,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
 
   // Get an executable that might be specialized to the operands.
   Expected<AsyncValuePtr<Executable>> executable =
-      jit_executable->GetExecutable(memrefs, exec_ctx);
+      jit_executable->GetExecutable(memrefs);
   if (auto err = executable.takeError())
     return ReturnErrors(results, std::move(err));
 

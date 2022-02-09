@@ -89,12 +89,12 @@ void BenchmarkGetExecutable(benchmark::State& state,
 
   // Initialize specialization cache.
   Expected<AsyncValuePtr<Executable>> initialize =
-      jit_executable->GetExecutable(operands, exec_ctx);
+      jit_executable->GetExecutable(operands);
   benchmark::DoNotOptimize(initialize);
 
   for (auto _ : state) {
     Expected<AsyncValuePtr<Executable>> specialize =
-        jit_executable->GetExecutable(operands, exec_ctx);
+        jit_executable->GetExecutable(operands);
     benchmark::DoNotOptimize(specialize);
   }
 }

@@ -167,7 +167,7 @@ static void ExecuteImpl(const Executable& executable,
 
   // We skip error handling at this point and rely on error forwarding to the
   // kernel results below.
-  auto err = executable.Execute(memrefs, converter, exec_ctx, opts);
+  auto err = executable.Execute(memrefs, converter, opts);
   (void)err;
 
   // Compiled kernel should populate all expected results.
@@ -224,7 +224,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
 
   // Get an executable that might be specialized to the operands.
   Expected<AsyncValuePtr<Executable>> executable =
-      jit_executable->GetExecutable(memrefs, exec_ctx);
+      jit_executable->GetExecutable(memrefs);
   if (auto err = executable.takeError())
     return ReturnErrors(results, std::move(err));
 

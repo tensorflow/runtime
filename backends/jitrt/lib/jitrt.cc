@@ -416,7 +416,6 @@ Error ReturnErrors(const ReturnValueConverterBase& results, Error error) {
 
 Error Executable::Execute(ArrayRef<MemrefDesc> operands,
                           const ReturnValueConverterBase& results,
-                          const ExecutionContext& exec_ctx,
                           const ExecuteOpts& opts) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
@@ -450,17 +449,15 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   if (auto err = InitializeCallFrame(operands, &call_frame))
     return ReturnErrors(results, std::move(err));
 
-  Execute(call_frame, exec_ctx, opts);
+  Execute(call_frame, opts);
 
   // Convert compiled function return values into results.
-  if (auto err = ReturnResults(results, exec_ctx, &call_frame)) return err;
+  if (auto err = ReturnResults(results, &call_frame)) return err;
 
   return Error::success();
 }
 
-void Executable::Execute(CallFrame& call_frame,
-                         const ExecutionContext& exec_ctx,
-                         const ExecuteOpts& opts) const {
+void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
   // Set the AsyncRuntime to be used by all async tasks spawned by the compiled
   // kernel function.
   SetAsyncRuntime(AsyncRuntime(opts.async_task_runner));
@@ -482,7 +479,6 @@ void Executable::Execute(CallFrame& call_frame,
 }
 
 Error Executable::ReturnResults(const ReturnValueConverterBase& results,
-                                const ExecutionContext& exec_ctx,
                                 CallFrame* call_frame) const {
   // Forward error to all results.
   // TODO(ezhulenev): Forward the underlying error to all results once it will
@@ -1043,8 +1039,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
 // fall back on the default executable. However what to do if default executable
 // is not available, and the number of specializations is above N?
 Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
-    const SpecializationListener* listener) {
+    ArrayRef<MemrefDesc> operands, const SpecializationListener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();

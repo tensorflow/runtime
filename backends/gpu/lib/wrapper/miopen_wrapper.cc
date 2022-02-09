@@ -14,6 +14,7 @@
 
 // Thin wrapper around the MIOpen API adding llvm::Error.
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 #include "wrapper_detail.h"
 
@@ -369,8 +370,11 @@ llvm::Error MiopenPoolingBackward(
     const miopenTensorDescriptor_t dy_desc, Pointer<const void> dy,
     const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
     Pointer<const void> beta, const miopenTensorDescriptor_t dx_desc,
-    Pointer<void> dx, Pointer<void> workspace) {
+    Pointer<void> dx) {
   CheckHipContext(current);
+  size_t workspace_size;
+  RETURN_IF_ERROR(miopenPoolingGetWorkSpaceSize(y_desc, &workspace_size));
+  Pointer<void> workspace = MemAlloc(current, workspace_size).get().get();
   return TO_ERROR(miopenPoolingBackward(
       handle, pooling_desc, ToRocm(alpha), y_desc, ToRocm(y), dy_desc,
       ToRocm(dy), x_desc, ToRocm(x), ToRocm(beta), dx_desc, ToRocm(dx),

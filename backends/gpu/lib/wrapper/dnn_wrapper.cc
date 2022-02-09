@@ -740,8 +740,8 @@ llvm::Error DnnPoolingBackward(
     case Platform::ROCm:
       // This assumes no workspace is required, which is probably incorrect.
       return MiopenPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
-                                   y, dy_desc, dy, x_desc, x, beta, dx_desc, dx,
-                                   /*workspace=*/{});
+                                   y, dy_desc, dy, x_desc, x, beta, dx_desc, dx
+                                  );
     default:
       return InvalidPlatform(platform);
   }

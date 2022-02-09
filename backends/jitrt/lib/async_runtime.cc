@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -29,22 +30,9 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
-#include "tfrt/host_context/host_allocator.h"
-#include "tfrt/host_context/host_buffer.h"
-#include "tfrt/support/concurrent_vector.h"
-#include "tfrt/support/latch.h"
+#include "tfrt/support/alloc.h"
 #include "tfrt/support/msan.h"
 #include "tfrt/support/ref_count.h"
-
-namespace tfrt {
-namespace jitrt {
-// Use malloc to allocate aligned storage for the async values.
-HostAllocator* GetAsyncValueStorageAllocator() {
-  static HostAllocator* allocator = CreateMallocAllocator().release();
-  return allocator;
-}
-}  // namespace jitrt
-}  // namespace tfrt
 
 // -------------------------------------------------------------------------- //
 // Define AsyncToken and AsyncGroup in the mlir::runtime namespace to implement
@@ -54,16 +42,14 @@ HostAllocator* GetAsyncValueStorageAllocator() {
 namespace mlir {
 namespace runtime {
 
+using tfrt::AlignedAlloc;
+using tfrt::AlignedFree;
 using tfrt::AsyncValueRef;
 using tfrt::Chain;
 using tfrt::GetReadyChain;
-using tfrt::HostAllocator;
-using tfrt::HostBuffer;
-using tfrt::HostContext;
 using tfrt::MakeConstructedAsyncValueRef;
 
 using tfrt::jitrt::AsyncRuntimeObject;
-using tfrt::jitrt::GetAsyncValueStorageAllocator;
 
 class AsyncToken : public AsyncRuntimeObject {
  public:
@@ -81,10 +67,7 @@ class AsyncValue : public AsyncRuntimeObject {
  public:
   explicit AsyncValue(size_t size, size_t alignment, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        storage_(Storage::CanStoreInline(size, alignment)
-                     ? MakeConstructedAsyncValueRef<Storage>()
-                     : MakeConstructedAsyncValueRef<Storage>(
-                           GetAsyncValueStorageAllocator(), size, alignment)) {
+        storage_(MakeConstructedAsyncValueRef<Storage>(size, alignment)) {
     // Storage memory will be initialized by the compiled kernel.
     TFRT_MSAN_MEMORY_IS_INITIALIZED(GetStorage(), size);
   }
@@ -92,27 +75,25 @@ class AsyncValue : public AsyncRuntimeObject {
   void* GetStorage() const {
     assert(!GetAsyncValue()->IsError() && "unexpected error state");
     if (storage_->is_inline) return &storage_->inline_buffer;
-    return storage_->host_buffer->data();
+    return storage_->allocated_buffer;
   }
 
   tfrt::AsyncValue* GetAsyncValue() const { return storage_.GetAsyncValue(); }
 
  private:
-  // If the requested async value storage is small, use the inlined storage,
-  // fallback on the HostBuffer if the requested storage size is large.
+  // If the requested async value storage is small, use the inlined storage.
+  // Fall back on dynamic allocation if the requested storage size is large.
   struct Storage {
     static const int kSize = 128;  // enough to fit memref descriptor of rank 5
     static const int kAlign = alignof(std::max_align_t);
 
-    Storage() : is_inline(true) {}
-    Storage(HostAllocator* allocator, size_t size, size_t alignment)
-        : is_inline(false),
-          host_buffer(
-              HostBuffer::CreateUninitialized(size, alignment, allocator)
-                  .release()) {}
+    Storage(size_t size, size_t alignment)
+        : is_inline(CanStoreInline(size, alignment)) {
+      if (!is_inline) allocated_buffer = AlignedAlloc(alignment, size);
+    }
 
     ~Storage() {
-      if (!is_inline) host_buffer->DropRef();
+      if (!is_inline) AlignedFree(allocated_buffer);
     }
 
     static bool CanStoreInline(size_t size, size_t alignment) {
@@ -123,7 +104,7 @@ class AsyncValue : public AsyncRuntimeObject {
     bool is_inline;
     union {
       std::aligned_storage<kSize, kAlign>::type inline_buffer;
-      HostBuffer* host_buffer;
+      void* allocated_buffer;
     };
   };
 

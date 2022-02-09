@@ -463,7 +463,7 @@ void Executable::Execute(CallFrame& call_frame,
                          const ExecuteOpts& opts) const {
   // Set the AsyncRuntime to be used by all async tasks spawned by the compiled
   // kernel function.
-  SetAsyncRuntime({exec_ctx.host(), opts.async_runtime_worker_threads});
+  SetAsyncRuntime(AsyncRuntime(opts.async_task_runner));
 
   // Runtime kernel context can be used only by the entrypoint function (kernel
   // function) and can be safely allocated on the stack.

@@ -34,6 +34,7 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/shared_context.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/error_util.h"
@@ -112,6 +113,12 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 namespace {
 // We do not record any operands information for results conversion.
 struct ConversionCtx {};
+
+// Use HostContextAsyncTaskRunner to execute all async tasks.
+struct AsyncTaskRunnerContext : public SharedContext {
+  explicit AsyncTaskRunnerContext(HostContext* host) : runner(host) {}
+  HostContextAsyncTaskRunner runner;
+};
 }  // namespace
 
 static Error ConvertTensorOperandsToMemrefDesc(
@@ -140,7 +147,14 @@ static void ExecuteImpl(const Executable& executable,
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
 
-  if (auto err = executable.Execute(memrefs, converter, exec_ctx)) return;
+  // Use HostContext to execute all async tasks.
+  HostContext* host = exec_ctx.host();
+  auto& runner_ctx = host->GetOrCreateSharedContext<AsyncTaskRunnerContext>();
+
+  Executable::ExecuteOpts opts;
+  opts.async_task_runner = &runner_ctx.runner;
+
+  if (auto err = executable.Execute(memrefs, converter, exec_ctx, opts)) return;
 
   // Keep operands alive if we have unavailable results.
   RunWhenReady(results.values(),

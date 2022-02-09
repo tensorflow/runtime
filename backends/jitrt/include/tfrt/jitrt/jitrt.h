@@ -803,16 +803,13 @@ class Executable {
 
   // Options for configuring compiled kernel execution.
   struct ExecuteOpts {
-    ExecuteOpts()
-        : async_runtime_worker_threads(nullptr), kernel_context(nullptr) {}
+    ExecuteOpts() : async_task_runner(nullptr), kernel_context(nullptr) {}
 
-    // Use Eigen thread pool to launch all async tasks managed by the runtime.
-    // By default all async tasks are launched into the HostContext concurrent
-    // work queue (non blocking work queue).
-    //
-    // This option is used in the fallback execution mode, to share the intra-op
-    // thread pool for all compute intensive tasks.
-    Eigen::ThreadPoolInterface* async_runtime_worker_threads;
+    // Async task runner for executing async runtime tasks. Typically it
+    // schedules async tasks into the underlying thread pool. It's the caller's
+    // responsibility to guarantee that it will outlive the execution of all
+    // async tasks started by the executable.
+    AsyncTaskRunner* async_task_runner;
 
     // User-provided kernel context corresponding to the JIT executable.
     // Must outlive all async tasks launched by this executable.

@@ -36,6 +36,16 @@
 #include "tfrt/support/msan.h"
 #include "tfrt/support/ref_count.h"
 
+namespace tfrt {
+namespace jitrt {
+// Use malloc to allocate aligned storage for the async values.
+HostAllocator* GetAsyncValueStorageAllocator() {
+  static HostAllocator* allocator = CreateMallocAllocator().release();
+  return allocator;
+}
+}  // namespace jitrt
+}  // namespace tfrt
+
 // -------------------------------------------------------------------------- //
 // Define AsyncToken and AsyncGroup in the mlir::runtime namespace to implement
 // opaque structs defined in the MLIR Async Runtime API header file.
@@ -51,13 +61,15 @@ using tfrt::HostAllocator;
 using tfrt::HostBuffer;
 using tfrt::HostContext;
 using tfrt::MakeConstructedAsyncValueRef;
+
 using tfrt::jitrt::AsyncRuntimeObject;
+using tfrt::jitrt::GetAsyncValueStorageAllocator;
 
 class AsyncToken : public AsyncRuntimeObject {
  public:
-  explicit AsyncToken(HostContext* host, unsigned ref_count = 1)
+  explicit AsyncToken(unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        chain_(MakeConstructedAsyncValueRef<Chain>(host)) {}
+        chain_(MakeConstructedAsyncValueRef<Chain>()) {}
 
   tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
 
@@ -67,13 +79,12 @@ class AsyncToken : public AsyncRuntimeObject {
 
 class AsyncValue : public AsyncRuntimeObject {
  public:
-  explicit AsyncValue(HostContext* host, size_t size, size_t alignment,
-                      unsigned ref_count = 1)
+  explicit AsyncValue(size_t size, size_t alignment, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
         storage_(Storage::CanStoreInline(size, alignment)
                      ? MakeConstructedAsyncValueRef<Storage>()
-                     : MakeConstructedAsyncValueRef<Storage>(host->allocator(),
-                                                             size, alignment)) {
+                     : MakeConstructedAsyncValueRef<Storage>(
+                           GetAsyncValueStorageAllocator(), size, alignment)) {
     // Storage memory will be initialized by the compiled kernel.
     TFRT_MSAN_MEMORY_IS_INITIALIZED(GetStorage(), size);
   }
@@ -198,20 +209,7 @@ namespace jitrt {
 void AsyncRuntime::Await(AsyncValue* awaitable) {
   // Short circuit the trivial case.
   if (awaitable->IsAvailable()) return;
-
-  // Blocking wait can't lead to a deadlock if runtime uses external thread
-  // pool for launching async tasks.
-  if (worker_threads_) {
-    tfrt::latch latch(1);
-    awaitable->AndThen([&]() { latch.count_down(); });
-    latch.wait();
-    return;
-  }
-
-  // If we use host context work queue to launch async tasks, then blocking
-  // await can lead to a deadlock. Host context will check at runtime that
-  // we are not in a thread managed by the host context itself.
-  host_context_->Await(FormRef(awaitable));
+  tfrt::Await({awaitable});
 }
 
 /*static*/ void AsyncRuntime::AddRef(AsyncRuntimeObject* obj, unsigned count) {
@@ -245,7 +243,7 @@ AsyncRuntime::Token* AsyncRuntime::CreateToken() {
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  return new AsyncRuntime::Token(host_context_, /*ref_count=*/2);
+  return new AsyncRuntime::Token(/*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Token* token) {
@@ -278,8 +276,7 @@ AsyncRuntime::Value* AsyncRuntime::CreateValue(size_t size, size_t alignment) {
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  return new AsyncRuntime::Value(host_context_, size, alignment,
-                                 /*ref_count=*/2);
+  return new AsyncRuntime::Value(size, alignment, /*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Value* value) {
@@ -321,6 +318,21 @@ bool AsyncRuntime::IsError(AsyncRuntime::Group* group) {
 
 void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {
   Await(group->GetCompletionAsyncValue());
+}
+
+HostContextAsyncTaskRunner::HostContextAsyncTaskRunner(HostContext* host)
+    : host_(host) {}
+
+void HostContextAsyncTaskRunner::Schedule(Task task) {
+  EnqueueWork(host_, std::move(task));
+}
+
+EigenThreadPoolAsyncTaskRunner::EigenThreadPoolAsyncTaskRunner(
+    Eigen::ThreadPoolInterface* thread_pool)
+    : thread_pool_(thread_pool) {}
+
+void EigenThreadPoolAsyncTaskRunner::Schedule(Task task) {
+  thread_pool_->Schedule(std::move(task));
 }
 
 }  // namespace jitrt

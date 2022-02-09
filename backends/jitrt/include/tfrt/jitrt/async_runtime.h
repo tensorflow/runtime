@@ -23,6 +23,8 @@
 #define EIGEN_USE_THREADS
 
 #include <cstddef>
+#include <functional>
+#include <utility>
 
 #include "llvm/ADT/STLExtras.h"
 #include "mlir/ExecutionEngine/AsyncRuntime.h"
@@ -38,17 +40,28 @@ namespace jitrt {
 // Forward declare a base class for async runtime objects.
 class AsyncRuntimeObject;
 
+// Async task runner abstracts over the underlying thread pool (or concurrent
+// work queue) implementation.
+class AsyncTaskRunner {
+ public:
+  using Task = std::function<void()>;
+  virtual ~AsyncTaskRunner() = default;
+  virtual void Schedule(Task task) = 0;
+};
+
 class AsyncRuntime {
  public:
   using Token = ::mlir::runtime::AsyncToken;
   using Value = ::mlir::runtime::AsyncValue;
   using Group = ::mlir::runtime::AsyncGroup;
 
-  AsyncRuntime() : host_context_(nullptr), worker_threads_(nullptr) {}
+  explicit AsyncRuntime(AsyncTaskRunner* runner) : runner_(runner) {
+    assert(runner != nullptr && "async task runner must be not null");
+  }
 
-  AsyncRuntime(HostContext* host_context,
-               Eigen::ThreadPoolInterface* worker_threads)
-      : host_context_(host_context), worker_threads_(worker_threads) {}
+  // We need a default constructor to define a thread local variable for async
+  // runtime passing between tasks (see implementation in async_runtime_api.cc).
+  AsyncRuntime() : runner_(nullptr) {}
 
   // ------------------------------------------------------------------------ //
   // Async Token API.
@@ -146,18 +159,13 @@ class AsyncRuntime {
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Value* value);
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Group* group);
 
-  HostContext* host_context() const { return host_context_; }
-  Eigen::ThreadPoolInterface* worker_threads() const { return worker_threads_; }
+  AsyncTaskRunner* runner() const { return runner_; }
 
  private:
   // Blocks the caller thread until awaitable async value becomes available.
   void Await(AsyncValue* awaitable);
 
-  HostContext* host_context_;  // must outlive *this
-
-  // This is an escape hatch for integrating with Tensorflow classic runtime,
-  // and launching all async operations in the intra-op thread pool.
-  Eigen::ThreadPoolInterface* worker_threads_;  // must outlive *this
+  AsyncTaskRunner* runner_;  // must outlive *this
 };
 
 // A base class for all Async dialect types reference counted at runtime.
@@ -169,10 +177,7 @@ class AsyncRuntimeObject : public ::tfrt::ReferenceCounted<AsyncRuntimeObject> {
 
 template <typename F>
 void AsyncRuntime::Execute(F&& f) {
-  if (worker_threads_)
-    worker_threads_->Schedule(std::forward<F>(f));
-  else
-    EnqueueWork(host_context_, std::forward<F>(f));
+  runner_->Schedule(std::forward<F>(f));
 }
 
 template <typename F>
@@ -189,6 +194,27 @@ template <typename F>
 void AsyncRuntime::AwaitGroup(Group* group, F&& f) {
   AsyncRuntime::GetAsyncValue(group)->AndThen(std::forward<F>(f));
 }
+
+// Runs async tasks by enqueing them into the host context work queue.
+class HostContextAsyncTaskRunner : public AsyncTaskRunner {
+ public:
+  explicit HostContextAsyncTaskRunner(HostContext* host);
+  void Schedule(Task task) override;
+
+ private:
+  HostContext* host_;
+};
+
+// Runs async tasks by scheduling them into the Eigen thread pool.
+class EigenThreadPoolAsyncTaskRunner : public AsyncTaskRunner {
+ public:
+  explicit EigenThreadPoolAsyncTaskRunner(
+      Eigen::ThreadPoolInterface* thread_pool);
+  void Schedule(Task task) override;
+
+ private:
+  Eigen::ThreadPoolInterface* thread_pool_;
+};
 
 }  // namespace jitrt
 }  // namespace tfrt

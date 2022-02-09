@@ -879,21 +879,12 @@ class JitExecutable {
   // add tracing events (e.g. add Tensorflow profiler tracing). Task runner must
   // call the `TaskFunction`, otherwise it will lead to the deadlock.
   using CompilationTaskRunner = llvm::unique_function<void(
-      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
-      const ExecutionContext&)>;
-
-  // Concurrent compilation task runner enqueues compilation task into the host
-  // context concurrent work queue.
-  static void ConcurrentCompilationTaskRunner(
-      size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task,
-      const ExecutionContext& exec_ctx);
+      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction)>;
 
   // Inline compilation task runner runs compilation task in the caller thread.
   static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task,
-      const ExecutionContext& exec_ctx);
+      ArrayRef<MemrefDesc> operands, TaskFunction task);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,

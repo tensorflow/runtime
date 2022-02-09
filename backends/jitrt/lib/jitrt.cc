@@ -911,15 +911,9 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   return true;
 }
 
-/*static*/ void JitExecutable::ConcurrentCompilationTaskRunner(
-    size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,
-    TaskFunction task, const ExecutionContext& exec_ctx) {
-  EnqueueWork(exec_ctx, std::move(task));
-}
-
 /*static*/ void JitExecutable::InlineCompilationTaskRunner(
-    size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,
-    TaskFunction task, const ExecutionContext& exec_ctx) {
+    size_t num_specializations, ArrayRef<OperandConstraint> constraints,
+    ArrayRef<MemrefDesc> operands, TaskFunction task) {
   task();
 }
 
@@ -1146,7 +1140,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   });
 
   // Offload specialization compilation to the user provided runner.
-  runner_(specialization, constraints_, operands, std::move(compile), exec_ctx);
+  runner_(specialization, constraints_, operands, std::move(compile));
 
   // Use the default executable while we are compiling a specialized version if
   // this is not explicitly disabled by the compilation options.

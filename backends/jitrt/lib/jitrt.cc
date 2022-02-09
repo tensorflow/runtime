@@ -832,68 +832,6 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
                     time_to_compile);
 }
 
-// Return input `type` specialized to memref operand and its symbolic shape.
-static llvm::Expected<mlir::Type> SpecializeOperandType(
-    unsigned index, mlir::Type type, const MemrefDesc& operand,
-    const SymbolicShape& symbolic_shape) {
-  // Replace all symbolic dimensions with dynamic dimension.
-  auto shape = SymbolicShapesResolver::Normalize(symbolic_shape);
-
-  if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
-    if (auto err = VerifyMemrefOperand(index, memref, operand))
-      return std::move(err);
-    return mlir::MemRefType::get(shape, memref.getElementType());
-  }
-
-  if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
-    if (auto err = VerifyMemrefOperand(index, tensor, operand))
-      return std::move(err);
-    return mlir::RankedTensorType::get(shape, tensor.getElementType());
-  }
-
-  if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
-    if (auto err = VerifyMemrefOperand(index, tensor, operand))
-      return std::move(err);
-    return mlir::RankedTensorType::get(shape, tensor.getElementType());
-  }
-
-  return MakeStringError("Unsupported input type: ", type);
-}
-
-// Gets (copies) the values from `desc`, returning them in a DenseElementsAttr.
-// If it cannot extract the values, returns an empty attribute.
-static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
-                                               mlir::TensorType operand_type,
-                                               const MemrefDesc& desc) {
-  size_t rank = desc.sizes.size();
-  if (rank != 0 && rank != 1) return {};
-
-  llvm::SmallVector<mlir::Attribute> attributes;
-  size_t num_values = rank == 0 ? 1 : desc.sizes[0];
-  switch (desc.dtype) {
-    case DType::I32: {
-      const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
-      for (int i = 0; i < num_values; ++i) {
-        attributes.push_back(builder.getI32IntegerAttr(data[i]));
-      }
-    } break;
-    case DType::I64: {
-      const auto* data = static_cast<TypeForDTypeKind<DType::I64>*>(desc.data);
-      for (int i = 0; i < num_values; ++i) {
-        attributes.push_back(builder.getI64IntegerAttr(data[i]));
-      }
-    } break;
-    default:
-      return {};
-  }
-
-  // Update operand type to a ranked tensor type with statically known shape.
-  auto element_type = operand_type.getElementType();
-  auto ranked_tensor = mlir::RankedTensorType::get(desc.sizes, element_type);
-
-  return mlir::DenseElementsAttr::get(ranked_tensor, attributes);
-}
-
 llvm::Error JitCompilationContext::Specialize(
     ArrayRef<MemrefDesc> operands, ArrayRef<SymbolicShape> symbolic_shapes,
     ArrayRef<OperandConstraint> constraints,

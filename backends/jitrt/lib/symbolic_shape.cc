@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "llvm/Support/Compiler.h"
+
 namespace tfrt {
 namespace jitrt {
 
@@ -44,11 +46,11 @@ SymbolicShapesResolver::SymbolicShapesResolver(
       continue;
     }
 
-    auto emplace_sizes = [&](ArrayRef<Index> sizes) {
+    auto emplace_sizes = [&](ArrayRef<int64_t> sizes) {
       operands_sizes_.emplace_back(llvm::to_vector(sizes));
 
       // Keep track of all statically known dimension sizes.
-      for (Index size : sizes) {
+      for (int64_t size : sizes) {
         if (size != MemrefType::kDynamicSize) seen_static_sizes_.insert(size);
       }
     };
@@ -104,7 +106,8 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
     ArrayRef<int64_t> runtime_sizes = operands[i].sizes;
 
     // Check that statically known rank matches the runtime rank.
-    if (has_static_sizes && operands_sizes_[i]->size() != runtime_sizes.size())
+    if (LLVM_UNLIKELY(has_static_sizes &&
+                      operands_sizes_[i]->size() != runtime_sizes.size()))
       return mlir::failure();
 
     // For shape constrained operands use runtime shape.
@@ -139,7 +142,7 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
       // Skip statically known dimensions.
       if (symbolic_dim >= 0) {
         // Check that statically known dimension agrees with runtime dimension.
-        if (symbolic_dim != runtime_dim) return mlir::failure();
+        if (LLVM_UNLIKELY(symbolic_dim != runtime_dim)) return mlir::failure();
         continue;
       }
 

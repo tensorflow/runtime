@@ -58,7 +58,10 @@ namespace jitrt {
 // statically known `1` in the symbolic shape.
 class SymbolicShapesResolver {
  public:
+  // Dimension size can be symbolic (<= -2) or static.
   using SymbolicShape = llvm::SmallVector<int64_t>;
+  // Dimension size can be dynamic (ShapedType::kDynamicSize) or static.
+  using StaticShape = llvm::SmallVector<int64_t>;
 
   explicit SymbolicShapesResolver(const FunctionType& signature,
                                   ArrayRef<OperandConstraint> constraints);
@@ -76,7 +79,7 @@ class SymbolicShapesResolver {
   llvm::SmallVector<OperandConstraint> constraints_;
 
   // Statically known sizes of operands from the function signature.
-  llvm::SmallVector<Optional<llvm::SmallVector<Index>>> operands_sizes_;
+  llvm::SmallVector<Optional<StaticShape>> operands_sizes_;
 
   // Values of statically known dimensions sizes in the function signature.
   llvm::DenseSet<int64_t> seen_static_sizes_;

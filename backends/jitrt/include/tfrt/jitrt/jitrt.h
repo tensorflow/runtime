@@ -874,13 +874,20 @@ class JitExecutable {
   // caller to offload compilation task to the specialized thread pool and
   // add tracing events (e.g. add Tensorflow profiler tracing). Task runner must
   // call the `TaskFunction`, otherwise it will lead to the deadlock.
+  //
+  // Caller can pass arbitrary user data to the `GetExecutable` method, and it
+  // will be passed to the runner if recompilation is required. It is guaranteed
+  // that the runner will be called in the same thread as `GetExecutable`.
+  //
+  // TODO(ezhulenev): Use std::any once TFRT switches to C++17.
   using CompilationTaskRunner = llvm::unique_function<void(
-      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction)>;
+      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
+      llvm::Any)>;
 
   // Inline compilation task runner runs compilation task in the caller thread.
   static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task);
+      ArrayRef<MemrefDesc> operands, TaskFunction task, llvm::Any user_data);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
@@ -899,6 +906,10 @@ class JitExecutable {
   // values. Can return default executable if no specialization is required, or
   // if the specialized executable is not yet available.
   //
+  // Caller can pass arbitrary data via the `user_data` argument, and it will be
+  // available to the compilation task runner. This can be used for tracing,
+  // e.g. to track what user-level requests triggered recompilation.
+  //
   // Returns an error if the operands do not match the expected function
   // signature and specialization is not possible (without trying to compile).
   // If specialization is disabled, returns the default executable without
@@ -914,7 +925,7 @@ class JitExecutable {
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
-      ArrayRef<MemrefDesc> operands,
+      ArrayRef<MemrefDesc> operands, llvm::Any user_data = {},
       const SpecializationListener* listener = nullptr);
 
   // Returns an async value that becomes ready when all executables owned by

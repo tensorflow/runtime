@@ -12,6 +12,16 @@ hipError_t hipRuntimeGetVersion(int* runtimeVersion) {
       "hipRuntimeGetVersion", runtimeVersion);
 }
 
+hipError_t hipGetLastError(void) {
+  return DynamicCall<decltype(hipGetLastError), &hipGetLastError>(
+      "hipGetLastError");
+}
+
+hipError_t hipPeekAtLastError(void) {
+  return DynamicCall<decltype(hipPeekAtLastError), &hipPeekAtLastError>(
+      "hipPeekAtLastError");
+}
+
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal) {
   return DynamicCall<decltype(hipDeviceGet), &hipDeviceGet>("hipDeviceGet",
                                                             device, ordinal);
@@ -61,16 +71,6 @@ hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int deviceId) {
 hipError_t hipDeviceGetLimit(size_t* pValue, enum hipLimit_t limit) {
   return DynamicCall<decltype(hipDeviceGetLimit), &hipDeviceGetLimit>(
       "hipDeviceGetLimit", pValue, limit);
-}
-
-hipError_t hipGetLastError(void) {
-  return DynamicCall<decltype(hipGetLastError), &hipGetLastError>(
-      "hipGetLastError");
-}
-
-hipError_t hipPeekAtLastError(void) {
-  return DynamicCall<decltype(hipPeekAtLastError), &hipPeekAtLastError>(
-      "hipPeekAtLastError");
 }
 
 hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned int flags) {
@@ -207,12 +207,6 @@ hipError_t hipMemcpy(void* dst, const void* src, size_t sizeBytes,
                      hipMemcpyKind kind) {
   return DynamicCall<decltype(hipMemcpy), &hipMemcpy>("hipMemcpy", dst, src,
                                                       sizeBytes, kind);
-}
-
-hipError_t hipModuleGetGlobal(hipDeviceptr_t* dptr, size_t* bytes,
-                              hipModule_t hmod, const char* name) {
-  return DynamicCall<decltype(hipModuleGetGlobal), &hipModuleGetGlobal>(
-      "hipModuleGetGlobal", dptr, bytes, hmod, name);
 }
 
 hipError_t hipMemcpyAsync(void* dst, const void* src, size_t sizeBytes,
@@ -381,6 +375,13 @@ hipError_t hipModuleGetFunction(hipFunction_t* function, hipModule_t module,
   return DynamicCall<decltype(hipModuleGetFunction), &hipModuleGetFunction>(
       "hipModuleGetFunction", function, module, kname);
 }
+
+hipError_t hipModuleGetGlobal(void** ptr, size_t* bytes, hipModule_t module,
+                              const char* kname) {
+  return DynamicCall<decltype(hipModuleGetGlobal), &hipModuleGetGlobal>(
+      "hipModuleGetGlobal", ptr, bytes, module, kname);
+}
+
 
 hipError_t hipFuncGetAttributes(struct hipFuncAttributes* attr,
                                 const void* func) {

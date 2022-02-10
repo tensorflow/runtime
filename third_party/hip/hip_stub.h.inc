@@ -62,22 +62,12 @@ enum hipError_t {
   hipErrorPeerAccessAlreadyEnabled = 704,
   hipErrorPeerAccessNotEnabled = 705,
   hipErrorSetOnActiveProcess = 708,
-  hipErrorContextIsDestroyed = 709,
   hipErrorAssert = 710,
   hipErrorHostMemoryAlreadyRegistered = 712,
   hipErrorHostMemoryNotRegistered = 713,
   hipErrorLaunchFailure = 719,
   hipErrorCooperativeLaunchTooLarge = 720,
   hipErrorNotSupported = 801,
-  hipErrorStreamCaptureUnsupported = 900,
-  hipErrorStreamCaptureInvalidated = 901,
-  hipErrorStreamCaptureMerge = 902,
-  hipErrorStreamCaptureUnmatched = 903,
-  hipErrorStreamCaptureUnjoined = 904,
-  hipErrorStreamCaptureIsolation = 905,
-  hipErrorStreamCaptureImplicit = 906,
-  hipErrorCapturedEvent = 907,
-  hipErrorStreamCaptureWrongThread = 908,
   hipErrorUnknown = 999,
   hipErrorRuntimeMemory = 1052,
   hipErrorRuntimeOther = 1053,
@@ -163,7 +153,6 @@ enum hipFunction_attribute {
 };
 
 enum hipLimit_t {
-  hipLimitPrintfFifoSize = 0x01,
   hipLimitMallocHeapSize = 0x02,
 };
 
@@ -207,6 +196,10 @@ hipError_t hipDriverGetVersion(int* driverVersion);
 
 hipError_t hipRuntimeGetVersion(int* runtimeVersion);
 
+hipError_t hipGetLastError(void);
+
+hipError_t hipPeekAtLastError(void);
+
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal);
 
 hipError_t hipDeviceGetName(char* name, int len, hipDevice_t device);
@@ -227,10 +220,6 @@ hipError_t hipDeviceGetAttribute(int* pi, hipDeviceAttribute_t attr,
 hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int deviceId);
 
 hipError_t hipDeviceGetLimit(size_t* pValue, enum hipLimit_t limit);
-
-hipError_t hipGetLastError(void);
-
-hipError_t hipPeekAtLastError(void);
 
 hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned int flags);
 
@@ -288,9 +277,6 @@ hipError_t hipHostFree(void* ptr);
 
 hipError_t hipMemcpy(void* dst, const void* src, size_t sizeBytes,
                      hipMemcpyKind kind);
-
-hipError_t hipModuleGetGlobal(hipDeviceptr_t* dptr, size_t* bytes,
-                              hipModule_t hmod, const char* name);
 
 hipError_t hipMemcpyAsync(void* dst, const void* src, size_t sizeBytes,
                           hipMemcpyKind kind, hipStream_t stream __dparm(0));
@@ -367,6 +353,9 @@ hipError_t hipModuleUnload(hipModule_t module);
 hipError_t hipModuleGetFunction(hipFunction_t* function, hipModule_t module,
                                 const char* kname);
 
+hipError_t hipModuleGetGlobal(void** ptr, size_t* bytes, hipModule_t module,
+                                const char* kname);
+
 hipError_t hipFuncGetAttributes(struct hipFuncAttributes* attr,
                                 const void* func);
 
@@ -396,12 +385,3 @@ hipError_t hipOccupancyMaxPotentialBlockSize(int* gridSize, int* blockSize,
                                              const void* f,
                                              size_t dynSharedMemPerBlk,
                                              int blockSizeLimit);
-
-enum hipDataType {
-  HIP_R_16F = 2,
-  HIP_R_32F = 0,
-  HIP_R_64F = 1,
-  HIP_C_16F = 6,
-  HIP_C_32F = 4,
-  HIP_C_64F = 5,
-};

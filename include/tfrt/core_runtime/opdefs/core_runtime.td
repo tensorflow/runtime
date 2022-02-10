@@ -27,7 +27,7 @@ class CoreRT_Op<string mnemonic, list<Trait> traits = []> :
     Op<CoreRT_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
   // Each registered op in the corert namespace needs to provide all of a
   // verifier, a printer and a parser.
-  let verifier = [{ return tfrt::corert::verify(*this); }];
+  let hasVerifier = 1;
   let printer = [{ return tfrt::corert::print(p, *this); }];
   let parser = [{ return tfrt::corert::parse$cppClass(parser, result); }];
 }
@@ -48,7 +48,7 @@ class CreateDenseTensorOp<string dtype>
 
   let assemblyFormat = "attr-dict";
 
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 // Instantiate for each dtype and rank pair.
@@ -80,7 +80,7 @@ def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
 
   let assemblyFormat = "$value attr-dict";
 
-  let verifier = ?;
+  let hasVerifier = 0;
 
   let hasFolder = 1;
 }
@@ -112,7 +112,7 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
 
   let assemblyFormat = "attr-dict";
 
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {
@@ -222,7 +222,7 @@ def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [NoSideEffect]> {
     CoreRT_OpHandlerType:$op_handler
   );
   let assemblyFormat = "$in_op_chain $op_handler_name attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def CoreRT_RegisterOpHandlerOp : CoreRT_Op<"register_op_handler"> {
@@ -241,7 +241,7 @@ def CoreRT_RegisterOpHandlerOp : CoreRT_Op<"register_op_handler"> {
   );
   let results = (outs TFRT_ChainType:$out_op_chain);
   let assemblyFormat = "$op_handler $op_handler_name attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def CoreRt_CondOp : CoreRT_Op<"cond"> {
@@ -329,7 +329,7 @@ def CoreRT_GetDstTensorTypeOp : CoreRT_Op<"get_dst_tensor_type"> {
   );
   let results = (outs TFRT_TensorTypeType:$result);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def CoreRT_TransferOp : CoreRT_Op<"transfer"> {
@@ -348,7 +348,7 @@ def CoreRT_TransferOp : CoreRT_Op<"transfer"> {
   );
   let results = (outs CoreRT_TensorHandleType:$result);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def CoreRT_TransferInferredTensortypeOp : CoreRT_Op<"transfer_inferred_tensortype"> {
@@ -367,7 +367,7 @@ def CoreRT_TransferInferredTensortypeOp : CoreRT_Op<"transfer_inferred_tensortyp
   );
   let results = (outs CoreRT_TensorHandleType:$result);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def CoreRT_TensorHandleToIntOp : CoreRT_Op<"tensorhandle_to_int32"> {
@@ -382,7 +382,7 @@ def CoreRT_TensorHandleToIntOp : CoreRT_Op<"tensorhandle_to_int32"> {
   let arguments = (ins CoreRT_TensorHandleType:$src);
   let results = (outs I32:$result);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 #endif

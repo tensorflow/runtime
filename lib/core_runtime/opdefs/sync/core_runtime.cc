@@ -65,7 +65,8 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
   build(builder, state, results, op_handler, operands, attr, op_name);
 }
 
-static LogicalResult verify(ExecuteOp op) {
+LogicalResult ExecuteOp::verify() {
+  ExecuteOp op = *this;
   return corert::VerifyExecuteOpImpl(op);
 }
 

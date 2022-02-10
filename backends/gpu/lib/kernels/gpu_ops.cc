@@ -297,7 +297,8 @@ static bool AllEqual(ArrayRef<wrapper::BlasDataType> types) {
   return llvm::all_of(types, [&](auto type) { return type == *types.begin(); });
 }
 
-static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
+LogicalResult BlasSaxpyOp::verify() {
+  BlasSaxpyOp op = *this;
   if (!AllEqual({op.typeAlpha(), op.typeX(), op.typeY(), op.executionType()})) {
     // The actual requirements of typeAlpha/typeX/typeY and executionType are
     // less strict than this, but at the moment we only use all float or all
@@ -319,6 +320,9 @@ static LogicalResult VerifyBlasGemmOp(OpTy op) {
   }
   return mlir::success();
 }
+
+LogicalResult BlasGemmOp::verify() { return VerifyBlasGemmOp(*this); }
+LogicalResult BlasGemmBatchExOp::verify() { return VerifyBlasGemmOp(*this); }
 
 namespace conversion {
 

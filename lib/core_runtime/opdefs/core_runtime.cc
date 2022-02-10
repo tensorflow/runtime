@@ -253,8 +253,14 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
         op_name);
 }
 
-static LogicalResult verify(ExecuteOp op) { return VerifyExecuteOpImpl(op); }
-static LogicalResult verify(ExecuteOpSeq op) { return VerifyExecuteOpImpl(op); }
+LogicalResult ExecuteOp::verify() {
+  ExecuteOp op = *this;
+  return VerifyExecuteOpImpl(op);
+}
+LogicalResult ExecuteOpSeq::verify() {
+  ExecuteOpSeq op = *this;
+  return VerifyExecuteOpImpl(op);
+}
 
 static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
@@ -372,7 +378,8 @@ static LogicalResult VerifyFunctionAttribute(Operation *op, StringRef name,
   return success();
 }
 
-static LogicalResult verify(CondOp op) {
+LogicalResult CondOp::verify() {
+  CondOp op = *this;
   auto operand_types = TypeRange(op.getOperandTypes()).drop_front();
   return success(succeeded(VerifyFunctionAttribute(
                      op, "a_true_fn", operand_types, op.getResultTypes())) &&
@@ -384,7 +391,8 @@ static LogicalResult verify(CondOp op) {
 // CoreRt_WhileOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(WhileOp op) {
+LogicalResult WhileOp::verify() {
+  WhileOp op = *this;
   return success(
       succeeded(VerifyFunctionAttribute(op, "a_cond_fn", op.getOperandTypes(),
                                         op.getResultTypes())) &&

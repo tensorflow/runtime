@@ -112,7 +112,7 @@ def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
   );
 
   let results = (outs Variadic<AnyType>:$results);
-  let verifier = [{ return tfrt::data::verify(*this); }];
+  let hasVerifier = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -269,7 +269,7 @@ def RangeDatasetOp : Data_Op<"range_dataset" > {
      TypeAttr:$element_type
   );
   let results = (outs Data_DatasetType:$output_dataset);
-  let verifier = [{ return tfrt::data::verify(*this); }];
+  let hasVerifier = 1;
   let assemblyFormat = "operands attr-dict";
 }
 

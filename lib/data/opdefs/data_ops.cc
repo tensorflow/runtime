@@ -142,7 +142,8 @@ static ParseResult parseEnumerateIteratorOp(OpAsmParser &parser,
 }
 
 // Verify that the signature of the functino matches the operands and results.
-static LogicalResult verify(EnumerateIteratorOp op) {
+LogicalResult EnumerateIteratorOp::verify() {
+  EnumerateIteratorOp op = *this;
   auto module = op->getParentOfType<ModuleOp>();
   auto function = module.lookupSymbol<FuncOp>(op.function());
   if (!function) {
@@ -208,7 +209,8 @@ static LogicalResult verify(EnumerateIteratorOp op) {
 // RangeDatasetOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(RangeDatasetOp op) {
+LogicalResult RangeDatasetOp::verify() {
+  RangeDatasetOp op = *this;
   // Only integer or float types are supported.
   if (!op.element_type().isIntOrFloat()) return failure();
   return success();

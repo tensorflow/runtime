@@ -112,7 +112,8 @@ static void print(OpAsmPrinter &p, DoAsyncOp op) {
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 
-static LogicalResult verify(DoAsyncOp op) {
+LogicalResult DoAsyncOp::verify() {
+  DoAsyncOp op = *this;
   return checkTFRTReturn(op, &op.region(), op.getResultTypes());
 }
 
@@ -248,7 +249,8 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 
-static LogicalResult verify(BenchmarkOp op) {
+LogicalResult BenchmarkOp::verify() {
+  BenchmarkOp op = *this;
   // Verify that the target benchmark region has exactly one return value.
   auto &region = op.region();
   auto &last_op = region.front().back();
@@ -377,7 +379,8 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
   }
 }
 
-static LogicalResult verify(SyncBenchmarkOp op) {
+LogicalResult SyncBenchmarkOp::verify() {
+  SyncBenchmarkOp op = *this;
   auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("target_fn");
   if (!fnAttr)
     return op.emitOpError("requires a 'target_fn' symbol reference attribute");

@@ -60,7 +60,8 @@ static void print(OpAsmPrinter &p, CallOp op) {
   p.printType(op.getCalleeType());
 }
 
-static LogicalResult verify(CallOp op) {
+LogicalResult CallOp::verify() {
+  CallOp op = *this;
   // Check that the callee attribute was specified.
   auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
@@ -120,7 +121,8 @@ static LogicalResult checkTFRTReturn(Operation *op, Region *region,
 // IfOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(IfOp op) {
+LogicalResult IfOp::verify() {
+  IfOp op = *this;
   // Verify that the operands match the bb arguments.  The ODS verifier already
   // checked the first argument to be present and i1.
   auto *then_block = &op.then_region().front();
@@ -227,7 +229,8 @@ void print(OpAsmPrinter &p, IfOp op) {
 // CondOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(CondOp op) {
+LogicalResult CondOp::verify() {
+  CondOp op = *this;
   // Check that the true/false function attributes are specified.
   auto trueFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
   if (!trueFnAttr)
@@ -338,7 +341,8 @@ static void print(OpAsmPrinter &p, RepeatI32Op op) {
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 
-static LogicalResult verify(RepeatI32Op op) {
+LogicalResult RepeatI32Op::verify() {
+  RepeatI32Op op = *this;
   // Verify that the operand and result types match.
   if (op.getNumResults() != op.getNumOperands() - 1)
     return op.emitOpError("incorrect number of operands");
@@ -440,7 +444,8 @@ static void print(OpAsmPrinter &p, ParallelForI32Op op) {
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
 
-static LogicalResult verify(ParallelForI32Op op) {
+LogicalResult ParallelForI32Op::verify() {
+  ParallelForI32Op op = *this;
   auto *block = &op.getRegion().front();
   if (block->empty() || !isa<ReturnOp>(block->back()))
     return op.emitOpError("expected tfrt.return in body");
@@ -531,7 +536,8 @@ static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
   }
 }
 
-static LogicalResult verify(ParallelCallI32Op op) {
+LogicalResult ParallelCallI32Op::verify() {
+  ParallelCallI32Op op = *this;
   // Check that the callee attribute was specified.
   auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
@@ -597,7 +603,8 @@ static void print(OpAsmPrinter &p, ReturnOp op) {
   }
 }
 
-static LogicalResult verify(ReturnOp op) {
+LogicalResult ReturnOp::verify() {
+  ReturnOp op = *this;
   // The parent is often a 'func' but not always.
   auto function = dyn_cast<FuncOp>(op->getParentOp());
 

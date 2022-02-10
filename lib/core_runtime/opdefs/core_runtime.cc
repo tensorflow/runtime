@@ -262,30 +262,29 @@ LogicalResult ExecuteOpSeq::verify() {
   return VerifyExecuteOpImpl(op);
 }
 
-static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
+ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
                             /*has_func_attr=*/true);
 }
-static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
-                                     OperationState &result) {
+ParseResult ExecuteOpSeq::parse(OpAsmParser &parser, OperationState &result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/1,
                             /*has_func_attr=*/true);
 }
-static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "(" << op.op_handler() << ") " << op->getAttr("op_name") << '('
-    << op.operands() << ')';
+void ExecuteOp::print(OpAsmPrinter &p) {
+  p << "(" << op_handler() << ") " << (*this)->getAttr("op_name") << '('
+    << operands() << ')';
 
-  PrintExecuteOpImpl(p, op);
-  PrintExecuteOpFuncAttribute(p, op);
-  if (!op.results().empty()) p << " : " << op.results().size();
+  PrintExecuteOpImpl(p, *this);
+  PrintExecuteOpFuncAttribute(p, *this);
+  if (!results().empty()) p << " : " << results().size();
 }
-static void print(OpAsmPrinter &p, ExecuteOpSeq op) {
-  p << "(" << op.op_handler() << ", " << op.in_op_chain() << ") "
-    << op->getAttr("op_name") << '(' << op.operands() << ')';
+void ExecuteOpSeq::print(OpAsmPrinter &p) {
+  p << "(" << op_handler() << ", " << in_op_chain() << ") "
+    << (*this)->getAttr("op_name") << '(' << operands() << ')';
 
-  PrintExecuteOpImpl(p, op);
-  PrintExecuteOpFuncAttribute(p, op);
-  if (!op.results().empty()) p << " : " << op.results().size();
+  PrintExecuteOpImpl(p, *this);
+  PrintExecuteOpFuncAttribute(p, *this);
+  if (!results().empty()) p << " : " << results().size();
 }
 
 void ExecuteOp::getOpAttrs(

@@ -48,6 +48,14 @@ struct TestGpuAsyncConversionPass
                                OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-gpu-async-conversion"; }
 
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<tfrt::gpu::GpuDialect, arith::ArithmeticDialect,
+                    cf::ControlFlowDialect,
+                    tfrt::gpu::conversion::GpuConversionDialect,
+                    gpu::GPUDialect, memref::MemRefDialect, StandardOpsDialect,
+                    tfrt::compiler::TFRTDialect>();
+  }
+
   void runOnOperation() override {
     TypeConverter converter;
     converter.addConversion([](Type type) { return type; });

@@ -22,7 +22,7 @@
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
-#include "mlir/Dialect/Vector/VectorOps.h"
+#include "mlir/Dialect/Vector/IR/VectorOps.h"
 #include "mlir/Dialect/X86Vector/X86VectorDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
@@ -30,10 +30,10 @@
 namespace tfrt {
 namespace jitrt {
 
-std::unique_ptr<mlir::FunctionPass> CreateAlignedAllocationsPass(
+std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateAlignedAllocationsPass(
     int64_t alignment = 64);
 
-std::unique_ptr<mlir::FunctionPass> CreateMathOptimizationPass(
+std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateMathOptimizationPass(
     bool enable_avx2 = false);
 
 std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass();

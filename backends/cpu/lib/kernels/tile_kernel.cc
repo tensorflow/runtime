@@ -21,9 +21,9 @@
 namespace tfrt {
 namespace cpu {
 
-Expected<SmallVector<Index, 5>> TileMultiples(
+Expected<llvm::SmallVector<Index, 5>> TileMultiples(
     const DenseHostTensor& multiples_arg) {
-  SmallVector<Index, 5> multiples;
+  llvm::SmallVector<Index, 5> multiples;
 
   if (multiples_arg.shape().GetRank() != 1) {
     return MakeStringError("Tile multiples must be a vector");
@@ -48,8 +48,8 @@ Expected<SmallVector<Index, 5>> TileMultiples(
 
 void TileStringTensor(const StringHostTensor& input, StringHostTensor* output) {
   // Compute strides from the shape.
-  auto strides = [](const TensorShape& shape) -> SmallVector<Index, 5> {
-    SmallVector<Index, 5> strides(shape.GetRank());
+  auto strides = [](const TensorShape& shape) -> llvm::SmallVector<Index, 5> {
+    llvm::SmallVector<Index, 5> strides(shape.GetRank());
     Index stride = 1;
     for (int i = shape.GetRank() - 1; i >= 0; --i) {
       strides[i] = stride;

@@ -42,7 +42,7 @@ def DHT_Dialect : Dialect {
 }
 
 // Base class for the operation in this dialect
-class DHT_Op<string mnemonic, list<OpTrait> traits = []> :
+class DHT_Op<string mnemonic, list<Trait> traits = []> :
     Op<DHT_Dialect, mnemonic, traits>;
 
 class CreateUninitializedTensorOp<string dtype, int rank>
@@ -59,11 +59,9 @@ class CreateUninitializedTensorOp<string dtype, int rank>
       %3 = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   }];
 
-  let arguments = (ins);
+  let arguments = (ins I64ArrayAttr:$shape);
   let results = (outs TensorType);
-
-  let printer = [{ return tfrt::dht::printCreateUninitTensorOp(p, *this); }];
-  let parser = " return tfrt::dht::parseCreateUninitTensorOp(parser, result);";
+  let assemblyFormat = "$shape attr-dict";
 }
 
 class MakeTensorOp<string dtype>
@@ -103,11 +101,9 @@ class FillTensorOp<string dtype>
       %3 = tfrt_dht.fill_tensor_with_constant.i32 %2, %1 0 : i32
   }];
 
-  let arguments = (ins TensorType, TFRT_ChainType);
+  let arguments = (ins TensorType, TFRT_ChainType, AnyAttr:$value);
   let results = (outs TFRT_ChainType);
-
-  let printer = [{ return tfrt::dht::printFillTensorOp(p, *this); }];
-  let parser = " return tfrt::dht::parseFillTensorOp(parser, result);";
+  let assemblyFormat = "operands $value attr-dict";
 }
 
 def PrintTensorOp : DHT_Op<"print_tensor"> {
@@ -141,11 +137,9 @@ class SetTensorOp<string dtype>
       %3 = tfrt_dht.set_tensor_with_constant_values.i32 %2, %1 [0 : i32, 1 : i32]
   }];
 
-  let arguments = (ins TensorType, TFRT_ChainType);
+  let arguments = (ins TensorType, TFRT_ChainType, ArrayAttr:$values);
   let results = (outs TFRT_ChainType);
-
-  let printer = [{ return tfrt::dht::printSetTensorOp(p, *this); }];
-  let parser = " return tfrt::dht::parseSetTensorOp(parser, result);";
+  let assemblyFormat = "operands $values attr-dict";
 }
 
 class TensorEqualOp<string dtype>

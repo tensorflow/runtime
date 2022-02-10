@@ -190,7 +190,7 @@ class SyncBEFFunction final : public BEFFunction {
 
   // This is an array of descriptors for all of our registers, indexed by
   // their register number.
-  SmallVector<RegisterInfo, 16> register_infos_;
+  llvm::SmallVector<RegisterInfo, 16> register_infos_;
 
   // This ArrayRef contains kernel entries of all kernels of this function.
   ArrayRef<uint32_t> kernels_;
@@ -198,10 +198,10 @@ class SyncBEFFunction final : public BEFFunction {
   // This is an array of offsets for all of the kernels in this function,
   // indexed by the kernel number. This does not include the pseudo kernel as it
   // is not used in the interpreter.
-  SmallVector<uint32_t, 8> kernel_offsets_;
+  llvm::SmallVector<uint32_t, 8> kernel_offsets_;
 
   // This is an array of register index for the result registers.
-  SmallVector<uint32_t, 4> result_regs_;
+  llvm::SmallVector<uint32_t, 4> result_regs_;
 };
 
 class BEFFileImpl;
@@ -295,7 +295,7 @@ class BEFFileImpl : public BEFFile {
   // affect the performance.
   bool ReadFunction(size_t function_offset, ArrayRef<TypeName> results,
                     size_t* location_offset, FunctionInfo* function_info,
-                    SmallVectorImpl<size_t>* result_regs,
+                    llvm::SmallVectorImpl<size_t>* result_regs,
                     HostAllocator* host_allocator);
 
   // Given an offset into the LocationPositions section, decode it and return
@@ -331,10 +331,10 @@ class BEFFileImpl : public BEFFile {
   ArrayRef<uint8_t> types_section_;
   ArrayRef<uint8_t> function_section_;
   ArrayRef<uint8_t> function_index_section_;
-  SmallVector<KernelImplementation, 8> kernels_;
-  SmallVector<TypeName, 8> type_names_;
+  llvm::SmallVector<KernelImplementation, 8> kernels_;
+  llvm::SmallVector<TypeName, 8> type_names_;
   llvm::StringMap<size_t> function_symbol_table_;
-  SmallVector<std::unique_ptr<Function>, 8> functions_;
+  llvm::SmallVector<std::unique_ptr<Function>, 8> functions_;
   ArrayRef<uint8_t> location_strings_section_;
   ArrayRef<uint8_t> locations_section_;
 

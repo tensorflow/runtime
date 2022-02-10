@@ -42,7 +42,7 @@ def DHT_Sync_Dialect : Dialect {
 }
 
 // Base class for the operation in this dialect
-class DHT_Sync_Op<string mnemonic, list<OpTrait> traits = []> :
+class DHT_Sync_Op<string mnemonic, list<Trait> traits = []> :
     Op<DHT_Sync_Dialect, mnemonic, traits>;
 
 class SyncCreateUninitializedTensorOp<string dtype, int rank>

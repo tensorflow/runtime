@@ -45,7 +45,7 @@ AsyncValueRef<DenseHostTensor> ForwardInputOrAllocateOutput(
   static_assert(std::is_base_of<HostTensor, Tensor>::value,
                 "Argument must be a HostTensor");
 
-  SmallVector<Argument<DenseHostTensor>, 4> dht_inputs;
+  llvm::SmallVector<Argument<DenseHostTensor>, 4> dht_inputs;
   dht_inputs.reserve(inputs.size());
 
   for (int i = 0; i < inputs.size(); ++i) {

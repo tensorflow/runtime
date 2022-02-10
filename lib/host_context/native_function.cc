@@ -27,7 +27,7 @@ void NativeFunction::Execute(
     MutableArrayRef<RCReference<AsyncValue>> results) const {
   HostContext* host = exec_ctx.host();
 
-  SmallVector<AsyncValue*, 4> unavailable_args;
+  llvm::SmallVector<AsyncValue*, 4> unavailable_args;
   for (auto* av : arguments)
     if (!av->IsAvailable()) unavailable_args.push_back(av);
 
@@ -40,11 +40,11 @@ void NativeFunction::Execute(
 
   // Otherwise create references to arguments and allocate indirect results for
   // async execution.
-  SmallVector<RCReference<AsyncValue>, 4> args;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> args;
   args.reserve(arguments.size());
   for (auto* av : arguments) args.push_back(FormRef(av));
 
-  SmallVector<RCReference<IndirectAsyncValue>, 4> indirect_results;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> indirect_results;
   indirect_results.reserve(results.size());
   for (auto& av_ref : results) {
     indirect_results.push_back(MakeIndirectAsyncValue(host));
@@ -54,11 +54,11 @@ void NativeFunction::Execute(
   RunWhenReady(unavailable_args,
                [this, host, args = std::move(args),
                 indirect_results = std::move(indirect_results)]() mutable {
-                 SmallVector<AsyncValue*, 4> arg_avs;
+                 llvm::SmallVector<AsyncValue*, 4> arg_avs;
                  arg_avs.reserve(args.size());
                  for (const auto& arg : args) arg_avs.push_back(arg.get());
 
-                 SmallVector<RCReference<AsyncValue>, 4> results;
+                 llvm::SmallVector<RCReference<AsyncValue>, 4> results;
                  results.resize(indirect_results.size());
                  callable_(arg_avs.data(), arg_avs.size(), results.data(),
                            results.size(), host);

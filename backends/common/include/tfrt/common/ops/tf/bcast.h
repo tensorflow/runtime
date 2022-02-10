@@ -52,8 +52,8 @@ class ArgumentBCast {
   ArrayRef<Index> broadcast() const { return broadcast_; }
 
  private:
-  SmallVector<Index, 8> reshape_;
-  SmallVector<Index, 8> broadcast_;
+  llvm::SmallVector<Index, 8> reshape_;
+  llvm::SmallVector<Index, 8> broadcast_;
 };
 
 // Returns a broadcasted result shape if arguments are broadcastible.

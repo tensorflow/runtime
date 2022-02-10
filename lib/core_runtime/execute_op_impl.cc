@@ -150,7 +150,7 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
                    AggregateAttr op_attr_array,
                    AggregateAttr op_func_attr_array,
                    const ExecutionContext &exec_ctx) {
-  SmallVector<TensorHandle, 8> th_args;
+  llvm::SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
   // Move the TensorHandle if we know that we are the last user of the async
@@ -164,7 +164,7 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
     }
   }
 
-  SmallVector<TensorHandle, 8> result_ths;
+  llvm::SmallVector<TensorHandle, 8> result_ths;
   result_ths.resize(results.size());
 
   // Set up OpAttrs.
@@ -184,14 +184,14 @@ void ExecuteOpImplSync(const CoreRuntimeOp &op,
                        AsyncValueRef<Chain> *op_chain, SyncKernelFrame *frame,
                        AggregateAttr op_attr_array,
                        const ExecutionContext &exec_ctx) {
-  SmallVector<TensorHandle, 8> th_args;
+  llvm::SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
   for (auto &arg : args) {
     th_args.push_back(arg.CopyRef());
   }
 
-  SmallVector<TensorHandle, 8> result_ths;
+  llvm::SmallVector<TensorHandle, 8> result_ths;
   result_ths.resize(frame->GetNumResults());
 
   // Set up OpAttrs.

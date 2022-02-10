@@ -16,8 +16,8 @@
 
 // This file declares types for the 'corert' dialect.
 
-#ifndef TF_RUNTIME_INCLUDE_TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_
-#define TF_RUNTIME_INCLUDE_TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_
+#ifndef TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_
+#define TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_
 
 #include "mlir/IR/Types.h"
 
@@ -89,4 +89,4 @@ class Qint32Type
 }  // namespace corert
 }  // namespace tfrt
 
-#endif  // TF_RUNTIME_INCLUDE_TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_
+#endif  // TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_

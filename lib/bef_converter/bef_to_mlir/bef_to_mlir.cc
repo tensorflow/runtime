@@ -76,8 +76,8 @@ struct BEFFunction {
   string_view name;
   FunctionKind kind;
 
-  SmallVector<mlir::Type, 4> argument_types;
-  SmallVector<mlir::Type, 4> result_types;
+  llvm::SmallVector<mlir::Type, 4> argument_types;
+  llvm::SmallVector<mlir::Type, 4> result_types;
 
   // Named functions are actual MLIR functions (eg. a mlir::FuncOp) in the MLIR
   // program. It may be a concrete function with region bodies and may also be
@@ -316,7 +316,7 @@ class BEFFunctionReader {
   mlir::Location location_;
   std::vector<RegisterInfo> register_table_;
   std::vector<KernelTableEntry> kernel_table_;
-  SmallVector<int, 2> result_regs_;
+  llvm::SmallVector<int, 2> result_regs_;
 };
 
 mlir::LogicalResult BEFToMLIRConverter::ReadHeader() {
@@ -468,7 +468,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctionIndex(
 
     // And populate argument/result types of this function.
     auto read_types =
-        [this, &function_index_reader](SmallVector<mlir::Type, 4>* out) {
+        [this, &function_index_reader](llvm::SmallVector<mlir::Type, 4>* out) {
           std::vector<size_t> indices;
           if (mlir::failed(ReadIntArray(&function_index_reader, &indices)))
             return mlir::failure();
@@ -533,8 +533,8 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
     std::unique_ptr<mlir::Region> region) {
   // Use return_op's operand types as function result types.
   auto& return_op = region->front().back();
-  SmallVector<mlir::Type, 4> result_types(return_op.operand_type_begin(),
-                                          return_op.operand_type_end());
+  llvm::SmallVector<mlir::Type, 4> result_types(return_op.operand_type_begin(),
+                                                return_op.operand_type_end());
 
   // If it is a named function, create a top level mlir function.
   auto function_type = mlir::FunctionType::get(
@@ -616,7 +616,7 @@ mlir::LogicalResult BEFToMLIRConverter::AddCompilationUnits(
         llvm::MemoryBuffer::getMemBuffer(blob, "<unknown>"), llvm::SMLoc());
 
     // Parse a compilation unit source code into the MLIR Module.
-    mlir::OwningModuleRef compilation_unit_module(
+    mlir::OwningOpRef<mlir::ModuleOp> compilation_unit_module(
         mlir::parseSourceFile(source_mgr, &context_));
     if (!compilation_unit_module) {
       EmitError(loc, "Failed to parse compilation unit.");
@@ -656,7 +656,9 @@ BEFFunctionReader::ReadFunction(BefLocationReader* location_reader,
   auto region = std::make_unique<mlir::Region>();
   region->push_back(new mlir::Block());
   auto* block = &region->back();
-  block->addArguments(bef_function_.argument_types);
+  auto& arg_types = bef_function_.argument_types;
+  block->addArguments(arg_types, llvm::SmallVector<mlir::Location, 2>(
+                                     arg_types.size(), location_));
 
   // Kernels are 4-byte aligned.
   if (!function_reader_.ReadAlignment(kKernelEntryAlignment) ||
@@ -937,9 +939,9 @@ BEFFunctionReader::RegisterInfo& BEFFunctionReader::GetRegister(
 
 }  // namespace
 
-mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
-                                       ArrayRef<uint8_t> bef_file,
-                                       mlir::MLIRContext* context) {
+mlir::OwningOpRef<mlir::ModuleOp> ConvertBEFToMLIR(mlir::Location location,
+                                                   ArrayRef<uint8_t> bef_file,
+                                                   mlir::MLIRContext* context) {
   auto emit_error = [&location](string_view message) {
     EmitError(location, message);
     return nullptr;
@@ -984,7 +986,7 @@ mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
 
   // The third phase resolves all functions as either top level MLIR functions
   // or nested regions for MLIR operations.
-  mlir::OwningModuleRef module(mlir::ModuleOp::create(location));
+  mlir::OwningOpRef<mlir::ModuleOp> module(mlir::ModuleOp::create(location));
   if (mlir::failed(converter.ResolveFunctions(&function_context, module.get())))
     return emit_error("Failed to resolve functions.");
 

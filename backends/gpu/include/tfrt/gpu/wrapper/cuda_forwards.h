@@ -82,6 +82,9 @@ using cusolverDnHandle_t = struct cusolverDnContext *;
 using syevjInfo_t = struct syevjInfo *;
 using gesvdjInfo_t = struct gesvdjInfo *;
 
+// Forward declaration of NCCL types.
+using ncclComm_t = struct ncclComm *;
+
 // Forward declaration of cuFFT types.
 using cufftHandle = int;
 

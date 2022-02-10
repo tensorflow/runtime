@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     abort();
   }
 
-  tfrt::SmallVector<const tfrt::Function*, 8> function_list;
+  llvm::SmallVector<const tfrt::Function*, 8> function_list;
   // Run all functions in the input BEF file.
   bef->GetFunctionList(&function_list);
 

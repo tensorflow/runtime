@@ -34,7 +34,7 @@ IterationResult RangeDatasetIterator::GetNext(
     return IterationResult::Eof(host, 1);
   }
 
-  SmallVector<RCReference<AsyncValue>, 4> values;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> values;
   switch (dataset_->element_type_) {
 #define DTYPE_NUMERIC(ENUM)                                            \
   case DType::ENUM:                                                    \

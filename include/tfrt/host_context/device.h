@@ -177,7 +177,7 @@ class DeviceTypeRegistry {
  private:
   // We use an array instead of map because we don't expected to have many
   // device types. And it is not on the performance critical path.
-  SmallVector<DeviceType, 4> types_;
+  llvm::SmallVector<DeviceType, 4> types_;
 };
 
 // Register and return a new DeviceType.

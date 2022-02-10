@@ -357,7 +357,7 @@ class RemainingResults {
         MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...);
   }
 
-  void EmitErrorAt(int index, string_view message) {
+  void MakeErrorAt(int index, string_view message) {
     remaining_results_[index] = MakeErrorAsyncValueRef(message);
   }
 

@@ -34,13 +34,13 @@ struct MathOptimizationPass
   explicit MathOptimizationPass(bool enable_avx2) {
     enable_avx2_ = enable_avx2;
   }
-  void runOnFunction() override;
+  void runOnOperation() override;
 };
 
 }  // namespace
 
-void MathOptimizationPass::runOnFunction() {
-  mlir::OwningRewritePatternList patterns(&getContext());
+void MathOptimizationPass::runOnOperation() {
+  mlir::RewritePatternSet patterns(&getContext());
   mlir::populateMathAlgebraicSimplificationPatterns(patterns);
   mlir::MathPolynomialApproximationOptions approx_options;
   approx_options.enableAvx2 = enable_avx2_;
@@ -50,7 +50,7 @@ void MathOptimizationPass::runOnFunction() {
     signalPassFailure();
 }
 
-std::unique_ptr<mlir::FunctionPass> CreateMathOptimizationPass(
+std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateMathOptimizationPass(
     bool enable_avx2) {
   return std::make_unique<MathOptimizationPass>(enable_avx2);
 }

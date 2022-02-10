@@ -28,14 +28,13 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 
 // Base class for TFRT dialect ops.
-class TFRT_Op<string mnemonic, list<OpTrait> traits = []> :
+class TFRT_Op<string mnemonic, list<Trait> traits = []> :
     Op<TFRT_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 
   // Each registered op in the TFRT namespace needs to provide all of a printer,
   // parser and verifier.
-  let printer = [{ return tfrt::compiler::print(p, *this); }];
-  let verifier = [{ return tfrt::compiler::verify(*this); }];
-  let parser = [{ return tfrt::compiler::parse$cppClass(parser, result); }];
+  let hasVerifier = 1;
+  let hasCustomAssemblyFormat = 1;
 }
 
 def CallOp : TFRT_Op<"call", [CallOpInterface]> {
@@ -71,7 +70,7 @@ class ConstantOp<string suffix, Type baseType, Attr attr>
   let arguments = (ins attr:$value);
   let results = (outs baseType);
   let assemblyFormat = "$value attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 // MLIR's OpBase.td defines F32Attr and F64Attr, but no F16Attr
@@ -93,7 +92,7 @@ class ConstantComplexOp<string suffix, Type baseType, Attr attr>
   let arguments = (ins attr:$real, attr:$imaginary);
   let results = (outs Complex<baseType>);
   let assemblyFormat = "$real `,` $imaginary attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def ConstantComplexF32Op : ConstantComplexOp<"64", F32, F32Attr>;
@@ -109,7 +108,7 @@ class SyncConstantOp<string suffix, Type baseType, Attr attr>
   let arguments = (ins attr:$value);
   let results = (outs baseType);
   let assemblyFormat = "$value attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def SyncConstantI64Op : SyncConstantOp<"i64", I64, I64Attr>;
@@ -149,7 +148,7 @@ def CaseOp : TFRT_Op<"case"> {
   let assemblyFormat = [{
     $branch_index $branches `(` $in_op_chain (`,` $branch_operands^)? `)` attr-dict `:` `(` type($branch_operands) `)` `->` `(` type($branch_outputs) `)`
   }];
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def IfOp : TFRT_Op<"if"> {
@@ -228,6 +227,7 @@ def WhileOp : TFRT_Op<"while"> {
       are the same as the number and types of operands.
     body_fn: The body function that takes the arguments and returns the results
       and an I1 value to indicate whether next iteration should be executed.
+    parallel_iterations: The max number of iterations that can be dispatched in parallel.
 
     The pseudo code:
 
@@ -241,15 +241,22 @@ def WhileOp : TFRT_Op<"while"> {
 
   let arguments = (ins I1:$cond,
                        Variadic<AnyType>:$operands,
-                       FlatSymbolRefAttr:$body_fn);
+                       FlatSymbolRefAttr:$body_fn,
+                       I64Attr:$parallel_iterations);
 
   let results = (outs Variadic<AnyType>:$results);
 
   let assemblyFormat = [{
-    $cond $body_fn `(` $operands `)` attr-dict `:` `(` type($operands) `)` `->` `(` type($results) `)`
+    $cond $body_fn `(` $operands `)` attr-dict `parallel_iterations` `(` $parallel_iterations `)` `:` `(` type($operands) `)` `->` `(` type($results) `)`
   }];
 
-  let verifier = ?;
+  let builders = [
+    OpBuilder<(ins "::mlir::TypeRange":$results, "::mlir::Value":$cond, "::mlir::ValueRange":$operands, "::llvm::StringRef":$body_fn, CArg<"int64_t", "1">:$parallel_iterations), [{
+      build($_builder, $_state, results, cond, operands, ::mlir::FlatSymbolRefAttr::get($_builder.getStringAttr(body_fn)), $_builder.getI64IntegerAttr(parallel_iterations));
+    }]>
+  ];
+
+  let hasVerifier = 0;
 }
 
 def OnceOp : TFRT_Op<"once"> {
@@ -278,7 +285,7 @@ def OnceOp : TFRT_Op<"once"> {
     `:` `(` type($operands) `)` `->` `(` type($results) `)`
   }];
 
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
@@ -298,7 +305,7 @@ def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
   let arguments = (ins);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def MergeChainsOp : TFRT_Op<"merge.chains", [NoSideEffect]> {
@@ -318,7 +325,7 @@ def MergeChainsOp : TFRT_Op<"merge.chains", [NoSideEffect]> {
   let arguments = (ins Variadic<AnyType>:$inputs);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "$inputs attr-dict `:` type($inputs)";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def RepeatI32Op : TFRT_Op<"repeat.i32"> {
@@ -455,7 +462,7 @@ class AddOp<string suffix, Type type>
   let arguments = (ins type, type);
   let results = (outs type);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def AddI32Op : AddOp<"i32", I32>;
@@ -476,7 +483,7 @@ class AndOp<string suffix, Type type>
   let arguments = (ins type, type);
   let results = (outs type);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def AndI1Op : AndOp<"i1", I1>;
@@ -494,7 +501,7 @@ class EqualOp<string suffix, Type type>
   let arguments = (ins type, type);
   let results = (outs I1);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def EqualI32Op : EqualOp<"i32", I32>;
@@ -513,7 +520,7 @@ class DivOp<string suffix, Type type>
   let arguments = (ins type, type);
   let results = (outs type, type);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def DivI32Op : DivOp<"i32", I32>;
@@ -531,7 +538,7 @@ class MulOp<string suffix, Type type>
   let arguments = (ins type, type);
   let results = (outs type);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def MulI32Op : MulOp<"i32", I32>;
@@ -549,7 +556,7 @@ class SyncMulOp<string suffix, Type type>
   let arguments = (ins type, type);
   let results = (outs type);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def SyncMulI32Op : SyncMulOp<"i32", I32>;
@@ -568,7 +575,7 @@ class PrintOp<string suffix, Type type> : TFRT_Op<"print." # suffix> {
   let arguments = (ins type, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def PrintI1Op : PrintOp<"i1", I1>;
@@ -592,7 +599,7 @@ def GetDeviceOp : TFRT_Op<"get_device"> {
   );
   let results = (outs TFRT_DeviceType:$result);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 #endif  // BASIC_OPS

@@ -403,7 +403,7 @@ static Expected<TensorMetadata> TfTransposeOpFoldedMd(
   DenseView perm_view = CreateDenseView(perm_attr);
   assert(perm_view.shape().GetRank() == 1);
 
-  SmallVector<Index, 4> perm;
+  llvm::SmallVector<Index, 4> perm;
   switch (perm_view.dtype()) {
     case DType::I32: {
       auto value = perm_view.GetFlat<int32_t>();

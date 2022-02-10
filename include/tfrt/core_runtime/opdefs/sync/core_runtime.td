@@ -40,11 +40,11 @@ def CoreRTSync_Dialect : Dialect {
 }
 
 // Base class for corert dialect ops.
-class CoreRTSync_Op<string mnemonic, list<OpTrait> traits = []> :
+class CoreRTSync_Op<string mnemonic, list<Trait> traits = []> :
     Op<CoreRTSync_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
   // Each registered op in the corert namespace needs to provide all of a
   // verifier, a printer and a parser.
-  let verifier = [{ return tfrt::corert_sync::verify(*this); }];
+  let hasVerifier = 1;
   let printer = [{ return tfrt::corert_sync::print(p, *this); }];
   let parser = [{ return tfrt::corert_sync::parse$cppClass(parser, result); }];
 }
@@ -65,7 +65,7 @@ class CreateDenseTensorOp<string dtype>
 
   let assemblyFormat = "attr-dict";
 
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 // Instantiate for each dtype and rank pair.
@@ -97,7 +97,7 @@ def ConstDenseTensorOp : CoreRTSync_Op<"const_dense_tensor",
 
   let assemblyFormat = "$value attr-dict";
 
-  let verifier = ?;
+  let hasVerifier = 0;
 
   let hasFolder = 1;
 }
@@ -153,7 +153,7 @@ def CoreRTSync_GetOpHandler : CoreRTSync_Op<"get_op_handler", [NoSideEffect]> {
     CoreRT_OpHandlerType:$op_handler
   );
   let assemblyFormat = "$device_name attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 #endif

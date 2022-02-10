@@ -269,7 +269,7 @@ template <typename Output, typename Expr, typename ArgLifetimeExtension,
 AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx,
                                  const AsyncValueRef<Chain>& chain, Output out,
                                  Expr expr, ArgLifetimeExtension args) {
-  SmallVector<AsyncValue*, 1> dependencies;
+  llvm::SmallVector<AsyncValue*, 1> dependencies;
   dependencies.push_back(chain.GetAsyncValue());
   return AsyncAssign(ctx, dependencies, std::move(out), std::move(expr),
                      std::move(args));

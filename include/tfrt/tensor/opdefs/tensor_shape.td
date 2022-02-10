@@ -27,11 +27,8 @@ include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Base class for the operation in this dialect
-class TS_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<TensorShapeDialect, mnemonic, traits> {
-  let parser = [{ return tfrt::ts::parse$cppClass(parser, result); }];
-  let printer = " return tfrt::ts::printOpWithOperands(p, *this)" "; ";
-}
+class TS_Op<string mnemonic, list<Trait> traits = []> :
+    Op<TensorShapeDialect, mnemonic, traits> {}
 
 def TS_BuildShapeOp : TS_Op<"build_shape", [NoSideEffect]> {
   let summary = "Build tensor shape operation";

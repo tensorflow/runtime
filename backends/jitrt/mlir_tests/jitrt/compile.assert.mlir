@@ -22,7 +22,7 @@ module @kernels attributes { tfrt.compiled } {
 
     // This precondition is always false at run time.
     %check = arith.cmpi eq, %0, %c0 : index
-    assert %check, "Dimension 0 must have size 0"
+    cf.assert %check, "Dimension 0 must have size 0"
 
     // We should never reach the memory allocation at run time.
     %output = memref.alloc(%0) : memref<?xf32>

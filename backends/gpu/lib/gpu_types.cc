@@ -16,8 +16,10 @@
 #include "tfrt/gpu/gpu_types.h"
 
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
+#include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
@@ -190,11 +192,19 @@ GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuContext> context,
 
 GpuBlasHandle::~GpuBlasHandle() = default;
 
-GpuCclHandle::GpuCclHandle(AsyncValueRef<GpuContext> context,
-                           wrapper::OwningCclComm comm)
-    : context_(std::move(context)), comm_(std::move(comm)) {}
+GpuCclHandle::GpuCclHandle(
+    AsyncValueRef<GpuContext> context, wrapper::OwningCclComm comm,
+    llvm::unique_function<void(wrapper::CclComm)> custom_deleter)
+    : context_(std::move(context)),
+      comm_(std::move(comm)),
+      custom_deleter_(std::move(custom_deleter)) {}
 
-GpuCclHandle::~GpuCclHandle() = default;
+GpuCclHandle::~GpuCclHandle() {
+  if (custom_deleter_) {
+    // Using the custom deleter instead.
+    custom_deleter_(comm_.release());
+  }
+}
 
 void GpuCclHandle::AddCallback(Callback callback) {
   callbacks_.push_back(std::move(callback));
@@ -208,11 +218,6 @@ llvm::Error GpuCclHandle::ExecuteCallbacks(wrapper::CurrentContext current,
   if (auto error = wrapper::CclGroupEnd(current.platform())) return error;
   callbacks_.clear();
   return llvm::Error::success();
-}
-
-wrapper::CclComm GpuCclHandle::release() {
-  context_.reset();
-  return comm_.release();
 }
 
 GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuContext> context,

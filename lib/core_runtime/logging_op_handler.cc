@@ -133,7 +133,7 @@ class LoggingOpHandler : public OpHandler {
   bool ShouldDumpTensorToFile() const { return !tensor_dump_prefix_.empty(); }
 
   // TODO(tfrt-devs): Handle error TensorHandle.
-  SmallVector<RCReference<AsyncValue>, 4> CollectAsyncHostTensors(
+  llvm::SmallVector<RCReference<AsyncValue>, 4> CollectAsyncHostTensors(
       const ExecutionContext &exec_ctx, ArrayRef<TensorHandle> tensor_handles) {
     auto *host = exec_ctx.host();
 
@@ -148,7 +148,7 @@ class LoggingOpHandler : public OpHandler {
     host->Await(tensor_metadatas);
 
     // Convert all tensors to HostTensor.
-    SmallVector<RCReference<AsyncValue>, 4> async_hts;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> async_hts;
     for (auto &th : tensor_handles) {
       auto host_tensor_handle =
           th.TransferTo(exec_ctx, host->GetHostDeviceRef(),
@@ -274,7 +274,7 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
 
         {
           // Collect all input tensors, convert them to HostTensor's and await.
-          SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
+          llvm::SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
               CollectAsyncHostTensors(invocation.exec_ctx,
                                       invocation.arguments);
 
@@ -286,7 +286,7 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
         fallback_handle(invocation);
         if (sync_log_results_ && !invocation.results.empty()) {
           // Collect all output tensors, convert them to DHT and await.
-          SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
+          llvm::SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
               CollectAsyncHostTensors(invocation.exec_ctx, invocation.results);
 
           PrintAsyncHostTensors(async_host_tensors, /*is_input=*/false,

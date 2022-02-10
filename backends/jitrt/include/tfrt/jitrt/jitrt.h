@@ -32,7 +32,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
@@ -44,6 +43,11 @@
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
+#include "tfrt/jitrt/async_values_cache.h"
+#include "tfrt/jitrt/constraints.h"
+#include "tfrt/jitrt/specialization.h"
+#include "tfrt/jitrt/symbolic_shape.h"
+#include "tfrt/jitrt/types.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"
 
@@ -54,7 +58,6 @@ class ThreadPoolInterface;
 
 namespace tfrt {
 
-class ExecutionContext;
 class Tensor;
 
 namespace jitrt {
@@ -188,17 +191,6 @@ struct CompilationOptions {
     kAlways,
   };
 
-  // Byte alignment for allocated memrefs. Depending on the compiler flags
-  // Tensorflow requires tensors to be aligned on 16, 32 or 64 bytes.
-  int alignment = 0;
-
-  // The number of worker threads (host context concurrent work queue size) that
-  // can be used for parallelizing compute intensive parts of the kernel.
-  int num_worker_threads = 0;
-
-  // Use experimental cost model for lowering scf.parallel to async dialect.
-  bool cost_driven_async_parallel_for = false;
-
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
 
@@ -208,24 +200,24 @@ struct CompilationOptions {
   // Register dialects that are allowed in the serialized module.
   std::function<void(mlir::DialectRegistry&)> register_dialects;
 
-  // Register a pass pipeline that is called whenever the compiled module
+  // Create a pass pipeline that is called whenever the compiled module
   // gets specialized. This pipeline can use refined shape information and
   // symbolic shape attributes to do the shape inference and canonicalization.
   //
   // Original input module might have an undefined calling convention (e.g.
   // JitRt does not support unranked tensors), and specialization can be
   // required as a precondition for compilation.
-  std::function<void(mlir::OpPassManager&)> register_specialization_pipeline;
+  std::function<void(mlir::PassManager&)> create_specialization_pipeline;
 
-  // TODO(b/210116436): Compilation pipeline must lower module down to LLVM
-  // dialect. Update documentation to include requirements for this pipeline to
-  // include passes that connect compiled functions with the runtime.
+  // Create a pass pipeline that lowers compiled module from high level
+  // dialects to the LLVM dialect. JitRt will use the LLVM ORC compiler API
+  // to compile the LLVM module at run time (https://llvm.org/docs/ORCv2.html).
   //
-  // Register a pass pipeline that lowers compiled module from high level
-  // dialects to the dialects supported by the JITRT lowering to LLVM. In the
-  // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
-  // the Linalg on buffers via the MHLO->Linalg lowering.
-  std::function<void(mlir::OpPassManager&)> register_compilation_pipeline;
+  // This compilation pipeline must create the entrypoint function with an ABI
+  // compatible with the calling convention advertised to the JitRt through the
+  // `calling_convention` type conversion, and for that it usually must include
+  // `rt-to-kernel-function` pass to convert regular functions to "kernels".
+  std::function<void(mlir::PassManager&)> create_compilation_pipeline;
 
   // Calling convention converts the compiled module entrypoint function type to
   // the function type with a well defined ABI (e.g. tensors do not have an ABI,
@@ -266,200 +258,11 @@ struct CompilationOptions {
   // results memory into the high level types (e.g. convert returned memref
   // descriptor to a Tensorfow tensor).
   CallingConvention calling_convention = DefaultCallingConvention();
-
-  // Enables math approximations that emit AVX2 intrinsics.
-#ifdef __AVX2__
-  bool math_avx2 = true;
-#else
-  bool math_avx2 = false;
-#endif
 };
 
 //----------------------------------------------------------------------------//
-// Types supported by the compiled function signature. We do rely on the LLVM
-// style RTTI (https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html) to avoid
-// dependency on the MLIR types at runtime, because for that we need to carry
-// a separate MLIRContext with every instance of Executable which might require
-// a lot of memory to hold all the uniqued attributes (large constants).
+// Conversions from compiled kernel operands to JitRt runtime types.
 //----------------------------------------------------------------------------//
-
-class Type {
- public:
-  enum class TypeKind {
-    kAsyncToken,
-    kAsyncValue,
-    kRankedTensor,
-    kUnrankedTensor,
-    kMemref,
-    kUnrankedMemref,
-    kKernelContext
-  };
-
-  virtual ~Type() = default;
-
-  TypeKind kind() const { return kind_; }
-
- protected:
-  explicit Type(TypeKind kind) : kind_(kind) {}
-
-  // Unlike the mlir::Type which itself is a "smart pointer like" type, with the
-  // underlying object owned by the MLIR context, the runtime type must be
-  // wrapped in a smart pointer explicitly (e.g. in std::unique_ptr) and can't
-  // be moved or copied (see the `FunctionType` below for example).
-  Type(Type&&) = delete;
-  Type(const Type&) = delete;
-  Type& operator=(Type&&) = delete;
-  Type& operator=(const Type&) = delete;
-
- private:
-  const TypeKind kind_;
-};
-
-raw_ostream& operator<<(raw_ostream& os, const Type& type);
-
-// Async Token type corresponding to the mlir::async::TokenType
-class AsyncTokenType : public Type {
- public:
-  AsyncTokenType();
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kAsyncToken;
-  }
-};
-
-// Async Value type corresponding to the mlir::async::ValueType.
-class AsyncValueType : public Type {
- public:
-  explicit AsyncValueType(std::unique_ptr<Type> value_type);
-
-  Type& value_type() const { return *value_type_; }
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kAsyncValue;
-  }
-
- private:
-  std::unique_ptr<Type> value_type_;
-};
-
-// Ranked Tensor type corresponding to the mlir::RankedTensorType.
-class RankedTensorType : public Type {
- public:
-  static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
-  RankedTensorType(ArrayRef<Index> sizes, DType element_type);
-
-  ArrayRef<Index> sizes() const;
-  unsigned rank() const;
-  DType element_type() const;
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kRankedTensor;
-  }
-
- private:
-  llvm::SmallVector<Index> sizes_;
-  DType element_type_;
-};
-
-// Unranked Tensor type corresponding to the mlir::UnrankedTensorType.
-class UnrankedTensorType : public Type {
- public:
-  explicit UnrankedTensorType(DType element_type);
-  DType element_type() const;
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kUnrankedTensor;
-  }
-
- private:
-  DType element_type_;
-};
-
-// Ranked Memref type corresponding to the mlir::MemrefType.
-class MemrefType : public Type {
- public:
-  static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
-  MemrefType(ArrayRef<Index> sizes, DType element_type);
-
-  ArrayRef<Index> sizes() const;
-  unsigned rank() const;
-  DType element_type() const;
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kMemref;
-  }
-
- private:
-  llvm::SmallVector<Index> sizes_;
-  DType element_type_;
-};
-
-// Unranked Memref type corresponding to the mlir::UnrankedMemrefType.
-class UnrankedMemrefType : public Type {
- public:
-  explicit UnrankedMemrefType(DType element_type);
-  DType element_type() const;
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kUnrankedMemref;
-  }
-
- private:
-  DType element_type_;
-};
-
-// Corresponds to the RT dialect's KernelContextType.
-class KernelContextOperandType : public Type {
- public:
-  KernelContextOperandType();
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kKernelContext;
-  }
-};
-
-// Compiled function signature type corresponding to the mlir::FunctionType.
-class FunctionType {
- public:
-  const Type* operand(unsigned index) const;
-  const Type* result(unsigned index) const;
-
-  unsigned num_operands() const;
-  unsigned num_results() const;
-
-  // Converts MLIR function type to the runtime function type. Returns error if
-  // function has unsupported operands or results types.
-  static Expected<FunctionType> Convert(mlir::FunctionType type);
-
-  FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
-               llvm::SmallVector<std::unique_ptr<Type>> results);
-
- private:
-  llvm::SmallVector<std::unique_ptr<Type>> operands_;
-  llvm::SmallVector<std::unique_ptr<Type>> results_;
-};
-
-//----------------------------------------------------------------------------//
-// Types for passing compiled kernel arguments and passing back results.
-//----------------------------------------------------------------------------//
-
-struct MemrefDesc {
-  MemrefDesc() = default;
-
-  // Ensure that MemrefDesc is always moved around instead of copying.
-  MemrefDesc(const MemrefDesc&) = delete;
-  MemrefDesc& operator=(const MemrefDesc&) = delete;
-  MemrefDesc(MemrefDesc&&) = default;
-  MemrefDesc& operator=(MemrefDesc&&) = default;
-
-  DType dtype;
-  void* data;
-  Index offset;
-  SmallVector<Index, 4> sizes;
-  SmallVector<Index, 4> strides;
-};
-
-raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 
 // Converts tfrt Tensor to the Memref descriptor if concrete Tensor type is
 // supported (currently only DenseHostTensor can be converted). Returns error
@@ -488,8 +291,8 @@ class ReturnValueConverterBase {
                                           const Type* runtime_type,
                                           void* ret) const = 0;
 
-  // Forward error to all remaining results.
-  virtual void EmitErrors(RCReference<ErrorAsyncValue> error) const;
+  // Returns error for all remaining results (copy of the `error` argument).
+  virtual void ReturnErrors(RCReference<ErrorAsyncValue> error) const;
 
  protected:
   RemainingResults results() const { return results_; }
@@ -569,13 +372,13 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   static mlir::LogicalResult UnsupportedReturnType(
       ConversionContext& ctx, RemainingResults results, unsigned result_index,
       const Type* t, const Type* rt, const void*) {
-    results.EmitErrorAt(result_index, StrCat("unsupported return type: ", *rt,
+    results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
                                              " (derived from: ", *t, ")"));
     return mlir::failure();
   }
 
   std::unique_ptr<ConversionContext> context_;
-  SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+  llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -689,7 +492,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
       // TODO(ezhulenev): To simplify conversion from a void* pointer to memref
       // descriptor we rely on the StridedMemrefType<T, rank> and dispatch
       // only up to a fixed rank.
-      results.EmitErrorAt(result_index,
+      results.MakeErrorAt(result_index,
                           StrCat("unsupported returned memref rank: ", rank));
   };
 
@@ -729,7 +532,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
       rank_dispatch(int64_t{});
       break;
     default:
-      results.EmitErrorAt(
+      results.MakeErrorAt(
           result_index,
           StrCat("unsupported returned memref element type: ", element_type));
   }
@@ -814,7 +617,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
       // type after conversion via the conversion context. Emplace function can
       // query all the information it needs from the conversion context, e.g.
       // expected result type rank and data type.
-      results.EmitErrorAt(result_index,
+      results.MakeErrorAt(result_index,
                           StrCat("unsupported returned memref rank: ", rank));
   };
 
@@ -834,7 +637,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
       rank_dispatch(int64_t{});
       break;
     default:
-      results.EmitErrorAt(
+      results.MakeErrorAt(
           result_index,
           StrCat("unsupported returned memref element type: ", element_type));
   }
@@ -847,77 +650,12 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
 //----------------------------------------------------------------------------//
 
 // Constructs error async value from the `error` and returns it for all results.
-void EmitErrors(RemainingResults results, Error error,
-                const ExecutionContext& exec_ctx);
-
-void EmitErrors(RemainingResults results, DecodedDiagnostic error,
-                const ExecutionContext& exec_ctx);
+void ReturnErrors(RemainingResults results, Error error);
+void ReturnErrors(RemainingResults results, DecodedDiagnostic error);
 
 // Constructs error async value from the `error` and returns it for all results.
 // Returns the original error to the caller.
-Error EmitErrors(const ReturnValueConverterBase& results, Error error,
-                 const ExecutionContext& exec_ctx);
-
-//----------------------------------------------------------------------------//
-// Cache for async values (values that become available asynchronously).
-//----------------------------------------------------------------------------//
-
-template <typename Key, typename Value>
-class AsyncValuesCache {
- public:
-  struct Entry;
-
-  AsyncValuesCache() = default;
-
-  // Returns a pointer to the cached value if it exists, otherwise returns
-  // nullptr. It is the caller's responsibility to form an async reference and
-  // extend its lifetime if the lifetime of the cached async value can be
-  // larger than the lifetime of the cache.
-  AsyncValuePtr<Value> Find(Key key) const;
-
-  // Allocates an async value in the unconstructed state to store the cached
-  // value with the given key.
-  //
-  // The `entry.allocated` value is `true` if the new async value was allocated,
-  // and the caller is responsible for eventually setting the error or emplacing
-  // the value. If it is false, then it means that the storage was already
-  // allocated, and someone else will eventually update it.
-  //
-  // The returned `entry.size` value is equal to the size of the cache. If the
-  // new async value was allocated, it will be reflected in the size.
-  Entry Allocate(Key key);
-
-  struct Entry {
-    AsyncValuePtr<Value> ptr;
-    bool allocated;
-    size_t size;
-  };
-
- private:
-  mutable tfrt::mutex mu_;
-  llvm::DenseMap<Key, AsyncValueRef<Value>> cache_ TFRT_GUARDED_BY(mu_);
-};
-
-template <typename Key, typename Value>
-AsyncValuePtr<Value> AsyncValuesCache<Key, Value>::Find(Key key) const {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  return it != cache_.end() ? it->getSecond().AsPtr() : AsyncValuePtr<Value>();
-}
-
-template <typename Key, typename Value>
-auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end())
-    return {it->getSecond().AsPtr(), false, cache_.size()};
-
-  AsyncValueRef<Value> allocated = MakeUnconstructedAsyncValueRef<Value>();
-
-  auto emplaced = cache_.try_emplace(key, std::move(allocated));
-  assert(emplaced.second && "emplace must be successful");
-  return {emplaced.first->getSecond().AsPtr(), true, cache_.size()};
-}
+Error ReturnErrors(const ReturnValueConverterBase& results, Error error);
 
 //----------------------------------------------------------------------------//
 // Result of compiling MLIR module to executable kernel function.
@@ -939,7 +677,7 @@ class Executable {
              KernelFunctionPtr fptr, FunctionType signature,
              FunctionType runtime_signature,
              ResultsMemoryLayout results_memory_layout,
-             Optional<size_t> specialization, int num_worker_threads,
+             Optional<size_t> specialization,
              std::chrono::milliseconds time_to_compile)
       : name_(name.str()),
         engine_(std::move(engine)),
@@ -948,7 +686,6 @@ class Executable {
         runtime_signature_(std::move(runtime_signature)),
         results_memory_layout_(std::move(results_memory_layout)),
         specialization_(specialization),
-        num_worker_threads_(num_worker_threads),
         time_to_compile_(time_to_compile) {
     assert(fptr_ != nullptr && "kernel function must be not null");
   }
@@ -972,7 +709,6 @@ class Executable {
   // If compiled function execution finished with an error (error flag is `true`
   // in the call frame) emits error async value for all results.
   Error ReturnResults(const ReturnValueConverterBase& results,
-                      const ExecutionContext& exec_ctx,
                       CallFrame* call_frame) const;
 
   // Executes compiled function with given operands. If operands passed at
@@ -984,23 +720,19 @@ class Executable {
   // async value for all results.
   Error Execute(ArrayRef<MemrefDesc> operands,
                 const ReturnValueConverterBase& results,
-                const ExecutionContext& exec_ctx,
-                const ExecuteOpts& opts = {}) const;
+                const ExecuteOpts& opts) const;
 
   // Executes compiled function using user provided call frame.
   //
   // It is the caller responsibility to handle the compiled function results
   // stored in the call frame.
-  void Execute(CallFrame& call_frame, const ExecutionContext& exec_ctx,
-               const ExecuteOpts& opts = {}) const;
+  void Execute(CallFrame& call_frame, const ExecuteOpts& opts) const;
 
   bool IsAsync() const { return results_memory_layout_.has_async_results; }
 
   llvm::StringRef name() const { return name_; }
 
   Optional<size_t> specialization() const { return specialization_; }
-
-  int num_worker_threads() const { return num_worker_threads_; }
 
   unsigned num_results() const;
 
@@ -1067,16 +799,13 @@ class Executable {
 
   // Options for configuring compiled kernel execution.
   struct ExecuteOpts {
-    ExecuteOpts()
-        : async_runtime_worker_threads(nullptr), kernel_context(nullptr) {}
+    ExecuteOpts() : async_task_runner(nullptr), kernel_context(nullptr) {}
 
-    // Use Eigen thread pool to launch all async tasks managed by the runtime.
-    // By default all async tasks are launched into the HostContext concurrent
-    // work queue (non blocking work queue).
-    //
-    // This option is used in the fallback execution mode, to share the intra-op
-    // thread pool for all compute intensive tasks.
-    Eigen::ThreadPoolInterface* async_runtime_worker_threads;
+    // Async task runner for executing async runtime tasks. Typically it
+    // schedules async tasks into the underlying thread pool. It's the caller's
+    // responsibility to guarantee that it will outlive the execution of all
+    // async tasks started by the executable.
+    AsyncTaskRunner* async_task_runner;
 
     // User-provided kernel context corresponding to the JIT executable.
     // Must outlive all async tasks launched by this executable.
@@ -1125,8 +854,6 @@ class Executable {
   // Specialization id if this executable is a specialization, or an empty
   // optional if this executable is a default one.
   Optional<size_t> specialization_;
-  // The number of worker threads this executable was compiled for.
-  int num_worker_threads_;
   // The time it took to compile this binary.
   std::chrono::milliseconds time_to_compile_;
 };
@@ -1135,121 +862,37 @@ class Executable {
 // JitExecutable to manage multiple compiled executables.
 //----------------------------------------------------------------------------//
 
-// Constraints on what operand information must be available at compile time in
-// order to successfully compile the executable:
-//
-//   `rank`  : operand must have statically known rank.
-//   `shape` : operand must have statically known shape.
-//   `value` : operand must have statically known value, and such operands
-//             replaced with constants inside the compiled function body and
-//             removed from the compiled function signature.
-//
-// If JitExecutable entrypoint function signature can't resolve all operands
-// constraints, then default executable will not be available, and the client
-// must compile a specialized version for the given operands at runtime.
-enum class OperandConstraint {
-  // Constraint was resolved based on the static information in the function
-  // signature type or it was never specified by the operand attribute.
-  kResolved = 0,
-  kRank = 1,
-  kShape = 2,
-  kValue = 3
-};
-
-// Resolve operand constraint based on the operand type, if constraint is fully
-// satisfied by the type, returns `kResolved`.
-Expected<OperandConstraint> ResolveOperandConstraint(
-    OperandConstraint operand_constraint, mlir::Type operand_type);
-
-// Symbolic shapes resolver computes the symbolic shapes of the operands based
-// on the function signature, and concrete shapes of the operands at runtime.
-//
-// Example: dimensions that have the same symbolic shape at runtime.
-//
-//   signature: func @compute(%arg0: tensor<?xf32>, %arg1: tensor<?xf32)
-//                            ^                     ^
-//   operands:                memref<123xf32>       memref<123xf32>
-//                            ^                     ^
-//   symbolic shapes:         [-2xf32]              [-2xf32]
-//
-// Each unknown dimension in the function signature will be assigned a symbolic
-// dimension. If multiple operands have unknown dimensions that are the same
-// at runtime, they will be assigned the same symbolic dimensions value
-// (e.g. `-2` in the example above).
-//
-// If an unknown dimension at runtime is equal to some statically known
-// dimension in the function signature (of any operand), it will be resolved to
-// that statically known constant value:
-//
-// Example: in this example unknown dimension of `arg0` replaced with a `32`.
-//
-//  signature:  func @compute(%arg0: tensor<?xf32>, %arg1: tensor<32xf32>)
-//                            ^                     ^
-//  operands:                 memref<32xf32>        memref<32xf32>
-//                            ^                     ^
-//  symbolic shapes:          [32xf32]              [32xf32]
-//
-// Unknown dimensions that are `1` at runtime are always materialized as a
-// statically known `1` in the symbolic shape.
-class SymbolicShapesResolver {
- public:
-  using SymbolicShape = llvm::SmallVector<int64_t>;
-  explicit SymbolicShapesResolver(const FunctionType& signature,
-                                  ArrayRef<OperandConstraint> constraints);
-
-  // Resolves symbolic shapes from the runtime operands. Returns failure if
-  // runtime dimensions do not match the statically known dimensions.
-  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> Resolve(
-      ArrayRef<MemrefDesc> operands);
-
-  // Replaces all symbolic dimensions with dynamic dimension.
-  static llvm::SmallVector<int64_t> Normalize(const SymbolicShape& shape);
-
- private:
-  // Constraints on the function operands.
-  llvm::SmallVector<OperandConstraint> constraints_;
-
-  // Statically known sizes of operands from the function signature.
-  llvm::SmallVector<Optional<llvm::SmallVector<Index>>> operands_sizes_;
-
-  // Values of statically known dimensions sizes in the function signature.
-  llvm::DenseSet<int64_t> seen_static_sizes_;
-
-  // The iteration order for the operands when resolving symbolic shapes.
-  llvm::SmallVector<size_t> iteration_order_;
-};
-
 // JitExecutable owns a default executable compiled from the MLIR module (if
 // operands constraints allow that), and orchestrates on-demand re-compilation
 // for specific argument ranks, shapes or values depending on the operands
 // constraints.
 class JitExecutable {
  public:
-  struct Listener;
-
-  static constexpr const char* const kConstraint = "jitrt.constraint";
-
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates
   // the internal state of the `JitExecutable`. This runner can be used by the
   // caller to offload compilation task to the specialized thread pool and
   // add tracing events (e.g. add Tensorflow profiler tracing). Task runner must
   // call the `TaskFunction`, otherwise it will lead to the deadlock.
+  //
+  // Caller can pass arbitrary user data to the `GetExecutable` method, and it
+  // will be passed to the runner if recompilation is required. It is guaranteed
+  // that the runner will be called in the same thread as `GetExecutable`.
+  //
+  // TODO(ezhulenev): Use std::any once TFRT switches to C++17.
   using CompilationTaskRunner = llvm::unique_function<void(
       size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
-      const ExecutionContext&)>;
+      llvm::Any)>;
 
-  // Default compilation task runner enqueues compilation task into the host
-  // context concurrent work queue.
-  static void DefaultCompilationTaskRunner(
+  // Inline compilation task runner runs compilation task in the caller thread.
+  static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task,
-      const ExecutionContext& exec_ctx);
+      ArrayRef<MemrefDesc> operands, TaskFunction task, llvm::Any user_data);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
       CompilationOptions compilation_opts,
-      CompilationTaskRunner runner = DefaultCompilationTaskRunner);
+      CompilationTaskRunner runner = InlineCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.
@@ -1262,6 +905,10 @@ class JitExecutable {
   // Returns an executable that may be specialized for the operands shape or
   // values. Can return default executable if no specialization is required, or
   // if the specialized executable is not yet available.
+  //
+  // Caller can pass arbitrary data via the `user_data` argument, and it will be
+  // available to the compilation task runner. This can be used for tracing,
+  // e.g. to track what user-level requests triggered recompilation.
   //
   // Returns an error if the operands do not match the expected function
   // signature and specialization is not possible (without trying to compile).
@@ -1278,28 +925,16 @@ class JitExecutable {
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
-      ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
-      const Listener* listener = nullptr);
+      ArrayRef<MemrefDesc> operands, llvm::Any user_data = {},
+      const SpecializationListener* listener = nullptr);
+
+  // Returns an async value that becomes ready when all executables owned by
+  // this JitExecutable are compiled (no pending compilation tasks).
+  AsyncValueRef<Chain> AllExecutablesCompiled() const;
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;
   JitExecutable(JitExecutable&&) = default;
-
-  // Listener class to control notifications during specialization.
-  struct Listener {
-    virtual ~Listener() {}
-
-    // Called at the end of module specialization.
-    // - 'operands' is a reference to the specialized operands' types.
-    // - `attrs` is a list of attributes attached to operands.
-    virtual void notifyModuleSpecialized(
-        ArrayRef<mlir::Type> operands,
-        ArrayRef<mlir::DictionaryAttr> attrs) const {}
-
-    // Called once for every value-specialized argument.
-    virtual void notifyValueSpecialized(unsigned index, mlir::Type type,
-                                        mlir::Attribute value) const {}
-  };
 
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,

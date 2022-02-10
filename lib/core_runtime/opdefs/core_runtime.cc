@@ -253,37 +253,42 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
         op_name);
 }
 
-static LogicalResult verify(ExecuteOp op) { return VerifyExecuteOpImpl(op); }
-static LogicalResult verify(ExecuteOpSeq op) { return VerifyExecuteOpImpl(op); }
+LogicalResult ExecuteOp::verify() {
+  ExecuteOp op = *this;
+  return VerifyExecuteOpImpl(op);
+}
+LogicalResult ExecuteOpSeq::verify() {
+  ExecuteOpSeq op = *this;
+  return VerifyExecuteOpImpl(op);
+}
 
-static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
+ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
                             /*has_func_attr=*/true);
 }
-static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
-                                     OperationState &result) {
+ParseResult ExecuteOpSeq::parse(OpAsmParser &parser, OperationState &result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/1,
                             /*has_func_attr=*/true);
 }
-static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "(" << op.op_handler() << ") " << op->getAttr("op_name") << '('
-    << op.operands() << ')';
+void ExecuteOp::print(OpAsmPrinter &p) {
+  p << "(" << op_handler() << ") " << (*this)->getAttr("op_name") << '('
+    << operands() << ')';
 
-  PrintExecuteOpImpl(p, op);
-  PrintExecuteOpFuncAttribute(p, op);
-  if (!op.results().empty()) p << " : " << op.results().size();
+  PrintExecuteOpImpl(p, *this);
+  PrintExecuteOpFuncAttribute(p, *this);
+  if (!results().empty()) p << " : " << results().size();
 }
-static void print(OpAsmPrinter &p, ExecuteOpSeq op) {
-  p << "(" << op.op_handler() << ", " << op.in_op_chain() << ") "
-    << op->getAttr("op_name") << '(' << op.operands() << ')';
+void ExecuteOpSeq::print(OpAsmPrinter &p) {
+  p << "(" << op_handler() << ", " << in_op_chain() << ") "
+    << (*this)->getAttr("op_name") << '(' << operands() << ')';
 
-  PrintExecuteOpImpl(p, op);
-  PrintExecuteOpFuncAttribute(p, op);
-  if (!op.results().empty()) p << " : " << op.results().size();
+  PrintExecuteOpImpl(p, *this);
+  PrintExecuteOpFuncAttribute(p, *this);
+  if (!results().empty()) p << " : " << results().size();
 }
 
 void ExecuteOp::getOpAttrs(
-    SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
+    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
   ArrayRef<Attribute> op_attr_array = this->op_attrs().getValue();
@@ -372,7 +377,8 @@ static LogicalResult VerifyFunctionAttribute(Operation *op, StringRef name,
   return success();
 }
 
-static LogicalResult verify(CondOp op) {
+LogicalResult CondOp::verify() {
+  CondOp op = *this;
   auto operand_types = TypeRange(op.getOperandTypes()).drop_front();
   return success(succeeded(VerifyFunctionAttribute(
                      op, "a_true_fn", operand_types, op.getResultTypes())) &&
@@ -384,7 +390,8 @@ static LogicalResult verify(CondOp op) {
 // CoreRt_WhileOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(WhileOp op) {
+LogicalResult WhileOp::verify() {
+  WhileOp op = *this;
   return success(
       succeeded(VerifyFunctionAttribute(op, "a_cond_fn", op.getOperandTypes(),
                                         op.getResultTypes())) &&

@@ -229,7 +229,7 @@ AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
   // Lowering pass for HLO will generate BEF Function with the following
   // signature: {chain, stream, ...inputs, ...outputs} -> chain
   // So we need to prepare and check the arguments first.
-  SmallVector<AsyncValue*, 8> args;
+  llvm::SmallVector<AsyncValue*, 8> args;
   args.reserve(num_args);
 
   args.push_back(chain.GetAsyncValue());

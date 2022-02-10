@@ -21,6 +21,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
@@ -43,10 +44,19 @@ namespace {
 
 // Test pass to wrap tfrt_gpu ops in tfrt_gpu_conversion.async.execute.
 struct TestGpuAsyncConversionPass
-    : public mlir::PassWrapper<TestGpuAsyncConversionPass, FunctionPass> {
+    : public mlir::PassWrapper<TestGpuAsyncConversionPass,
+                               OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-gpu-async-conversion"; }
 
-  void runOnFunction() override {
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<tfrt::gpu::GpuDialect, arith::ArithmeticDialect,
+                    cf::ControlFlowDialect,
+                    tfrt::gpu::conversion::GpuConversionDialect,
+                    gpu::GPUDialect, memref::MemRefDialect, StandardOpsDialect,
+                    tfrt::compiler::TFRTDialect>();
+  }
+
+  void runOnOperation() override {
     TypeConverter converter;
     converter.addConversion([](Type type) { return type; });
     auto buffer_type = tfrt::gpu::BufferType::get(&getContext());
@@ -125,9 +135,9 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
   registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect,
-                  mlir::async::AsyncDialect, mlir::gpu::GPUDialect,
-                  mlir::memref::MemRefDialect, tfrt::compiler::TFRTDialect,
-                  tfrt::gpu::GpuDialect,
+                  mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
+                  mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
+                  tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
                   tfrt::gpu::conversion::GpuConversionDialect,
                   tfrt::test::TestDialect>();
   PassRegistration<TestGpuAsyncConversionPass>();

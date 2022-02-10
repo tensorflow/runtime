@@ -41,12 +41,12 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-// Instantiate this template once for each concrete status code type T.
+// Note: requires that 'operator<<(llvm::raw_ostream&, T)' is declared first.
 template <typename T>
 llvm::raw_ostream& internal::operator<<(llvm::raw_ostream& os,
                                         const ErrorData<T>& data) {
-  using wrapper::operator<<;  // for T.
-  os << "'" << data.expr << "': " << data.result;
+  os << "'" << data.expr << "': ";
+  wrapper::operator<<(os, data.result);  // Prevent casting enum to int.
   if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
   return os;
 }
@@ -57,7 +57,7 @@ static T* ToCuda(Pointer<T> ptr) {
 }
 
 template <typename T>
-static SmallVector<T*, 16> ToCuda(llvm::ArrayRef<Pointer<T>> ptrs) {
+static llvm::SmallVector<T*, 16> ToCuda(llvm::ArrayRef<Pointer<T>> ptrs) {
   llvm::SmallVector<T*, 16> result;
   result.reserve(ptrs.size());
   llvm::transform(ptrs, std::back_inserter(result),
@@ -113,7 +113,7 @@ extern thread_local struct ContextTls {
 
 // Get device of context which may not be current.
 llvm::Expected<CUdevice> CuCtxGetDevice(CUcontext context);
-llvm::Expected<hipDevice_t> HipCtxGetDevice(hipCtx_t);
+llvm::Expected<hipDevice_t> HipCtxGetDevice(hipCtx_t context);
 
 // Check that the current context's platform and internal API state matches.
 // Report a fatal error otherwise.

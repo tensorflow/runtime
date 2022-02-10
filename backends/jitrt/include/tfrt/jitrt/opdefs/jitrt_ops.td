@@ -32,7 +32,7 @@ include "tfrt/jitrt/opdefs/jitrt_base.td"
 // TFRT JIT Runtime op definitions
 //===----------------------------------------------------------------------===//
 
-class JITRT_Op<string mnemonic, list<OpTrait> traits = []> :
+class JITRT_Op<string mnemonic, list<Trait> traits = []> :
       Op<JitRuntimeDialect, mnemonic, traits> {
 }
 

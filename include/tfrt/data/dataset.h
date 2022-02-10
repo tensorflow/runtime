@@ -42,15 +42,15 @@ namespace data {
 
 struct IterationResult {
   // Construct IterationResult with valid values and eof = false.
-  static IterationResult Values(SmallVector<RCReference<AsyncValue>, 4> values,
-                                HostContext* host) {
+  static IterationResult Values(
+      llvm::SmallVector<RCReference<AsyncValue>, 4> values, HostContext* host) {
     return IterationResult(std::move(values),
                            MakeAvailableAsyncValueRef<bool>(host, false));
   }
 
   // Construct IterationResult with eof = true. `values` will have error.
   static IterationResult Eof(HostContext* host, size_t num_values) {
-    SmallVector<RCReference<AsyncValue>, 4> values;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> values;
     values.resize(num_values);
     auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
     for (size_t i = 0; i < num_values; ++i) {
@@ -63,7 +63,7 @@ struct IterationResult {
   // Construct IterationResult with error in both `values` and `eof`.
   static IterationResult Error(RCReference<AsyncValue> error,
                                size_t num_values) {
-    SmallVector<RCReference<AsyncValue>, 4> values;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> values;
     values.resize(num_values);
     for (size_t i = 0; i < num_values; ++i) {
       values[i] = error;
@@ -73,8 +73,9 @@ struct IterationResult {
 
   // Construct IterationResult with the given `values` and `eof`. This is useful
   // when eof may be unavailable.
-  static IterationResult Pending(SmallVector<RCReference<AsyncValue>, 4> values,
-                                 AsyncValueRef<bool> eof) {
+  static IterationResult Pending(
+      llvm::SmallVector<RCReference<AsyncValue>, 4> values,
+      AsyncValueRef<bool> eof) {
     return IterationResult(std::move(values), std::move(eof));
   }
 

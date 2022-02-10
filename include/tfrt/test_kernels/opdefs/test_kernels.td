@@ -42,14 +42,13 @@ def Test_Dialect : Dialect {
 def ProtoExampleType : OpaqueType<"proto", "example", "!proto.example type">;
 
 // Base class for Test dialect ops.
-class Test_Op<string mnemonic, list<OpTrait> traits = []> :
+class Test_Op<string mnemonic, list<Trait> traits = []> :
     Op<Test_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 
   // Each registered op in the Test namespace needs to provide all of a printer,
   // parser and verifier.
-  let printer = [{ return tfrt::test::print(p, *this); }];
-  let verifier = [{ return tfrt::test::verify(*this); }];
-  let parser = [{ return tfrt::test::parse$cppClass(parser, result); }];
+  let hasVerifier = 1;
+  let hasCustomAssemblyFormat = 1;
 }
 
 def DoAsyncOp : Test_Op<"do.async"> {
@@ -182,7 +181,7 @@ class Count3Op<string suffix, Type type>
   let arguments = (ins type);
   let results = (outs type, type, type);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def Count3I32Op : Count3Op<"i32", I32>;
@@ -200,7 +199,7 @@ def DecodeJpegOp : Test_Op<"decode_jpeg"> {
   let arguments = (ins TFRT_StringType);
   let results = (outs TensorType);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def ResizeBilinearOp : Test_Op<"resize_bilinear"> {
@@ -216,7 +215,7 @@ def ResizeBilinearOp : Test_Op<"resize_bilinear"> {
   let arguments = (ins TensorType, I64, I64);
   let results = (outs TensorType);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def ParseExampleFromBytesOp : Test_Op<"parse_example_from_bytes"> {
@@ -232,7 +231,7 @@ def ParseExampleFromBytesOp : Test_Op<"parse_example_from_bytes"> {
   let arguments = (ins TFRT_StringType);
   let results = (outs ProtoExampleType);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def GetBytesFieldFromExampleOp : Test_Op<"get_bytes_field_from_example"> {
@@ -248,7 +247,7 @@ def GetBytesFieldFromExampleOp : Test_Op<"get_bytes_field_from_example"> {
   let arguments = (ins ProtoExampleType, TFRT_StringType);
   let results = (outs TFRT_StringType);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def GetInt64FieldFromExampleOp : Test_Op<"get_int64_field_from_example"> {
@@ -264,7 +263,7 @@ def GetInt64FieldFromExampleOp : Test_Op<"get_int64_field_from_example"> {
   let arguments = (ins ProtoExampleType, TFRT_StringType);
   let results = (outs I64);
   let assemblyFormat = "operands attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def GetStringOp : Test_Op<"get_string"> {
@@ -276,7 +275,7 @@ def GetStringOp : Test_Op<"get_string"> {
   let arguments = (ins StrAttr:$value);
   let results = (outs TFRT_StringType);
   let assemblyFormat = "attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def GetStringSyncOp : Test_Op<"get_string_sync"> {
@@ -288,7 +287,7 @@ def GetStringSyncOp : Test_Op<"get_string_sync"> {
   let arguments = (ins StrAttr:$value);
   let results = (outs TFRT_StringType);
   let assemblyFormat = "attr-dict";
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 def TestCostOp : Test_Op<"test_cost", [TFRT_CostFunctionInterface,
@@ -306,7 +305,7 @@ def TestCostOp : Test_Op<"test_cost", [TFRT_CostFunctionInterface,
 
   let assemblyFormat = "$args attr-dict `:` type($args)";
 
-  let verifier = ?;
+  let hasVerifier = 0;
 }
 
 #endif  // TEST_OPS

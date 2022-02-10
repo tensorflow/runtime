@@ -57,6 +57,6 @@ func @assert_to_error(%arg0: i1) attributes { jitrt.entrypoint } {
   // CHECK: ^[[ERR]]:
   // CHECK:   rt.set_error %[[CTX]], "Failed precondition"
   // CHECK:   return
-  assert %arg0, "Failed precondition"
+  cf.assert %arg0, "Failed precondition"
   return
 }

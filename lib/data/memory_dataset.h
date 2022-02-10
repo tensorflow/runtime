@@ -135,7 +135,7 @@ class MemoryDatasetIterator : public Iterator {
 
   IterationResult CopyByValue(const IterationResult& input, HostContext* host) {
     // Copy data by value so that the output result can be mutated.
-    SmallVector<RCReference<AsyncValue>, 4> values_copy;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> values_copy;
     values_copy.resize(sizeof...(T));
     internal::AllocateTupleResult<T...>(
         values_copy, host, std::make_index_sequence<sizeof...(T)>{});

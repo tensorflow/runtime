@@ -43,7 +43,7 @@ def GPU_Dialect : Dialect {
 }
 
 // Base class for GPU dialect ops.
-class GPU_Op<string mnemonic, list<OpTrait> traits = []> :
+class GPU_Op<string mnemonic, list<Trait> traits = []> :
     Op<GPU_Dialect, mnemonic, traits> {
   let summary = !strconcat("tfrt_gpu.", mnemonic, " operation");
   let assemblyFormat = "operands attr-dict";
@@ -76,8 +76,6 @@ class GPU_WrapperAttr<string name> : DialectAttr<
 
 def GPU_PlatformAttr : GPU_WrapperAttr<"Platform">;
 // Specific to CCL, but included here for export.
-def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType"> {
-  let returnType = "::ncclDataType_t";
-}
+def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType">;
 
 #endif  // GPU_OPS_BASE

@@ -263,8 +263,8 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     assert(invocation.arguments.size() + 1 == fn->argument_types().size());
     assert(invocation.results.size() + 1 == fn->result_types().size());
 
-    SmallVector<AsyncValue*, 4> arguments;
-    SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
+    llvm::SmallVector<AsyncValue*, 4> arguments;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
     arguments.reserve(fn->argument_types().size());
     arguments_ref.reserve(fn->argument_types().size());
 
@@ -285,7 +285,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
       invocation.arguments[i] = TensorHandle();
     }
 
-    SmallVector<RCReference<AsyncValue>, 4> results;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> results;
     results.resize(fn->result_types().size());
 
     fn->Execute(invocation.exec_ctx, arguments, results);
@@ -379,8 +379,8 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
                       << invocation.results.size() << " results.";
     }
 
-    SmallVector<AsyncValue*, 4> arguments;
-    SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
+    llvm::SmallVector<AsyncValue*, 4> arguments;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
     arguments.reserve(fn->argument_types().size());
     arguments_ref.reserve(fn->argument_types().size());
 
@@ -397,7 +397,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
       arguments.push_back(arguments_ref.back().get());
     }
 
-    SmallVector<RCReference<AsyncValue>, 4> results;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> results;
     results.resize(fn->result_types().size());
 
     fn->Execute(invocation.exec_ctx, arguments, results);

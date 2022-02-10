@@ -20,6 +20,8 @@
 #ifndef TFRT_SUPPORT_OP_REGISTRY_IMPL_H_
 #define TFRT_SUPPORT_OP_REGISTRY_IMPL_H_
 
+#include <string>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
@@ -35,7 +37,7 @@ class OpRegistryImpl {
     OpFlagsTy flags;
     string_view op_name;
 
-    SmallVector<std::string, 4> attr_names;
+    llvm::SmallVector<std::string, 4> attr_names;
   };
 
   void AddOp(string_view op_name, DispatchFnTy dispatch_fn, OpFlagsTy flags,

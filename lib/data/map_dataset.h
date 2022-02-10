@@ -95,7 +95,7 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
   // This is the fast path when all arguments are already available. It avoids
   // the overhead of creating IndirectAsyncValue in the slow path.
   if (is_ready) {
-    SmallVector<RCReference<AsyncValue>, 4> fn_results;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> fn_results;
     fn_results.resize(num_results);
     function->Execute(exec_ctx, argument_ptrs, fn_results);
     return fn_results;
@@ -114,7 +114,7 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
                                results = std::move(results), argument_ptrs,
                                exec_ctx]() mutable {
     auto num_results = function->result_types().size();
-    SmallVector<RCReference<AsyncValue>, 4> fn_results;
+    llvm::SmallVector<RCReference<AsyncValue>, 4> fn_results;
     fn_results.resize(num_results);
     function->Execute(exec_ctx, argument_ptrs, fn_results);
     for (size_t i = 0; i < num_results; ++i) {

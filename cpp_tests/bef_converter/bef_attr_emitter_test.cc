@@ -174,7 +174,7 @@ TEST_F(BefAttrEmitterTest, EmitUnrankedShapeAttribute) {
 constexpr int32_t kTestI32Array[] = {1, 2, 3, 4};
 constexpr int kTestI32ArraySize = sizeof(kTestI32Array) / sizeof(int32_t);
 TEST_F(BefAttrEmitterTest, EmitI32ArrayAttribute) {
-  SmallVector<mlir::Attribute, kTestI32ArraySize> elements;
+  llvm::SmallVector<mlir::Attribute, kTestI32ArraySize> elements;
   elements.reserve(kTestI32ArraySize);
   for (int idx = 0; idx < kTestI32ArraySize; ++idx) {
     elements.push_back(mlir::IntegerAttr::get(
@@ -195,7 +195,7 @@ constexpr double kTestF64Array[] = {1.1, 2.2, 3.3, 4.4, 5.5};
 constexpr int kTestF64ArraySize = sizeof(kTestF64Array) / sizeof(double);
 TEST_F(BefAttrEmitterTest, EmitF64ArrayAttribute) {
   mlir::Builder builder(&context_);
-  SmallVector<mlir::Attribute, kTestF64ArraySize> elements;
+  llvm::SmallVector<mlir::Attribute, kTestF64ArraySize> elements;
   elements.reserve(kTestF64ArraySize);
   for (int idx = 0; idx < kTestF64ArraySize; ++idx) {
     elements.push_back(
@@ -224,13 +224,13 @@ TEST_F(BefAttrEmitterTest, EncodeDenseAttribute) {
   mlir::Builder builder(&context_);
   const auto& md = dht.metadata();
 
-  SmallVector<int64_t, 4> shape;
+  llvm::SmallVector<int64_t, 4> shape;
   for (int i = 0; i < md.shape.GetRank(); ++i) {
     shape.push_back(md.shape.GetDimensionSize(i));
   }
   auto type = mlir::RankedTensorType::get(shape, builder.getF32Type());
 
-  SmallVector<mlir::Attribute, 8> elements;
+  llvm::SmallVector<mlir::Attribute, 8> elements;
   for (auto element : tensor_view.Elements()) {
     elements.push_back(mlir::FloatAttr::get(builder.getF32Type(), element));
   }
@@ -255,7 +255,7 @@ constexpr float kTestAggregateAttr3 = 3.14;
 TEST_F(BefAttrEmitterTest, EmitAggregateAttribute) {
   mlir::Builder builder(&context_);
 
-  SmallVector<mlir::Attribute, 4> elements;
+  llvm::SmallVector<mlir::Attribute, 4> elements;
 
   elements.push_back(mlir::IntegerAttr::get(
       mlir::IntegerType::get(&context_, 32, mlir::IntegerType::Signed),

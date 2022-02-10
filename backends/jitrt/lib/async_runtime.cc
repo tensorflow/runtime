@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -29,10 +30,7 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
-#include "tfrt/host_context/host_allocator.h"
-#include "tfrt/host_context/host_buffer.h"
-#include "tfrt/support/concurrent_vector.h"
-#include "tfrt/support/latch.h"
+#include "tfrt/support/alloc.h"
 #include "tfrt/support/msan.h"
 #include "tfrt/support/ref_count.h"
 
@@ -44,33 +42,32 @@
 namespace mlir {
 namespace runtime {
 
+using tfrt::AlignedAlloc;
+using tfrt::AlignedFree;
 using tfrt::AsyncValueRef;
-using tfrt::HostBuffer;
-using tfrt::HostContext;
+using tfrt::Chain;
+using tfrt::GetReadyChain;
 using tfrt::MakeConstructedAsyncValueRef;
+
 using tfrt::jitrt::AsyncRuntimeObject;
 
 class AsyncToken : public AsyncRuntimeObject {
  public:
-  explicit AsyncToken(HostContext* host, unsigned ref_count = 1)
+  explicit AsyncToken(unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        chain_(MakeConstructedAsyncValueRef<tfrt::Chain>(host)) {}
+        chain_(MakeConstructedAsyncValueRef<Chain>()) {}
 
   tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
 
  private:
-  AsyncValueRef<tfrt::Chain> chain_;
+  AsyncValueRef<Chain> chain_;
 };
 
 class AsyncValue : public AsyncRuntimeObject {
  public:
-  explicit AsyncValue(HostContext* host, size_t size, size_t alignment,
-                      unsigned ref_count = 1)
+  explicit AsyncValue(size_t size, size_t alignment, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        storage_(Storage::CanStoreInline(size, alignment)
-                     ? MakeConstructedAsyncValueRef<Storage>()
-                     : MakeConstructedAsyncValueRef<Storage>(host->allocator(),
-                                                             size, alignment)) {
+        storage_(MakeConstructedAsyncValueRef<Storage>(size, alignment)) {
     // Storage memory will be initialized by the compiled kernel.
     TFRT_MSAN_MEMORY_IS_INITIALIZED(GetStorage(), size);
   }
@@ -78,27 +75,25 @@ class AsyncValue : public AsyncRuntimeObject {
   void* GetStorage() const {
     assert(!GetAsyncValue()->IsError() && "unexpected error state");
     if (storage_->is_inline) return &storage_->inline_buffer;
-    return storage_->host_buffer->data();
+    return storage_->allocated_buffer;
   }
 
   tfrt::AsyncValue* GetAsyncValue() const { return storage_.GetAsyncValue(); }
 
  private:
-  // If the requested async value storage is small, use the inlined storage,
-  // fallback on the HostBuffer if the requested storage size is large.
+  // If the requested async value storage is small, use the inlined storage.
+  // Fall back on dynamic allocation if the requested storage size is large.
   struct Storage {
     static const int kSize = 128;  // enough to fit memref descriptor of rank 5
     static const int kAlign = alignof(std::max_align_t);
 
-    Storage() : is_inline(true) {}
-    Storage(tfrt::HostAllocator* allocator, size_t size, size_t alignment)
-        : is_inline(false),
-          host_buffer(
-              HostBuffer::CreateUninitialized(size, alignment, allocator)
-                  .release()) {}
+    Storage(size_t size, size_t alignment)
+        : is_inline(CanStoreInline(size, alignment)) {
+      if (!is_inline) allocated_buffer = AlignedAlloc(alignment, size);
+    }
 
     ~Storage() {
-      if (!is_inline) host_buffer->DropRef();
+      if (!is_inline) AlignedFree(allocated_buffer);
     }
 
     static bool CanStoreInline(size_t size, size_t alignment) {
@@ -109,7 +104,7 @@ class AsyncValue : public AsyncRuntimeObject {
     bool is_inline;
     union {
       std::aligned_storage<kSize, kAlign>::type inline_buffer;
-      tfrt::HostBuffer* host_buffer;
+      void* allocated_buffer;
     };
   };
 
@@ -120,17 +115,18 @@ class AsyncGroup : public AsyncRuntimeObject {
  public:
   explicit AsyncGroup(int64_t size, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
+        size_(size),
         rank_(0),
         pending_tokens_(size),
         num_errors_(0),
-        completed_(tfrt::MakeConstructedAsyncValueRef<tfrt::Chain>()) {
-    // If group size is zero, mark completion async value ready.
-    assert(size >= 0 && "size can't be negative");
-    if (size == 0) completed_.SetStateConcrete();
+        completed_(size == 0 ? GetReadyChain()
+                             : MakeConstructedAsyncValueRef<Chain>()) {
+    assert(size_ >= 0 && "size can't be negative");
   }
 
   size_t AddToken(AsyncToken* token) {
     size_t rank = rank_.fetch_add(1, std::memory_order_relaxed);
+    assert(rank < size_ && "can't add more tokens than the group size");
 
     // When token becomes available drop the number of pending tokens and maybe
     // make the group completion async value available.
@@ -157,13 +153,14 @@ class AsyncGroup : public AsyncRuntimeObject {
   bool IsError() const { return num_errors_.load() != 0; }
 
  private:
+  int64_t size_;
   std::atomic<int64_t> rank_;
   std::atomic<int64_t> pending_tokens_;
   std::atomic<int64_t> num_errors_;
 
   // Async value that keeps track the group completion, it will become available
   // when the number of pending tokens will drop to zero.
-  AsyncValueRef<tfrt::Chain> completed_;
+  AsyncValueRef<Chain> completed_;
 };
 
 }  // namespace runtime
@@ -193,29 +190,16 @@ namespace jitrt {
 void AsyncRuntime::Await(AsyncValue* awaitable) {
   // Short circuit the trivial case.
   if (awaitable->IsAvailable()) return;
-
-  // Blocking wait can't lead to a deadlock if runtime uses external thread
-  // pool for launching async tasks.
-  if (worker_threads_) {
-    tfrt::latch latch(1);
-    awaitable->AndThen([&]() { latch.count_down(); });
-    latch.wait();
-    return;
-  }
-
-  // If we use host context work queue to launch async tasks, then blocking
-  // await can lead to a deadlock. Host context will check at runtime that
-  // we are not in a thread managed by the host context itself.
-  host_context_->Await(FormRef(awaitable));
+  tfrt::Await({awaitable});
 }
 
 /*static*/ void AsyncRuntime::AddRef(AsyncRuntimeObject* obj, unsigned count) {
-  assert(count == 1 && "tfrt::ReferenceCounted can add just one ref");
+  assert(count == 1 && "AsyncRuntimeObject can add just one ref");
   obj->AddRef();
 }
 
 /*static*/ void AsyncRuntime::DropRef(AsyncRuntimeObject* obj, unsigned count) {
-  assert(count == 1 && "tfrt::ReferenceCounted can drop just one ref");
+  assert(count == 1 && "AsyncRuntimeObject can drop just one ref");
   obj->DropRef();
 }
 
@@ -240,7 +224,7 @@ AsyncRuntime::Token* AsyncRuntime::CreateToken() {
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  return new AsyncRuntime::Token(host_context_, /*ref_count=*/2);
+  return new AsyncRuntime::Token(/*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Token* token) {
@@ -273,8 +257,7 @@ AsyncRuntime::Value* AsyncRuntime::CreateValue(size_t size, size_t alignment) {
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  return new AsyncRuntime::Value(host_context_, size, alignment,
-                                 /*ref_count=*/2);
+  return new AsyncRuntime::Value(size, alignment, /*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Value* value) {
@@ -316,6 +299,21 @@ bool AsyncRuntime::IsError(AsyncRuntime::Group* group) {
 
 void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {
   Await(group->GetCompletionAsyncValue());
+}
+
+HostContextAsyncTaskRunner::HostContextAsyncTaskRunner(HostContext* host)
+    : host_(host) {}
+
+void HostContextAsyncTaskRunner::Schedule(Task task) {
+  EnqueueWork(host_, std::move(task));
+}
+
+EigenThreadPoolAsyncTaskRunner::EigenThreadPoolAsyncTaskRunner(
+    Eigen::ThreadPoolInterface* thread_pool)
+    : thread_pool_(thread_pool) {}
+
+void EigenThreadPoolAsyncTaskRunner::Schedule(Task task) {
+  thread_pool_->Schedule(std::move(task));
 }
 
 }  // namespace jitrt

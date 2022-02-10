@@ -49,17 +49,17 @@ static_assert(std::is_trivially_copy_constructible<AsyncRuntime>::value,
 
 // This is an arbitrary limitation, to make sure that AsyncRuntime would not
 // become expensive to copy unnoticed.
-static_assert(sizeof(AsyncRuntime) == 2 * sizeof(void *),
-              "AsyncRuntime must hold only two pointers");
+static_assert(sizeof(AsyncRuntime) == 1 * sizeof(void *),
+              "AsyncRuntime must only hold one pointer");
 
 AsyncRuntime &GetAsyncRuntime() {
-  assert(async_runtime.host_context() != nullptr);
+  assert(async_runtime.runner() != nullptr);
   return async_runtime;
 }
 }  // namespace
 
 void SetAsyncRuntime(AsyncRuntime runtime) {
-  assert(runtime.host_context() != nullptr);
+  assert(runtime.runner() != nullptr);
   async_runtime = runtime;
 }
 

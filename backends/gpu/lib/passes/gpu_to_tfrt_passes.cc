@@ -444,9 +444,9 @@ struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
 // A pass which rewrites a function to take extra !tfrt.chain and
 // !tfrt_gpu.stream arguments and return a !tfrt.chain.
 struct AddChainAndStreamToFuncPass
-    : public PassWrapper<AddChainAndStreamToFuncPass, FunctionPass> {
+    : public PassWrapper<AddChainAndStreamToFuncPass, OperationPass<FuncOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<GpuDialect, compiler::TFRTDialect>();
   }
@@ -456,9 +456,10 @@ struct AddChainAndStreamToFuncPass
 // A pass which rewrites !async.execute and related ops to use !tfrt.chain and
 // !tfrt_gpu.stream instead of !gpu.async.token.
 struct ConvertAsyncToChainAndEventPass
-    : public PassWrapper<ConvertAsyncToChainAndEventPass, FunctionPass> {
+    : public PassWrapper<ConvertAsyncToChainAndEventPass,
+                         OperationPass<FuncOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   StringRef getArgument() const override { return "async-tfrt-streamify"; }
 };
 
@@ -494,9 +495,9 @@ struct ReconcileCastsPass
 
 // A pass which converts from async dialect to tfrt dialect.
 struct ConvertAsyncToTfrtPass
-    : public PassWrapper<ConvertAsyncToTfrtPass, FunctionPass> {
+    : public PassWrapper<ConvertAsyncToTfrtPass, OperationPass<FuncOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<test::TestDialect>();
   }
@@ -636,7 +637,9 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
   rewriter.updateRootInPlace(func_op, [&] {
     auto types = GetTypes<compiler::ChainType, StreamType>(rewriter);
-    func_op.insertArguments({0, 0}, types, /*argAttrs=*/{}, /*argLocs=*/{});
+    func_op.insertArguments(
+        {0, 0}, types, /*argAttrs=*/{},
+        SmallVector<Location, 2>(types.size(), func_op.getLoc()));
     func_op.insertResult(0, types.front(), /*resultAttrs=*/nullptr);
   });
 
@@ -1199,7 +1202,9 @@ LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
   Location loc = exec_op->getLoc();
   auto do_op = rewriter.create<test::DoAsyncOp>(loc, result_types, arguments);
   Region *region = &do_op.getRegion();
-  Block *block = rewriter.createBlock(region, region->end(), arg_types);
+  Block *block =
+      rewriter.createBlock(region, region->end(), arg_types,
+                           SmallVector<Location, 2>(arg_types.size(), loc));
   BlockAndValueMapping mapping;
   mapping.map(arguments, block->getArguments());
   rewriter.cloneRegionBefore(exec_op.getRegion(), *region, region->end(),
@@ -1279,20 +1284,20 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
   return success();
 }
 
-void AddChainAndStreamToFuncPass::runOnFunction() {
+void AddChainAndStreamToFuncPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
-  patterns.insert<AddChainAndStreamToFuncPattern>(&getContext());
+  patterns.add<AddChainAndStreamToFuncPattern>(&getContext());
   if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
     return signalPassFailure();
 }
 
-void ConvertAsyncToChainAndEventPass::runOnFunction() {
+void ConvertAsyncToChainAndEventPass::runOnOperation() {
   TypeConverter converter;
   // T -> T
   converter.addConversion([](Type type) { return type; });
   // !async.value<T> -> !async.value<convert(T)>...
   converter.addConversion(
-      [&](mlir::async::ValueType type, SmallVectorImpl<Type> &results) {
+      [&](mlir::async::ValueType type, llvm::SmallVectorImpl<Type> &results) {
         if (failed(converter.convertType(type.getValueType(), results)))
           return failure();
         llvm::transform(results, results.begin(), [](Type type) {
@@ -1302,7 +1307,7 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
       });
   // !gpu.async.token -> !tfrt.chain, !tfrt_gpu.event
   converter.addConversion(
-      [](mlir::gpu::AsyncTokenType type, SmallVectorImpl<Type> &results) {
+      [](mlir::gpu::AsyncTokenType type, llvm::SmallVectorImpl<Type> &results) {
         results.push_back(compiler::ChainType::get(type.getContext()));
         results.push_back(EventType::get(type.getContext()));
         return success();
@@ -1383,7 +1388,7 @@ void ReconcileCastsPass::runOnOperation() {
   }
 }
 
-void ConvertAsyncToTfrtPass::runOnFunction() {
+void ConvertAsyncToTfrtPass::runOnOperation() {
   TypeConverter converter;
   // T -> T
   converter.addConversion([](Type type) { return type; });

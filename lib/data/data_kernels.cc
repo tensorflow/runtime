@@ -248,7 +248,7 @@ static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain_in,
     chain_out.Emplace();
     return;
   }
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (size_t i = 0, e = results.size(); i < e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);
@@ -314,7 +314,7 @@ struct EnumerateContext {
     const size_t num_iterator_values = iteration_result.values.size();
 
     // Invoke the enumerator function.
-    SmallVector<AsyncValue*, 8> fn_args;
+    llvm::SmallVector<AsyncValue*, 8> fn_args;
     fn_args.resize(num_iterator_values + num_results);
 
     // Function arguments corresponding to iterator values.
@@ -396,10 +396,10 @@ struct EnumerateContext {
 
   // Last successfull function invocation results (or the enumerate arguments,
   // if the function was never invoked).
-  SmallVector<RCReference<AsyncValue>, 4> fn_results;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> fn_results;
   // Enumerate results that will be forwared to the last function invocation
   // results, when iterator will be exhausted.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> enumerate_results;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> enumerate_results;
 };
 }  // namespace
 

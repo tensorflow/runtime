@@ -297,7 +297,8 @@ static bool AllEqual(ArrayRef<wrapper::BlasDataType> types) {
   return llvm::all_of(types, [&](auto type) { return type == *types.begin(); });
 }
 
-static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
+LogicalResult BlasSaxpyOp::verify() {
+  BlasSaxpyOp op = *this;
   if (!AllEqual({op.typeAlpha(), op.typeX(), op.typeY(), op.executionType()})) {
     // The actual requirements of typeAlpha/typeX/typeY and executionType are
     // less strict than this, but at the moment we only use all float or all
@@ -314,11 +315,14 @@ static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
 
 template <class OpTy>
 static LogicalResult VerifyBlasGemmOp(OpTy op) {
-  if (!AllEqual({op.typeA(), op.typeB(), op.typeC()})) {
-    return op.emitOpError("typeA, typeB and typeC need to match");
+  if (op.typeA() != op.typeB()) {
+    return op.emitOpError("typeA and typeB need to match");
   }
   return mlir::success();
 }
+
+LogicalResult BlasGemmOp::verify() { return VerifyBlasGemmOp(*this); }
+LogicalResult BlasGemmBatchExOp::verify() { return VerifyBlasGemmOp(*this); }
 
 namespace conversion {
 
@@ -341,8 +345,9 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
     region->emplaceBlock();
     return region->begin();
   }();
-  auto chain = block->addArgument(builder.getType<compiler::ChainType>());
-  block->addArgument(builder.getType<StreamType>());
+  auto chain = block->addArgument(builder.getType<compiler::ChainType>(),
+                                  result.location);
+  block->addArgument(builder.getType<StreamType>(), result.location);
 
   // Return chain block argument.
   OpBuilder::InsertionGuard guard(builder);

@@ -135,8 +135,8 @@ class KernelRunner {
   BefAttrEncoder bef_attr_encoder_;
   std::vector<uint32_t> attr_offsets_;
 
-  SmallVector<RCReference<AsyncValue>, 8> arguments_;
-  SmallVector<RCReference<AsyncValue>, 8> results_;
+  llvm::SmallVector<RCReference<AsyncValue>, 8> arguments_;
+  llvm::SmallVector<RCReference<AsyncValue>, 8> results_;
 
   ResourceContext resource_ctx_;
   RequestContextBuilder req_ctx_builder_;

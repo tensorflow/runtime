@@ -66,7 +66,7 @@ TfrtMlirRunner TfrtMlirRunner::Builder::Compile() {
   assert(!fn_name_.empty() && "fn_name must be set before calling Compile.");
   assert(mlir_context_ && "MLIR context must be set before calling Compile.");
 
-  mlir::OwningModuleRef module =
+  mlir::OwningOpRef<mlir::ModuleOp> module =
       mlir::parseSourceString(mlir_input_, mlir_context_);
 
   tfrt::BefBuffer bef_buffer =

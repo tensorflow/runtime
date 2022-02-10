@@ -26,6 +26,11 @@
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 
+namespace llvm {
+template <typename T>
+class SmallVectorImpl;
+}  // namespace llvm
+
 namespace tfrt {
 
 class AsyncValue;
@@ -57,7 +62,7 @@ class BEFFile : public ReferenceCounted<BEFFile> {
                                    HostAllocator* host_allocator);
 
   // Get a list of functions out of the BEF file.
-  void GetFunctionList(SmallVectorImpl<const Function*>* result) const;
+  void GetFunctionList(llvm::SmallVectorImpl<const Function*>* result) const;
 
   // Return the Function record with the specified name, or null if it isn't
   // found in this BEF file.

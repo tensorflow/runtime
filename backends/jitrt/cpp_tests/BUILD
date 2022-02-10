@@ -26,5 +26,6 @@ tfrt_cc_test(
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
         "@tf_runtime//backends/jitrt",
+        "@tf_runtime//backends/jitrt:constraints",
     ],
 )

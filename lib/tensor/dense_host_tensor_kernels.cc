@@ -281,6 +281,7 @@ static void RegisterDhtCreationKernelsForType(KernelRegistry* registry,
   RegisterDhtCreationKernelsForTypeAndRank<T, 2>(registry, t_name);
   RegisterDhtCreationKernelsForTypeAndRank<T, 3>(registry, t_name);
   RegisterDhtCreationKernelsForTypeAndRank<T, 4>(registry, t_name);
+  RegisterDhtCreationKernelsForTypeAndRank<T, 5>(registry, t_name);
 }
 
 template <typename T>
@@ -310,8 +311,10 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
 
 void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDenseHostTensorKernelsForType<uint8_t>(registry, "ui8");
+  RegisterDenseHostTensorKernelsForType<uint32_t>(registry, "ui32");
   RegisterDenseHostTensorKernelsForType<float>(registry, "f32");
   RegisterDenseHostTensorKernelsForType<double>(registry, "f64");
+  RegisterDenseHostTensorKernelsForType<int8_t>(registry, "i8");
   RegisterDenseHostTensorKernelsForType<int32_t>(registry, "i32");
   RegisterDenseHostTensorKernelsForType<int64_t>(registry, "i64");
   RegisterDenseHostTensorKernelsForType<bool>(registry, "bool");

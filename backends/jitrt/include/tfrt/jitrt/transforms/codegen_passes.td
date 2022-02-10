@@ -17,7 +17,7 @@
 
 include "mlir/Pass/PassBase.td"
 
-def AlignedAllocationsPass : FunctionPass<"codegen-aligned-allocations"> {
+def AlignedAllocationsPass : Pass<"codegen-aligned-allocations", "mlir::FuncOp"> {
   let summary = "Add alignment attribute to all `alloc` operations.";
   let description = [{
     This pass adds an alignment attribute to all `alloc` operations which don't
@@ -31,7 +31,7 @@ def AlignedAllocationsPass : FunctionPass<"codegen-aligned-allocations"> {
   ];
 }
 
-def MathOptimizationPass : FunctionPass<"codegen-math-optimization"> {
+def MathOptimizationPass : Pass<"codegen-math-optimization", "mlir::FuncOp"> {
   let summary = "Optimize operations from the `math` dialect.";
   let description = [{
     This pass performs algebraic simplification and polynomial approximation for

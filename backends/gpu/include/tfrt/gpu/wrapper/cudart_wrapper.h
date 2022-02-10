@@ -80,11 +80,6 @@ std::array<void*, sizeof...(Ts)> GetArrayOfElementPointers(
     std::tuple<Ts...>* tuple) {
   return GetArrayOfElementPointersImpl(tuple, std::index_sequence_for<Ts...>{});
 }
-
-template <bool...>
-struct BoolPack;
-template <bool... Bs>
-using AllFalse = std::is_same<BoolPack<Bs..., false>, BoolPack<false, Bs...>>;
 }  // namespace internal
 
 // Helper function to launch kernels.

@@ -132,6 +132,10 @@ Error MakeError(T result, const char* expr, Args... args) {
 // Write ErrorData to raw_ostream.
 template <typename T>
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ErrorData<T>& data);
+
+template <bool... Bs>
+using AllFalse = std::is_same<std::integer_sequence<bool, false, Bs...>,
+                              std::integer_sequence<bool, Bs..., false>>;
 }  // namespace internal
 
 // llvm::ErrorInfoBase payload of errors created with 'MakeError'.
@@ -148,13 +152,6 @@ Error MakeError(T result, const char* expr) {
 template <typename T>
 T GetResult(const ErrorInfo<T>& info) {
   return info.template get<internal::ErrorData<T>>().result;
-}
-
-// Print enumerator value to os.
-template <typename E>
-typename std::enable_if<std::is_enum<E>::value, llvm::raw_ostream>::type&
-operator<<(llvm::raw_ostream& os, E item) {
-  return os << static_cast<unsigned>(item);
 }
 
 // Resource union type.
@@ -226,8 +223,9 @@ struct PlatformTypeTraits : public PlatformType<Platform::NONE> {};
 //
 // For a CUDA/ROCm pair of enums with different enumerators, instantiate
 // this template with an opaque tag type (e.g. `struct FooTag;`) and specialize
-// the PlatformTypeTraits template alias in the CUDA/ROCm wrapper header, e.g.:
-// template <> using PlatformTypeTraits<FooTag, cudaFooEnum> = CudaPlatformType;
+// the PlatformTypeTraits struct in the CUDA/ROCm wrapper header, e.g.:
+// template <>
+// PlatformTypeTraits<FooTag, cudaFooEnum> : public CudaPlatformType {};
 //
 // Tag may define a 'type' member to override the value's type (default is int).
 template <typename Tag>

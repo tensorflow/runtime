@@ -26,9 +26,6 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template llvm::raw_ostream& internal::operator<<(
-    llvm::raw_ostream&, const ErrorData<cufftResult_t>&);
-
 void internal::CufftHandleDeleter::operator()(cufftHandle handle) const {
   LogIfError(CufftDestroy(handle));
 }
@@ -550,7 +547,7 @@ llvm::Error CufftExecR2C(cufftHandle plan, cufftReal* input_data,
   return TO_ERROR(cufftExecR2C(plan, input_data, output_data));
 }
 
-llvm::Error CufftExecD2C(cufftHandle plan, cufftDoubleReal* input_data,
+llvm::Error CufftExecD2Z(cufftHandle plan, cufftDoubleReal* input_data,
                          cufftDoubleComplex* output_data) {
   return TO_ERROR(cufftExecD2Z(plan, input_data, output_data));
 }

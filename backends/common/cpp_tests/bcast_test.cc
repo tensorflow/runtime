@@ -44,7 +44,7 @@ std::string BroadcastOf(Expected<ArgumentBCast>& bcast) {
 
 std::string ShapeOf(Expected<TensorShape>& shape) {
   if (static_cast<bool>(shape)) {
-    SmallVector<Index, 4> dims;
+    llvm::SmallVector<Index, 4> dims;
     shape->GetDimensions(&dims);
     return ToString(dims);
   }

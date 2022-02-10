@@ -40,7 +40,7 @@ def COO_Dialect : Dialect {
 }
 
 // Base class for the operation in this dialect.
-class COO_Op<string mnemonic, list<OpTrait> traits = []> :
+class COO_Op<string mnemonic, list<Trait> traits = []> :
     Op<COO_Dialect, mnemonic, traits>;
 
 class ConvertToDHTOp<string dtype, int rank>

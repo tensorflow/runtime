@@ -53,15 +53,15 @@ inline TensorMetadata GetMetadataFromValue<DenseHostTensor>(
 // Recursive base case
 template <size_t N>
 static void GetInputMetadataHelper(
-    const SmallVector<RCReference<AsyncValue>, 4>& input,
-    const SmallVector<AsyncValueRef<TensorMetadata>, 4>& results) {}
+    const llvm::SmallVector<RCReference<AsyncValue>, 4>& input,
+    const llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4>& results) {}
 
 // For every component in input, copy its metadata into the corresponding index
 // in results when it is available.
 template <size_t N, typename T, typename... RemainingT>
 static void GetInputMetadataHelper(
-    const SmallVector<RCReference<AsyncValue>, 4>& input,
-    const SmallVector<AsyncValueRef<TensorMetadata>, 4>& results) {
+    const llvm::SmallVector<RCReference<AsyncValue>, 4>& input,
+    const llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4>& results) {
   auto index = N - (sizeof...(RemainingT) + 1);
   // Emplace index-th metadata
   input[index]->AndThen(
@@ -76,9 +76,10 @@ static void GetInputMetadataHelper(
 }
 
 template <typename... T>
-SmallVector<AsyncValueRef<TensorMetadata>, 4> GetInputMetadata(
-    const SmallVector<RCReference<AsyncValue>, 4>& input, HostContext* host) {
-  SmallVector<AsyncValueRef<TensorMetadata>, 4> metadatas;
+llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> GetInputMetadata(
+    const llvm::SmallVector<RCReference<AsyncValue>, 4>& input,
+    HostContext* host) {
+  llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> metadatas;
   metadatas.resize(sizeof...(T));
   for (size_t i = 0; i < sizeof...(T); ++i) {
     metadatas[i] = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
@@ -127,7 +128,7 @@ static llvm::Expected<DenseHostTensor> TruncateTensor(
     const DenseHostTensor& input_tensor, Index batch_size,
     const ExecutionContext& exec_ctx) {
   auto& input_metadata = input_tensor.metadata();
-  SmallVector<Index, 4> output_dims;
+  llvm::SmallVector<Index, 4> output_dims;
   input_metadata.shape.GetDimensions(&output_dims);
   output_dims[0] = batch_size;
 
@@ -161,7 +162,7 @@ void CopySlice(RCReference<AsyncValue> input_value,
                const ExecutionContext& exec_ctx) {
   // `result_buffer` is an allocated DenseHostTensor.
   assert(result_buffer.IsAvailable());
-  SmallVector<AsyncValue*, 2> async_value_ptrs;
+  llvm::SmallVector<AsyncValue*, 2> async_value_ptrs;
   async_value_ptrs.push_back(input_value.get());
   async_value_ptrs.push_back(input_eof.GetAsyncValue());
 
@@ -233,8 +234,8 @@ void CopySlice(RCReference<AsyncValue> input_value,
 }
 
 template <typename T>
-void CopyComponent(SmallVector<RCReference<AsyncValue>, 4> input_values,
-                   SmallVector<AsyncValueRef<bool>, 4> input_eofs,
+void CopyComponent(llvm::SmallVector<RCReference<AsyncValue>, 4> input_values,
+                   llvm::SmallVector<AsyncValueRef<bool>, 4> input_eofs,
                    AsyncValueRef<TensorMetadata> expected_metadata,
                    AsyncValueRef<DenseHostTensor> result_buffer,
                    RCReference<AsyncValue> result,
@@ -263,23 +264,23 @@ void CopyComponent(SmallVector<RCReference<AsyncValue>, 4> input_values,
 // Recursive base case.
 template <size_t N>
 void CopyToBatchHelper(
-    SmallVector<IterationResult, 4> inputs,
-    SmallVector<AsyncValueRef<TensorMetadata>, 4> expected_metadata,
-    SmallVector<AsyncValueRef<DenseHostTensor>, 4> temp_batched_values,
+    llvm::SmallVector<IterationResult, 4> inputs,
+    llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> expected_metadata,
+    llvm::SmallVector<AsyncValueRef<DenseHostTensor>, 4> temp_batched_values,
     IterationResult result, const ExecutionContext& exec_ctx) {}
 
 // Copy inputs to batch when they are ready. This function applies recursively
 // to one component (with type T) at a time.
 template <size_t N, typename T, typename... RemainingT>
 void CopyToBatchHelper(
-    SmallVector<IterationResult, 4> inputs,
-    SmallVector<AsyncValueRef<TensorMetadata>, 4> expected_metadata,
-    SmallVector<AsyncValueRef<DenseHostTensor>, 4> temp_batched_values,
+    llvm::SmallVector<IterationResult, 4> inputs,
+    llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> expected_metadata,
+    llvm::SmallVector<AsyncValueRef<DenseHostTensor>, 4> temp_batched_values,
     IterationResult result, const ExecutionContext& exec_ctx) {
   auto index = N - (sizeof...(RemainingT) + 1);
 
-  SmallVector<RCReference<AsyncValue>, 4> input_values;
-  SmallVector<AsyncValueRef<bool>, 4> input_eofs;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> input_values;
+  llvm::SmallVector<AsyncValueRef<bool>, 4> input_eofs;
   input_values.reserve(inputs.size());
   for (size_t i = 0, e = inputs.size(); i < e; ++i) {
     input_values.push_back(std::move(inputs[i].values[index]));
@@ -298,9 +299,9 @@ void CopyToBatchHelper(
 
 template <typename... T>
 void CopyToBatch(
-    SmallVector<IterationResult, 4>&& inputs,
-    SmallVector<AsyncValueRef<TensorMetadata>, 4>&& expected_metadata,
-    SmallVector<AsyncValueRef<DenseHostTensor>, 4>&& temp_batched_values,
+    llvm::SmallVector<IterationResult, 4>&& inputs,
+    llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4>&& expected_metadata,
+    llvm::SmallVector<AsyncValueRef<DenseHostTensor>, 4>&& temp_batched_values,
     IterationResult result, const ExecutionContext& exec_ctx) {
   CopyToBatchHelper<sizeof...(T), T...>(
       std::move(inputs), std::move(expected_metadata),
@@ -309,10 +310,11 @@ void CopyToBatch(
 
 // For each component in the batch, when the metadata is available, allocate a
 // DenseHostTensor with the corresponding batch shape and dtype.
-static SmallVector<AsyncValueRef<DenseHostTensor>, 4> AllocateOutputTensors(
-    const SmallVector<AsyncValueRef<TensorMetadata>, 4>& metadatas,
+static llvm::SmallVector<AsyncValueRef<DenseHostTensor>, 4>
+AllocateOutputTensors(
+    const llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4>& metadatas,
     size_t batch_size, const ExecutionContext& exec_ctx) {
-  SmallVector<AsyncValueRef<DenseHostTensor>, 4> results;
+  llvm::SmallVector<AsyncValueRef<DenseHostTensor>, 4> results;
   results.reserve(metadatas.size());
   for (size_t i = 0; i < metadatas.size(); ++i) {
     auto result =
@@ -324,7 +326,7 @@ static SmallVector<AsyncValueRef<DenseHostTensor>, 4> AllocateOutputTensors(
         result.SetError(metadata.GetError());
         return;
       }
-      SmallVector<Index, 4> output_dims;
+      llvm::SmallVector<Index, 4> output_dims;
       output_dims.resize(metadata->shape.GetRank() + 1);
       output_dims[0] = batch_size;
       for (size_t i = 0; i < output_dims.size() - 1; ++i) {
@@ -414,7 +416,7 @@ class BatchDatasetIterator : public Iterator {
   // first element from input_iterator_. When same_input_metadata_ is true, we
   // can use input_metadata_ to allocate output tensors before inputs are
   // available.
-  SmallVector<AsyncValueRef<TensorMetadata>, 4> input_metadata_;
+  llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> input_metadata_;
   bool is_initialized_;
 };
 
@@ -432,14 +434,14 @@ template <typename... T>
 IterationResult BatchDatasetIterator<T...>::GetNext(
     const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  SmallVector<IterationResult, 4> inputs;
+  llvm::SmallVector<IterationResult, 4> inputs;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; ++i) {
     auto input = input_iterator_->GetNext(exec_ctx);
     inputs.push_back(std::move(input));
   }
 
-  SmallVector<AsyncValueRef<TensorMetadata>, 4> metadata;
+  llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> metadata;
   if (parent_dataset_->same_input_metadata_) {
     // If all input values have the same metadata, record the metadata of the
     // the first input and re-use it to allocate output tensor for every batch.
@@ -464,7 +466,7 @@ IterationResult BatchDatasetIterator<T...>::GetNext(
   auto temp_batched_values =
       AllocateOutputTensors(metadata, inputs.size(), exec_ctx);
 
-  SmallVector<RCReference<AsyncValue>, 4> result_values;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.reserve(sizeof...(T));
   for (size_t i = 0; i < sizeof...(T); ++i) {
     result_values.push_back(

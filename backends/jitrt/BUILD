@@ -125,60 +125,175 @@ tfrt_cc_library(
     deps = [
         ":async_runtime",
         ":async_runtime_api",
-        ":codegen_transforms",
-        ":rt_conversion",
-        ":rt_opdefs",
+        ":async_values_cache",
+        ":constraints",
         ":rt_transforms",
+        ":specialization",
         ":support",
+        ":symbolic_shape",
+        ":types",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:AMXToLLVMIRTranslation",
-        "@llvm-project//mlir:Affine",
-        "@llvm-project//mlir:AffineToStandard",
         "@llvm-project//mlir:ArithmeticDialect",
-        "@llvm-project//mlir:ArithmeticTransforms",
-        "@llvm-project//mlir:ArmNeonToLLVMIRTranslation",
-        "@llvm-project//mlir:ArmSVEToLLVMIRTranslation",
-        "@llvm-project//mlir:Async",
-        "@llvm-project//mlir:AsyncToLLVM",
-        "@llvm-project//mlir:AsyncTransforms",
         "@llvm-project//mlir:ExecutionEngine",
         "@llvm-project//mlir:ExecutionEngineUtils",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:LLVMCommonConversion",
-        "@llvm-project//mlir:LLVMDialect",
-        "@llvm-project//mlir:LLVMToLLVMIRTranslation",
-        "@llvm-project//mlir:LLVMTransforms",
-        "@llvm-project//mlir:LinalgOps",
-        "@llvm-project//mlir:LinalgToLLVM",
-        "@llvm-project//mlir:LinalgTransforms",
-        "@llvm-project//mlir:MathDialect",
-        "@llvm-project//mlir:MathToLLVM",
-        "@llvm-project//mlir:MathToLibm",
-        "@llvm-project//mlir:MemRefDialect",
-        "@llvm-project//mlir:MemRefToLLVM",
         "@llvm-project//mlir:MlirJitRunner",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:ReconcileUnrealizedCasts",
-        "@llvm-project//mlir:SCFDialect",
-        "@llvm-project//mlir:SCFToStandard",
-        "@llvm-project//mlir:StandardOps",
-        "@llvm-project//mlir:StandardOpsTransforms",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:TensorDialect",
-        "@llvm-project//mlir:TensorInferTypeOpInterfaceImpl",
         "@llvm-project//mlir:ToLLVMIRTranslation",
         "@llvm-project//mlir:Transforms",
-        "@llvm-project//mlir:VectorOps",
-        "@llvm-project//mlir:VectorToLLVM",
-        "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
         "@llvm-project//mlir:mlir_c_runner_utils",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
         "@tf_runtime//:tracing",
+    ],
+)
+
+tfrt_cc_library(
+    name = "jitrt_compiler",
+    srcs = ["lib/jitrt_compiler.cc"],
+    hdrs = ["include/tfrt/jitrt/jitrt_compiler.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":codegen_transforms",
+        ":rt_conversion",
+        ":rt_opdefs",
+        ":rt_transforms",
+        "@llvm-project//mlir:AMXToLLVMIRTranslation",
+        "@llvm-project//mlir:AffineToStandard",
+        "@llvm-project//mlir:ArithmeticTransforms",
+        "@llvm-project//mlir:ArmNeonToLLVMIRTranslation",
+        "@llvm-project//mlir:ArmSVEToLLVMIRTranslation",
+        "@llvm-project//mlir:AsyncToLLVM",
+        "@llvm-project//mlir:AsyncTransforms",
+        "@llvm-project//mlir:LLVMCommonConversion",
+        "@llvm-project//mlir:LLVMToLLVMIRTranslation",
+        "@llvm-project//mlir:LLVMTransforms",
+        "@llvm-project//mlir:LinalgToLLVM",
+        "@llvm-project//mlir:LinalgTransforms",
+        "@llvm-project//mlir:MathToLLVM",
+        "@llvm-project//mlir:MathToLibm",
+        "@llvm-project//mlir:MemRefToLLVM",
+        "@llvm-project//mlir:MemRefTransforms",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:ReconcileUnrealizedCasts",
+        "@llvm-project//mlir:SCFToStandard",
+        "@llvm-project//mlir:StandardOps",
+        "@llvm-project//mlir:StandardOpsTransforms",
+        "@llvm-project//mlir:TensorInferTypeOpInterfaceImpl",
+        "@llvm-project//mlir:ToLLVMIRTranslation",
+        "@llvm-project//mlir:Transforms",
+        "@llvm-project//mlir:VectorToLLVM",
+        "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
+    ],
+    alwayslink = 1,
+)
+
+# Generates 'async_values_cache.h' based on the :std_thread flag.
+#
+# Internally we use more efficient AsyncValuesCache implemented on
+# top of the RCU primitive. In open source we rely on mutex for
+# synchronizing access to shared data strucures.
+#
+# This avoids a (non-transitive) copts setting to include one or the other
+# header file by the preprocessor.
+genrule(
+    name = "async_values_cache_hdr",
+    srcs = select({
+        "@tf_runtime//:use_std_thread": ["include/tfrt/jitrt/async_values_cache_std.h"],
+        "//conditions:default": ["include/tfrt/jitrt/async_values_cache_rcu.h"],
+    }),
+    outs = ["include/tfrt/jitrt/async_values_cache.h"],
+    cmd = "cp $< $@",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+)
+
+tfrt_cc_library(
+    name = "async_values_cache",
+    hdrs = ["include/tfrt/jitrt/async_values_cache.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+    ] + select({
+        "@tf_runtime//:use_std_thread": [
+            "@tf_runtime//:support",
+        ],
+        "//conditions:default": [
+            # copybara:uncomment_begin(internal targets, remove for bazel query)
+            # "//concurrent/rcu:view",
+            # copybara:uncomment_end
+        ],
+    }),
+)
+
+tfrt_cc_library(
+    name = "specialization",
+    srcs = ["lib/specialization.cc"],
+    hdrs = ["include/tfrt/jitrt/specialization.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":constraints",
+        ":support",
+        ":symbolic_shape",
+        ":types",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:TensorDialect",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "constraints",
+    srcs = ["lib/constraints.cc"],
+    hdrs = ["include/tfrt/jitrt/constraints.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "symbolic_shape",
+    srcs = ["lib/symbolic_shape.cc"],
+    hdrs = ["include/tfrt/jitrt/symbolic_shape.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":constraints",
+        ":types",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "types",
+    srcs = ["lib/types.cc"],
+    hdrs = ["include/tfrt/jitrt/types.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":rt_opdefs",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:IR",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
     ],
 )
 
@@ -194,11 +309,12 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "jitrt_kernels",
-    srcs = ["lib/jitrt_kernels.cc"],
-    alwayslink_static_registration_src = "lib/jitrt_kernels_registration.cc",
+    srcs = ["lib/kernels/jitrt_kernels.cc"],
+    alwayslink_static_registration_src = "lib/kernels/jitrt_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":jitrt",
+        ":jitrt_compiler",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -208,11 +324,12 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "jitrt_corert_kernels",
-    srcs = ["lib/jitrt_corert_kernels.cc"],
-    alwayslink_static_registration_src = "lib/jitrt_corert_kernels_registration.cc",
+    srcs = ["lib/kernels/jitrt_corert_kernels.cc"],
+    alwayslink_static_registration_src = "lib/kernels/jitrt_corert_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":jitrt",
+        ":jitrt_compiler",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
@@ -228,6 +345,7 @@ tfrt_cc_binary(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":codegen_transforms",
+        ":jitrt_compiler",
         ":rt_conversion",
         ":rt_transforms",
         "@llvm-project//mlir:MlirOptLib",
@@ -388,6 +506,7 @@ tfrt_cc_library(
         ":rt_opdefs",
         ":rt_transforms_passes_inc_gen",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ControlFlowOps",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",

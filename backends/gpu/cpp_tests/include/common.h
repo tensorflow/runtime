@@ -15,8 +15,8 @@
  */
 
 // Unit test helpers for GPU wrapper tests.
-#ifndef THIRD_PARTY_TF_RUNTIME_CPP_TESTS_GPU_STREAM_COMMON_H_
-#define THIRD_PARTY_TF_RUNTIME_CPP_TESTS_GPU_STREAM_COMMON_H_
+#ifndef TFRT_CPP_TESTS_GPU_STREAM_COMMON_H_
+#define TFRT_CPP_TESTS_GPU_STREAM_COMMON_H_
 
 #include <ostream>
 
@@ -36,6 +36,12 @@ std::ostream& operator<<(std::ostream& os, T item) {
   raw_os << item;
   return os;
 }
+inline std::ostream& operator<<(std::ostream& os, CtxFlags flags) {
+  return os << static_cast<int>(flags);
+}
+inline std::ostream& operator<<(std::ostream& os, StreamFlags flags) {
+  return os << static_cast<int>(flags);
+}
 
 // Return the current context or die if an error occurs. This is intended for
 // passing CurrentContext instances as temporary to simplify test code. Do not
@@ -50,4 +56,4 @@ inline CurrentContext Current() {
 }  // namespace gpu
 }  // namespace tfrt
 
-#endif  // THIRD_PARTY_TF_RUNTIME_CPP_TESTS_GPU_STREAM_COMMON_H_
+#endif  // TFRT_CPP_TESTS_GPU_STREAM_COMMON_H_

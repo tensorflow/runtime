@@ -500,7 +500,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOp(
   llvm::SmallVector<int32_t, 2> reduction_indices = {spatial_offset,
                                                      spatial_offset + 1};
 
-  SmallVector<Index, 2> result_dims;
+  llvm::SmallVector<Index, 2> result_dims;
   if (*channel_order == ChannelOrder::ChannelLast) {
     result_dims = {input.shape().GetDimensionSize(0),
                    input.shape().GetDimensionSize(3)};

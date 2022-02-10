@@ -29,7 +29,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
-#include "tfrt/gpu/wrapper/ccl_wrapper.h"
+#include "tfrt/gpu/wrapper/ccl_types.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
@@ -45,7 +45,7 @@ namespace gpu {
 // Types that do not need a wrapper class go here.
 using GpuPointer = wrapper::Pointer<void>;
 using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
-using GpuCclId = ncclUniqueId;
+using GpuCclId = wrapper::CclUniqueId;
 
 class GpuContext {
   class HostMemoryPool {
@@ -330,7 +330,9 @@ class GpuCclHandle {
       wrapper::CurrentContext current, wrapper::Stream stream,
       wrapper::CclComm comm)>;
 
-  GpuCclHandle(AsyncValueRef<GpuContext> context, wrapper::OwningCclComm comm);
+  GpuCclHandle(
+      AsyncValueRef<GpuContext> context, wrapper::OwningCclComm comm,
+      llvm::unique_function<void(wrapper::CclComm)> custom_deleter = {});
   ~GpuCclHandle();
 
   GpuCclHandle(GpuCclHandle&&) = default;
@@ -344,13 +346,13 @@ class GpuCclHandle {
 
   const wrapper::OwningCclComm& operator->() const { return comm_; }
   wrapper::CclComm get() const { return comm_.get(); }
-  wrapper::CclComm release();
 
   const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningCclComm comm_;
+  llvm::unique_function<void(wrapper::CclComm)> custom_deleter_;
   std::vector<Callback> callbacks_;
 };
 

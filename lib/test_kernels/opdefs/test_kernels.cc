@@ -69,7 +69,7 @@ static LogicalResult checkTFRTReturn(Operation *op, Region *region,
 // DoAsyncOp
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseDoAsyncOp(OpAsmParser &parser, OperationState &result) {
+ParseResult DoAsyncOp::parse(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
@@ -88,29 +88,32 @@ static ParseResult parseDoAsyncOp(OpAsmParser &parser, OperationState &result) {
   return failure(parser.resolveOperands(operands, types.getInputs(), type_loc,
                                         result.operands) ||
                  parser.parseRegion(*body, operands, types.getInputs(),
+                                    /*argLocations=*/{},
                                     /*enableNameShadowing=*/true));
 }
 
-static void print(OpAsmPrinter &p, DoAsyncOp op) {
+void DoAsyncOp::print(OpAsmPrinter &p) {
   p << " ";
-  p.printOperands(op.getOperands());
-  if (!op->getAttrs().empty()) {
+  p.printOperands(getOperands());
+  if (!(*this)->getAttrs().empty()) {
     p << " attributes ";
-    p.printOptionalAttrDict(op->getAttrs());
+    p.printOptionalAttrDict((*this)->getAttrs());
   }
   p << " : (";
-  interleaveComma(op.getOperandTypes(), p);
+  interleaveComma(getOperandTypes(), p);
   p << ") -> (";
-  interleaveComma(op.getResultTypes(), p);
+  interleaveComma(getResultTypes(), p);
   p << ") ";
 
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
-  p.shadowRegionArgs(op.region(), op.getOperands());
-  p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
+  p.shadowRegionArgs(region(), getOperands());
+  p << ' ';
+  p.printRegion(region(), /*printEntryBlockArgs=*/false);
 }
 
-static LogicalResult verify(DoAsyncOp op) {
+LogicalResult DoAsyncOp::verify() {
+  DoAsyncOp op = *this;
   return checkTFRTReturn(op, &op.region(), op.getResultTypes());
 }
 
@@ -124,8 +127,7 @@ static LogicalResult verify(DoAsyncOp op) {
 // ...
 // }
 
-static ParseResult parseBenchmarkOp(OpAsmParser &parser,
-                                    OperationState &result) {
+ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
   StringAttr nameAttr;
   if (parser.parseAttribute(nameAttr, "name", result.attributes))
     return failure();
@@ -191,7 +193,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
   setDefaultAttrIfUnset("num_warmup_runs", 1);
 
   Region *target = result.addRegion();
-  return parser.parseRegion(*target, operands, types,
+  return parser.parseRegion(*target, operands, types, /*argLocations=*/{},
                             /*enableNameShadowing=*/true);
 }
 
@@ -200,16 +202,16 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
 //       max_count = 100, duration_secs = 1 {
 // ...
 // }
-static void print(OpAsmPrinter &p, BenchmarkOp op) {
+void BenchmarkOp::print(OpAsmPrinter &p) {
   p << " ";
 
   // Print the name attribute, e.g "add.i32"
-  auto name_attr = op->getAttr("name");
+  auto name_attr = (*this)->getAttr("name");
   p << name_attr;
 
   // Print the operands and types, e.g. (%c : i32, %d : f32)
   p << '(';
-  llvm::interleaveComma(llvm::zip(op.getOperands(), op.getOperandTypes()), p,
+  llvm::interleaveComma(llvm::zip(getOperands(), getOperandTypes()), p,
                         [&](const auto &it) {
                           p << std::get<0>(it) << " : " << std::get<1>(it);
                         });
@@ -218,7 +220,7 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
   bool need_comma = false;
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
-  for (auto &name_attr : op->getAttrs()) {
+  for (auto &name_attr : (*this)->getAttrs()) {
     auto id = name_attr.getName().getValue();
     if (id == "name") continue;
 
@@ -230,7 +232,7 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
     if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {
       int_attr.getValue().print(p.getStream(), /*isSigned=*/false);
     } else {
-      op.emitOpError("Unexpected attribute");
+      emitOpError("Unexpected attribute");
     }
 
     need_comma = true;
@@ -241,11 +243,13 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
   // Print the region
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
-  p.shadowRegionArgs(op.region(), op.getOperands());
-  p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
+  p.shadowRegionArgs(region(), getOperands());
+  p << ' ';
+  p.printRegion(region(), /*printEntryBlockArgs=*/false);
 }
 
-static LogicalResult verify(BenchmarkOp op) {
+LogicalResult BenchmarkOp::verify() {
+  BenchmarkOp op = *this;
   // Verify that the target benchmark region has exactly one return value.
   auto &region = op.region();
   auto &last_op = region.front().back();
@@ -269,8 +273,8 @@ static LogicalResult verify(BenchmarkOp op) {
 // tfrt_test.sync_benchmark @fibonacci.i32()
 //       duration_secs = 1, max_count = 100, num_warmup_runs = 10
 
-static ParseResult parseSyncBenchmarkOp(OpAsmParser &parser,
-                                        OperationState &result) {
+ParseResult SyncBenchmarkOp::parse(OpAsmParser &parser,
+                                   OperationState &result) {
   SymbolRefAttr targetFnAttr;
   if (parser.parseAttribute(targetFnAttr, "target_fn", result.attributes))
     return failure();
@@ -338,15 +342,15 @@ static ParseResult parseSyncBenchmarkOp(OpAsmParser &parser,
 // Print the SyncBenchmarkOp in the following format
 // tfrt_test.sync_benchmark @fibonacci.i32()
 //       max_count = 100, duration_secs = 1
-static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
+void SyncBenchmarkOp::print(OpAsmPrinter &p) {
   p << " ";
 
   // Print the target benchmark function
-  p << op->getAttr("target_fn");
+  p << (*this)->getAttr("target_fn");
 
   // Print the operands and types, e.g. (%c : i32, %d : f32)
   p << '(';
-  llvm::interleaveComma(llvm::zip(op.getOperands(), op.getOperandTypes()), p,
+  llvm::interleaveComma(llvm::zip(getOperands(), getOperandTypes()), p,
                         [&](const auto &it) {
                           p << std::get<0>(it) << " : " << std::get<1>(it);
                         });
@@ -355,7 +359,7 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
   bool need_comma = false;
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
-  for (auto &name_attr : op->getAttrs()) {
+  for (auto &name_attr : (*this)->getAttrs()) {
     auto id = name_attr.getName().getValue();
     if (id == "target_fn") continue;
 
@@ -367,14 +371,15 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
     if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {
       int_attr.getValue().print(p.getStream(), /*isSigned=*/false);
     } else {
-      op.emitOpError("Unexpected attribute");
+      emitOpError("Unexpected attribute");
     }
 
     need_comma = true;
   }
 }
 
-static LogicalResult verify(SyncBenchmarkOp op) {
+LogicalResult SyncBenchmarkOp::verify() {
+  SyncBenchmarkOp op = *this;
   auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("target_fn");
   if (!fnAttr)
     return op.emitOpError("requires a 'target_fn' symbol reference attribute");

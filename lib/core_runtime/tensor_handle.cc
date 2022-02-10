@@ -185,7 +185,7 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(host);
     result_tensor = AsyncValueRef<Tensor>(result_ind_av);
-    SmallVector<AsyncValue*, 2> async_values;
+    llvm::SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(GetAsyncTensor());
     if (!IsDeviceAvailable()) {
       async_values.push_back(GetAsyncDevice().GetAsyncValue());
@@ -229,7 +229,7 @@ TensorHandle TensorHandle::TransferToSameDevice(
   RCReference<IndirectAsyncValue> result_ind_av =
       MakeIndirectAsyncValue(exec_ctx.host());
   AsyncValueRef<Tensor> result_tensor = AsyncValueRef<Tensor>(result_ind_av);
-  SmallVector<AsyncValue*, 2> async_values;
+  llvm::SmallVector<AsyncValue*, 2> async_values;
   async_values.push_back(GetAsyncTensor());
   async_values.push_back(GetAsyncDevice().GetAsyncValue());
   RunWhenReady(
@@ -279,7 +279,7 @@ TensorHandle TensorHandle::TransferToInferredType(
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(host);
     result_tensor = AsyncValueRef<Tensor>(result_ind_av);
-    SmallVector<AsyncValue*, 2> async_values;
+    llvm::SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(GetAsyncTensor());
     if (!IsDeviceAvailable()) {
       async_values.push_back(GetAsyncDevice().GetAsyncValue());

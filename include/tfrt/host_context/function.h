@@ -88,7 +88,7 @@ class Function {
   FunctionKind function_kind_;
 
   size_t num_argument_;
-  SmallVector<TypeName, 8> argument_result_types_;
+  llvm::SmallVector<TypeName, 8> argument_result_types_;
 };
 
 }  // namespace tfrt

@@ -14,30 +14,32 @@
  * limitations under the License.
  */
 
+// Thin abstraction layer for NCCL and RCCL.
 #ifndef TFRT_GPU_WRAPPER_CCL_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_CCL_WRAPPER_H_
 
 #include <cstddef>
 #include <memory>
 
-#include "src/nccl.h"  // from @nccl_headers
+#include "tfrt/gpu/wrapper/ccl_types.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
-
-namespace llvm {
-template <>
-struct PointerLikeTypeTraits<ncclComm_t> {
-  static void* getAsVoidPointer(ncclComm_t comm) { return comm; }
-  static ncclComm_t getFromVoidPointer(void* ptr) {
-    return static_cast<ncclComm_t>(ptr);
-  }
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  static constexpr int NumLowBitsAvailable = 2;
-};
-}  // namespace llvm
+// Note: this file must not be included before nccl.h from RCCL.
+#include "src/nccl.h"  // from @nccl_headers
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
+
+template <>
+class CclTypeTraits<CclUniqueIdTag, ncclUniqueId> : public std::true_type {};
+template <>
+class CclTypeTraits<CclDataTypeTag, ncclDataType_t> : public std::true_type {};
+template <>
+class CclTypeTraits<CclReductionOpTag, ncclRedOp_t> : public std::true_type {};
+
+static_assert(sizeof(CclUniqueId) == sizeof(ncclUniqueId), "size mismatch");
+static_assert(sizeof(CclDataType) == sizeof(ncclDataType_t), "size mismatch");
+static_assert(sizeof(CclReductionOp) == sizeof(ncclRedOp_t), "size mismatch");
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result);
 
@@ -50,62 +52,6 @@ Expected<ncclRedOp_t> Parse<ncclRedOp_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclRedOp_t value);
 
 llvm::Expected<int> GetCclDataTypeSizeBytes(ncclDataType_t data_type);
-
-// Non-owning NCCL communicator for a specific platform.
-class CclComm {
- public:
-  CclComm() = default;
-  explicit CclComm(std::nullptr_t) : pair_(nullptr, Platform::NONE) {}
-  CclComm(ncclComm_t comm, Platform platform) : pair_(comm, platform) {}
-  // Required for std::unique_ptr<Resource>.
-  CclComm& operator=(std::nullptr_t) {
-    pair_.setPointer(nullptr);
-    return *this;
-  }
-  // Required for std::unique_ptr<Resource>.
-  operator bool() const {  // NOLINT(google-explicit-constructor)
-    return *this != nullptr;
-  }
-  operator ncclComm_t() const {  // NOLINT(google-explicit-constructor)
-    return static_cast<ncclComm_t>(pair_.getPointer());
-  }
-  Platform platform() const { return pair_.getInt(); }
-  bool operator==(std::nullptr_t) const {
-    return pair_.getPointer() == nullptr;
-  }
-  bool operator!=(std::nullptr_t) const {
-    return pair_.getPointer() != nullptr;
-  }
-  bool operator==(CclComm other) const { return pair_ == other.pair_; }
-  bool operator!=(CclComm other) const { return pair_ != other.pair_; }
-
-  // For member access from std::unique_ptr.
-  const CclComm* operator->() const { return this; }
-
- private:
-  llvm::PointerIntPair<ncclComm_t, 2, Platform> pair_;
-
-  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                       const CclComm& comm) {
-    return os << comm.pair_.getPointer() << " (" << comm.platform() << ")";
-  }
-};
-
-namespace internal {
-// Helper to wrap resources and memory into RAII types.
-struct CclCommDeleter {
-  using pointer = CclComm;
-  void operator()(CclComm comm) const;
-};
-}  // namespace internal
-
-// RAII wrappers for resources. Instances own the underlying resource.
-//
-// They are implemented as std::unique_ptrs with custom deleters.
-//
-// Use get() and release() to access the non-owning handle, please use with
-// appropriate care.
-using OwningCclComm = internal::OwningResource<internal::CclCommDeleter>;
 
 llvm::Expected<int> CclGetVersion(Platform platform);
 llvm::Expected<ncclUniqueId> CclGetUniqueId(Platform platform);

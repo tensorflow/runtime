@@ -70,18 +70,18 @@ class BEFInterpreterImpl final {
   const SyncBEFFunction& func_;
 
   // All registers used in the function.
-  SmallVector<Value*, 16> registers_;
+  llvm::SmallVector<Value*, 16> registers_;
 
   // Store local Values used in the computation.
-  SmallVector<Value, 16> local_values_;
+  llvm::SmallVector<Value, 16> local_values_;
 
   // All kernel entries in the function.
-  SmallVector<KernelEntry, 16> kernel_entries_;
+  llvm::SmallVector<KernelEntry, 16> kernel_entries_;
 
   // Registers that are retired at each kernel.
-  SmallVector<Value*, 16> retired_register_pool_;
+  llvm::SmallVector<Value*, 16> retired_register_pool_;
   // Attributes used in all kernels.
-  SmallVector<const void*, 16> attribute_pool_;
+  llvm::SmallVector<const void*, 16> attribute_pool_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -134,7 +134,7 @@ BEFInterpreterImpl::BEFInterpreterImpl(const Function& func)
 }
 
 void BEFInterpreterImpl::SetupKernelEntries() {
-  SmallVector<int, 16> user_counts;
+  llvm::SmallVector<int, 16> user_counts;
 
   auto register_infos = func_.register_infos();
   user_counts.reserve(register_infos.size());

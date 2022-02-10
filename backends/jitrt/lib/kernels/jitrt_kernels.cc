@@ -34,7 +34,9 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/shared_context.h"
 #include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/rc_array.h"
@@ -78,8 +80,14 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
   // Compile kernel asynchronously in the host context thread pool.
   EnqueueWork(exec_ctx, [kernel, host, ref = entry.ptr.CopyRef()]() {
+    CompilationPipelineOptions copts;
+    copts.num_worker_threads = host->GetNumWorkerThreads();
+
     CompilationOptions opts;
-    opts.num_worker_threads = host->GetNumWorkerThreads();
+    opts.register_dialects = RegisterDefaultJitRtDialects;
+    opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+      CreateDefaultJitRtCompilationPipeline(pm, copts);
+    };
 
     string_view entrypoint = kernel.nested_symbols()[0];
     string_view module = kernel.serialized_operation();
@@ -105,10 +113,17 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 namespace {
 // We do not record any operands information for results conversion.
 struct ConversionCtx {};
+
+// Use HostContextAsyncTaskRunner to execute all async tasks.
+struct AsyncTaskRunnerContext : public SharedContext {
+  explicit AsyncTaskRunnerContext(HostContext* host) : runner(host) {}
+  HostContextAsyncTaskRunner runner;
+};
 }  // namespace
 
 static Error ConvertTensorOperandsToMemrefDesc(
-    RepeatedArguments<Tensor> operands, SmallVectorImpl<MemrefDesc>* memrefs) {
+    RepeatedArguments<Tensor> operands,
+    llvm::SmallVectorImpl<MemrefDesc>* memrefs) {
   assert(memrefs->empty() && "memrefs must be empty");
   memrefs->reserve(operands.size());
 
@@ -122,7 +137,7 @@ static Error ConvertTensorOperandsToMemrefDesc(
 }
 
 static void ExecuteImpl(const Executable& executable,
-                        const SmallVectorImpl<MemrefDesc>& memrefs,
+                        const llvm::SmallVectorImpl<MemrefDesc>& memrefs,
                         RepeatedArguments<Tensor> operands,
                         RemainingResults results,
                         const ExecutionContext& exec_ctx) {
@@ -132,7 +147,14 @@ static void ExecuteImpl(const Executable& executable,
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
 
-  if (auto err = executable.Execute(memrefs, converter, exec_ctx)) return;
+  // Use HostContext to execute all async tasks.
+  HostContext* host = exec_ctx.host();
+  auto& runner_ctx = host->GetOrCreateSharedContext<AsyncTaskRunnerContext>();
+
+  Executable::ExecuteOpts opts;
+  opts.async_task_runner = &runner_ctx.runner;
+
+  if (auto err = executable.Execute(memrefs, converter, opts)) return;
 
   // Keep operands alive if we have unavailable results.
   RunWhenReady(results.values(),
@@ -145,20 +167,20 @@ static void Execute(Argument<JitExecutable> jit_executable,
                     RemainingResults results,
                     const ExecutionContext& exec_ctx) {
   // Extract Memrefs from Tensor operands.
-  SmallVector<MemrefDesc, 4> memrefs;
+  llvm::SmallVector<MemrefDesc, 4> memrefs;
   if (auto err = ConvertTensorOperandsToMemrefDesc(operands, &memrefs))
-    return EmitErrors(results, std::move(err), exec_ctx);
+    return ReturnErrors(results, std::move(err));
 
   // Get an executable that might be specialized to the operands.
   Expected<AsyncValuePtr<Executable>> executable =
-      jit_executable->GetExecutable(memrefs, exec_ctx);
+      jit_executable->GetExecutable(memrefs);
   if (auto err = executable.takeError())
-    return EmitErrors(results, std::move(err), exec_ctx);
+    return ReturnErrors(results, std::move(err));
 
   // If specialization is available execute it inline.
   if (executable->IsAvailable()) {
     if (executable->IsError()) {
-      EmitErrors(results, executable->GetError(), exec_ctx);
+      ReturnErrors(results, executable->GetError());
     } else {
       ExecuteImpl(executable->get(), memrefs, operands, results, exec_ctx);
     }
@@ -188,7 +210,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
     RemainingResults results(results_storage);
 
     if (executable.IsError()) {
-      EmitErrors(results, executable.GetError(), exec_ctx);
+      ReturnErrors(results, executable.GetError());
     } else {
       ExecuteImpl(*executable, memrefs, operands, results, exec_ctx);
     }

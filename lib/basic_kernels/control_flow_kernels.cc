@@ -53,7 +53,7 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
   assert(args.size() >= 1);
 
   auto case_impl = [exec_ctx](
-                       SmallVector<const Function*, 4> branches,
+                       llvm::SmallVector<const Function*, 4> branches,
                        AsyncValue* branch_index_av, ArrayRef<AsyncValue*> args,
                        MutableArrayRef<RCReference<AsyncValue>> results) {
     assert(branch_index_av->IsAvailable());
@@ -81,7 +81,7 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
   AsyncValue* branch_index_av = args[0];
   if (branch_index_av->IsAvailable()) {
     // Obtain the branches from RemainingAttributes.
-    SmallVector<const Function*, 4> branch_vector;
+    llvm::SmallVector<const Function*, 4> branch_vector;
     branch_vector.reserve(branches.size());
     for (int i = 0, e = branches.size(); i != e; ++i)
       branch_vector.push_back(&(*branches.Get(i)));
@@ -94,7 +94,7 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
   // arguments will be available when the closure runs.
   RCArray<AsyncValue> arg_refs(args.values());
 
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (int i = 0, e = results.size(); i != e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);
@@ -106,7 +106,7 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
   // Copy `branches` and add a ref to each branch, which is captured by the
   // lambda so the function pointers to the branches will be available when the
   // closure runs.
-  SmallVector<RCReference<const Function>, 4> branch_refs;
+  llvm::SmallVector<RCReference<const Function>, 4> branch_refs;
   branch_refs.reserve(branches.size());
   for (int i = 0, e = branches.size(); i != e; ++i) {
     const Function* branch = &(*branches.Get(i));
@@ -121,10 +121,10 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
     assert(arg_refs[0]->IsAvailable() &&
            "We must have the branch index by now");
 
-    SmallVector<RCReference<AsyncValue>, 8> results;
+    llvm::SmallVector<RCReference<AsyncValue>, 8> results;
     results.resize(result_refs.size());
 
-    SmallVector<const Function*, 4> branch_vector;
+    llvm::SmallVector<const Function*, 4> branch_vector;
     branch_vector.reserve(branch_refs.size());
     for (int i = 0, e = branch_refs.size(); i != e; ++i)
       branch_vector.push_back(branch_refs[i].get());
@@ -198,7 +198,7 @@ static void TFRTIf(RemainingArguments args, RemainingResults results,
   // We need to create all the result values eagerly so we can return them
   // from the TFRTIf function, even though we don't know their types.  Use
   // an IndirectAsyncValue for this, because it can lazily get resolved.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (int i = 0, e = results.size(); i != e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);
@@ -214,7 +214,7 @@ static void TFRTIf(RemainingArguments args, RemainingResults results,
                       result_refs = std::move(result_refs)] {
     assert(arg_refs[0]->IsAvailable() && "We must have the condition by now");
 
-    SmallVector<RCReference<AsyncValue>, 8> results;
+    llvm::SmallVector<RCReference<AsyncValue>, 8> results;
     results.resize(result_refs.size());
     if_impl(true_fn_ref.get(), false_fn_ref.get(), arg_refs.values(), results);
 
@@ -229,18 +229,18 @@ static void TFRTIf(RemainingArguments args, RemainingResults results,
 static void TFRTWhileImpl(
     const ExecutionContext& exec_ctx, const Function* body_fn,
     RCReference<AsyncValue> condition,
-    SmallVector<RCReference<AsyncValue>, 4> body_args,
-    SmallVector<RCReference<IndirectAsyncValue>, 4> while_results) {
+    llvm::SmallVector<RCReference<AsyncValue>, 4> body_args,
+    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> while_results) {
   assert(condition->IsAvailable());
   assert(body_args.size() == while_results.size());
 
-  SmallVector<AsyncValue*, 4> body_arg_views;
+  llvm::SmallVector<AsyncValue*, 4> body_arg_views;
   body_arg_views.reserve(body_args.size());
   for (auto& arg : body_args) {
     body_arg_views.push_back(arg.get());
   }
 
-  SmallVector<RCReference<AsyncValue>, 4> body_results;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> body_results;
   body_results.resize(while_results.size() + 1);
 
   while (!condition->IsError() && condition->get<bool>()) {
@@ -331,6 +331,7 @@ static void TFRTWhileImpl(
 //  return results
 //
 static void TFRTWhile(RemainingArguments args, RemainingResults results,
+                      Attribute<int64_t> parallel_iterations,
                       Attribute<Function> body_fn_const,
                       const ExecutionContext& exec_ctx) {
   assert(args.size() > 1);
@@ -347,7 +348,7 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
   assert(!condition_av->IsError());
 
   // The rest args are the arguments to the body function.
-  SmallVector<RCReference<AsyncValue>, 4> body_args;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> body_args;
   body_args.reserve(args.size());
   for (auto* arg : args.values().drop_front()) {
     body_args.push_back(FormRef(arg));
@@ -355,7 +356,7 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
 
   // Allocate indirect async values for the results of the while op because the
   // execution later may return asynchronously without setting the results.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> while_results;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> while_results;
   while_results.reserve(results.size());
   for (int i = 0; i < results.size(); ++i) {
     auto result = results.AllocateIndirectResultAt(i);
@@ -386,7 +387,7 @@ static void TFRTOnce(RemainingArguments args, RemainingResults results,
       for (auto& result : results) result = MakeIndirectAsyncValue();
     }
 
-    SmallVector<RCReference<IndirectAsyncValue>, 4> results;
+    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> results;
     std::atomic<bool> executed = {false};
   };
 
@@ -396,7 +397,8 @@ static void TFRTOnce(RemainingArguments args, RemainingResults results,
 
   // Execute the function after unlocking the resource context mutex.
   if (!resource->executed.exchange(true)) {
-    SmallVector<RCReference<AsyncValue>, 4> values(function->num_results());
+    llvm::SmallVector<RCReference<AsyncValue>, 4> values(
+        function->num_results());
     function->Execute(exec_ctx, args.values(), values);
     for (auto pair : llvm::zip_first(resource->results, values))
       std::get<0>(pair)->ForwardTo(std::get<1>(pair));
@@ -411,12 +413,12 @@ static void TFRTRepeatI32Block(
     int32_t start, int32_t block_size, int32_t count_value,
     const ExecutionContext& exec_ctx, RCReference<const Function> body_fn_ref,
     RCArray<AsyncValue> args,
-    SmallVector<RCReference<IndirectAsyncValue>, 4>&& result_refs) {
+    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4>&& result_refs) {
   // Temporary buffers to store intermediate arguments and results.
-  SmallVector<AsyncValue*, 8> passed_args(args.values().begin(),
-                                          args.values().end());
+  llvm::SmallVector<AsyncValue*, 8> passed_args(args.values().begin(),
+                                                args.values().end());
 
-  SmallVector<RCReference<AsyncValue>, 4> results;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(result_refs.size());
   auto num_fn_args = args.size();
 
@@ -489,49 +491,50 @@ static void TFRTRepeatI32(RemainingArguments args, RemainingResults results,
   assert(body_fn->argument_types() == body_fn->result_types() &&
          "Argument and result types of repeat body_fn must match");
 
-  auto while_impl =
-      [exec_ctx](
-          RCReference<const Function> body_fn_ref, RCArray<AsyncValue> arg_refs,
-          SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) mutable {
-        // TODO(xldrx,jingdong): Get the block_size from an optional attribute.
-        int32_t block_size = 32;
-        auto args = arg_refs.values();
-        auto* count = args[0];
-        args = args.drop_front();
+  auto while_impl = [exec_ctx](
+                        RCReference<const Function> body_fn_ref,
+                        RCArray<AsyncValue> arg_refs,
+                        llvm::SmallVector<RCReference<IndirectAsyncValue>, 4>
+                            result_refs) mutable {
+    // TODO(xldrx,jingdong): Get the block_size from an optional attribute.
+    int32_t block_size = 32;
+    auto args = arg_refs.values();
+    auto* count = args[0];
+    args = args.drop_front();
 
-        // If we have an error, then we can force propagate errors to all the
-        // results.
-        if (count->IsError()) {
-          for (auto& result : result_refs) {
-            result->ForwardTo(FormRef(count));
-          }
-          return;
-        }
+    // If we have an error, then we can force propagate errors to all the
+    // results.
+    if (count->IsError()) {
+      for (auto& result : result_refs) {
+        result->ForwardTo(FormRef(count));
+      }
+      return;
+    }
 
-        auto count_value = count->get<int32_t>();
+    auto count_value = count->get<int32_t>();
 
-        auto num_fn_args = args.size();
+    auto num_fn_args = args.size();
 
-        // If the function does not returns any results, it is not feasible to
-        // divide the loop into multiple blocks
-        if (num_fn_args == 0 || block_size <= 0) block_size = count_value;
+    // If the function does not returns any results, it is not feasible to
+    // divide the loop into multiple blocks
+    if (num_fn_args == 0 || block_size <= 0) block_size = count_value;
 
-        // Special case: "Repeat 0" just copies args to results.
-        if (count_value == 0) {
-          for (int arg = 0; arg != num_fn_args; ++arg) {
-            result_refs[arg]->ForwardTo(FormRef(args[arg]));
-          }
-          return;
-        }
+    // Special case: "Repeat 0" just copies args to results.
+    if (count_value == 0) {
+      for (int arg = 0; arg != num_fn_args; ++arg) {
+        result_refs[arg]->ForwardTo(FormRef(args[arg]));
+      }
+      return;
+    }
 
-        assert(result_refs.size() == num_fn_args);
-        // Run 'body_fn' at least once.
-        assert(count_value > 0);
+    assert(result_refs.size() == num_fn_args);
+    // Run 'body_fn' at least once.
+    assert(count_value > 0);
 
-        TFRTRepeatI32Block(0, block_size, count_value, exec_ctx,
-                           std::move(body_fn_ref), RCArray<AsyncValue>(args),
-                           std::move(result_refs));
-      };
+    TFRTRepeatI32Block(0, block_size, count_value, exec_ctx,
+                       std::move(body_fn_ref), RCArray<AsyncValue>(args),
+                       std::move(result_refs));
+  };
 
   // If the count is already available, we can immediately dispatch the bodies.
   AsyncValue* count = args[0];
@@ -546,7 +549,7 @@ static void TFRTRepeatI32(RemainingArguments args, RemainingResults results,
 
   // Define results as IndirectAsync values. The actual results is set in the
   // last iteration of the loop.
-  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
   for (int i = 0, e = results.size(); i != e; ++i) {
     auto result = results.AllocateIndirectResultAt(i);

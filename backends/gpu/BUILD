@@ -180,6 +180,7 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/gpu/wrapper/blas_wrapper.h",
+        "include/tfrt/gpu/wrapper/ccl_types.h",
         "include/tfrt/gpu/wrapper/ccl_wrapper.h",
         "include/tfrt/gpu/wrapper/cublas_wrapper.h",
         "include/tfrt/gpu/wrapper/cuda_wrapper.h",
@@ -939,6 +940,7 @@ tfrt_cc_binary(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:ControlFlowOps",
         "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MemRefDialect",

@@ -68,7 +68,7 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy"> {
     $x`,` custom<Enum>($typeX)`,` $strideX`,` $y`,` custom<Enum>($typeY)`,`
     $strideY`,` custom<Enum>($executionType)`,` $chain attr-dict
   }];
-  let verifier = [{ return tfrt::gpu::VerifyBlasSaxpyOp(*this); }];
+  let hasVerifier = 1;
 }
 
 def GPU_BlasGemmAlgoOp : GPU_Op<"blas.gemm.algo", [NoSideEffect]> {
@@ -99,7 +99,7 @@ def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
     $heightC`,` custom<Enum>($computeType, type($alpha), type($beta))`,`
     $algo`,` $chain attr-dict
   }];
-  let verifier = [{ return tfrt::gpu::VerifyBlasGemmOp(*this); }];
+  let hasVerifier = 1;
 }
 
 def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
@@ -125,7 +125,7 @@ def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
     custom<Enum>($computeType, type($alpha), type($beta))`,`
     $algo`,` $chain attr-dict
   }];
-  let verifier = [{ return tfrt::gpu::VerifyBlasGemmOp(*this); }];
+  let hasVerifier = 1;
 }
 
 def GPU_BlasTrsmBatchOp : GPU_Op<"blas.trsm.batch"> {

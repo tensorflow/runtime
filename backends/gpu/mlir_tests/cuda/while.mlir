@@ -96,7 +96,7 @@ func @while(
     :  (!tfrt.chain, !tfrt_gpu.stream, !tfrt_gpu.buffer, !tfrt_gpu.buffer) -> i1
 
   %result:4 = tfrt.while
-    %init @body(%ch0, %stream, %value, %cond)
+    %init @body(%ch0, %stream, %value, %cond) parallel_iterations(1)
     :  (!tfrt.chain, !tfrt_gpu.stream, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
     -> (!tfrt.chain, !tfrt_gpu.stream, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
 

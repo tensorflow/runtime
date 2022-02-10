@@ -58,7 +58,7 @@ typename EigenEvaluator::DependencyToken FusedMatMul(
   EigenEvaluator eigen{exec_ctx.host()};
 
   // Parse the MatMul fusion config.
-  SmallVector<string_view, 4> fused_ops(fused_ops_attr.GetNumElements());
+  llvm::SmallVector<string_view, 4> fused_ops(fused_ops_attr.GetNumElements());
   for (int i = 0; i < fused_ops_attr.GetNumElements(); ++i) {
     fused_ops[i] = fused_ops_attr.GetAttribute(i).cast<StringAttr>().GetValue();
   }

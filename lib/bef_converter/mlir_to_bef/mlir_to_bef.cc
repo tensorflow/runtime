@@ -87,7 +87,7 @@ static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   auto& block = region->front();
 
   // Arguments.
-  SmallVector<mlir::Type, 4> inputs;
+  llvm::SmallVector<mlir::Type, 4> inputs;
   for (auto arg : block.getArguments()) inputs.push_back(arg.getType());
 
   // Results.
@@ -96,7 +96,7 @@ static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   auto& last_op = block.back();
   assert(IsReturn(&last_op));
 
-  SmallVector<mlir::Type, 4> results;
+  llvm::SmallVector<mlir::Type, 4> results;
   for (auto op : last_op.getOperands()) results.push_back(op.getType());
 
   return mlir::FunctionType::get(region->getContext(), inputs, results);

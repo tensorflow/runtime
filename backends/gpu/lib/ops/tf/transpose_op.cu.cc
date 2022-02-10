@@ -105,8 +105,8 @@ unsigned NumBlocks(Index size, unsigned threads_per_block) {
 }
 
 struct CoalescedDimsAndPerm {
-  SmallVector<Index, 8> dims;
-  SmallVector<Index, 8> perm;
+  llvm::SmallVector<Index, 8> dims;
+  llvm::SmallVector<Index, 8> perm;
 };
 
 }  // namespace
@@ -122,8 +122,8 @@ static CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
 
   if (shape.GetRank() == 1) return {{shape.GetDimensionSize(0)}, {perm[0]}};
 
-  SmallVector<Index, 8> new_dim_position(shape.GetRank(), -1);
-  SmallVector<Index, 8> combined_dims(shape.GetRank(), 0);
+  llvm::SmallVector<Index, 8> new_dim_position(shape.GetRank(), -1);
+  llvm::SmallVector<Index, 8> combined_dims(shape.GetRank(), 0);
 
   int cur_head = perm[0];
   new_dim_position[cur_head] = 0;
@@ -251,7 +251,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
   size_t num_result_elements = result_md.shape.GetNumElements();
   size_t size_in_bytes = GetHostSize(result_md.dtype) * num_result_elements;
 
-  using Perm = SmallVector<Index, 8>;
+  using Perm = llvm::SmallVector<Index, 8>;
   auto transpose = CoalesceTranspose(input.shape(), perm);
 
   // Transpose: [x, y] -> [y, x]
@@ -312,7 +312,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpFolded(
   DenseView perm_view = CreateDenseView(perm_attr);
   assert(perm_view.shape().GetRank() == 1);
 
-  SmallVector<Index, 4> perm;
+  llvm::SmallVector<Index, 4> perm;
 
   switch (perm_view.dtype()) {
     case DType::I32: {

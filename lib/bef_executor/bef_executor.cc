@@ -626,7 +626,7 @@ void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
   auto* exec = new (exec_ptr) BEFExecutor(std::move(exec_ctx), bef_file);
 
   size_t location_offset;
-  SmallVector<size_t, 4> result_regs;
+  llvm::SmallVector<size_t, 4> result_regs;
   bool success = bef_file->ReadFunction(fn.function_offset(), fn.result_types(),
                                         &location_offset, &exec->function_info_,
                                         &result_regs, host->allocator());

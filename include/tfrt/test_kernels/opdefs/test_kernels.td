@@ -47,9 +47,8 @@ class Test_Op<string mnemonic, list<Trait> traits = []> :
 
   // Each registered op in the Test namespace needs to provide all of a printer,
   // parser and verifier.
-  let printer = [{ return tfrt::test::print(p, *this); }];
   let hasVerifier = 1;
-  let parser = [{ return tfrt::test::parse$cppClass(parser, result); }];
+  let hasCustomAssemblyFormat = 1;
 }
 
 def DoAsyncOp : Test_Op<"do.async"> {

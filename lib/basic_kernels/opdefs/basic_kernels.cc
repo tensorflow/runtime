@@ -34,7 +34,7 @@ namespace compiler {
 // CallOp
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseCallOp(OpAsmParser &parser, OperationState &result) {
+ParseResult CallOp::parse(OpAsmParser &parser, OperationState &result) {
   SymbolRefAttr calleeAttr;
   FunctionType calleeType;
   SmallVector<OpAsmParser::OperandType, 4> operands;
@@ -51,13 +51,13 @@ static ParseResult parseCallOp(OpAsmParser &parser, OperationState &result) {
   return success();
 }
 
-static void print(OpAsmPrinter &p, CallOp op) {
-  p << " " << op->getAttr("callee") << '(';
-  p.printOperands(op.getOperands());
+void CallOp::print(OpAsmPrinter &p) {
+  p << " " << (*this)->getAttr("callee") << '(';
+  p.printOperands(getOperands());
   p << ')';
-  p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"callee"});
+  p.printOptionalAttrDict((*this)->getAttrs(), /*elidedAttrs=*/{"callee"});
   p << " : ";
-  p.printType(op.getCalleeType());
+  p.printType(getCalleeType());
 }
 
 LogicalResult CallOp::verify() {
@@ -144,7 +144,7 @@ LogicalResult IfOp::verify() {
   return checkTFRTReturn(op, &op.else_region(), op.getResultTypes());
 }
 
-ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
+ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
@@ -201,28 +201,28 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
   return success();
 }
 
-void print(OpAsmPrinter &p, IfOp op) {
+void IfOp::print(OpAsmPrinter &p) {
   p << " ";
-  p.printOperands(op.getOperands());
-  if (!op->getAttrs().empty()) {
-    p.printOptionalAttrDict(op->getAttrs());
+  p.printOperands(getOperands());
+  if (!(*this)->getAttrs().empty()) {
+    p.printOptionalAttrDict((*this)->getAttrs());
   }
   p << " : (";
-  interleaveComma(llvm::drop_begin(op.getOperandTypes(), 1), p);
+  interleaveComma(llvm::drop_begin(getOperandTypes(), 1), p);
   p << ") -> (";
-  interleaveComma(op.getResultTypes(), p);
+  interleaveComma(getResultTypes(), p);
   p << ") ";
 
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
-  auto arg_name_values = llvm::drop_begin(op.getOperands(), 1);
-  p.shadowRegionArgs(op.then_region(), arg_name_values);
+  auto arg_name_values = llvm::drop_begin(getOperands(), 1);
+  p.shadowRegionArgs(then_region(), arg_name_values);
   p << ' ';
-  p.printRegion(op.then_region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(then_region(), /*printEntryBlockArgs=*/false);
   p << " else ";
-  p.shadowRegionArgs(op.else_region(), arg_name_values);
+  p.shadowRegionArgs(else_region(), arg_name_values);
   p << ' ';
-  p.printRegion(op.else_region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(else_region(), /*printEntryBlockArgs=*/false);
 }
 
 //===----------------------------------------------------------------------===//
@@ -290,8 +290,7 @@ LogicalResult CondOp::verify() {
 // RepeatI32Op
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseRepeatI32Op(OpAsmParser &parser,
-                                    OperationState &result) {
+ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
@@ -322,23 +321,23 @@ static ParseResult parseRepeatI32Op(OpAsmParser &parser,
                             /*enableNameShadowing=*/true);
 }
 
-static void print(OpAsmPrinter &p, RepeatI32Op op) {
+void RepeatI32Op::print(OpAsmPrinter &p) {
   p << " ";
-  p.printOperands(op.getOperands());
-  if (!op->getAttrs().empty()) {
-    p.printOptionalAttrDict(op->getAttrs());
+  p.printOperands(getOperands());
+  if (!(*this)->getAttrs().empty()) {
+    p.printOptionalAttrDict((*this)->getAttrs());
   }
-  if (op.getNumOperands() > 1) {
+  if (getNumOperands() > 1) {
     p << " : ";
-    interleaveComma(llvm::drop_begin(op.getOperandTypes(), 1), p);
+    interleaveComma(llvm::drop_begin(getOperandTypes(), 1), p);
   }
 
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
-  SmallVector<Value, 4> arg_name_values(llvm::drop_begin(op.getOperands(), 1));
-  p.shadowRegionArgs(op.region(), arg_name_values);
+  SmallVector<Value, 4> arg_name_values(llvm::drop_begin(getOperands(), 1));
+  p.shadowRegionArgs(region(), arg_name_values);
   p << ' ';
-  p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(region(), /*printEntryBlockArgs=*/false);
 }
 
 LogicalResult RepeatI32Op::verify() {
@@ -367,8 +366,8 @@ LogicalResult RepeatI32Op::verify() {
 //     ... parallel block compute function ...
 //     tfrt.return ... : !tfrt.chain
 //   }
-static ParseResult parseParallelForI32Op(OpAsmParser &parser,
-                                         OperationState &result) {
+ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
+                                    OperationState &result) {
   OpAsmParser::OperandType start;
   OpAsmParser::OperandType end;
   OpAsmParser::OperandType block_size;
@@ -418,30 +417,30 @@ static ParseResult parseParallelForI32Op(OpAsmParser &parser,
                             /*enableNameShadowing=*/true);
 }
 
-static void print(OpAsmPrinter &p, ParallelForI32Op op) {
+void ParallelForI32Op::print(OpAsmPrinter &p) {
   p << " ";
 
-  p.printOperand(op.getOperand(0));
+  p.printOperand(getOperand(0));
   p << " to ";
-  p.printOperand(op.getOperand(1));
+  p.printOperand(getOperand(1));
   p << " fixed ";
-  p.printOperand(op.getOperand(2));
+  p.printOperand(getOperand(2));
 
-  if (op.getNumOperands() > 3) {
+  if (getNumOperands() > 3) {
     p << ", ";
-    p.printOperands(llvm::drop_begin(op.getOperands(), 3));
+    p.printOperands(llvm::drop_begin(getOperands(), 3));
     p << " : ";
-    interleaveComma(llvm::drop_begin(op.getOperandTypes(), 3), p);
+    interleaveComma(llvm::drop_begin(getOperandTypes(), 3), p);
   }
 
   // Reuse the argument names provided to the op for the bbarg names within
   // the region (except block_size argument).
-  SmallVector<Value, 4> arg_name_values(op.getOperands());
+  SmallVector<Value, 4> arg_name_values(getOperands());
   arg_name_values.erase(arg_name_values.begin() + 2);
 
-  p.shadowRegionArgs(op.region(), arg_name_values);
+  p.shadowRegionArgs(region(), arg_name_values);
   p << ' ';
-  p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(region(), /*printEntryBlockArgs=*/false);
 }
 
 LogicalResult ParallelForI32Op::verify() {
@@ -469,8 +468,8 @@ LogicalResult ParallelForI32Op::verify() {
 //
 //   %ch = tfrt.parallel_call.i32 %start to %end fixed %block_size
 //         @callee(%loop_arg0) : !my.type
-static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
-                                          OperationState &result) {
+ParseResult ParallelCallI32Op::parse(OpAsmParser &parser,
+                                     OperationState &result) {
   OpAsmParser::OperandType start;
   OpAsmParser::OperandType end;
   OpAsmParser::OperandType block_size;
@@ -515,24 +514,24 @@ static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
   return success();
 }
 
-static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
+void ParallelCallI32Op::print(OpAsmPrinter &p) {
   p << " ";
 
-  p.printOperand(op.getOperand(0));
+  p.printOperand(getOperand(0));
   p << " to ";
-  p.printOperand(op.getOperand(1));
+  p.printOperand(getOperand(1));
   p << " fixed ";
-  p.printOperand(op.getOperand(2));
+  p.printOperand(getOperand(2));
   p << " ";
 
-  p << op->getAttr("callee");
+  p << (*this)->getAttr("callee");
   p << '(';
-  p.printOperands(llvm::drop_begin(op.getOperands(), 3));
+  p.printOperands(llvm::drop_begin(getOperands(), 3));
   p << ')';
 
-  if (op.getNumOperands() > 3) {
+  if (getNumOperands() > 3) {
     p << " : ";
-    interleaveComma(llvm::drop_begin(op.getOperandTypes(), 3), p);
+    interleaveComma(llvm::drop_begin(getOperandTypes(), 3), p);
   }
 }
 
@@ -585,7 +584,7 @@ LogicalResult ParallelCallI32Op::verify() {
 // ReturnOp
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
+ParseResult ReturnOp::parse(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 2> opInfo;
   SmallVector<Type, 2> types;
   llvm::SMLoc loc = parser.getCurrentLocation();
@@ -594,12 +593,12 @@ static ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
                  parser.resolveOperands(opInfo, types, loc, result.operands));
 }
 
-static void print(OpAsmPrinter &p, ReturnOp op) {
-  if (op.getNumOperands() > 0) {
+void ReturnOp::print(OpAsmPrinter &p) {
+  if (getNumOperands() > 0) {
     p << ' ';
-    p.printOperands(op.getOperands());
+    p.printOperands(getOperands());
     p << " : ";
-    interleaveComma(op.getOperandTypes(), p);
+    interleaveComma(getOperandTypes(), p);
   }
 }
 

@@ -33,9 +33,8 @@ class TFRT_Op<string mnemonic, list<Trait> traits = []> :
 
   // Each registered op in the TFRT namespace needs to provide all of a printer,
   // parser and verifier.
-  let printer = [{ return tfrt::compiler::print(p, *this); }];
   let hasVerifier = 1;
-  let parser = [{ return tfrt::compiler::parse$cppClass(parser, result); }];
+  let hasCustomAssemblyFormat = 1;
 }
 
 def CallOp : TFRT_Op<"call", [CallOpInterface]> {

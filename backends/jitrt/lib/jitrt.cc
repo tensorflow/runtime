@@ -231,7 +231,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // Make sure that we call the kernel with the correct number of operands.
   // We subtract one operand from the signature because it corresponds to the
   // context that we prepend to the given operands.
-  if (operands.size() != runtime_signature_.num_operands() - 1)
+  if (LLVM_UNLIKELY(operands.size() != runtime_signature_.num_operands() - 1))
     return MakeStringError(
         "number of operands doesn't match the function signature: ",
         operands.size(), " vs ", runtime_signature_.num_operands() - 1);
@@ -239,7 +239,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // Verify that all operands passed at runtime are compatible with compiled
   // function signature.
   auto kctx = dyn_cast<KernelContextOperandType>(runtime_signature_.operand(0));
-  if (!kctx) {
+  if (LLVM_UNLIKELY(!kctx)) {
     return MakeStringError(
         "expected KernelContext in first argument of "
         "signature, got: ",
@@ -250,8 +250,9 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // internal implementation detail, and in case of an error users should get
   // back operand index corresponding to the user provided signature.
   for (unsigned i = 0; i < operands.size(); ++i) {
-    if (auto* memref =
-            dyn_cast<MemrefType>(runtime_signature_.operand(1 + i))) {
+    unsigned idx = i + 1;  // use 1-based index to fetch runtime operand
+
+    if (auto* memref = dyn_cast<MemrefType>(runtime_signature_.operand(idx))) {
       if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
     } else {
       return MakeStringError("expected memref operand at #", i,
@@ -500,7 +501,7 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
     converted = converted && res;
   }
 
-  if (!converted)
+  if (LLVM_UNLIKELY(!converted))
     return MakeStringError("failed to convert all returned values");
   else
     return Error::success();
@@ -1051,7 +1052,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // If we failed to resolve the symbolic shapes, then we need to verify all the
   // operands to find the mismatch and report it to the user.
-  if (mlir::failed(symbolic_shapes)) {
+  if (LLVM_UNLIKELY(mlir::failed(symbolic_shapes))) {
     for (unsigned i = 0; i < operands.size(); ++i) {
       auto* type = signature_.operand(i);
 

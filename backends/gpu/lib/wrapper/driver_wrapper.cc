@@ -117,7 +117,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform) {
     case Platform::CUDA:
       return os << "CUDA";
     case Platform::ROCm:
-      return os << "ROCm";
+      return os << "ROCM";
     default:
       return os << llvm::formatv("Platform({0})", static_cast<int>(platform));
   }
@@ -127,7 +127,7 @@ template <>
 Expected<wrapper::Platform> Parse<wrapper::Platform>(llvm::StringRef platform) {
   if (platform == "NONE") return wrapper::Platform::NONE;
   if (platform == "CUDA") return wrapper::Platform::CUDA;
-  if (platform == "ROCm") return wrapper::Platform::ROCm;
+  if (platform == "ROCM") return wrapper::Platform::ROCm;
   return MakeStringError("Invalid platform: ", platform);
 }
 

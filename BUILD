@@ -1491,6 +1491,7 @@ gentbl_cc_library(
     deps = [
         ":CoreRTTdFiles",
         ":OpBaseTdFiles",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
@@ -1512,6 +1513,7 @@ tfrt_cc_library(
         ":distributed_kernels_opdefs_inc_gen",
         ":tensor_opdefs",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:SideEffects",
     ],
 )

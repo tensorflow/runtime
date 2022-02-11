@@ -25,6 +25,7 @@
 include "mlir/IR/OpBase.td"
 include "tfrt/core_runtime/opdefs/corert_base.td"
 include "tfrt/tfrt_op_base.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Distributed dialect.
@@ -213,7 +214,8 @@ foreach dtype = ["i32", "f32"] in {
 
 // Test kernels
 // TODO(ayushd): Implement set_up_from_string, create_collective_group kernels
-def CreateConfigurations : DistOp<"test_create_configurations"> {
+def CreateConfigurations : DistOp<"test_create_configurations",
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "tfrt_dist.test_create_configurations operation";
 
   let description = [{
@@ -226,8 +228,13 @@ def CreateConfigurations : DistOp<"test_create_configurations"> {
       %configs:4 = tfrt_dist.test_create_configurations : 4
   }];
 
+  let arguments = (ins I64Attr:$n);
+
   let results = (outs Variadic<DistributedContextConfigurationType> : $result);
-  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+
+  let assemblyFormat = [{
+      `:` $n  attr-dict
+  }];
 }
 
 def RegisterFakeCompilerPass : DistOp<"test_register_fake_compiler_pass"> {
@@ -415,7 +422,6 @@ def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
     RemoteExecuteSpecType:$out_spec
   );
 
-  let printer = [{ return tfrt::dist::print(p, *this); }];
   let assemblyFormat = "operands attr-dict";
 }
 

@@ -58,6 +58,14 @@ class Function {
       const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
       MutableArrayRef<RCReference<AsyncValue>> results) const = 0;
 
+  // Similar to the above method, but return immediately after setting up the
+  // arguments and results. `results` will be populated with unavailable
+  // AsyncValues that serve as futures to the clients (i.e. emplace() or
+  // SetError must not be called on these async values by the client).
+  virtual void ExecuteAsync(
+      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const = 0;
+
   // Reference counting operations, used by async kernels to keep the underlying
   // storage for a function alive.
   virtual void AddRef() const = 0;

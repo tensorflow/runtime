@@ -118,6 +118,9 @@ class BEFFunction : public Function {
   void Execute(const ExecutionContext& exec_ctx,
                ArrayRef<AsyncValue*> arguments,
                MutableArrayRef<RCReference<AsyncValue>> results) const override;
+  void ExecuteAsync(
+      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const override;
   void AddRef() const override;
   void DropRef() const override;
 

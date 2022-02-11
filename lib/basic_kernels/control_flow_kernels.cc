@@ -22,6 +22,7 @@
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -226,11 +227,11 @@ static void TFRTIf(RemainingArguments args, RemainingResults results,
   });
 }
 
-static void TFRTWhileImpl(
+static void TFRTWhileInlineImpl(
     const ExecutionContext& exec_ctx, const Function* body_fn,
     RCReference<AsyncValue> condition,
-    llvm::SmallVector<RCReference<AsyncValue>, 4> body_args,
-    llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> while_results) {
+    std::vector<RCReference<AsyncValue>> body_args,
+    std::vector<RCReference<IndirectAsyncValue>> while_results) {
   assert(condition->IsAvailable());
   assert(body_args.size() == while_results.size());
 
@@ -240,7 +241,7 @@ static void TFRTWhileImpl(
     body_arg_views.push_back(arg.get());
   }
 
-  llvm::SmallVector<RCReference<AsyncValue>, 4> body_results;
+  std::vector<RCReference<AsyncValue>> body_results;
   body_results.resize(while_results.size() + 1);
 
   while (!condition->IsError() && condition->get<bool>()) {
@@ -273,15 +274,15 @@ static void TFRTWhileImpl(
            while_results = std::move(while_results)]() mutable {
             // Enqueue the remaining work to the new threads to avoid stack
             // overflow.
-            EnqueueWork(
-                exec_ctx, [exec_ctx, body_fn_ref = std::move(body_fn_ref),
-                           condition = std::move(condition),
-                           body_args = std::move(body_args),
-                           while_results = std::move(while_results)]() mutable {
-                  TFRTWhileImpl(exec_ctx, body_fn_ref.get(),
-                                std::move(condition), std::move(body_args),
-                                std::move(while_results));
-                });
+            EnqueueWork(exec_ctx,
+                        [exec_ctx, body_fn_ref = std::move(body_fn_ref),
+                         condition = std::move(condition),
+                         body_args = std::move(body_args),
+                         while_results = std::move(while_results)]() mutable {
+                          TFRTWhileInlineImpl(
+                              exec_ctx, body_fn_ref.get(), std::move(condition),
+                              std::move(body_args), std::move(while_results));
+                        });
           });
       return;
     }
@@ -289,8 +290,8 @@ static void TFRTWhileImpl(
 
   assert(condition->IsAvailable());
 
-  // When the loop finishes either we set the results of the while op, excluding
-  // the last result that is the condition.
+  // When the loop finishes, we set the results of the while op, excluding the
+  // last result that is the condition.
   if (!condition->IsError()) {
     // If the condition is not an error, we simply forward the body results to
     // the while results, even if any of the body results are errors.
@@ -309,6 +310,61 @@ static void TFRTWhileImpl(
       }
     });
   }
+}
+
+static void TFRTWhileAsyncImpl(
+    const ExecutionContext& exec_ctx, const Function* body_fn,
+    RCReference<AsyncValue> condition,
+    std::vector<RCReference<AsyncValue>> body_args,
+    std::vector<RCReference<IndirectAsyncValue>> while_results) {
+  assert(condition->IsAvailable());
+  assert(body_args.size() == while_results.size());
+
+  // When the loop finishes, we set the results of the while op, excluding the
+  // last result that is the condition.
+  if (condition->IsError()) {
+    // If the condition is an error, we wait for the arguments to be ready
+    // first before setting them to errors, so that there won't be outstanding
+    // ops when the downstream receives these ready async values.
+    RunWhenReady(body_args, [while_results = std::move(while_results),
+                             error = std::move(condition)]() {
+      for (auto& result : while_results) {
+        result->ForwardTo(error);
+      }
+    });
+    return;
+  } else if (!condition->get<bool>()) {
+    // If the condition is not an error, we simply forward the body results to
+    // the while results, even if any of the body results are errors.
+    assert(while_results.size() == body_args.size());
+    for (int i = 0; i < while_results.size(); ++i) {
+      while_results[i]->ForwardTo(std::move(body_args[i]));
+    }
+    return;
+  }
+
+  llvm::SmallVector<AsyncValue*, 4> body_arg_views;
+  body_arg_views.reserve(body_args.size());
+  for (auto& arg : body_args) {
+    body_arg_views.push_back(arg.get());
+  }
+  std::vector<RCReference<AsyncValue>> body_results;
+  body_results.resize(body_args.size() + 1);
+
+  body_fn->ExecuteAsync(exec_ctx, body_arg_views, body_results);
+
+  // The last result from the body is the condition for the next iteration.
+  RCReference<AsyncValue> next_condition = std::move(body_results.back());
+  body_results.pop_back();
+
+  auto* next_condition_av = next_condition.get();
+  next_condition_av->AndThen(
+      [exec_ctx, body_fn, next_condition = std::move(next_condition),
+       next_body_args = std::move(body_results),
+       while_results = std::move(while_results)]() mutable {
+        TFRTWhileAsyncImpl(exec_ctx, body_fn, std::move(next_condition),
+                           std::move(next_body_args), std::move(while_results));
+      });
 }
 
 // TFRTWhile() implements the tfrt.while kernel, eg.
@@ -343,12 +399,12 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
   assert(body_fn->num_results() == results.size() + 1);
 
   // The first arg is the condition.
-  AsyncValue* condition_av = args[0];
-  assert(condition_av->IsAvailable());
-  assert(!condition_av->IsError());
+  RCReference<AsyncValue> condition = FormRef(args[0]);
+  assert(condition->IsAvailable());
+  assert(!condition->IsError());
 
   // The rest args are the arguments to the body function.
-  llvm::SmallVector<RCReference<AsyncValue>, 4> body_args;
+  std::vector<RCReference<AsyncValue>> body_args;
   body_args.reserve(args.size());
   for (auto* arg : args.values().drop_front()) {
     body_args.push_back(FormRef(arg));
@@ -356,16 +412,26 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
 
   // Allocate indirect async values for the results of the while op because the
   // execution later may return asynchronously without setting the results.
-  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> while_results;
+  std::vector<RCReference<IndirectAsyncValue>> while_results;
   while_results.reserve(results.size());
   for (int i = 0; i < results.size(); ++i) {
     auto result = results.AllocateIndirectResultAt(i);
     while_results.push_back(std::move(result));
   }
 
-  // Invoke execution of the iterations.
-  TFRTWhileImpl(exec_ctx, body_fn, FormRef(condition_av), std::move(body_args),
-                std::move(while_results));
+  if (parallel_iterations.get() > 1) {
+    // Invoke execution of the iterations asynchronously. If there are no data
+    // dependencies between iterations, they will be executed in parallel using
+    // the work_queue in `exec_ctx`.
+    //
+    // TODO(chky): Implement concurrency control based on `parallel_iterations`.
+    TFRTWhileAsyncImpl(exec_ctx, body_fn, std::move(condition),
+                       std::move(body_args), std::move(while_results));
+  } else {
+    // Invoke execution of the iterations inline.
+    TFRTWhileInlineImpl(exec_ctx, body_fn, std::move(condition),
+                        std::move(body_args), std::move(while_results));
+  }
 }
 
 // TFRTOnce() implements the tfrt.once kernel, eg.

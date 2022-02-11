@@ -323,6 +323,29 @@ static void BM_ResolveFullyDynamic(benchmark::State& state) {
   }
 }
 
+static void BM_ResolveSameDynamic(benchmark::State& state) {
+  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
+  auto type = GetFunctionType(
+      dtypes, {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
+
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  auto operands = GetFakeMemrefs({{2, 2}, {2, 2}, {2, 2}, {2, 2}});
+
+  for (auto _ : state) {
+    auto symbolic = resolver.Resolve(operands);
+    benchmark::DoNotOptimize(symbolic);
+  }
+}
+
 static void BM_ResolveAsStatic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
@@ -368,6 +391,7 @@ static void BM_ResolveAsSymbolic(benchmark::State& state) {
 }
 
 BENCHMARK(BM_ResolveFullyDynamic);
+BENCHMARK(BM_ResolveSameDynamic);
 BENCHMARK(BM_ResolveAsStatic);
 BENCHMARK(BM_ResolveAsSymbolic);
 

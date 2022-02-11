@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 
+#include "llvm/Support/Compiler.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/support/error_util.h"
@@ -310,7 +311,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
   };
 
   // Check that memref data type is compatible with the operand element type.
-  if (!AreCompatibleTypes(element_type, memref.dtype)) {
+  if (LLVM_UNLIKELY(!AreCompatibleTypes(element_type, memref.dtype))) {
     return MakeStringError(
         "operand #", index,
         " type is not compatible with the expected element type: ",
@@ -321,7 +322,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
   if (!sizes.hasValue()) return Error::success();
 
   // Check that memref rank is the same as operand rank.
-  if (memref.sizes.size() != sizes->size())
+  if (LLVM_UNLIKELY(memref.sizes.size() != sizes->size()))
     return MakeStringError(
         "operand #", index,
         " rank does not match expected input rank: ", memref.sizes.size(),
@@ -334,7 +335,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
 
     bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
 
-    if (operand_dim != expected_dim && !is_dynamic_dim)
+    if (LLVM_UNLIKELY(operand_dim != expected_dim && !is_dynamic_dim))
       return MakeStringError(
           "operand #", index, " dimension #", pair.index(),
           " does not match expected input dimension: ", operand_dim, " vs ",

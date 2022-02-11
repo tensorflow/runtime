@@ -145,6 +145,7 @@ class CompilationUnitAttribute {
     root_symbol_ = {base, root_symbol_len};
     size_t offset = root_symbol_len;
 
+    nested_symbols_.reserve(num_nested_symbols);
     for (int i = 0; i < num_nested_symbols; ++i) {
       size_t len = nested_symbols_len[i];
       nested_symbols_.emplace_back(base + offset, len);
@@ -162,7 +163,7 @@ class CompilationUnitAttribute {
  private:
   intptr_t id_;
   string_view root_symbol_;
-  llvm::SmallVector<string_view, 4> nested_symbols_;
+  llvm::SmallVector<string_view> nested_symbols_;
   string_view serialized_operation_;
 };
 

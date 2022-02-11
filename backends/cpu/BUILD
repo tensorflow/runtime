@@ -7,8 +7,6 @@ package(
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 tfrt_cc_library(
     name = "core_runtime",
     srcs = [

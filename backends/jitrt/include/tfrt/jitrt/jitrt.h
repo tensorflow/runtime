@@ -313,12 +313,10 @@ class ReturnValueConverter : public ReturnValueConverterBase {
                 "Conversion context can't be void");
 
  public:
-  explicit ReturnValueConverter(RemainingResults results)
-      : ReturnValueConverter(results, std::make_unique<ConversionContext>()) {}
-
-  ReturnValueConverter(RemainingResults results,
-                       std::unique_ptr<ConversionContext> context)
-      : ReturnValueConverterBase(results), context_(std::move(context)) {
+  // It is the caller's responsibility to guarantee that conversion context
+  // will outlive all pending conversions (in case of returning async values).
+  ReturnValueConverter(RemainingResults results, ConversionContext& context)
+      : ReturnValueConverterBase(results), context_(context) {
     AddConversion(UnsupportedReturnType);
   }
 
@@ -329,7 +327,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
                                   void* ret) const final {
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
       auto converted =
-          convert(*context_, results(), result_index, type, runtime_type, ret);
+          convert(context_, results(), result_index, type, runtime_type, ret);
       if (mlir::succeeded(converted)) return mlir::success();
     }
     return mlir::failure();
@@ -339,7 +337,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   // convertible to the `ConversionCallbackFn` function type:
   //
   //   mlir::LogicalResult(ConversionContext&, RemainingResults, unsigned,
-  //                       const Type* type, void*)
+  //                       const Type* type, const Type* runtime_type, void*)
   //
   // Conversion function must return `success` if it successfully handled the
   // return type and set the result async value. If conversion function returns
@@ -352,16 +350,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
     conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
   }
 
-  ConversionContext& context() { return *context_; }
-
-  // Transfers the ownership of the conversion context from this converter to
-  // the caller. It is the responsibility of the caller to extend the lifetime
-  // of the conversion context if conversion function accesses it and can be
-  // executed asynchronously when async result will become available (for
-  // example see `ReturnAsyncStridedMemref` implemented below).
-  std::unique_ptr<ConversionContext> TakeConversionContext() {
-    return std::move(context_);
-  }
+  ConversionContext& context() { return context_; }
 
   ReturnValueConverter(ReturnValueConverter&&) = default;
   ReturnValueConverter& operator=(ReturnValueConverter&&) = default;
@@ -381,7 +370,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
     return mlir::failure();
   }
 
-  std::unique_ptr<ConversionContext> context_;
+  ConversionContext& context_;  // must outlive all pending result conversions
   llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
 };
 

@@ -461,6 +461,11 @@ struct ConvertAsyncToChainAndEventPass
  private:
   void runOnOperation() override;
   StringRef getArgument() const override { return "async-tfrt-streamify"; }
+
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<tfrt::gpu::GpuDialect, StandardOpsDialect,
+                    tfrt::compiler::TFRTDialect>();
+  }
 };
 
 // A pass which converts from gpu dialect to tfrt_gpu dialect.

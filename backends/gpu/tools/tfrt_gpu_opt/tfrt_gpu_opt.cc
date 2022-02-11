@@ -156,5 +156,5 @@ int main(int argc, char **argv) {
   tfrt::gpu::registerPasses();
 
   return mlir::asMainReturnCode(
-      mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry, true));
+      mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
 }

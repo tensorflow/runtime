@@ -23,6 +23,10 @@
 
 #include <sys/types.h>
 
+#if __cplusplus >= 201703L
+#include <any>
+#endif
+
 #include <chrono>  // NOLINT(build/c++11)
 #include <cstddef>
 #include <cstdint>
@@ -868,6 +872,13 @@ class Executable {
 // constraints.
 class JitExecutable {
  public:
+// TODO(ezhulenev): Use std::any once TFRT switches to C++17.
+#if __cplusplus >= 201703L
+  using UserData = std::any;
+#else
+  using UserData = llvm::Any;
+#endif
+
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates
   // the internal state of the `JitExecutable`. This runner can be used by the
@@ -879,15 +890,14 @@ class JitExecutable {
   // will be passed to the runner if recompilation is required. It is guaranteed
   // that the runner will be called in the same thread as `GetExecutable`.
   //
-  // TODO(ezhulenev): Use std::any once TFRT switches to C++17.
-  using CompilationTaskRunner = llvm::unique_function<void(
-      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
-      llvm::Any)>;
+  using CompilationTaskRunner =
+      llvm::unique_function<void(size_t, ArrayRef<OperandConstraint>,
+                                 ArrayRef<MemrefDesc>, TaskFunction, UserData)>;
 
   // Inline compilation task runner runs compilation task in the caller thread.
   static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task, llvm::Any user_data);
+      ArrayRef<MemrefDesc> operands, TaskFunction task, UserData user_data);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
@@ -925,7 +935,7 @@ class JitExecutable {
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
-      ArrayRef<MemrefDesc> operands, llvm::Any user_data = {},
+      ArrayRef<MemrefDesc> operands, UserData user_data = {},
       const SpecializationListener* listener = nullptr);
 
   // Returns an async value that becomes ready when all executables owned by

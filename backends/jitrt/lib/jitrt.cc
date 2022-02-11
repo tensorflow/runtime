@@ -909,7 +909,7 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
 /*static*/ void JitExecutable::InlineCompilationTaskRunner(
     size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-    ArrayRef<MemrefDesc> operands, TaskFunction task, llvm::Any user_data) {
+    ArrayRef<MemrefDesc> operands, TaskFunction task, UserData user_data) {
   task();
 }
 
@@ -1039,7 +1039,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
 // fall back on the default executable. However what to do if default executable
 // is not available, and the number of specializations is above N?
 Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands, llvm::Any user_data,
+    ArrayRef<MemrefDesc> operands, UserData user_data,
     const SpecializationListener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)

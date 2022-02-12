@@ -238,7 +238,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
 }
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
-  for (auto iter : llvm::enumerate(fn->argument_types().drop_front())) {
+  for (const auto& iter : llvm::enumerate(fn->argument_types().drop_front())) {
     size_t i = iter.index();
     auto& type = iter.value();
     if (type.GetName() != kTensorHandleType) {
@@ -247,7 +247,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
                              "-th argument is type [", type.GetName(), "].");
     }
   }
-  for (auto iter : llvm::enumerate(fn->result_types().drop_front())) {
+  for (const auto& iter : llvm::enumerate(fn->result_types().drop_front())) {
     size_t i = iter.index();
     auto& type = iter.value();
     if (type.GetName() != kTensorHandleType) {
@@ -294,7 +294,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     if (invocation.chain)
       *invocation.chain = AsyncValueRef<Chain>(std::move(results[0]));
 
-    for (auto iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
+    for (const auto& iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
       size_t i = iter.index();
       auto& result_av = iter.value();
       if (result_av->IsAvailable()) {
@@ -411,7 +411,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
     if (invocation.chain)
       *invocation.chain = AsyncValueRef<Chain>(std::move(results[0]));
 
-    for (auto iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
+    for (const auto& iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
       size_t i = iter.index();
       auto& result_av = iter.value();
 

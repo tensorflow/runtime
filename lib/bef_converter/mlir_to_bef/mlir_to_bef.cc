@@ -364,7 +364,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
             if (IsSyncFunc(fn)) {
               llvm::SmallSetVector<mlir::Value, 4> return_operands;
-              for (auto iter : llvm::enumerate(last_op.getOperands())) {
+              for (const auto& iter : llvm::enumerate(last_op.getOperands())) {
                 auto index = iter.index();
                 const auto& operand = iter.value();
                 if (operand.isa<mlir::BlockArgument>()) {

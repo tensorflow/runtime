@@ -24,6 +24,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
 #include "tfrt/tensor/tensor_type_registration.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -169,13 +170,35 @@ static Error DnnPoolingBackward(
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
+  auto platform = handle->platform();
+
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
 
-  return wrapper::DnnPoolingBackward(
-      *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
-      y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
-      beta_ptr, dx_desc.get(), dx.pointer());
+  switch (platform) {
+    case wrapper::Platform::CUDA:
+      return wrapper::CudnnPoolingBackward(
+          *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
+          y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
+          beta_ptr, dx_desc.get(), dx.pointer());
+    case wrapper::Platform::ROCm:
+    {
+      size_t workspace_size;
+      wrapper::Pointer<void> workspace_size_ptr(&workspace_size, platform);
+      if (MiopenPoolingGetWorkSpaceSizeV2(*current, pooling_desc.get(), y_desc.get(), workspace_size_ptr)){
+        return MakeStringError("Unable to get the workspace size.");
+      }
+      auto dev_mem = wrapper::MemAlloc(*current, workspace_size);
+      if (!dev_mem) return dev_mem.takeError();
+      auto workspace=dev_mem->get();
+      return wrapper::MiopenPoolingBackward(
+          *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
+          y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
+          beta_ptr, dx_desc.get(), dx.pointer(), workspace);
+    }
+    default:
+      return MakeStringError("Unknown platform.");
+  }
 }
 
 static Error DnnConvolutionForward(

@@ -18,7 +18,6 @@
 #include "library_types.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
-#include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
@@ -719,29 +718,6 @@ llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
       return MiopenPoolingForward(current, handle, pooling_desc, alpha, x_desc,
                                   x, beta, y_desc, y, /*do_backward=*/false,
                                   /*workspace=*/{}, /*workspace_size_bytes=*/0);
-    default:
-      return InvalidPlatform(platform);
-  }
-}
-
-llvm::Error DnnPoolingBackward(
-    CurrentContext current, DnnHandle handle,
-    const DnnPoolingDescriptor pooling_desc, Pointer<const void> alpha,
-    const DnnTensorDescriptor y_desc, Pointer<const void> y,
-    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    const DnnTensorDescriptor x_desc, Pointer<const void> x,
-    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
-    Pointer<void> dx) {
-  auto platform = current.platform();
-  switch (platform) {
-    case Platform::CUDA:
-      return CudnnPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
-                                  y, dy_desc, dy, x_desc, x, beta, dx_desc, dx);
-    case Platform::ROCm:
-      // This assumes no workspace is required, which is probably incorrect.
-      return MiopenPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
-                                   y, dy_desc, dy, x_desc, x, beta, dx_desc, dx
-                                  );
     default:
       return InvalidPlatform(platform);
   }

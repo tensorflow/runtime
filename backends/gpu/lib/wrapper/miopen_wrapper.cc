@@ -361,6 +361,17 @@ llvm::Error MiopenPoolingForward(
   return TO_ERROR(miopenPoolingForward(
       handle, pooling_desc, ToRocm(alpha), x_desc, ToRocm(x), ToRocm(beta),
       y_desc, ToRocm(y), do_backward, ToRocm(workspace), workspace_size_bytes));
+} 
+
+llvm::Error  MiopenPoolingGetWorkSpaceSizeV2(
+                                             CurrentContext current,
+                                             const miopenPoolingDescriptor_t pooling_desc, 
+                                             const miopenTensorDescriptor_t y_desc, 
+                                             Pointer<void> workspace){
+  CheckHipContext(current);
+  return TO_ERROR(miopenPoolingGetWorkSpaceSizeV2(pooling_desc,
+                                                  y_desc,
+                                                  static_cast<size_t*>(workspace.raw())));
 }
 
 llvm::Error MiopenPoolingBackward(
@@ -370,11 +381,8 @@ llvm::Error MiopenPoolingBackward(
     const miopenTensorDescriptor_t dy_desc, Pointer<const void> dy,
     const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
     Pointer<const void> beta, const miopenTensorDescriptor_t dx_desc,
-    Pointer<void> dx) {
+    Pointer<void> dx, Pointer<void> workspace) {
   CheckHipContext(current);
-  size_t workspace_size;
-  RETURN_IF_ERROR(miopenPoolingGetWorkSpaceSize(y_desc, &workspace_size));
-  Pointer<void> workspace = MemAlloc(current, workspace_size).get().get();
   return TO_ERROR(miopenPoolingBackward(
       handle, pooling_desc, ToRocm(alpha), y_desc, ToRocm(y), dy_desc,
       ToRocm(dy), x_desc, ToRocm(x), ToRocm(beta), dx_desc, ToRocm(dx),

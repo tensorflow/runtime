@@ -181,6 +181,11 @@ llvm::Error MiopenPoolingForward(
     Pointer<const void> beta, const miopenTensorDescriptor_t y_desc,
     Pointer<void> y, bool do_backward, Pointer<void> workspace,
     size_t workspace_size_bytes);
+llvm::Error  MiopenPoolingGetWorkSpaceSizeV2(
+                                             CurrentContext current,
+                                             const miopenPoolingDescriptor_t pooling_desc, 
+                                             const miopenTensorDescriptor_t y_desc, 
+                                             Pointer<void> workspace);
 llvm::Error MiopenPoolingBackward(
     CurrentContext current, miopenHandle_t handle,
     const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,
@@ -188,7 +193,7 @@ llvm::Error MiopenPoolingBackward(
     const miopenTensorDescriptor_t dy_desc, Pointer<const void> dy,
     const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
     Pointer<const void> beta, const miopenTensorDescriptor_t dx_desc,
-    Pointer<void> dx);
+    Pointer<void> dx, Pointer<void> worsspace);
 
 }  // namespace wrapper
 }  // namespace gpu

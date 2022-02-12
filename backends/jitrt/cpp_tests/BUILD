@@ -14,6 +14,7 @@ tfrt_cc_test(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//backends/jitrt",
+        "@tf_runtime//backends/jitrt:jitrt_compiler",
     ],
 )
 

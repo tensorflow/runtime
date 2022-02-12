@@ -22,6 +22,7 @@
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/logging.h"
 
 namespace tfrt {
@@ -30,9 +31,12 @@ namespace {
 using ::llvm::SmallVector;
 
 using ::tfrt::jitrt::CompilationOptions;
+using ::tfrt::jitrt::CompilationPipelineOptions;
+using ::tfrt::jitrt::CreateDefaultJitRtCompilationPipeline;
 using ::tfrt::jitrt::Executable;
 using ::tfrt::jitrt::JitExecutable;
 using ::tfrt::jitrt::MemrefDesc;
+using ::tfrt::jitrt::RegisterDefaultJitRtDialects;
 using ::tfrt::jitrt::SymbolicShapesResolver;
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
@@ -66,6 +70,7 @@ SmallVector<MemrefDesc> GetFakeMemrefs(SmallVector<SymbolicShape> shapes) {
 
   for (auto& shape : shapes) {
     MemrefDesc desc;
+    desc.dtype = DType::F32;
     desc.sizes.insert(desc.sizes.begin(), shape.begin(), shape.end());
     memrefs.push_back(std::move(desc));
   }
@@ -77,12 +82,15 @@ void BenchmarkGetExecutable(benchmark::State& state,
                             SmallVector<MemrefDesc> operands) {
   auto host = CreateSingleThreadedHostContext();
 
-  // Build an ExecutionContext from the HostContext.
-  llvm::Expected<RCReference<RequestContext>> req_ctx =
-      RequestContextBuilder(host.get(), /*resource_context=*/nullptr).build();
-  tfrt::ExecutionContext exec_ctx(std::move(*req_ctx));
-
   CompilationOptions opts;
+  opts.specialization = CompilationOptions::Specialization::kAlways;
+  opts.register_dialects = RegisterDefaultJitRtDialects;
+
+  CompilationPipelineOptions copts;
+  opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+    CreateDefaultJitRtCompilationPipeline(pm, copts);
+  };
+
   llvm::Expected<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
   if (auto err = jit_executable.takeError()) TFRT_LOG(FATAL) << err;
@@ -90,7 +98,11 @@ void BenchmarkGetExecutable(benchmark::State& state,
   // Initialize specialization cache.
   Expected<AsyncValuePtr<Executable>> initialize =
       jit_executable->GetExecutable(operands);
-  benchmark::DoNotOptimize(initialize);
+  if (auto err = initialize.takeError()) TFRT_LOG(FATAL) << err;
+
+  // Check that compilation was successful.
+  host->Quiesce();
+  if (initialize->IsError()) TFRT_LOG(FATAL) << initialize->GetError();
 
   for (auto _ : state) {
     Expected<AsyncValuePtr<Executable>> specialize =

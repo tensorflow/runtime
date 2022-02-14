@@ -1009,18 +1009,10 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
   return constraints_;
 }
 
-// Hashes the given operands.
-// Note: due to value specialization, the resulting hash might depend on the
-// values (and not only on the types) of the operands.
-static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
-                                    ArrayRef<SymbolicShape> symbolic_shapes,
-                                    ArrayRef<OperandConstraint> constraints,
-                                    bool has_value_constraints) {
-  // Compute hash of the symbolic shapes.
-  llvm::hash_code hash = SymbolicShapesResolver::Hash(symbolic_shapes);
-  if (LLVM_LIKELY(!has_value_constraints)) return hash;
-
-  // Mix values of arguments to be sunk into the hash.
+// Combines `hash` with a hash value computed from a value constrained operands.
+static llvm::hash_code CombineWithValueConstraineOperands(
+    llvm::hash_code hash, ArrayRef<MemrefDesc> operands,
+    ArrayRef<OperandConstraint> constraints) {
   for (int i = 0; i < constraints.size(); ++i) {
     if (LLVM_LIKELY(constraints[i] != OperandConstraint::kValue)) continue;
 
@@ -1051,13 +1043,17 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
 
-  // Resolve symbolic shapes based on the static and runtime information.
-  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
-      symbolic_shapes_resolver_.Resolve(operands);
+  // Resolve symbolic shapes hash based on the static and runtime information.
+  //
+  // We rely on the hash code to find the specialized executable. In case of
+  // a collision (practically impossible) incompatible operands will be rejected
+  // by the executable operands verification.
+  mlir::FailureOr<llvm::hash_code> hash =
+      symbolic_shapes_resolver_.ResolveHash(operands);
 
-  // If we failed to resolve the symbolic shapes, then we need to verify all the
-  // operands to find the mismatch and report it to the user.
-  if (LLVM_UNLIKELY(mlir::failed(symbolic_shapes))) {
+  // If we failed to resolve the symbolic shapes hash, then we need to verify
+  // all the operands to find the mismatch and report it to the user.
+  if (LLVM_UNLIKELY(mlir::failed(hash))) {
     for (unsigned i = 0; i < operands.size(); ++i) {
       auto* type = signature_.operand(i);
 
@@ -1079,14 +1075,12 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     return MakeStringError("failed to resolve symbolic shapes");
   }
 
-  // We rely on the hash code to find the specialized executable. In case of
-  // a collision (practically impossible) incompatible operands will be rejected
-  // by the executable operands verification.
-  llvm::hash_code hash = HashOperands(operands, *symbolic_shapes, constraints_,
-                                      has_value_constraints_);
+  // Combine with a hash value computed from the value constrained operands.
+  if (LLVM_UNLIKELY(has_value_constraints_))
+    *hash = CombineWithValueConstraineOperands(*hash, operands, constraints_);
 
   // Maybe return Executable from the cache.
-  if (auto cached = specializations_->Find(hash)) {
+  if (auto cached = specializations_->Find(*hash)) {
     // Always use specialized kernel if required by the compilation options.
     if (compilation_opts_.specialization == Specialization::kAlways)
       return cached;
@@ -1113,6 +1107,8 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
+  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
+      symbolic_shapes_resolver_.Resolve(operands);
   if (auto err = (*ctx)->Specialize(operands, *symbolic_shapes, constraints_,
                                     listener)) {
     return MakeStringError("failed to specialize executable: ", err);
@@ -1120,7 +1116,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Allocate a placeholder for the compiled specialization only after we are
   // ready to dispatch the compilation task.
-  Specializations::Entry entry = specializations_->Allocate(hash);
+  Specializations::Entry entry = specializations_->Allocate(*hash);
 
   // We lost the race; some other invocation will do the compilation.
   if (!entry.allocated) return entry.ptr;

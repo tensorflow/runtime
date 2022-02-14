@@ -363,15 +363,14 @@ llvm::Error MiopenPoolingForward(
       y_desc, ToRocm(y), do_backward, ToRocm(workspace), workspace_size_bytes));
 } 
 
-llvm::Error  MiopenPoolingGetWorkSpaceSizeV2(
-                                             CurrentContext current,
-                                             const miopenPoolingDescriptor_t pooling_desc, 
-                                             const miopenTensorDescriptor_t y_desc, 
-                                             Pointer<void> workspace){
-  CheckHipContext(current);
-  return TO_ERROR(miopenPoolingGetWorkSpaceSizeV2(pooling_desc,
+llvm::Expected<size_t>  MiopenPoolingGetWorkSpaceSizeV2(
+                                                        const miopenPoolingDescriptor_t pooling_desc, 
+                                                        const miopenTensorDescriptor_t y_desc){
+  size_t workspace_bytes;
+  RETURN_IF_ERROR(miopenPoolingGetWorkSpaceSizeV2(pooling_desc,
                                                   y_desc,
-                                                  static_cast<size_t*>(workspace.raw())));
+                                                  &workspace_bytes));
+  return workspace_bytes;
 }
 
 llvm::Error MiopenPoolingBackward(

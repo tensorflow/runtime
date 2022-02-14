@@ -183,18 +183,14 @@ static Error DnnPoolingBackward(
           beta_ptr, dx_desc.get(), dx.pointer());
     case wrapper::Platform::ROCm:
     {
-      size_t workspace_size;
-      wrapper::Pointer<void> workspace_size_ptr(&workspace_size, platform);
-      if (MiopenPoolingGetWorkSpaceSizeV2(*current, pooling_desc.get(), y_desc.get(), workspace_size_ptr)){
-        return MakeStringError("Unable to get the workspace size.");
-      }
-      auto dev_mem = wrapper::MemAlloc(*current, workspace_size);
-      if (!dev_mem) return dev_mem.takeError();
-      auto workspace=dev_mem->get();
+      auto workspace_size_bytes = MiopenPoolingGetWorkSpaceSizeV2(pooling_desc.get(), y_desc.get());
+      if (!workspace_size_bytes) return workspace_size_bytes.takeError();
+      auto workspace = wrapper::MemAlloc(*current, *workspace_size_bytes);
+      if (!workspace) return workspace.takeError();
       return wrapper::MiopenPoolingBackward(
           *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
           y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
-          beta_ptr, dx_desc.get(), dx.pointer(), workspace);
+          beta_ptr, dx_desc.get(), dx.pointer(), workspace->get());
     }
     default:
       return MakeStringError("Unknown platform.");

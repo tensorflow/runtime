@@ -320,7 +320,7 @@ static void BM_ResolveFullyDynamic(benchmark::State& state) {
 
   for (auto _ : state) {
     auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
+    benchmark::DoNotOptimize(*symbolic);
   }
 }
 
@@ -343,7 +343,30 @@ static void BM_ResolveSameDynamic(benchmark::State& state) {
 
   for (auto _ : state) {
     auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
+    benchmark::DoNotOptimize(*symbolic);
+  }
+}
+
+static void BM_ResolveSomeDynamic(benchmark::State& state) {
+  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
+  auto type = GetFunctionType(
+      dtypes, {{{2, 2}},
+               {{4, 4}},
+               {{8, 8}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
+
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  auto operands = GetFakeMemrefs({{2, 2}, {4, 4}, {8, 8}, {16, 16}});
+
+  for (auto _ : state) {
+    auto symbolic = resolver.Resolve(operands);
+    benchmark::DoNotOptimize(*symbolic);
   }
 }
 
@@ -361,11 +384,11 @@ static void BM_ResolveAsStatic(benchmark::State& state) {
 
   SymbolicShapesResolver resolver(type, constraints);
 
-  auto operands = GetFakeMemrefs({{32, 4}, {16, 8}, {8, 8}, {4, 32}});
+  auto operands = GetFakeMemrefs({{32, 4}, {16, 8}, {8, 16}, {4, 32}});
 
   for (auto _ : state) {
     auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
+    benchmark::DoNotOptimize(*symbolic);
   }
 }
 
@@ -383,16 +406,17 @@ static void BM_ResolveAsSymbolic(benchmark::State& state) {
 
   SymbolicShapesResolver resolver(type, constraints);
 
-  auto operands = GetFakeMemrefs({{1, 4}, {2, 8}, {3, 8}, {4, 32}});
+  auto operands = GetFakeMemrefs({{1, 4}, {2, 8}, {3, 16}, {4, 32}});
 
   for (auto _ : state) {
     auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
+    benchmark::DoNotOptimize(*symbolic);
   }
 }
 
 BENCHMARK(BM_ResolveFullyDynamic);
 BENCHMARK(BM_ResolveSameDynamic);
+BENCHMARK(BM_ResolveSomeDynamic);
 BENCHMARK(BM_ResolveAsStatic);
 BENCHMARK(BM_ResolveAsSymbolic);
 

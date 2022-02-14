@@ -469,24 +469,32 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
           result_index, Converter::template Convert<T, rank>(ctx, result_ptr));
     };
 
-    if (rank == 0)
-      convert_and_emplace(std::integral_constant<int, 0>{});
-    else if (rank == 1)
-      convert_and_emplace(std::integral_constant<int, 1>{});
-    else if (rank == 2)
-      convert_and_emplace(std::integral_constant<int, 2>{});
-    else if (rank == 3)
-      convert_and_emplace(std::integral_constant<int, 3>{});
-    else if (rank == 4)
-      convert_and_emplace(std::integral_constant<int, 4>{});
-    else if (rank == 5)
-      convert_and_emplace(std::integral_constant<int, 5>{});
-    else
-      // TODO(ezhulenev): To simplify conversion from a void* pointer to memref
-      // descriptor we rely on the StridedMemrefType<T, rank> and dispatch
-      // only up to a fixed rank.
-      results.MakeErrorAt(result_index,
-                          StrCat("unsupported returned memref rank: ", rank));
+    switch (rank) {
+      case 0:
+        convert_and_emplace(std::integral_constant<int, 0>{});
+        break;
+      case 1:
+        convert_and_emplace(std::integral_constant<int, 1>{});
+        break;
+      case 2:
+        convert_and_emplace(std::integral_constant<int, 2>{});
+        break;
+      case 3:
+        convert_and_emplace(std::integral_constant<int, 3>{});
+        break;
+      case 4:
+        convert_and_emplace(std::integral_constant<int, 4>{});
+        break;
+      case 5:
+        convert_and_emplace(std::integral_constant<int, 5>{});
+        break;
+      default:
+        // TODO(ezhulenev): To simplify conversion from a void* pointer to
+        // memref descriptor we rely on the StridedMemrefType<T, rank> and
+        // dispatch only up to a fixed rank.
+        results.MakeErrorAt(result_index,
+                            StrCat("unsupported returned memref rank: ", rank));
+    }
   };
 
   // Dispatch based on the element type.
@@ -586,32 +594,47 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
     // Pass an opaque pointer to the operands context to the emplace function.
     void* ptr = const_cast<void*>(reinterpret_cast<const void*>(&ctx));
 
-    if (rank == 0)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 0>);
-    else if (rank == 1)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 1>);
-    else if (rank == 2)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 2>);
-    else if (rank == 3)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 3>);
-    else if (rank == 4)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 4>);
-    else if (rank == 5)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 5>);
-    else
-      // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
-      // we can't pass a runtime arguments to emplace functions via lambda
-      // capture, because the value might become available asynchronously and
-      // this will lead to use after free. Consider adding an std::function
-      // alternative for ranks higher then 5? Lambdas with small captures should
-      // be stack allocated anyway, however it is implementation defined.
-      //
-      // TODO(ezhulenev): Another alternative is to pass the desired result
-      // type after conversion via the conversion context. Emplace function can
-      // query all the information it needs from the conversion context, e.g.
-      // expected result type rank and data type.
-      results.MakeErrorAt(result_index,
-                          StrCat("unsupported returned memref rank: ", rank));
+    switch (rank) {
+      case 0:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 0>);
+        break;
+      case 1:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 1>);
+        break;
+      case 2:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 2>);
+        break;
+      case 3:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 3>);
+        break;
+      case 4:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 4>);
+        break;
+      case 5:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 5>);
+        break;
+      default:
+        // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
+        // we can't pass a runtime arguments to emplace functions via lambda
+        // capture, because the value might become available asynchronously and
+        // this will lead to use after free. Consider adding an std::function
+        // alternative for ranks higher then 5? Lambdas with small captures
+        // should be stack allocated anyway, however it is implementation
+        // defined.
+        //
+        // TODO(ezhulenev): Another alternative is to pass the desired result
+        // type after conversion via the conversion context. Emplace function
+        // can query all the information it needs from the conversion context,
+        // e.g. expected result type rank and data type.
+        results.MakeErrorAt(result_index,
+                            StrCat("unsupported returned memref rank: ", rank));
+    }
   };
 
   // Dispatch based on the memref element type.

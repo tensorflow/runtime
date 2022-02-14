@@ -94,33 +94,49 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100, 100}, {100}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -2}, {-2}, {-2, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, -2, 1, -2, 2, -2, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // All unknown dimensions are unique at runtime.
     auto operands = GetFakeMemrefs({{100, 101}, {102}, {103, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -3}, {-4}, {-5, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, -3, 1, -4, 2, -5, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Ones converted to a static dimension.
     auto operands = GetFakeMemrefs({{1, 1, 1}, {1}, {1, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1, 1, 1}, {1}, {1, 4}}));
+
+    llvm::SmallVector<int64_t> values = {3, 1, 1, 1, 1, 1, 2, 1, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Known constants converted to a static dimension.
     auto operands = GetFakeMemrefs({{100, 4}, {4}, {1, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {4}, {1, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 1, 4, 2, 1, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -140,33 +156,49 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100}, {100}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-2}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {1, -2, 1, -2, 1, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // All unknown dimensions are unique at runtime.
     auto operands = GetFakeMemrefs({{100}, {101}, {102}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-4}}));
+
+    llvm::SmallVector<int64_t> values = {1, -2, 1, -3, 1, -4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Two of the three dimensions are the same.
     auto operands = GetFakeMemrefs({{100}, {101}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {1, -2, 1, -3, 1, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Ones converted to a static dimension.
     auto operands = GetFakeMemrefs({{1}, {1}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1}, {1}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {1, 1, 1, 1, 1, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -186,41 +218,61 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100, 4}, {100, 8}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-2, 8}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, -2, 8, 1, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // All unknown dimensions are unique at runtime.
     auto operands = GetFakeMemrefs({{100, 4}, {101, 8}, {102}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, -3, 8, 1, -4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Two of the three dimensions are the same.
     auto operands = GetFakeMemrefs({{100, 4}, {101, 8}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, -3, 8, 1, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Ones converted to a static dimension.
     auto operands = GetFakeMemrefs({{1, 4}, {100, 8}, {1}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1, 4}, {-2, 8}, {1}}));
+
+    llvm::SmallVector<int64_t> values = {2, 1, 4, 2, -2, 8, 1, 1};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Known constants converted to a static dimension.
     auto operands = GetFakeMemrefs({{100, 4}, {8, 8}, {8}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {8, 8}, {8}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, 8, 8, 1, 8};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -238,9 +290,13 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
   {  // All unknown materialized as static shapes.
     auto operands = GetFakeMemrefs({{100, 100}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, 100, 100, 2, 100, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -260,17 +316,25 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInputAfterDynamicInput) {
      // resolved based on seen static shapes of the second one).
     auto operands = GetFakeMemrefs({{100, 50}, {100, 50}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, 50}, {100, 50}}));
+
+    llvm::SmallVector<int64_t> values = {2, 100, 50, 2, 100, 50};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Unknown dimension correctly resolved to a symbolic dimension.
     auto operands = GetFakeMemrefs({{100, 50}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, -2}, {100, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, 100, 4, 2, 100, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -285,15 +349,19 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
   {  // Operand of a different rank;
     auto operands = GetFakeMemrefs({{100, 100, 100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_TRUE(mlir::failed(symbolic));
+    EXPECT_TRUE(mlir::failed(hash));
   }
 
   {  // Operand with mismatched static shape.
     auto operands = GetFakeMemrefs({{100, 100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_TRUE(mlir::failed(symbolic));
+    EXPECT_TRUE(mlir::failed(hash));
   }
 }
 
@@ -311,9 +379,7 @@ struct Resolve {
 struct ResolveHash {
   static mlir::FailureOr<llvm::hash_code> Run(SymbolicShapesResolver& resolver,
                                               ArrayRef<MemrefDesc> operands) {
-    auto symbolic = resolver.Resolve(operands);
-    if (mlir::failed(symbolic)) return mlir::failure();
-    return SymbolicShapesResolver::Hash(*symbolic);
+    return resolver.ResolveHash(operands);
   }
 };
 

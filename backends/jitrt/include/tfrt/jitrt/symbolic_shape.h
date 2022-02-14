@@ -70,13 +70,29 @@ class SymbolicShapesResolver {
   // Resolves symbolic shapes from the runtime operands. Returns failure if
   // runtime dimensions do not match the statically known dimensions.
   mlir::FailureOr<llvm::SmallVector<SymbolicShape>> Resolve(
-      ArrayRef<MemrefDesc> operands);
+      ArrayRef<MemrefDesc> operands) const;
+
+  // Resolves symbolic shapes and computes the hash value from the runtime
+  // operands. Returns failure if runtime dimensions do not match the statically
+  // known dimensions.
+  //
+  // This function might not return the same hash value as calling `Resolve` and
+  // then `Hash`, because it might use more efficient hashing algorithm.
+  mlir::FailureOr<llvm::hash_code> ResolveHash(
+      ArrayRef<MemrefDesc> operands) const;
 
   // Replaces all symbolic dimensions with dynamic dimension.
   static llvm::SmallVector<int64_t> Normalize(const SymbolicShape& shape);
 
   // Computes a hash value of the symbolic shapes.
   static llvm::hash_code Hash(ArrayRef<SymbolicShape> symbolic_shapes);
+
+  OperandConstraint constraint(size_t index) const;
+  size_t num_operands() const;
+  bool has_operand_sizes(size_t index) const;
+  const StaticShape& operand_sizes(size_t index) const;
+  bool seen_static_size(size_t dim) const;
+  ArrayRef<size_t> iteration_order() const;
 
  private:
   // Constraints on the function operands.

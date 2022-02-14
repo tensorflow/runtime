@@ -954,6 +954,9 @@ class JitExecutable {
   // `kResolved`.
   llvm::SmallVector<OperandConstraint> constraints_;
 
+  // True if any of the operands has `OperandConstraint::kValue` constraint.
+  bool has_value_constraints_;
+
   // Signature of the compiled module entrypoint function.
   //
   // This function signature is allowed to have operands and results types

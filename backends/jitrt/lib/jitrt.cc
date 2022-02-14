@@ -867,6 +867,12 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   });
 }
 
+static bool HasValueConstraints(ArrayRef<OperandConstraint> constraints) {
+  return llvm::any_of(constraints, [](OperandConstraint constraint) {
+    return constraint == OperandConstraint::kValue;
+  });
+}
+
 // Returns true if all function operands have statically known shape.
 static bool HasStaticShapeOperands(const FunctionType& signature) {
   auto is_static = [](ArrayRef<Index> sizes) -> bool {
@@ -979,6 +985,7 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
+      has_value_constraints_(HasValueConstraints(constraints_)),
       signature_(std::move(signature)),
       symbolic_shapes_resolver_(signature_, constraints_),
       has_default_executable_(default_executable.hasValue()),
@@ -1007,13 +1014,16 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
 // values (and not only on the types) of the operands.
 static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
                                     ArrayRef<SymbolicShape> symbolic_shapes,
-                                    ArrayRef<OperandConstraint> constraints) {
+                                    ArrayRef<OperandConstraint> constraints,
+                                    bool has_value_constraints) {
   // Compute hash of the symbolic shapes.
   llvm::hash_code hash = SymbolicShapesResolver::Hash(symbolic_shapes);
+  if (LLVM_LIKELY(!has_value_constraints)) return hash;
 
   // Mix values of arguments to be sunk into the hash.
   for (int i = 0; i < constraints.size(); ++i) {
-    if (constraints[i] != OperandConstraint::kValue) continue;
+    if (LLVM_LIKELY(constraints[i] != OperandConstraint::kValue)) continue;
+
     const MemrefDesc& operand = operands[i];
     const auto* data = static_cast<uint8_t*>(operand.data);
     size_t rank = operand.sizes.size();
@@ -1072,7 +1082,8 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // We rely on the hash code to find the specialized executable. In case of
   // a collision (practically impossible) incompatible operands will be rejected
   // by the executable operands verification.
-  llvm::hash_code hash = HashOperands(operands, *symbolic_shapes, constraints_);
+  llvm::hash_code hash = HashOperands(operands, *symbolic_shapes, constraints_,
+                                      has_value_constraints_);
 
   // Maybe return Executable from the cache.
   if (auto cached = specializations_->Find(hash)) {

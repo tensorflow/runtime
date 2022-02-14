@@ -191,7 +191,7 @@ llvm::Error MiopenPoolingBackward(
     const miopenTensorDescriptor_t dy_desc, Pointer<const void> dy,
     const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
     Pointer<const void> beta, const miopenTensorDescriptor_t dx_desc,
-    Pointer<void> dx, Pointer<void> worsspace);
+    Pointer<void> dx, Pointer<void> workspace);
 
 }  // namespace wrapper
 }  // namespace gpu

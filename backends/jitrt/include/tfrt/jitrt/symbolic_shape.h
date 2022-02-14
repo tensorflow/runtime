@@ -18,6 +18,7 @@
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_SYMBOLIC_SHAPE_H_
 
 #include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/types.h"
@@ -73,6 +74,9 @@ class SymbolicShapesResolver {
 
   // Replaces all symbolic dimensions with dynamic dimension.
   static llvm::SmallVector<int64_t> Normalize(const SymbolicShape& shape);
+
+  // Computes a hash value of the symbolic shapes.
+  static llvm::hash_code Hash(ArrayRef<SymbolicShape> symbolic_shapes);
 
  private:
   // Constraints on the function operands.

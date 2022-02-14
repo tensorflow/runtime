@@ -58,6 +58,7 @@
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/support.h"
+#include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
@@ -1007,14 +1008,8 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
 static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
                                     ArrayRef<SymbolicShape> symbolic_shapes,
                                     ArrayRef<OperandConstraint> constraints) {
-  llvm::hash_code hash(0);
-
-  // Compute hash based on the symbolic shapes of the operands.
-  for (const SymbolicShape& shape : symbolic_shapes) {
-    hash = llvm::hash_combine(
-        hash, shape.size(),
-        llvm::hash_combine_range(shape.begin(), shape.end()));
-  }
+  // Compute hash of the symbolic shapes.
+  llvm::hash_code hash = SymbolicShapesResolver::Hash(symbolic_shapes);
 
   // Mix values of arguments to be sunk into the hash.
   for (int i = 0; i < constraints.size(); ++i) {

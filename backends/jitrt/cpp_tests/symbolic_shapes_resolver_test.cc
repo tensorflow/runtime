@@ -15,6 +15,7 @@
  */
 
 #include <memory>
+#include <utility>
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
@@ -394,5 +395,50 @@ BENCHMARK(BM_ResolveFullyDynamic);
 BENCHMARK(BM_ResolveSameDynamic);
 BENCHMARK(BM_ResolveAsStatic);
 BENCHMARK(BM_ResolveAsSymbolic);
+
+static void HashSymbolicShapes(benchmark::State& state,
+                               ArrayRef<SymbolicShape> symbolic_shapes) {
+  for (auto _ : state) {
+    auto hash = SymbolicShapesResolver::Hash(symbolic_shapes);
+    benchmark::DoNotOptimize(hash);
+  }
+}
+
+static void BM_Hash1x1(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(1, {1});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash1x4(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(4, {1});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash1x8(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(8, {1});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash2x1(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(1, {1, 2});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash2x4(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(4, {1, 2});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash2x8(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(8, {1, 2});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+BENCHMARK(BM_Hash1x1);
+BENCHMARK(BM_Hash1x4);
+BENCHMARK(BM_Hash1x8);
+BENCHMARK(BM_Hash2x1);
+BENCHMARK(BM_Hash2x4);
+BENCHMARK(BM_Hash2x8);
 
 }  // namespace tfrt

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "llvm/ADT/Hashing.h"
 #include "llvm/Support/Compiler.h"
 
 namespace tfrt {
@@ -171,6 +172,22 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
     return std::max(dim, mlir::ShapedType::kDynamicSize);
   });
   return {normalize.begin(), normalize.end()};
+}
+
+static llvm::hash_code SymbolicShapeHash(const SymbolicShape& shape) {
+  return llvm::hash_combine(
+      shape.size(), llvm::hash_combine_range(shape.begin(), shape.end()));
+}
+
+/*static*/ llvm::hash_code SymbolicShapesResolver::Hash(
+    ArrayRef<SymbolicShape> symbolic_shapes) {
+  if (LLVM_UNLIKELY(symbolic_shapes.empty())) return llvm::hash_code(0);
+
+  llvm::hash_code hash = SymbolicShapeHash(symbolic_shapes[0]);
+  for (unsigned i = 1; i < symbolic_shapes.size(); ++i)
+    hash = llvm::hash_combine(hash, SymbolicShapeHash(symbolic_shapes[i]));
+
+  return hash;
 }
 
 }  // namespace jitrt

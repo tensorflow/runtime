@@ -301,7 +301,24 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
 // Performance benchmarks are below.
 // -------------------------------------------------------------------------- //
 
-static void BM_ResolveFullyDynamic(benchmark::State& state) {
+struct Resolve {
+  static mlir::FailureOr<llvm::SmallVector<SymbolicShape>> Run(
+      SymbolicShapesResolver& resolver, ArrayRef<MemrefDesc> operands) {
+    return resolver.Resolve(operands);
+  }
+};
+
+struct ResolveHash {
+  static mlir::FailureOr<llvm::hash_code> Run(SymbolicShapesResolver& resolver,
+                                              ArrayRef<MemrefDesc> operands) {
+    auto symbolic = resolver.Resolve(operands);
+    if (mlir::failed(symbolic)) return mlir::failure();
+    return SymbolicShapesResolver::Hash(*symbolic);
+  }
+};
+
+template <typename Resolver>
+static void BenchmarkFullyDynamic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
   auto type = GetFunctionType(
@@ -319,12 +336,13 @@ static void BM_ResolveFullyDynamic(benchmark::State& state) {
   auto operands = GetFakeMemrefs({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
 
   for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(*symbolic);
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
   }
 }
 
-static void BM_ResolveSameDynamic(benchmark::State& state) {
+template <typename Resolver>
+static void BenchmarkSameDynamic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
   auto type = GetFunctionType(
@@ -342,12 +360,13 @@ static void BM_ResolveSameDynamic(benchmark::State& state) {
   auto operands = GetFakeMemrefs({{2, 2}, {2, 2}, {2, 2}, {2, 2}});
 
   for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(*symbolic);
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
   }
 }
 
-static void BM_ResolveSomeDynamic(benchmark::State& state) {
+template <typename Resolver>
+static void BenchmarkSomeDynamic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
   auto type = GetFunctionType(
@@ -365,12 +384,13 @@ static void BM_ResolveSomeDynamic(benchmark::State& state) {
   auto operands = GetFakeMemrefs({{2, 2}, {4, 4}, {8, 8}, {16, 16}});
 
   for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(*symbolic);
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
   }
 }
 
-static void BM_ResolveAsStatic(benchmark::State& state) {
+template <typename Resolver>
+static void BenchmarkStatic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
@@ -387,12 +407,13 @@ static void BM_ResolveAsStatic(benchmark::State& state) {
   auto operands = GetFakeMemrefs({{32, 4}, {16, 8}, {8, 16}, {4, 32}});
 
   for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(*symbolic);
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
   }
 }
 
-static void BM_ResolveAsSymbolic(benchmark::State& state) {
+template <typename Resolver>
+static void BenchmarkSymbolic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
@@ -409,9 +430,33 @@ static void BM_ResolveAsSymbolic(benchmark::State& state) {
   auto operands = GetFakeMemrefs({{1, 4}, {2, 8}, {3, 16}, {4, 32}});
 
   for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(*symbolic);
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
   }
+}
+
+// -------------------------------------------------------------------------- //
+// Run benchmarks for resolving symbolic shapes.
+// -------------------------------------------------------------------------- //
+
+static void BM_ResolveFullyDynamic(benchmark::State& state) {
+  BenchmarkFullyDynamic<Resolve>(state);
+}
+
+static void BM_ResolveSameDynamic(benchmark::State& state) {
+  BenchmarkSameDynamic<Resolve>(state);
+}
+
+static void BM_ResolveSomeDynamic(benchmark::State& state) {
+  BenchmarkSomeDynamic<Resolve>(state);
+}
+
+static void BM_ResolveAsStatic(benchmark::State& state) {
+  BenchmarkStatic<Resolve>(state);
+}
+
+static void BM_ResolveAsSymbolic(benchmark::State& state) {
+  BenchmarkSymbolic<Resolve>(state);
 }
 
 BENCHMARK(BM_ResolveFullyDynamic);
@@ -419,6 +464,40 @@ BENCHMARK(BM_ResolveSameDynamic);
 BENCHMARK(BM_ResolveSomeDynamic);
 BENCHMARK(BM_ResolveAsStatic);
 BENCHMARK(BM_ResolveAsSymbolic);
+
+// -------------------------------------------------------------------------- //
+// Run benchmarks for resolving and computing a hash of symbolic shapes.
+// -------------------------------------------------------------------------- //
+
+static void BM_ResolveHashFullyDynamic(benchmark::State& state) {
+  BenchmarkFullyDynamic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashSameDynamic(benchmark::State& state) {
+  BenchmarkSameDynamic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashSomeDynamic(benchmark::State& state) {
+  BenchmarkSomeDynamic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashAsStatic(benchmark::State& state) {
+  BenchmarkStatic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashAsSymbolic(benchmark::State& state) {
+  BenchmarkSymbolic<ResolveHash>(state);
+}
+
+BENCHMARK(BM_ResolveHashFullyDynamic);
+BENCHMARK(BM_ResolveHashSameDynamic);
+BENCHMARK(BM_ResolveHashSomeDynamic);
+BENCHMARK(BM_ResolveHashAsStatic);
+BENCHMARK(BM_ResolveHashAsSymbolic);
+
+// -------------------------------------------------------------------------- //
+// Run benchmarks for hashing resolved symbolic shapes.
+// -------------------------------------------------------------------------- //
 
 static void HashSymbolicShapes(benchmark::State& state,
                                ArrayRef<SymbolicShape> symbolic_shapes) {

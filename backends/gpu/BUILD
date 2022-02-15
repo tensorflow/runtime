@@ -24,7 +24,6 @@ package_group(
     packages = if_google(
         [
             "//learning/brain/experimental/tfrt/cpp_tests/...",
-            "//platforms/xla/tests/gpu/...",
             "@tf_runtime//backends/gpu/...",
             "@tf_runtime//tools/...",
             "@tf_runtime//cpp_tests/...",
@@ -43,7 +42,6 @@ package_group(
     packages = [
     ] + if_google(
         [
-            "//platforms/xla/tests/gpu/...",
             "//third_party/tensorflow/compiler/xla/service/gpu/...",
             "//third_party/tensorflow/compiler/mlir/tfrt/...",
             "@tf_runtime//backends/gpu/...",
@@ -363,29 +361,6 @@ tfrt_cc_library(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
-    ],
-)
-
-tfrt_cc_library(
-    name = "gpu_system",
-    srcs = [
-        "lib/system/system.cc",
-    ],
-    hdrs = [
-        "include/tfrt/gpu/system/system.h",
-    ],
-    visibility = if_google(
-        [":xla_friends"],
-        ["//visibility:public"],
-    ),
-    deps = [
-        ":gpu_device",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@tf_runtime//:bef",
-        "@tf_runtime//:befexecutor",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
     ],
 )
 

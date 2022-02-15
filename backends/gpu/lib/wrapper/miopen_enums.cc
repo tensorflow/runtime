@@ -23,6 +23,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+const DnnMathType kRocmDefaultMath = DnnMathType(0, Platform::ROCm);
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status) {
   switch (status) {
     case miopenStatusSuccess:
@@ -103,6 +105,51 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
       return os << "miopenDepthwise";
     default:
       return os << llvm::formatv("miopenConvolutionMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
+Expected<miopenActivationMode_t> Parse<miopenActivationMode_t>(
+    llvm::StringRef name) {
+  if (name == "miopenActivationPASTHRU") return miopenActivationPASTHRU;
+  if (name == "miopenActivationLOGISTIC") return miopenActivationLOGISTIC;
+  if (name == "miopenActivationTANH") return miopenActivationTANH;
+  if (name == "miopenActivationRELU") return miopenActivationRELU;
+  if (name == "miopenActivationSOFTRELU") return miopenActivationSOFTRELU;
+  if (name == "miopenActivationABS") return miopenActivationABS;
+  if (name == "miopenActivationPOWER") return miopenActivationPOWER;
+  if (name == "miopenActivationCLIPPEDRELU") return miopenActivationCLIPPEDRELU;
+  if (name == "miopenActivationLEAKYRELU") return miopenActivationLEAKYRELU;
+  if (name == "miopenActivationELU") return miopenActivationELU;
+  return MakeStringError("Unknown miopenActivationMode_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              miopenActivationMode_t value) {
+  switch (value) {
+    case miopenActivationPASTHRU:
+      return os << "miopenActivationPASTHRU";
+    case miopenActivationLOGISTIC:
+      return os << "miopenActivationLOGISTIC";
+    case miopenActivationTANH:
+      return os << "miopenActivationTANH";
+    case miopenActivationRELU:
+      return os << "miopenActivationRELU";
+    case miopenActivationSOFTRELU:
+      return os << "miopenActivationSOFTRELU";
+    case miopenActivationABS:
+      return os << "miopenActivationABS";
+    case miopenActivationPOWER:
+      return os << "miopenActivationPOWER";
+    case miopenActivationCLIPPEDRELU:
+      return os << "miopenActivationCLIPPEDRELU";
+    case miopenActivationLEAKYRELU:
+      return os << "miopenActivationLEAKYRELU";
+    case miopenActivationELU:
+      return os << "miopenActivationELU";
+    default:
+      return os << llvm::formatv("miopenActivationMode_t({0})",
                                  static_cast<int>(value));
   }
 }

@@ -17,6 +17,7 @@
 #include "tfrt/gpu/kernels/gpu_ops.h"
 
 #include <iterator>
+#include <utility>
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
@@ -72,6 +73,12 @@ template <>
 struct EnumTraits<wrapper::DnnConvolutionModeTag> {
   using cuda_type = cudnnConvolutionMode_t;
   using rocm_type = miopenConvolutionMode_t;
+};
+
+template <>
+struct EnumTraits<wrapper::DnnActivationModeTag> {
+  using cuda_type = cudnnActivationMode_t;
+  using rocm_type = miopenActivationMode_t;
 };
 
 template <>
@@ -238,6 +245,22 @@ static ParseResult parseEnum(OpAsmParser &parser,
   return parseEnum(parser, attribute, +parse_func);
 }
 
+// Overload for DnnMathTypeTag.
+static ParseResult parseEnum(
+    OpAsmParser &parser,
+    EnumAttr<wrapper::Enum<wrapper::DnnMathTypeTag>> &attribute) {
+  auto parse_func =
+      [](StringRef name) -> Expected<wrapper::Enum<wrapper::DnnMathTypeTag>> {
+    auto cuda_value = wrapper::Parse<cudnnMathType_t>(name);
+    if (cuda_value) return {*cuda_value};
+    if (name == "ROCM_DEFAULT_MATH") return wrapper::kRocmDefaultMath;
+    return joinErrors(
+        cuda_value.takeError(),
+        MakeStringError("Invalid math type placeholder for ROCm."));
+  };
+  return parseEnum(parser, attribute, +parse_func);
+}
+
 // parseEnum overload also assigning the underlying type to one or more 'types'.
 template <typename Tag, typename... Ts>
 static ParseResult parseEnum(OpAsmParser &parser,
@@ -279,6 +302,25 @@ static void printEnum(OpAsmPrinter &printer, Operation *,
       wrapper::operator<<(
           printer.getStream(),
           static_cast<typename EnumTraits<Tag>::rocm_type>(value));
+      break;
+    case wrapper::Platform::NONE:
+      printer << value.platform();
+      break;
+  }
+}
+
+// Overload for DnnMathTypeTag.
+static void printEnum(
+    OpAsmPrinter &printer, Operation *,
+    EnumAttr<wrapper::Enum<wrapper::DnnMathTypeTag>> attribute) {
+  auto value = attribute.getValue();
+  switch (value.platform()) {
+    case wrapper::Platform::CUDA:
+      wrapper::operator<<(printer.getStream(),
+                          static_cast<cudnnMathType_t>(value));
+      break;
+    case wrapper::Platform::ROCm:
+      printer.getStream() << "ROCM_DEFAULT_MATH";
       break;
     case wrapper::Platform::NONE:
       printer << value.platform();

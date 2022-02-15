@@ -609,21 +609,20 @@ llvm::Error CudnnConvolutionForward(
 }
 
 llvm::Error CudnnConvolutionBiasActivationForward(
-    CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha1,
+    CurrentContext current, cudnnHandle_t handle, const void* alpha1,
     cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
     cudnnFilterDescriptor_t w_desc, Pointer<const void> w,
     cudnnConvolutionDescriptor_t conv_desc, cudnnConvolutionFwdAlgo_t algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
-    Pointer<const void> alpha2, cudnnTensorDescriptor_t z_desc,
-    Pointer<const void> z, cudnnTensorDescriptor_t bias_desc,
-    Pointer<const void> bias, cudnnActivationDescriptor_t activation_desc,
-    cudnnTensorDescriptor_t y_desc, Pointer<void> y) {
+    const void* alpha2, cudnnTensorDescriptor_t z_desc, Pointer<const void> z,
+    cudnnTensorDescriptor_t bias_desc, Pointer<const void> bias,
+    cudnnActivationDescriptor_t activation_desc, cudnnTensorDescriptor_t y_desc,
+    Pointer<void> y) {
   CheckCudaContext(current);
   return TO_ERROR(cudnnConvolutionBiasActivationForward(
-      handle, ToCuda(alpha1), x_desc, ToCuda(x), w_desc, ToCuda(w), conv_desc,
-      algo, ToCuda(work_space), work_space_size_in_bytes, ToCuda(alpha2),
-      z_desc, ToCuda(z), bias_desc, ToCuda(bias), activation_desc, y_desc,
-      ToCuda(y)));
+      handle, alpha1, x_desc, ToCuda(x), w_desc, ToCuda(w), conv_desc, algo,
+      ToCuda(work_space), work_space_size_in_bytes, alpha2, z_desc, ToCuda(z),
+      bias_desc, ToCuda(bias), activation_desc, y_desc, ToCuda(y)));
 }
 
 llvm::Error CudnnConvolutionBackwardBias(

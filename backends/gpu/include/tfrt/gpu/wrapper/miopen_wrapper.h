@@ -25,6 +25,9 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+// Placeholder value for math type attributes, which is only supported by cuDNN.
+extern const DnnMathType kRocmDefaultMath;
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status);
 
 template <>
@@ -35,12 +38,20 @@ Expected<miopenConvolutionMode_t> Parse<miopenConvolutionMode_t>(
     llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               miopenConvolutionMode_t value);
+template <>
+Expected<miopenActivationMode_t> Parse<miopenActivationMode_t>(
+    llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              miopenActivationMode_t value);
 
 template <>
 struct PlatformTypeTraits<DnnDataTypeTag, miopenDataType_t>
     : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<DnnConvolutionModeTag, miopenConvolutionMode_t>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<DnnActivationModeTag, miopenActivationMode_t>
     : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<DnnConvFwdAlgoTag, uint64_t>

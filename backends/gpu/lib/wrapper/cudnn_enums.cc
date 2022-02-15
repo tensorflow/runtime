@@ -120,6 +120,69 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
+template <>
+Expected<cudnnActivationMode_t> Parse<cudnnActivationMode_t>(
+    llvm::StringRef name) {
+  if (name == "CUDNN_ACTIVATION_SIGMOID") return CUDNN_ACTIVATION_SIGMOID;
+  if (name == "CUDNN_ACTIVATION_RELU") return CUDNN_ACTIVATION_RELU;
+  if (name == "CUDNN_ACTIVATION_TANH") return CUDNN_ACTIVATION_TANH;
+  if (name == "CUDNN_ACTIVATION_CLIPPED_RELU")
+    return CUDNN_ACTIVATION_CLIPPED_RELU;
+  if (name == "CUDNN_ACTIVATION_ELU") return CUDNN_ACTIVATION_ELU;
+  if (name == "CUDNN_ACTIVATION_IDENTITY") return CUDNN_ACTIVATION_IDENTITY;
+  if (name == "CUDNN_ACTIVATION_SWISH") return CUDNN_ACTIVATION_SWISH;
+  return MakeStringError("Unknown cudnnActivationMode_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnActivationMode_t value) {
+  switch (value) {
+    case CUDNN_ACTIVATION_SIGMOID:
+      return os << "CUDNN_ACTIVATION_SIGMOID";
+    case CUDNN_ACTIVATION_RELU:
+      return os << "CUDNN_ACTIVATION_RELU";
+    case CUDNN_ACTIVATION_TANH:
+      return os << "CUDNN_ACTIVATION_TANH";
+    case CUDNN_ACTIVATION_CLIPPED_RELU:
+      return os << "CUDNN_ACTIVATION_CLIPPED_RELU";
+    case CUDNN_ACTIVATION_ELU:
+      return os << "CUDNN_ACTIVATION_ELU";
+    case CUDNN_ACTIVATION_IDENTITY:
+      return os << "CUDNN_ACTIVATION_IDENTITY";
+    case CUDNN_ACTIVATION_SWISH:
+      return os << "CUDNN_ACTIVATION_SWISH";
+    default:
+      return os << llvm::formatv("cudnnActivationMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
+Expected<cudnnMathType_t> Parse<cudnnMathType_t>(llvm::StringRef name) {
+  if (name == "CUDNN_DEFAULT_MATH") return CUDNN_DEFAULT_MATH;
+  if (name == "CUDNN_TENSOR_OP_MATH") return CUDNN_TENSOR_OP_MATH;
+  if (name == "CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION")
+    return CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION;
+  if (name == "CUDNN_FMA_MATH") return CUDNN_FMA_MATH;
+  return MakeStringError("Unknown cudnnMathType_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value) {
+  switch (value) {
+    case CUDNN_DEFAULT_MATH:
+      return os << "CUDNN_DEFAULT_MATH";
+    case CUDNN_TENSOR_OP_MATH:
+      return os << "CUDNN_TENSOR_OP_MATH";
+    case CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION:
+      return os << "CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION";
+    case CUDNN_FMA_MATH:
+      return os << "CUDNN_FMA_MATH";
+    default:
+      return os << llvm::formatv("cudnnMathType_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
 mlir::TypeID GetCudnnDataTypeId(cudnnDataType_t data_type) {
   switch (data_type) {
     case CUDNN_DATA_FLOAT:

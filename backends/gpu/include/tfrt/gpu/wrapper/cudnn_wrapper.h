@@ -51,12 +51,26 @@ Expected<cudnnConvolutionMode_t> Parse<cudnnConvolutionMode_t>(
     llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               cudnnConvolutionMode_t value);
+template <>
+Expected<cudnnActivationMode_t> Parse<cudnnActivationMode_t>(
+    llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnActivationMode_t value);
+template <>
+Expected<cudnnMathType_t> Parse<cudnnMathType_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value);
 
 template <>
 struct PlatformTypeTraits<DnnDataTypeTag, cudnnDataType_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<DnnConvolutionModeTag, cudnnConvolutionMode_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<DnnActivationModeTag, cudnnActivationMode_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<DnnMathTypeTag, cudnnMathType_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<DnnConvFwdAlgoTag, cudnnConvolutionFwdAlgo_t>
@@ -323,15 +337,15 @@ llvm::Error CudnnConvolutionForward(
     Pointer<void> work_space, size_t work_space_size_in_bytes, const void* beta,
     cudnnTensorDescriptor_t y_desc, Pointer<void> y);
 llvm::Error CudnnConvolutionBiasActivationForward(
-    CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha1,
+    CurrentContext current, cudnnHandle_t handle, const void* alpha1,
     cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
     cudnnFilterDescriptor_t w_desc, Pointer<const void> w,
     cudnnConvolutionDescriptor_t conv_desc, cudnnConvolutionFwdAlgo_t algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
-    Pointer<const void> alpha2, cudnnTensorDescriptor_t z_desc,
-    Pointer<const void> z, cudnnTensorDescriptor_t bias_desc,
-    Pointer<const void> bias, cudnnActivationDescriptor_t activation_desc,
-    cudnnTensorDescriptor_t y_desc, Pointer<void> y);
+    const void* alpha2, cudnnTensorDescriptor_t z_desc, Pointer<const void> z,
+    cudnnTensorDescriptor_t bias_desc, Pointer<const void> bias,
+    cudnnActivationDescriptor_t activation_desc, cudnnTensorDescriptor_t y_desc,
+    Pointer<void> y);
 llvm::Error CudnnConvolutionBackwardBias(
     CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha,
     cudnnTensorDescriptor_t dy_desc, Pointer<const void> dy,

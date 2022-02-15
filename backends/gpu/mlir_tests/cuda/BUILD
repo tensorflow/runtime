@@ -12,6 +12,11 @@ glob_tfrt_lit_tests(
     }.items() + {
         # Note: NCCL in the sandbox produces the wrong result in OSS.
         "ccl.mlir": ["requires-gpu-nvidia:2"] + if_oss(["no-sandbox"]),
+    }.items() + {
+        "dnn.mlir": [
+            "requires-gpu-nvidia",
+            "no_oss",
+        ],
     }.items()),
     tfrt_translate = "@tf_runtime//backends/gpu:tfrt_gpu_translate",
 )

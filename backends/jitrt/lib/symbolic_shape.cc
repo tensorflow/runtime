@@ -93,6 +93,15 @@ SymbolicShapesResolver::SymbolicShapesResolver(
     if (ca > cb) return true;
     return ca < cb ? false : a < b;
   });
+
+  // When computing a symbolic shapes hash we don't need to visit operands with
+  // a statically known shape.
+  auto is_dynamic_shape_operand = [&](size_t idx) {
+    return !operands_sizes_[idx].hasValue() ||
+           llvm::any_of(*operands_sizes_[idx], [](int64_t d) { return d < 0; });
+  };
+  llvm::copy_if(iteration_order_, std::back_inserter(hash_iteration_order_),
+                is_dynamic_shape_operand);
 }
 
 OperandConstraint SymbolicShapesResolver::constraint(size_t index) const {
@@ -115,14 +124,10 @@ bool SymbolicShapesResolver::seen_static_size(size_t dim) const {
   return seen_static_sizes_.contains(dim);
 }
 
-ArrayRef<size_t> SymbolicShapesResolver::iteration_order() const {
-  return iteration_order_;
-}
-
 template <typename SymbolicShapes>
 LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
     const SymbolicShapesResolver& resolver, ArrayRef<MemrefDesc> operands,
-    SymbolicShapes& symbolic_shapes) {
+    ArrayRef<size_t> iteration_order, SymbolicShapes& symbolic_shapes) {
   // The number of operands must match the function signature.
   assert(operands.size() == resolver.num_operands());
 
@@ -131,7 +136,7 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
 
   int64_t sym_dim = -2;  // the next symbolic dimension id
 
-  for (size_t i : resolver.iteration_order()) {
+  for (size_t i : iteration_order) {
     bool has_static_sizes = resolver.has_operand_sizes(i);
     ArrayRef<int64_t> runtime_sizes = operands[i].sizes;
 
@@ -201,7 +206,8 @@ SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) const {
   llvm::SmallVector<SymbolicShape> symbolic_shapes;
   symbolic_shapes.resize(operands.size());
 
-  if (LLVM_UNLIKELY(failed(ResolveImpl(*this, operands, symbolic_shapes))))
+  if (LLVM_UNLIKELY(failed(
+          ResolveImpl(*this, operands, iteration_order_, symbolic_shapes))))
     return failure();
 
   return symbolic_shapes;
@@ -222,7 +228,6 @@ struct SymbolicShapesFingerprint {
   template <typename InputIt>
   LLVM_ATTRIBUTE_ALWAYS_INLINE void assign(InputIt first, InputIt last) {
     auto rank = std::distance(first, last);
-    values.push_back(rank);
     offset = values.size();
     values.resize_for_overwrite(offset + rank);
     llvm::copy(llvm::make_range(first, last), values.begin() + offset);
@@ -248,7 +253,8 @@ mlir::FailureOr<llvm::hash_code> SymbolicShapesResolver::ResolveHash(
   // Accumulate symbolic shapes into the shapes fingerprint.
   SymbolicShapesFingerprint fingerprint;
 
-  if (LLVM_UNLIKELY(failed(ResolveImpl(*this, operands, fingerprint))))
+  if (LLVM_UNLIKELY(failed(
+          ResolveImpl(*this, operands, hash_iteration_order_, fingerprint))))
     return failure();
 
   return llvm::hash_combine_range(fingerprint.values.begin(),

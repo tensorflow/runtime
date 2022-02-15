@@ -99,7 +99,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -2}, {-2}, {-2, 4}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, -2, 1, -2, 2, -2, 4};
+    llvm::SmallVector<int64_t> values = {2, -2, -2, -2, -2, 4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -111,7 +111,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -3}, {-4}, {-5, 4}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, -3, 1, -4, 2, -5, 4};
+    llvm::SmallVector<int64_t> values = {2, -2, -3, -4, -5, 4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -123,7 +123,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1, 1, 1}, {1}, {1, 4}}));
 
-    llvm::SmallVector<int64_t> values = {3, 1, 1, 1, 1, 1, 2, 1, 4};
+    llvm::SmallVector<int64_t> values = {3, 1, 1, 1, 1, 1, 4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -135,7 +135,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {4}, {1, 4}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, 4, 1, 4, 2, 1, 4};
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 4, 1, 4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
@@ -161,7 +161,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-2}, {-2}}));
 
-    llvm::SmallVector<int64_t> values = {1, -2, 1, -2, 1, -2};
+    llvm::SmallVector<int64_t> values = {-2, -2, -2};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -173,7 +173,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-4}}));
 
-    llvm::SmallVector<int64_t> values = {1, -2, 1, -3, 1, -4};
+    llvm::SmallVector<int64_t> values = {-2, -3, -4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -185,7 +185,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-2}}));
 
-    llvm::SmallVector<int64_t> values = {1, -2, 1, -3, 1, -2};
+    llvm::SmallVector<int64_t> values = {-2, -3, -2};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -197,7 +197,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1}, {1}, {-2}}));
 
-    llvm::SmallVector<int64_t> values = {1, 1, 1, 1, 1, -2};
+    llvm::SmallVector<int64_t> values = {1, 1, -2};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
@@ -223,7 +223,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-2, 8}, {-2}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, -2, 8, 1, -2};
+    llvm::SmallVector<int64_t> values = {-2, 4, -2, 8, -2};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -235,7 +235,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-4}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, -3, 8, 1, -4};
+    llvm::SmallVector<int64_t> values = {-2, 4, -3, 8, -4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -247,7 +247,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-2}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, -3, 8, 1, -2};
+    llvm::SmallVector<int64_t> values = {-2, 4, -3, 8, -2};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -259,7 +259,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1, 4}, {-2, 8}, {1}}));
 
-    llvm::SmallVector<int64_t> values = {2, 1, 4, 2, -2, 8, 1, 1};
+    llvm::SmallVector<int64_t> values = {1, 4, -2, 8, 1};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -271,7 +271,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {8, 8}, {8}}));
 
-    llvm::SmallVector<int64_t> values = {2, -2, 4, 2, 8, 8, 1, 8};
+    llvm::SmallVector<int64_t> values = {-2, 4, 8, 8, 8};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
@@ -295,7 +295,7 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
 
-    llvm::SmallVector<int64_t> values = {2, 100, 100, 2, 100, 4};
+    llvm::SmallVector<int64_t> values = {100, 100, 100, 4};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
@@ -321,7 +321,7 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInputAfterDynamicInput) {
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, 50}, {100, 50}}));
 
-    llvm::SmallVector<int64_t> values = {2, 100, 50, 2, 100, 50};
+    llvm::SmallVector<int64_t> values = {100, 50, 100, 50};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
@@ -333,7 +333,32 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInputAfterDynamicInput) {
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, -2}, {100, 4}}));
 
-    llvm::SmallVector<int64_t> values = {2, 100, 4, 2, 100, -2};
+    llvm::SmallVector<int64_t> values = {100, 4, 100, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
+  }
+}
+
+TEST(SymbolicShapeResolverTest, StaticShapeOperandHash) {
+  // Operands: tensor<?x?xf32>, tensor<4x4xi32>
+  auto dtypes = {DType::F32, DType::I32};
+
+  auto type = GetFunctionType(
+      dtypes,
+      {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}, {{4, 4}}});
+
+  auto constraints = {OperandConstraint::kResolved, OperandConstraint::kShape};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  {  // Static shape doesn't participate in the hash value.
+    auto operands = GetFakeMemrefs({{2, 2}, {4, 4}});
+    auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
+
+    EXPECT_EQ(symbolic->size(), 2);
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -2}, {4, 4}}));
+
+    llvm::SmallVector<int64_t> values = {-2, -2};
     EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }

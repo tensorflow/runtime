@@ -92,7 +92,6 @@ class SymbolicShapesResolver {
   bool has_operand_sizes(size_t index) const;
   const StaticShape& operand_sizes(size_t index) const;
   bool seen_static_size(size_t dim) const;
-  ArrayRef<size_t> iteration_order() const;
 
  private:
   // Constraints on the function operands.
@@ -106,6 +105,9 @@ class SymbolicShapesResolver {
 
   // The iteration order for the operands when resolving symbolic shapes.
   llvm::SmallVector<size_t> iteration_order_;
+
+  // The iteration order for the operands when resolving symbolic shapes hash.
+  llvm::SmallVector<size_t> hash_iteration_order_;
 };
 
 }  // namespace jitrt

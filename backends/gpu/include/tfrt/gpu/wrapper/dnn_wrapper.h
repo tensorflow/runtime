@@ -354,15 +354,6 @@ llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
                               const DnnTensorDescriptor y_desc,
                               Pointer<void> y);
 
-llvm::Error DnnPoolingBackward(
-    CurrentContext current, DnnHandle handle,
-    const DnnPoolingDescriptor pooling_desc, Pointer<const void> alpha,
-    const DnnTensorDescriptor y_desc, Pointer<const void> y,
-    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    const DnnTensorDescriptor x_desc, Pointer<const void> x,
-    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
-    Pointer<void> dx);
-
 llvm::Error DnnActivationForward(CurrentContext current, DnnHandle handle,
                                  DnnActivationDescriptor activation_desc,
                                  Pointer<const void> alpha,

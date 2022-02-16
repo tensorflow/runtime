@@ -21,6 +21,7 @@
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
@@ -193,13 +194,30 @@ static Error DnnPoolingBackward(
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
-  wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
+  auto platform = handle->platform();
+  wrapper::Pointer<const void> alpha_ptr(&alpha, platform);
+  wrapper::Pointer<const void> beta_ptr(&beta, platform);
 
-  return wrapper::DnnPoolingBackward(
-      *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
-      y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
-      beta_ptr, dx_desc.get(), dx.pointer());
+  switch (platform) {
+    case wrapper::Platform::CUDA:
+      return wrapper::CudnnPoolingBackward(
+          *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
+          y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
+          beta_ptr, dx_desc.get(), dx.pointer());
+    case wrapper::Platform::ROCm: {
+      auto workspace_size_bytes =
+          MiopenPoolingGetWorkSpaceSize(pooling_desc.get(), y_desc.get());
+      if (!workspace_size_bytes) return workspace_size_bytes.takeError();
+      auto workspace = wrapper::MemAlloc(*current, *workspace_size_bytes);
+      if (!workspace) return workspace.takeError();
+      return wrapper::MiopenPoolingBackward(
+          *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
+          y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
+          beta_ptr, dx_desc.get(), dx.pointer(), workspace->get());
+    }
+    default:
+      return MakeStringError("Unknown platform.");
+  }
 }
 
 static Error DnnConvolutionForward(

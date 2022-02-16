@@ -359,6 +359,15 @@ llvm::Error MiopenPoolingForward(
       y_desc, ToRocm(y), do_backward, ToRocm(workspace), workspace_size_bytes));
 }
 
+llvm::Expected<size_t> MiopenPoolingGetWorkSpaceSize(
+    const miopenPoolingDescriptor_t pooling_desc,
+    const miopenTensorDescriptor_t y_desc) {
+  size_t workspace_bytes;
+  RETURN_IF_ERROR(
+      miopenPoolingGetWorkSpaceSizeV2(pooling_desc, y_desc, &workspace_bytes));
+  return workspace_bytes;
+}
+
 llvm::Error MiopenPoolingBackward(
     CurrentContext current, miopenHandle_t handle,
     const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,

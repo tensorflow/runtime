@@ -227,6 +227,10 @@ class AsyncValuePtr {
 
   explicit operator bool() const { return value_ != nullptr; }
   bool operator!=(std::nullptr_t) const { return value_ != nullptr; }
+  AsyncValuePtr& operator=(std::nullptr_t) {
+    value_ = nullptr;
+    return *this;
+  }
 
   bool IsAvailable() const { return value_->IsAvailable(); }
   bool IsUnavailable() const { return value_->IsUnavailable(); }

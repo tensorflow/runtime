@@ -75,7 +75,8 @@ build:rbe --google_default_credentials
 # Disable RTTI and exceptions
 build:disable_rtti_and_exceptions --no//:rtti_and_exceptions
 
-# Filter tests to run by tag.
+# Filter build/test targets by tag.
+test:cuda --build_tag_filters=-no_oss
 test:cuda --test_tag_filters=-no_oss,-requires-gpu-amd
 
 # Minimize code size for //tools:code_size_test_driver target.

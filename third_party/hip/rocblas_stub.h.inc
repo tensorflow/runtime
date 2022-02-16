@@ -71,6 +71,8 @@ typedef enum rocblas_gemm_algo_ {
 typedef enum rocblas_gemm_flags_ {
   rocblas_gemm_flags_none = 0x0,
   rocblas_gemm_flags_pack_int8x4 = 0x1,
+  rocblas_gemm_flags_use_cu_efficiency = 0x2,
+  rocblas_gemm_flags_fp16_alt_impl = 0x4,
 } rocblas_gemm_flags;
 
 ROCBLAS_EXPORT rocblas_status rocblas_create_handle(rocblas_handle* handle);
@@ -88,32 +90,6 @@ ROCBLAS_EXPORT rocblas_status rocblas_set_pointer_mode(
 
 ROCBLAS_EXPORT rocblas_status rocblas_get_pointer_mode(
     rocblas_handle handle, rocblas_pointer_mode* pointer_mode);
-
-ROCBLAS_EXPORT rocblas_status rocblas_gemm_ex(
-    rocblas_handle handle, rocblas_operation transA, rocblas_operation transB,
-    rocblas_int m, rocblas_int n, rocblas_int k, const void* alpha,
-    const void* a, rocblas_datatype a_type, rocblas_int lda, const void* b,
-    rocblas_datatype b_type, rocblas_int ldb, const void* beta, const void* c,
-    rocblas_datatype c_type, rocblas_int ldc, void* d, rocblas_datatype d_type,
-    rocblas_int ldd, rocblas_datatype compute_type, rocblas_gemm_algo algo,
-    int32_t solution_index, uint32_t flags);
-
-ROCBLAS_EXPORT rocblas_status rocblas_gemm_strided_batched_ex(
-    rocblas_handle handle, rocblas_operation transA, rocblas_operation transB,
-    rocblas_int m, rocblas_int n, rocblas_int k, const void* alpha,
-    const void* a, rocblas_datatype a_type, rocblas_int lda,
-    rocblas_stride stride_a, const void* b, rocblas_datatype b_type,
-    rocblas_int ldb, rocblas_stride stride_b, const void* beta, const void* c,
-    rocblas_datatype c_type, rocblas_int ldc, rocblas_stride stride_c, void* d,
-    rocblas_datatype d_type, rocblas_int ldd, rocblas_stride stride_d,
-    rocblas_int batch_count, rocblas_datatype compute_type,
-    rocblas_gemm_algo algo, int32_t solution_index, uint32_t flags);
-
-ROCBLAS_EXPORT rocblas_status rocblas_axpy_ex(
-    rocblas_handle handle, rocblas_int n, const void* alpha,
-    rocblas_datatype alpha_type, const void* x, rocblas_datatype x_type,
-    rocblas_int incx, void* y, rocblas_datatype y_type, rocblas_int incy,
-    rocblas_datatype execution_type);
 
 ROCBLAS_EXPORT rocblas_status rocblas_strsm_batched(
     rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
@@ -142,3 +118,29 @@ ROCBLAS_EXPORT rocblas_status rocblas_ztrsm_batched(
     const rocblas_double_complex* const A[], rocblas_int lda,
     rocblas_double_complex* const B[], rocblas_int ldb,
     rocblas_int batch_count);
+
+ROCBLAS_EXPORT rocblas_status rocblas_gemm_ex(
+    rocblas_handle handle, rocblas_operation transA, rocblas_operation transB,
+    rocblas_int m, rocblas_int n, rocblas_int k, const void* alpha,
+    const void* a, rocblas_datatype a_type, rocblas_int lda, const void* b,
+    rocblas_datatype b_type, rocblas_int ldb, const void* beta, const void* c,
+    rocblas_datatype c_type, rocblas_int ldc, void* d, rocblas_datatype d_type,
+    rocblas_int ldd, rocblas_datatype compute_type, rocblas_gemm_algo algo,
+    int32_t solution_index, uint32_t flags);
+
+ROCBLAS_EXPORT rocblas_status rocblas_gemm_strided_batched_ex(
+    rocblas_handle handle, rocblas_operation transA, rocblas_operation transB,
+    rocblas_int m, rocblas_int n, rocblas_int k, const void* alpha,
+    const void* a, rocblas_datatype a_type, rocblas_int lda,
+    rocblas_stride stride_a, const void* b, rocblas_datatype b_type,
+    rocblas_int ldb, rocblas_stride stride_b, const void* beta, const void* c,
+    rocblas_datatype c_type, rocblas_int ldc, rocblas_stride stride_c, void* d,
+    rocblas_datatype d_type, rocblas_int ldd, rocblas_stride stride_d,
+    rocblas_int batch_count, rocblas_datatype compute_type,
+    rocblas_gemm_algo algo, int32_t solution_index, uint32_t flags);
+
+ROCBLAS_EXPORT rocblas_status rocblas_axpy_ex(
+    rocblas_handle handle, rocblas_int n, const void* alpha,
+    rocblas_datatype alpha_type, const void* x, rocblas_datatype x_type,
+    rocblas_int incx, void* y, rocblas_datatype y_type, rocblas_int incy,
+    rocblas_datatype execution_type);

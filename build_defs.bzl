@@ -85,16 +85,18 @@ TFRT_COPTS = select({
     ],
     "//conditions:default": ["-Wno-unused-local-typedef"],
     "@tf_runtime//:disable_rtti_and_exceptions": [
-        # Disable RTTI.
-        "-fno-rtti",
-        # Disable exceptions.
-        "-fno-exceptions",
+        "-fno-rtti",  # Disable RTTI.
+        "-fno-exceptions",  # Disable exceptions.
     ],
 })
 
 TFRT_LINKOPTS = select({
     "@tf_runtime//:windows": [],
-    "//conditions:default": ["-ldl", "-lm", "-lpthread"],  # copybara:comment_replace "//conditions:default": ["-ldl", "-lm"],
+    "//conditions:default": [
+        "-ldl",
+        "-lm",
+        "-lpthread",  # copybara:comment
+    ],
 })
 
 TFRT_FEATURES = select({

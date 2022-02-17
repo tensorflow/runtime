@@ -130,7 +130,9 @@ Expected<cudnnActivationMode_t> Parse<cudnnActivationMode_t>(
     return CUDNN_ACTIVATION_CLIPPED_RELU;
   if (name == "CUDNN_ACTIVATION_ELU") return CUDNN_ACTIVATION_ELU;
   if (name == "CUDNN_ACTIVATION_IDENTITY") return CUDNN_ACTIVATION_IDENTITY;
+#if CUDNN_VERSION >= 8200
   if (name == "CUDNN_ACTIVATION_SWISH") return CUDNN_ACTIVATION_SWISH;
+#endif
   return MakeStringError("Unknown cudnnActivationMode_t: ", name);
 }
 
@@ -149,8 +151,10 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
       return os << "CUDNN_ACTIVATION_ELU";
     case CUDNN_ACTIVATION_IDENTITY:
       return os << "CUDNN_ACTIVATION_IDENTITY";
+#if CUDNN_VERSION >= 8200
     case CUDNN_ACTIVATION_SWISH:
       return os << "CUDNN_ACTIVATION_SWISH";
+#endif
     default:
       return os << llvm::formatv("cudnnActivationMode_t({0})",
                                  static_cast<int>(value));

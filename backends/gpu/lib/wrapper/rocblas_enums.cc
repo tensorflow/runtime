@@ -228,6 +228,10 @@ mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type) {
       return mlir::TypeID::get<float>();
     case rocblas_datatype_f64_r:
       return mlir::TypeID::get<double>();
+    case rocblas_datatype_f32_c:
+      return mlir::TypeID::get<std::complex<float>>();;
+    case rocblas_datatype_f64_c:
+      return mlir::TypeID::get<std::complex<double>>();;
     default:
       return {};
   }

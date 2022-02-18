@@ -97,7 +97,7 @@ llvm::Error BlasGemmStridedBatchedEx(
 llvm::Error BlasTrsmBatched(
                             CurrentContext current, 
                             BlasHandle handle, 
-                            Pointer<void> pointer_array,
+                            Pointer<char*> pointer_array,
                             BlasSideMode side_mode,
                             BlasFillMode fill_mode,
                             BlasOperation trans, 

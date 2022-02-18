@@ -94,6 +94,23 @@ llvm::Error BlasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
     int64_t strideC, int batchCount, BlasComputeType computeType,
     BlasGemmAlgo algo);
+llvm::Error BlasTrsmBatched(
+                            CurrentContext current, 
+                            BlasHandle handle, 
+                            Pointer<char*> pointer_array,
+                            BlasSideMode side_mode,
+                            BlasFillMode fill_mode,
+                            BlasOperation trans, 
+                            BlasDiagType diag_type,
+                            BlasDataType data_type,
+                            int m, 
+                            int n, 
+                            Pointer<void> alpha_ptr,
+                            Pointer<void> A, 
+                            int heightA,
+                            Pointer<void> B, 
+                            int heightB, 
+                            int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

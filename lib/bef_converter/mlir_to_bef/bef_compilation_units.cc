@@ -16,6 +16,9 @@
 
 #include "bef_compilation_units.h"
 
+#include <string>
+#include <utility>
+
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -39,6 +42,10 @@ bool BefCompilationUnits::IsInCompiledModule(mlir::Operation* op) {
   }
 
   return false;
+}
+
+size_t BefCompilationUnits::SerializedSymbolId(mlir::SymbolRefAttr symbol) {
+  return Serialize(symbol).id;
 }
 
 size_t BefCompilationUnits::SerializedSymbolSize(mlir::SymbolRefAttr symbol) {
@@ -94,11 +101,13 @@ const BefCompilationUnits::Serialized& BefCompilationUnits::Serialize(
   flags.printGenericOpForm();
   parent_module.print(os, flags);
 
+  size_t id = serialized_.size();
   size_t operation_size = str.size() - symbol_size;
+  Serialized serialized{id, symbol_size, operation_size, std::move(str)};
 
-  Serialized serialized{symbol_size, operation_size, std::move(str)};
-  auto inserted = serialized_.insert({symbol, std::move(serialized)});
-  return inserted.first->getSecond();
+  auto emplaced = serialized_.try_emplace(symbol, std::move(serialized));
+  assert(emplaced.second && "emplace must be successful");
+  return emplaced.first->getSecond();
 }
 
 }  // namespace tfrt

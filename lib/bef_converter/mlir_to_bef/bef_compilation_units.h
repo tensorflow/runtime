@@ -17,6 +17,8 @@
 #ifndef TFRT_LIB_BEF_CONVERTER_MLIR_TO_BEF_BEF_COMPILATION_UNITS_H_
 #define TFRT_LIB_BEF_CONVERTER_MLIR_TO_BEF_BEF_COMPILATION_UNITS_H_
 
+#include <string>
+
 #include "mlir/IR/BuiltinOps.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -30,6 +32,7 @@ class BefCompilationUnits {
  public:
   explicit BefCompilationUnits(mlir::ModuleOp module) : module_(module) {}
 
+  size_t SerializedSymbolId(mlir::SymbolRefAttr symbol);
   size_t SerializedSymbolSize(mlir::SymbolRefAttr symbol);
   size_t SerializedOperationSize(mlir::SymbolRefAttr symbol);
 
@@ -41,6 +44,7 @@ class BefCompilationUnits {
 
  private:
   struct Serialized {
+    size_t id;              // sequential id of the serialized symbol
     size_t symbol_size;     // size of the serialized symbol name
     size_t operation_size;  // size of the serialized operation
     std::string data;       // symbol_ref + operation

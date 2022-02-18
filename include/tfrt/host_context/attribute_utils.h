@@ -119,12 +119,18 @@ class StringAttribute {
 
 // Compilation unit attribute decodes serialized MLIR module and a compilation
 // target symbol (function name).
+//
+// TODO(ezhulenev): CompilationUnitAttribute in addition to an `id` and `addr`
+// should provide a hash (or something like sha-256 fingerprint) of its content
+// for cache lookup.
 class CompilationUnitAttribute {
  public:
   explicit CompilationUnitAttribute(const void* value)
-      : id_(reinterpret_cast<intptr_t>(value)) {
+      : addr_(reinterpret_cast<intptr_t>(value)) {
     ASSERT_LITTLE_ENDIAN();
     const auto* ptr = static_cast<const uint8_t*>(value);
+
+    ptr = ReadVbrInt(ptr, &id_);
 
     size_t root_symbol_len;
     ptr = ReadVbrInt(ptr, &root_symbol_len);
@@ -155,13 +161,15 @@ class CompilationUnitAttribute {
     serialized_operation_ = {base + offset, serialized_operation_len};
   }
 
-  intptr_t id() const { return id_; }
+  size_t id() const { return id_; }
+  intptr_t addr() const { return addr_; }
   string_view root_symbol() const { return root_symbol_; }
   ArrayRef<string_view> nested_symbols() const { return nested_symbols_; }
   string_view serialized_operation() const { return serialized_operation_; }
 
  private:
-  intptr_t id_;
+  size_t id_;
+  intptr_t addr_;
   string_view root_symbol_;
   llvm::SmallVector<string_view> nested_symbols_;
   string_view serialized_operation_;

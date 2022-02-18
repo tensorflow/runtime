@@ -1009,7 +1009,11 @@ class JitExecutable {
 };
 
 // Resource context caches all JitExecutables in the async value cache.
-using JitExecutableCache = AsyncValuesCache<intptr_t, JitExecutable>;
+//
+// We use compilation unit id as a cache key. Because this id is unique only
+// within a single Bef file, it is the user responsibility to guarantee that the
+// JitExecutableCache is not reused between multiple Bef files.
+using JitExecutableCache = AsyncValuesCache<size_t, JitExecutable>;
 
 }  // namespace jitrt
 }  // namespace tfrt

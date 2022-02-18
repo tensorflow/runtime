@@ -427,12 +427,16 @@ size_t BefAttrEmitter::EmitAggregatedAttribute(mlir::ArrayAttr attr) {
 }
 
 size_t BefAttrEmitter::EmitSymbolRefAttribute(
-    BefCompilationUnits compilation_units, mlir::SymbolRefAttr attr) {
+    BefCompilationUnits& compilation_units, mlir::SymbolRefAttr attr) {
   const size_t offset = size();
 
   // Emit size information in VBR form for the SymbolRef and
   // serialized compilation unit.
   auto symbol = attr.cast<mlir::SymbolRefAttr>();
+
+  // Emit the sequential id of the current symbol in the serialized module.
+  size_t serialized_id = compilation_units.SerializedSymbolId(symbol);
+  EmitVbrInt(serialized_id);
 
   // Length of the root symbol name.
   EmitVbrInt(symbol.getRootReference().getValue().size());

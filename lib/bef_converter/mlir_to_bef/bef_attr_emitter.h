@@ -49,7 +49,7 @@ class BefAttrEmitter : public BefAttrEncoder {
                        mlir::Attribute mlir_attr);
 
   // Emit a SymbolRefAttribute.
-  size_t EmitSymbolRefAttribute(BefCompilationUnits compilation_units,
+  size_t EmitSymbolRefAttribute(BefCompilationUnits& compilation_units,
                                 mlir::SymbolRefAttr attr);
 
  private:

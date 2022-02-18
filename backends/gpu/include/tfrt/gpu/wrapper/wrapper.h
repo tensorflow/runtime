@@ -91,6 +91,7 @@
 #include <functional>
 #include <memory>
 #include <type_traits>
+#include <complex>
 
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/Support/Error.h"

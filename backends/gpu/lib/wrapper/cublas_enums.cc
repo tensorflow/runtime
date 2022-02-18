@@ -396,6 +396,10 @@ mlir::TypeID GetCudaDataTypeId(cudaDataType data_type) {
       return mlir::TypeID::get<float>();
     case CUDA_R_64F:
       return mlir::TypeID::get<double>();
+    case CUDA_C_32F:
+      return mlir::TypeID::get<std::complex<float>>();;
+    case CUDA_C_64F:
+      return mlir::TypeID::get<std::complex<double>>();;
     default:
       return {};
   }

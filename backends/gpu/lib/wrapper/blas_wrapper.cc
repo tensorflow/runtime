@@ -21,9 +21,11 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/rocblas_stub.h"
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "wrapper_detail.h"
+#include "tfrt/support/fp16.h"
 
 namespace tfrt {
 namespace gpu {
@@ -156,7 +158,9 @@ llvm::Error BlasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
     int64_t strideC, int batchCount, BlasComputeType computeType,
     BlasGemmAlgo algo) {
+
   auto platform = handle.platform();
+
   switch (platform) {
     case Platform::CUDA:
       return CublasGemmStridedBatchedEx(
@@ -171,6 +175,130 @@ llvm::Error BlasGemmStridedBatchedEx(
           C, typeC, heightC, strideC, batchCount, computeType, algo);
     default:
       return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error BlasTrsmBatched(
+                            CurrentContext current, 
+                            BlasHandle handle, 
+                            Pointer<char*> pointer_array,
+                            BlasSideMode side_mode,
+                            BlasFillMode fill_mode,
+                            BlasOperation trans, 
+                            BlasDiagType diag_type,
+                            BlasDataType data_type,
+                            int m, 
+                            int n, 
+                            Pointer<void> alpha_ptr,
+                            Pointer<void> A, 
+                            int heightA,
+                            Pointer<void> B, 
+                            int heightB, 
+                            int batchCount
+){
+
+  auto platform = handle.platform();
+
+  ptrdiff_t a_batch_stride = (side_mode == CUBLAS_SIDE_LEFT || side_mode == rocblas_side_left) ? m * m : n * n;
+  ptrdiff_t b_batch_stride = m * n;
+
+  auto type_id = GetBlasDataTypeId(data_type);
+
+  auto callCUDA = [&](auto dummy){
+    using T = decltype(dummy);
+
+    T** b_array = reinterpret_cast<T**>(pointer_array.raw(platform));
+    const T** a_array = const_cast<const T**>(b_array + batchCount);
+
+    const T* a_ptr = static_cast<const T*>(A.raw(platform));
+    T* b_ptr = static_cast<T*>(B.raw(platform));
+
+    for (int32_t i = 0; i < batchCount; ++i) {
+      a_array[i] = a_ptr + i * a_batch_stride;
+      b_array[i] = b_ptr + i * b_batch_stride;
+    }
+
+    Pointer<const T*> a_array_ptr(a_array, platform);
+    Pointer<T*> b_array_ptr(b_array, platform);
+    auto cast_alpha_ptr = static_cast<Pointer<const T>>(alpha_ptr);
+    return CublasTrsmBatched(
+                             current, 
+                             handle, 
+                             side_mode,
+                             fill_mode,
+                             trans, 
+                             diag_type,
+                             m, 
+                             n, 
+                             cast_alpha_ptr,
+                             a_array_ptr, 
+                             heightA,
+                             b_array_ptr, 
+                             heightB, 
+                             batchCount);
+  };
+  
+  auto callROCm = [&](auto dummy){
+    using T = decltype(dummy);
+
+    //T** b_array = static_cast<T**>(pointer_array.raw(platform));
+    T** b_array = reinterpret_cast<T**>(pointer_array.raw(platform));
+    const T** a_array = const_cast<const T**>(b_array + batchCount);
+
+    const T* a_ptr = static_cast<const T*>(A.raw(platform));
+    T* b_ptr = static_cast<T*>(B.raw(platform));
+
+    for (int32_t i = 0; i < batchCount; ++i) {
+      a_array[i] = a_ptr + i * a_batch_stride;
+      b_array[i] = b_ptr + i * b_batch_stride;
+    }
+
+    Pointer<const T*> a_array_ptr(a_array, platform);
+    Pointer<T*> b_array_ptr(b_array, platform);
+    auto cast_alpha_ptr = static_cast<Pointer<const T>>(alpha_ptr);
+
+    return RocblasTrsmBatched(
+                              current, 
+                              handle, 
+                              side_mode,
+                              fill_mode,
+                              trans, 
+                              diag_type,
+                              m, 
+                              n, 
+                              cast_alpha_ptr,
+                              a_array_ptr, 
+                              heightA,
+                              b_array_ptr, 
+                              heightB, 
+                              batchCount);
+  };
+  if (type_id == mlir::TypeID::get<float>()){
+    if (platform == Platform::CUDA){
+      return callCUDA(float{});
+    } else {
+      return callROCm(float{});
+    }
+  } else if (type_id == mlir::TypeID::get<double>()){
+    if (platform == Platform::CUDA){
+      return callCUDA(double{});
+    } else {
+      return callROCm(double{});
+    }
+  } else if (type_id == mlir::TypeID::get<std::complex<float>>()){
+    if (platform == Platform::CUDA){
+      return callCUDA(cuComplex{});
+    } else {
+      return callROCm(rocblas_float_complex{});
+    }
+  } else if (type_id == mlir::TypeID::get<std::complex<double>>()){
+    if (platform == Platform::CUDA) {
+      return callCUDA(cuDoubleComplex{});
+    } else {
+      return callROCm(rocblas_double_complex{});
+    }
+  } else {
+    return MakeStringError("Unsupported data type");
   }
 }
 

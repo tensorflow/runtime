@@ -180,62 +180,29 @@ static Error BlasTrsmBatch(
     Attribute<int32_t> trans) {
   // TODO(hanbinyoon): Also support the ROCm function corresponding to
   // cublas<t>trsmBatched.
-  auto platform = handle->platform();
-  if (platform != wrapper::Platform::CUDA)
-    return MakeStringError("Unsupported platform ", platform);
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
+  if (!current) return current.takeError();
 
-  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
+
+  auto data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType); 
   auto alpha_ptr = GetScalePointer(alpha, data_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
 
-  auto call = [&](auto dummy) {
-    auto current = wrapper::CtxSetCurrent(handle.context()->get());
-    if (!current) return current.takeError();
-
-    if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
-      return error;
-
-    using T = decltype(dummy);
-    auto pointer_array =
-        handle.context()->AllocateHostPoolMemory<T*>(*current, 2 * batchCount);
+  auto pointer_array =
+        handle.context()->AllocateHostPoolMemory<char*>(*current, 2 * batchCount);
     if (!pointer_array) return pointer_array.takeError();
-    T** b_array = pointer_array->get().raw(platform);
-    const T** a_array = const_cast<const T**>(b_array + batchCount);
 
-    auto side_mode = wrapper::BlasSideMode::FromOpaqueValue(*sideMode);
-    ptrdiff_t a_batch_stride = side_mode == CUBLAS_SIDE_LEFT ? m * m : n * n;
-    ptrdiff_t b_batch_stride = m * n;
-    const T* a_ptr = static_cast<const T*>(A.pointer().raw(platform));
-    T* b_ptr = static_cast<T*>(B.pointer().raw(platform));
-    for (int32_t i = 0; i < batchCount; ++i) {
-      a_array[i] = a_ptr + i * a_batch_stride;
-      b_array[i] = b_ptr + i * b_batch_stride;
-    }
-
-    wrapper::Pointer<const T*> a_array_ptr(a_array, platform);
-    wrapper::Pointer<T*> b_array_ptr(b_array, platform);
-    auto cast_alpha_ptr = static_cast<wrapper::Pointer<const T>>(*alpha_ptr);
-
-    return wrapper::CublasTrsmBatched(
-        *current, handle.get(), side_mode,
-        wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
-        wrapper::BlasOperation::FromOpaqueValue(*trans),
-        wrapper::BlasDiagType::FromOpaqueValue(*diagType), m, n, cast_alpha_ptr,
-        a_array_ptr, heightA, b_array_ptr, heightB, batchCount);
-  };
-
-  switch (data_type) {
-    case CUDA_R_32F:
-      return call(float{});
-    case CUDA_R_64F:
-      return call(double{});
-    case CUDA_C_32F:
-      return call(cuComplex{});
-    case CUDA_C_64F:
-      return call(cuDoubleComplex{});
-    default:
-      return MakeStringError("Unsupported data type ", data_type);
-  }
+  return wrapper::BlasTrsmBatched(
+       *current, handle.get(), 
+       pointer_array->get(),
+       wrapper::BlasSideMode::FromOpaqueValue(*sideMode),
+       wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
+       wrapper::BlasOperation::FromOpaqueValue(*trans),
+       wrapper::BlasDiagType::FromOpaqueValue(*diagType), 
+       data_type, m, n, *alpha_ptr,
+       A.pointer(), heightA, B.pointer(), heightB, batchCount);
 }
 
 void RegisterGpuBlasKernels(KernelRegistry* kernel_reg) {

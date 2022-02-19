@@ -482,9 +482,7 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
 
 Error Executable::ReturnResults(const ReturnValueConverterBase& results,
                                 CallFrame* call_frame) const {
-  // Forward error to all results.
-  // TODO(ezhulenev): Forward the underlying error to all results once it will
-  // be supported by the runtime API.
+  // If execution failed, forward error to all results.
   if (call_frame->is_error) {
     results.ReturnErrors(MakeErrorAsyncValueRef(
         StrCat("compiled kernel run time error: ", call_frame->error)));

@@ -24,7 +24,17 @@
 
 #include "tfrt/gpu/wrapper/hip_forwards.h"
 
-// Declare types from hipfft.h used in rocblas_stub.h.inc.
+#ifdef _WIN32
+#define HIPFFT_EXPORT __declspec(dllexport)
+#else
+#define HIPFFT_EXPORT __attribute__((visibility("default")))
+#endif
+
+#define HIPFFT_FORWARD -1
+
+#define HIPFFT_BACKWARD 1
+
+// Declare types from hipfft.h used in hipfft_stub.h.inc.
 struct hipfftComplex {
   float x, y;
 };

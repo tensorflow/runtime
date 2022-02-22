@@ -192,7 +192,4 @@
       "miopenDropoutForward",
       "miopenDropoutBackward"
    ],
-   "macros":[
-      "MIOPEN_EXPORT"
-   ]
 }

@@ -1,5 +1,3 @@
-#define ROCBLAS_EXPORT __attribute__((visibility("default")))
-
 typedef enum rocblas_operation_ {
   rocblas_operation_none = 111,
   rocblas_operation_transpose = 112,

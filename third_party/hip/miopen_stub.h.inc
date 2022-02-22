@@ -1,5 +1,3 @@
-#define MIOPEN_EXPORT __attribute__((visibility("default")))
-
 typedef enum {
   miopenStatusSuccess = 0,
   miopenStatusNotInitialized = 1,

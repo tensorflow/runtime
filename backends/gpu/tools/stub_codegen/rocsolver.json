@@ -10,7 +10,4 @@
       "rocsolver_cpotrf",
       "rocsolver_zpotrf"
    ],
-   "macros":[
-      "ROCSOLVER_EXPORT"
-   ]
 }

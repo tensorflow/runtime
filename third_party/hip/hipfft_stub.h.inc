@@ -1,9 +1,3 @@
-#define HIPFFT_EXPORT __attribute__((visibility("default")))
-
-#define HIPFFT_FORWARD -1
-
-#define HIPFFT_BACKWARD 1
-
 typedef enum hipfftResult_t {
   HIPFFT_SUCCESS = 0,
   HIPFFT_INVALID_PLAN = 1,

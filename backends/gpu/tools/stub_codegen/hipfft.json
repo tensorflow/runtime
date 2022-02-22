@@ -26,9 +26,4 @@
       "hipfftSetStream",
       "hipfftSetWorkArea"
    ],
-   "macros":[
-      "HIPFFT_BACKWARD",
-      "HIPFFT_EXPORT",
-      "HIPFFT_FORWARD"
-   ]
 }

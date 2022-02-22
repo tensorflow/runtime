@@ -24,6 +24,12 @@
 
 #include "tfrt/gpu/wrapper/hip_forwards.h"
 
+#ifdef _WIN32
+#define MIOPEN_EXPORT __declspec(dllexport)
+#else
+#define MIOPEN_EXPORT __attribute__((visibility("default")))
+#endif
+
 extern "C" {
 #include "miopen_stub.h.inc"
 }

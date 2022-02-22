@@ -30,7 +30,4 @@
       "rocblas_ctrsm_batched",
       "rocblas_ztrsm_batched"
    ],
-   "macros":[
-      "ROCBLAS_EXPORT"
-   ]
 }

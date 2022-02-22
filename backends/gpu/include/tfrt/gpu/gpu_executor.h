@@ -68,9 +68,6 @@ struct BorrowedStreamDeleter {
   using pointer = AsyncValuePtr<GpuStream>;
   void operator()(pointer ptr);
 };
-// std::unique_ptr<AsyncValueRef<GpuStream>> wouldn't allow checking NumRef() on
-// destruction. Wrapping an AsyncValue* is sufficient because this type is only
-// used as BEF function argument.
 using BorrowedStream = std::unique_ptr<void, BorrowedStreamDeleter>;
 // Returns the `stream` belonging to `context` as a non-owning AsyncValue.
 BorrowedStream MakeBorrowedStream(AsyncValueRef<GpuContext> context,

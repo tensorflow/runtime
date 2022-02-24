@@ -87,16 +87,12 @@ static AsyncValueRef<Chain> GpuStreamSynchronize(
     Argument<GpuStream> stream, const ExecutionContext& exec_ctx) {
   return EnqueueBlockingWork(
       exec_ctx.host(),
-      [stream = stream.ValueRef()]() mutable -> Expected<Chain> {
-        // Move to local so that the stream is released before returning, or
-        // else, the stream will be released when this lambda is destructed,
-        // which is after returning.
-        auto moved_stream = std::move(stream);
-
-        if (auto error = wrapper::StreamSynchronize(moved_stream->get()))
-          return std::move(error);
-        return Chain();
-      });
+      DestroyCapturesOnInvoke(
+          [stream = stream.ValueRef()]() -> Expected<Chain> {
+            if (auto error = wrapper::StreamSynchronize(stream->get()))
+              return std::move(error);
+            return Chain();
+          }));
 }
 
 // tfrt_gpu.event.create creates a new cuda event.

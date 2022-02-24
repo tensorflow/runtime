@@ -39,18 +39,14 @@ static AsyncValueRef<GpuCclHandle> CclCreate(Argument<GpuContext> context,
   // to run inside a blocking task.
   return RunBlockingWork(
       exec_ctx.host(),
-      [=, context = context.ValueRef()]() mutable -> Expected<GpuCclHandle> {
-        // Move to local so that the context is released before returning, or
-        // else, the context will be released when this lambda is destructed,
-        // which is after returning.
-        auto moved_context = std::move(context);
-
-        auto current = wrapper::CtxSetCurrent(moved_context->get());
-        if (!current) return current.takeError();
-        auto comm = wrapper::CclCommInitRank(*current, count, id, rank);
-        if (!comm) return comm.takeError();
-        return GpuCclHandle(moved_context.CopyRef(), std::move(*comm));
-      });
+      DestroyCapturesOnInvoke(
+          [=, context = context.ValueRef()]() -> Expected<GpuCclHandle> {
+            auto current = wrapper::CtxSetCurrent(context->get());
+            if (!current) return current.takeError();
+            auto comm = wrapper::CclCommInitRank(*current, count, id, rank);
+            if (!comm) return comm.takeError();
+            return GpuCclHandle(context.CopyRef(), std::move(*comm));
+          }));
 }
 
 static Error CclAllGather(
@@ -217,20 +213,15 @@ static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
   // run inside a blocking task.
   return RunBlockingWork(
       exec_ctx.host(),
-      [stream = stream.ValueRef(),
-       handle = handle.ValueRef()]() mutable -> Expected<Chain> {
-        // Move to local so that the stream is released before returning, or
-        // else, the stream will be released when this lambda is destructed,
-        // which is after returning.
-        auto moved_stream = std::move(stream);
-
-        auto current = wrapper::CtxSetCurrent(moved_stream->context()->get());
-        if (!current) return current.takeError();
-        if (auto error =
-                handle->ExecuteCallbacks(*current, moved_stream->get()))
-          return std::move(error);
-        return Chain();
-      });
+      DestroyCapturesOnInvoke(
+          [stream = stream.ValueRef(),
+           handle = handle.ValueRef()]() -> Expected<Chain> {
+            auto current = wrapper::CtxSetCurrent(stream->context()->get());
+            if (!current) return current.takeError();
+            if (auto error = handle->ExecuteCallbacks(*current, stream->get()))
+              return std::move(error);
+            return Chain();
+          }));
 }
 
 void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {

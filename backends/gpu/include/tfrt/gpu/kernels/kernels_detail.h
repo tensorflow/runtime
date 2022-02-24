@@ -30,6 +30,21 @@
 
 namespace tfrt {
 namespace gpu {
+
+// Wraps zero-argument 'func' to destroy its captures when invoked.
+//
+// Use this for Run/EnqueueBlockingWork() to destroy RAII-type captures before
+// the return value becomes available.
+template <typename F>
+auto DestroyCapturesOnInvoke(F&& func) {
+  return [func = llvm::unique_function<decltype(func())()>(
+              std::forward<F>(func))]() mutable {
+    auto result = func();
+    func = nullptr;
+    return std::move(result);
+  };
+}
+
 namespace internal {
 
 // Helper template that provides an async kernel implementation from a sync one.

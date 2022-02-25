@@ -78,6 +78,7 @@ tfrt_cc_test(
     deps = [
         ":common",
         "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
         "@tf_runtime//backends/gpu:gpu_types",
         "@tf_runtime//backends/gpu:gpu_wrapper",
     ],

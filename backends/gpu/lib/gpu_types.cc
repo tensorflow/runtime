@@ -15,11 +15,18 @@
 // Implementation of the types used in the tfrt_gpu dialect.
 #include "tfrt/gpu/gpu_types.h"
 
+#include <algorithm>
+#include <iterator>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
@@ -50,15 +57,153 @@ void GpuContext::HostMemoryPool::Deallocate(GpuPointer pointer,
   pool_.emplace(size_bytes, pointer);
 }
 
-GpuContext::GpuContext(wrapper::OwningContext context)
-    : context_(std::move(context)), host_memory_pool_(new HostMemoryPool) {}
+// Implements 'AddEventualCallback()' and 'MaybeInvokeCallbacks()'.
+//
+// Holds a list of event/callback pairs and queries (on-demand and regularly)
+// each event and if it's ready, invokes the corresponding callback.
+class GpuContext::CallbackManager : public ReferenceCounted<CallbackManager> {
+  struct Callback {
+    GpuEvent event;
+    llvm::unique_function<void()> callback;
+  };
 
-GpuContext::~GpuContext() = default;
+ public:
+  ~CallbackManager() {
+    // Wait for any InvokeImpl() calls to complete.
+    mutex_lock lock(invoke_mutex_);
+    TFRT_LOG_IF(ERROR, !callbacks_.empty()) << "Not all callbacks were invoked";
+  }
+
+  // Destroys events in pool. This needs to be called before destroying the gpu
+  // context because a pending invoke task extends the lifetime of 'this'.
+  void ClearPool() {
+    mutex_lock lock(pool_mutex_);
+    event_pool_.clear();
+  }
+
+  // Records an event into 'stream' and invokes 'callback' when it's ready.
+  Error Add(wrapper::CurrentContext current, const GpuStream& stream,
+            llvm::unique_function<void()> callback, HostContext* host) {
+    mutex_lock lock(invoke_mutex_);
+    Expected<GpuEvent> event = CreateEvent(current, stream.context());
+    if (!event) return event.takeError();
+    if (auto error = wrapper::EventRecord(event->get(), stream.get()))
+      return error;
+    callbacks_.push_back(Callback{std::move(*event), std::move(callback)});
+    if (pending_invoke_) return Error::success();
+    return InvokeImpl(host);
+  }
+
+  // Invoke pending callbacks if their event is ready. Returns whether all
+  // pending callbacks have been invoked.
+  Expected<bool> Invoke() {
+    mutex_lock lock(invoke_mutex_);
+    if (auto error = InvokeImpl(nullptr)) return std::move(error);
+    return callbacks_.empty();
+  }
+
+ private:
+  // Sleeps for a 100ms before calling InvokeImpl(). Called from blocking tasks.
+  Error InvokeLater(HostContext* host) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    mutex_lock lock(invoke_mutex_);
+    pending_invoke_ = false;
+    if (callbacks_.empty()) return Error::success();
+    return InvokeImpl(host);
+  }
+
+  // Queries each event and if it's ready, invokes the corresponding callback.
+  // If any event is not ready yet and host != nullptr, schedule a task to
+  // check back later.
+  Error InvokeImpl(HostContext* host) TFRT_REQUIRES(invoke_mutex_) {
+    // Prevent 'this' from being destroyed along with the GpuContext if all
+    // events are erased. This ref-count is moved to the blocking task below.
+    auto manager = FormRef(this);
+    // For each event that is ready, invoke the callback and remove the element.
+    Error error = Error::success();
+    pool_mutex_.lock();
+    auto it = llvm::remove_if(callbacks_, [&](Callback& callback) TFRT_REQUIRES(
+                                              invoke_mutex_, pool_mutex_) {
+      auto result = wrapper::EventQuery(callback.event.get());
+      if (!result) {
+        error = llvm::joinErrors(std::move(error), result.takeError());
+        return false;
+      }
+      if (!*result) return false;
+      callback.callback();
+      event_pool_.push_back(wrapper::OwningEvent(callback.event.release()));
+      return true;
+    });
+    // Erase the removed elements after unlocking the pool_mutex_, because
+    // destroying the callbacks might call ClearPool() from ~GpuContext().
+    pool_mutex_.unlock();
+    callbacks_.erase(it, callbacks_.end());
+    if (error) return error;
+    if (callbacks_.empty() || pending_invoke_ || !host) return Error::success();
+    // Enqueue a blocking task that calls this function again after some
+    // delay.
+    pending_invoke_ = true;
+    bool enqueued =
+        EnqueueBlockingWork(host, [host, manager = std::move(manager)] {
+          if (auto error = manager->InvokeLater(host))
+            host->EmitError(DecodedDiagnostic(std::move(error)));
+        });
+    if (!enqueued) return MakeStringError("Failed to enqueue blocking work.");
+    return Error::success();
+  }
+
+  Expected<GpuEvent> CreateEvent(wrapper::CurrentContext current,
+                                 AsyncValueRef<GpuContext> gpu_context) {
+    mutex_lock lock(pool_mutex_);
+    // Amortize the cost of event instancing with a pool.
+    if (event_pool_.empty()) {
+      auto event =
+          wrapper::EventCreate(current, wrapper::EventFlags::DISABLE_TIMING);
+      if (!event) return event.takeError();
+      event_pool_.emplace_back(std::move(*event));
+    }
+    GpuEvent event(std::move(gpu_context), std::move(event_pool_.back()));
+    event_pool_.pop_back();
+    return std::move(event);
+  }
+
+  std::vector<Callback> callbacks_ TFRT_GUARDED_BY(invoke_mutex_);
+  bool pending_invoke_ TFRT_GUARDED_BY(invoke_mutex_) = false;
+  mutex invoke_mutex_;
+
+  std::vector<wrapper::OwningEvent> event_pool_ TFRT_GUARDED_BY(pool_mutex_);
+  mutex pool_mutex_;
+};
+
+GpuContext::GpuContext(wrapper::OwningContext context)
+    : context_(std::move(context)),
+      host_memory_pool_(new HostMemoryPool()),
+      callback_manager_(TakeRef(new CallbackManager)) {}
+
+GpuContext::~GpuContext() {
+  if (callback_manager_) callback_manager_->ClearPool();
+}
+
+GpuContext::GpuContext(GpuContext&&) = default;
+GpuContext& GpuContext::operator=(GpuContext&&) = default;
 
 wrapper::Context GpuContext::release() {
-  auto result = context_.release();
+  callback_manager_->ClearPool();
+  callback_manager_.reset();
   host_memory_pool_.reset();
-  return result;
+  return context_.release();
+}
+
+Error GpuContext::AddEventualCallback(wrapper::CurrentContext current,
+                                      const GpuStream& stream,
+                                      llvm::unique_function<void()> callback,
+                                      HostContext* host) {
+  return stream.context()->callback_manager_->Add(current, stream,
+                                                  std::move(callback), host);
+}
+
+Expected<bool> GpuContext::MaybeInvokeCallbacks() const {
+  return callback_manager_->Invoke();
 }
 
 GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
@@ -77,6 +222,11 @@ GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
     : context_(std::move(context)), event_(std::move(event)) {}
 
 GpuEvent::~GpuEvent() = default;
+
+wrapper::Event GpuEvent::release() {
+  context_.reset();
+  return event_.release();
+}
 
 GpuModule::GpuModule(AsyncValueRef<GpuContext> context,
                      wrapper::OwningModule module)

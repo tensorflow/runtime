@@ -82,7 +82,7 @@ static Error GpuStreamWait(const GpuStream& stream, const GpuEvent& event) {
 }
 
 // tfrt_gpu.stream.synchronize sets the output chain ready when all work
-// previously enqueued on the stream is completed.
+// (including callbacks) previously enqueued on the stream is completed.
 static AsyncValueRef<Chain> GpuStreamSynchronize(
     Argument<GpuStream> stream, const ExecutionContext& exec_ctx) {
   return EnqueueBlockingWork(
@@ -91,6 +91,8 @@ static AsyncValueRef<Chain> GpuStreamSynchronize(
           [stream = stream.ValueRef()]() -> Expected<Chain> {
             if (auto error = wrapper::StreamSynchronize(stream->get()))
               return std::move(error);
+            auto none_pending = stream->context()->MaybeInvokeCallbacks();
+            if (auto error = none_pending.takeError()) return std::move(error);
             return Chain();
           }));
 }
@@ -113,24 +115,27 @@ static Error GpuEventRecord(const GpuEvent& event, const GpuStream& stream) {
 }
 
 // tfrt_gpu.event.synchronize sets the output chain when the event has been
-// reached, i.e. all work scheduled prior to the last call to
-// tfrt_gpu.event.record has been completed.
-static void GpuEventSynchronize(Argument<GpuEvent> event, Chain in_chain,
-                                Result<Chain> out_chain,
-                                const ExecutionContext& exec_ctx) {
-  auto result = out_chain.Allocate();
+// reached, i.e. all work (including callbacks) scheduled prior to the last call
+// to tfrt_gpu.event.record has been completed.
+static AsyncValueRef<Chain> GpuEventSynchronize(
+    Argument<GpuEvent> event, const ExecutionContext& exec_ctx) {
   // Check if event has already completed and we can skip enqueuing work.
   auto ready = wrapper::EventQuery(event->get());
-  if (!ready) return result.SetError(StrCat(ready.takeError()));
-  if (*ready) return result.emplace(in_chain);
-  bool enqueued = EnqueueBlockingWork(
-      exec_ctx.host(), [result = result.CopyRef(), event = event.ValueRef(),
-                        in_chain = in_chain]() mutable {
+  if (!ready) return MakeErrorAsyncValueRef(StrCat(ready.takeError()));
+  if (*ready) {
+    if (auto error = event->context()->MaybeInvokeCallbacks().takeError())
+      return MakeErrorAsyncValueRef(StrCat(std::move(error)));
+    return GetReadyChain();
+  }
+  return EnqueueBlockingWork(
+      exec_ctx.host(),
+      DestroyCapturesOnInvoke([event = event.ValueRef()]() -> Expected<Chain> {
         if (auto error = wrapper::EventSynchronize(event->get()))
-          return result.SetError(StrCat(error));
-        result.emplace(in_chain);
-      });
-  if (!enqueued) return result.SetError("Failed to enqueue blocking work.");
+          return std::move(error);
+        if (auto error = event->context()->MaybeInvokeCallbacks().takeError())
+          return std::move(error);
+        return Chain();
+      }));
 }
 
 // tfrt_gpu.allocator.create creates a new allocator.
@@ -177,7 +182,8 @@ static Error GpuMemset(const GpuBuffer& buffer, AsyncValue* untyped_value,
 }
 
 // tfrt_gpu.mem.copy copies memory between host or device.
-static Error GpuMemCopy(RemainingArguments args) {
+static Error GpuMemCopy(RemainingArguments args,
+                        const ExecutionContext& exec_ctx) {
   if (args.size() != 4)
     return MakeStringError("Expected 4 arguments, got ", args.size());
 
@@ -212,8 +218,14 @@ static Error GpuMemCopy(RemainingArguments args) {
     return Error::success();
   }
 
-  return wrapper::MemcpyAsync(*current, dst_ptr, src_ptr, dst_size,
-                              stream.get());
+  if (auto error = wrapper::MemcpyAsync(*current, dst_ptr, src_ptr, dst_size,
+                                        stream.get()))
+    return error;
+
+  // Hold on to ref-counts of src and dst until the async memcpy completes.
+  return GpuContext::AddEventualCallback(
+      *current, stream, [dst = FormRef(args[0]), src = FormRef(args[1])] {},
+      exec_ctx.host());
 }
 
 static Expected<GpuBuffer> GpuMemRegister(

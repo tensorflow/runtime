@@ -42,6 +42,8 @@
 namespace tfrt {
 namespace gpu {
 
+class GpuStream;  // Forward declaration.
+
 // Types that do not need a wrapper class go here.
 using GpuPointer = wrapper::Pointer<void>;
 using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
@@ -70,6 +72,8 @@ class GpuContext {
     size_t size_bytes;
   };
 
+  class CallbackManager;
+
  public:
   template <typename T>
   using HostPoolMemory = std::unique_ptr<T, HostPoolMemoryDeleter<T>>;
@@ -77,8 +81,8 @@ class GpuContext {
   explicit GpuContext(wrapper::OwningContext context);
   ~GpuContext();
 
-  GpuContext(GpuContext&&) = default;
-  GpuContext& operator=(GpuContext&&) = default;
+  GpuContext(GpuContext&&);
+  GpuContext& operator=(GpuContext&&);
 
   const wrapper::OwningContext& operator->() const { return context_; }
   wrapper::Context get() const { return context_.get(); }
@@ -99,9 +103,26 @@ class GpuContext {
     return HostPoolMemory<T>(pointer, {host_memory_pool_.get(), size_bytes});
   }
 
+  // Adds a 'callback' that will be invoked (from an unspecified thread) after
+  // work that is currently enqueued on the 'stream' has completed.
+  // Work enqueued afterwards does not wait for the callback to complete.
+  // Callbacks are permitted to hold ref-counts to e.g. a GpuBuffer.
+  static Error AddEventualCallback(wrapper::CurrentContext current,
+                                   const GpuStream& stream,
+                                   llvm::unique_function<void()> callback,
+                                   HostContext* host);
+
+  // Invokes callbacks that are ready (all work enqueued on the stream when the
+  // callback was added is known to have completed). All synchronized callbacks
+  // (the stream has been host-synchronized after the callback was added) are
+  // guaranteed to be called. Callbacks that are not synchronized may or may
+  // not be called. Returns whether all pending callbacks were invoked.
+  Expected<bool> MaybeInvokeCallbacks() const;
+
  private:
   wrapper::OwningContext context_;
   std::unique_ptr<HostMemoryPool> host_memory_pool_;
+  RCReference<CallbackManager> callback_manager_;
 };
 
 class GpuStream {
@@ -135,6 +156,9 @@ class GpuEvent {
 
   const wrapper::OwningEvent& operator->() const { return event_; }
   wrapper::Event get() const { return event_.get(); }
+  wrapper::Event release();
+
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
   AsyncValueRef<GpuContext> context_;

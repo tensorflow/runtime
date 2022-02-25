@@ -48,7 +48,7 @@ namespace gpu {
 
 // Creates and caches GpuContexts and an associated tfrt::ResourceContexts.
 class GpuContextCache {
-  using Pair = std::pair<AsyncValueRef<GpuContext>, ResourceContext*>;
+  using Resources = std::pair<AsyncValueRef<GpuContext>, ResourceContext*>;
 
  public:
   GpuContextCache() = default;
@@ -58,10 +58,10 @@ class GpuContextCache {
 
   // Returns the `context` as non-owning AsyncValue plus a resource context
   // that is unique to `context`.
-  Pair GetOrCreate(wrapper::Context context);
+  Resources GetOrCreate(wrapper::Context context);
 
  private:
-  llvm::SmallDenseMap<wrapper::Context, Pair> map_;
+  llvm::SmallDenseMap<wrapper::Context, Resources> context_resources_;
 };
 
 struct BorrowedStreamDeleter {

@@ -798,9 +798,11 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
                                                      target_machine->get());
 
   // Build MLIR execution engine.
-  auto engine = mlir::ExecutionEngine::create(
-      ctx->module(), /*llvmModuleBuilder=*/nullptr, transformer,
-      ctx->options().jit_code_opt_level, libs);
+  mlir::ExecutionEngineOptions engine_options;
+  engine_options.transformer = transformer;
+  engine_options.jitCodeGenOptLevel = ctx->options().jit_code_opt_level;
+  engine_options.sharedLibPaths = libs;
+  auto engine = mlir::ExecutionEngine::create(ctx->module(), engine_options);
   if (auto err = engine.takeError()) return std::move(err);
 
   // Register MLIR C Runner API intrinsics (defined in CRunnerUtils).

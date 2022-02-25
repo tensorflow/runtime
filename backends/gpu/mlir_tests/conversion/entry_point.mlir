@@ -20,7 +20,7 @@
 // CHECK: %[[result:.*]] = "tfrt_gpu.get_entry_point"() {
 // CHECK-SAME:  buffer_sizes = [1, 2, 3],
 // CHECK-SAME:  function_name = "main",
-// CHECK-SAME:  platform = 1 : i32,
+// CHECK-SAME:  platform = 1 : si32,
 // CHECK-SAME:  version = {{[[:digit:]]+}} : i64
 // CHECK-SAME: } : () -> !tfrt_gpu.entry_point
 // CHECK: tfrt.return %[[result]] : !tfrt_gpu.entry_point

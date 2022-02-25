@@ -187,6 +187,147 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value) {
   }
 }
 
+template <>
+Expected<cudnnConvolutionFwdAlgo_t> Parse<cudnnConvolutionFwdAlgo_t>(
+    llvm::StringRef name) {
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM")
+    return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM")
+    return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_GEMM")
+    return CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT")
+    return CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_FFT")
+    return CUDNN_CONVOLUTION_FWD_ALGO_FFT;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING")
+    return CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD")
+    return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED")
+    return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_COUNT")
+    return CUDNN_CONVOLUTION_FWD_ALGO_COUNT;
+  return MakeStringError("Unknown cudnnConvolutionFwdAlgo_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionFwdAlgo_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM";
+    case CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM";
+    case CUDNN_CONVOLUTION_FWD_ALGO_GEMM:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_GEMM";
+    case CUDNN_CONVOLUTION_FWD_ALGO_DIRECT:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT";
+    case CUDNN_CONVOLUTION_FWD_ALGO_FFT:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_FFT";
+    case CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING";
+    case CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD";
+    case CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED";
+    case CUDNN_CONVOLUTION_FWD_ALGO_COUNT:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_COUNT";
+    default:
+      return os << llvm::formatv("cudnnConvolutionFwdAlgo_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
+Expected<cudnnConvolutionBwdDataAlgo_t> Parse<cudnnConvolutionBwdDataAlgo_t>(
+    llvm::StringRef name) {
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT;
+  return MakeStringError("Unknown cudnnConvolutionBwdDataAlgo_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionBwdDataAlgo_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_0:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_1:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT";
+    default:
+      return os << llvm::formatv("cudnnConvolutionFwdAlgo_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
+Expected<cudnnConvolutionBwdFilterAlgo_t>
+Parse<cudnnConvolutionBwdFilterAlgo_t>(llvm::StringRef name) {
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT;
+  return MakeStringError("Unknown cudnnConvolutionBwdFilterAlgo_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionBwdFilterAlgo_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT";
+    default:
+      return os << llvm::formatv("cudnnConvolutionFwdAlgo_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
 mlir::TypeID GetCudnnDataTypeId(cudnnDataType_t data_type) {
   switch (data_type) {
     case CUDNN_DATA_FLOAT:

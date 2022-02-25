@@ -237,28 +237,28 @@ func @dnn_legacy_ops() {
   %cudnn = tfrt_gpu.dnn.create %context
 
   // CHECK: %[[tensor_desc:.*]] = tfrt_gpu.dnn.create_tensor_descriptor
-  // CHECK-SAME: CUDNN_DATA_FLOAT, [3 : i32, 3 : i32], [1 : i32, 1 : i32], %{{.*}}
+  // CHECK-SAME: CUDNN_DATA_FLOAT, [3 : i32, 3 : i32], [1 : i32, 1 : i32]
   %tensor_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
-    [3 : i32, 3 : i32], [1 : i32, 1 : i32], %ch0
+    [3 : i32, 3 : i32], [1 : i32, 1 : i32]
   // CHECK: %[[filter_desc:.*]] = tfrt_gpu.dnn.create_filter_descriptor
-  // CHECK-SAME: CUDNN_DATA_FLOAT, 0, [3 : i32, 3 : i32], %{{.*}}
+  // CHECK-SAME: CUDNN_DATA_FLOAT, 0, [3 : i32, 3 : i32]
   %filter_desc = tfrt_gpu.dnn.create_filter_descriptor CUDNN_DATA_FLOAT, 0,
-    [3 : i32, 3 : i32], %ch0
+    [3 : i32, 3 : i32]
   // CHECK: %[[conv_desc:.*]] = tfrt_gpu.dnn.create_convolution_descriptor
   // CHECK-SAME: CUDNN_DATA_FLOAT, CUDNN_CROSS_CORRELATION, CUDNN_TENSOR_OP_MATH,
-  // CHECK-SAME: [0 : i32, 0 : i32], [1 : i32, 1 : i32], [1 : i32, 1 : i32], %{{.*}}
+  // CHECK-SAME: [0 : i32, 0 : i32], [1 : i32, 1 : i32], [1 : i32, 1 : i32]
   %conv_desc = tfrt_gpu.dnn.create_convolution_descriptor CUDNN_DATA_FLOAT,
     CUDNN_CROSS_CORRELATION, CUDNN_TENSOR_OP_MATH, [0 : i32, 0 : i32],
-    [1 : i32, 1 : i32], [1 : i32, 1 : i32], %ch0
+    [1 : i32, 1 : i32], [1 : i32, 1 : i32]
   // CHECK: %[[rocm_conv_desc:.*]] = tfrt_gpu.dnn.create_convolution_descriptor
   // CHECK-SAME: miopenFloat, miopenConvolution, ROCM_DEFAULT_MATH,
-  // CHECK-SAME: [0 : i32, 0 : i32], [1 : i32, 1 : i32], [1 : i32, 1 : i32], %{{.*}}
+  // CHECK-SAME: [0 : i32, 0 : i32], [1 : i32, 1 : i32], [1 : i32, 1 : i32]
   %rocm_conv_desc = tfrt_gpu.dnn.create_convolution_descriptor miopenFloat,
     miopenConvolution, ROCM_DEFAULT_MATH, [0 : i32, 0 : i32],
-    [1 : i32, 1 : i32], [1 : i32, 1 : i32], %ch0
+    [1 : i32, 1 : i32], [1 : i32, 1 : i32]
 
-  // CHECK: %[[algo:.*]] = tfrt.constant.ui64 0
-  %algo = tfrt.constant.ui64 0
+  // CHECK: %[[algo:.*]] = tfrt_gpu.dnn.convolution_forward_algorithm 0
+  %algo = tfrt_gpu.dnn.convolution_forward_algorithm 0
   // CHECK: tfrt_gpu.dnn.convolution_forward %[[cudnn]], %[[stream]],
   // CHECK-SAME: CUDNN_DATA_FLOAT, %[[tensor_desc]], %[[buffer]],
   // CHECK-SAME: %[[filter_desc]], %[[buffer]], %[[conv_desc]], %[[algo]],
@@ -284,9 +284,9 @@ func @dnn_legacy_ops() {
   // CHECK: %[[double:.*]] = tfrt.constant.f64 0.0
   %double = tfrt.constant.f64 0.0
   // CHECK: %[[act_desc:.*]] = tfrt_gpu.dnn.create_activation_descriptor
-  // CHECK-SAME: %[[double]], CUDNN_ACTIVATION_RELU, true, %{{.*}}
+  // CHECK-SAME: %[[double]], CUDNN_ACTIVATION_RELU, true
   %act_desc = tfrt_gpu.dnn.create_activation_descriptor %double,
-    CUDNN_ACTIVATION_RELU, true, %ch3
+    CUDNN_ACTIVATION_RELU, true
   // CHECK: %[[float:.*]] = tfrt.constant.f32 0.0
   %float = tfrt.constant.f32 0.0
   // CHECK: tfrt_gpu.dnn.convolution_bias_activation_forward %[[cudnn]],

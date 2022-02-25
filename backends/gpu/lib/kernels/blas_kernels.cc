@@ -104,7 +104,7 @@ static Error BlasAxpy(const GpuBlasHandle& handle, const GpuStream& stream,
       wrapper::BlasDataType::FromOpaqueValue(*executionType));
 }
 
-static wrapper::BlasGemmAlgo BlasGemmAlgo(Attribute<int32_t> algo) {
+static wrapper::BlasGemmAlgo BlasGemmAlgo(Attribute<int> algo) {
   return wrapper::BlasGemmAlgo::FromOpaqueValue(*algo);
 }
 

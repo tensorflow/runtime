@@ -49,10 +49,10 @@ struct DnnConvBwdDataAlgoTag {
   using type = uint64_t;
 };
 using DnnConvBwdDataAlgo = Enum<DnnConvBwdDataAlgoTag>;
-struct DnnConvBwdWeightsAlgoTag {
+struct DnnConvBwdFilterAlgoTag {
   using type = uint64_t;
 };
-using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
+using DnnConvBwdFilterAlgo = Enum<DnnConvBwdFilterAlgoTag>;
 struct DnnNanPropagationTag;
 using DnnNanPropagation = Enum<DnnNanPropagationTag>;  // cuDNN only.
 
@@ -334,7 +334,7 @@ llvm::Error DnnConvolutionBackwardFilter(
     CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnTensorDescriptor x_desc, Pointer<const void> x,
     DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
+    DnnConvolutionDescriptor conv_desc, DnnConvBwdFilterAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnFilterDescriptor dw_desc, Pointer<void> dw);
 llvm::Error DnnConvolutionBackwardBias(CurrentContext current, DnnHandle handle,

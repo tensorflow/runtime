@@ -157,18 +157,16 @@ func @dnn_legacy_convolution_test() {
 
   // Convolution forward
   %input_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
-    [1 : i32, 1 : i32, 4 : i32, 4 : i32],
-    [16 : i32, 16 : i32, 4 : i32, 1 : i32], %ch0
+    [1 : i32, 1 : i32, 4 : i32, 4 : i32], [16 : i32, 16 : i32, 4 : i32, 1 : i32]
   %output_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
-    [1 : i32, 1 : i32, 3 : i32, 3 : i32], [9 : i32, 9 : i32, 3 : i32, 1 : i32],
-    %ch0
+    [1 : i32, 1 : i32, 3 : i32, 3 : i32], [9 : i32, 9 : i32, 3 : i32, 1 : i32]
   %filter_desc = tfrt_gpu.dnn.create_filter_descriptor CUDNN_DATA_FLOAT, 0,
-    [1 : i32, 1 : i32, 2 : i32, 2 : i32], %ch0
+    [1 : i32, 1 : i32, 2 : i32, 2 : i32]
   %conv_desc = tfrt_gpu.dnn.create_convolution_descriptor CUDNN_DATA_FLOAT,
     CUDNN_CROSS_CORRELATION, CUDNN_FMA_MATH, [0 : i32, 0 : i32],
-    [1 : i32, 1 : i32], [1 : i32, 1 : i32], %ch0
+    [1 : i32, 1 : i32], [1 : i32, 1 : i32]
   %dnn = tfrt_gpu.dnn.create %context
-  %algo = tfrt.constant.ui64 0
+  %algo = tfrt_gpu.dnn.convolution_forward_algorithm CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM
   %chb = tfrt_gpu.dnn.convolution_forward %dnn, %stream, CUDNN_DATA_FLOAT,
     %input_desc, %device_input_buffer, %filter_desc, %device_filter_buffer,
     %conv_desc, %algo, %device_workspace_buffer, %output_desc,
@@ -291,16 +289,15 @@ func @dnn_pooling_test() {
   %mode = tfrt.constant.ui32 0
   %nan_propagation = tfrt.constant.ui32 0
   %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode,
-    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
-    [1 : i32, 1 : i32], %ch12
+    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32], [1 : i32, 1 : i32]
 
   %in_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
     [2 : i32, 2 : i32, 10 : i32, 10 : i32],
-    [200 : i32, 100 : i32, 10 : i32, 1 : i32], %ch12
+    [200 : i32, 100 : i32, 10 : i32, 1 : i32]
 
   %out_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
     [2 : i32, 2 : i32, 8 : i32, 8 : i32],
-    [128 : i32, 64 : i32, 8 : i32, 1 : i32], %ch12
+    [128 : i32, 64 : i32, 8 : i32, 1 : i32]
 
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 0.0

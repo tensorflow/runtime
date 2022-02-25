@@ -59,6 +59,21 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 template <>
 Expected<cudnnMathType_t> Parse<cudnnMathType_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value);
+template <>
+Expected<cudnnConvolutionFwdAlgo_t> Parse<cudnnConvolutionFwdAlgo_t>(
+    llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionFwdAlgo_t value);
+template <>
+Expected<cudnnConvolutionBwdDataAlgo_t> Parse<cudnnConvolutionBwdDataAlgo_t>(
+    llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionBwdDataAlgo_t value);
+template <>
+Expected<cudnnConvolutionBwdFilterAlgo_t>
+Parse<cudnnConvolutionBwdFilterAlgo_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cudnnConvolutionBwdFilterAlgo_t value);
 
 template <>
 struct PlatformTypeTraits<DnnDataTypeTag, cudnnDataType_t>
@@ -79,7 +94,7 @@ template <>
 struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, cudnnConvolutionBwdDataAlgo_t>
     : public CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag,
+struct PlatformTypeTraits<DnnConvBwdFilterAlgoTag,
                           cudnnConvolutionBwdFilterAlgo_t>
     : public CudaPlatformType {};
 template <>

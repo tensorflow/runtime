@@ -220,6 +220,10 @@ static Error DnnPoolingBackward(
   }
 }
 
+static uint64_t DnnConvolutionAlgorithm(Attribute<uint64_t> algo) {
+  return *algo;
+}
+
 static Error DnnConvolutionForward(
     const GpuDnnHandle& handle, const GpuStream& stream,
     const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
@@ -236,7 +240,7 @@ static Error DnnConvolutionForward(
     return error;
 
   auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
-  auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
+  auto algo_dnn = wrapper::DnnConvFwdAlgo::FromOpaqueValue(algo);
   return wrapper::DnnConvolutionForward(
       *current, handle.get(), scale_type, x_desc.get(), x.pointer(),
       w_desc.get(), w.pointer(), conv_desc.get(), algo_dnn,
@@ -259,7 +263,7 @@ static Error DnnConvolutionBackwardData(
     return error;
 
   auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
-  auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
+  auto algo_dnn = wrapper::DnnConvBwdDataAlgo::FromOpaqueValue(algo);
   return wrapper::DnnConvolutionBackwardData(
       *current, handle.get(), scale_type, w_desc.get(), w.pointer(),
       dy_desc.get(), dy.pointer(), conv_desc.get(), algo_dnn,
@@ -282,7 +286,7 @@ static Error DnnConvolutionBackwardFilter(
     return error;
 
   auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
-  auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
+  auto algo_dnn = wrapper::DnnConvBwdFilterAlgo::FromOpaqueValue(algo);
   return wrapper::DnnConvolutionBackwardFilter(
       *current, handle.get(), scale_type, x_desc.get(), x.pointer(),
       dy_desc.get(), dy.pointer(), conv_desc.get(), algo_dnn,
@@ -308,7 +312,7 @@ static Error CudnnConvolutionBiasActivationForward(
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
+  auto algo_dnn = wrapper::DnnConvFwdAlgo::FromOpaqueValue(algo);
   auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
   if (wrapper::GetDnnDataTypeId(scale_type) == mlir::TypeID::get<double>()) {
     return wrapper::CudnnConvolutionBiasActivationForward(
@@ -781,6 +785,12 @@ void RegisterGpuDnnKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(DnnPoolingForward));
   kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_backward",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(DnnPoolingBackward));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_forward_algorithm",
+                        TFRT_KERNEL(DnnConvolutionAlgorithm));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_backward_data_algorithm",
+                        TFRT_KERNEL(DnnConvolutionAlgorithm));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_backward_filter_algorithm",
+                        TFRT_KERNEL(DnnConvolutionAlgorithm));
   kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_forward",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(DnnConvolutionForward));
   kernel_reg->AddKernel(

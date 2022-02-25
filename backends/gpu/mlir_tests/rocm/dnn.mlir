@@ -122,16 +122,15 @@ func @dnn_pooling_test() {
   %mode = tfrt.constant.ui32 0
   %nan_propagation = tfrt.constant.ui32 0
   %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode,
-    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
-    [1 : i32, 1 : i32], %ch12
+    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32], [1 : i32, 1 : i32]
 
   %in_desc = tfrt_gpu.dnn.create_tensor_descriptor miopenFloat,
     [2 : i32, 2 : i32, 10 : i32, 10 : i32],
-    [200 : i32, 100 : i32, 10 : i32, 1 : i32], %ch12
+    [200 : i32, 100 : i32, 10 : i32, 1 : i32]
 
   %out_desc = tfrt_gpu.dnn.create_tensor_descriptor miopenFloat,
     [2 : i32, 2 : i32, 8 : i32, 8 : i32],
-    [128 : i32, 64 : i32, 8 : i32, 1 : i32], %ch12
+    [128 : i32, 64 : i32, 8 : i32, 1 : i32]
 
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 0.0

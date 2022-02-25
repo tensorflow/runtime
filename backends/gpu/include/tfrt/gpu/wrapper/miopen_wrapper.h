@@ -60,7 +60,7 @@ template <>
 struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, uint64_t>
     : public RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag, uint64_t>
+struct PlatformTypeTraits<DnnConvBwdFilterAlgoTag, uint64_t>
     : public RocmPlatformType {};
 
 mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type);

@@ -282,8 +282,9 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor);
 // below) is relying on user defined set of conversion functions.
 class ReturnValueConverterBase {
  public:
-  explicit ReturnValueConverterBase(RemainingResults results);
-  virtual ~ReturnValueConverterBase();
+  explicit ReturnValueConverterBase(RemainingResults results)
+      : results_(results) {}
+  virtual ~ReturnValueConverterBase() = default;
 
   // Converts value `ret` of type `runtime_type` (runtime type derived from the
   // original `type`) returned from the compiled function at `result_index`

@@ -292,11 +292,6 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
 // Executable return values unpacking.
 // -------------------------------------------------------------------------- //
 
-ReturnValueConverterBase::ReturnValueConverterBase(RemainingResults results)
-    : results_(results) {}
-
-ReturnValueConverterBase::~ReturnValueConverterBase() {}
-
 void ReturnValueConverterBase::ReturnErrors(
     RCReference<ErrorAsyncValue> error) const {
   results_[0] = std::move(error);

@@ -350,8 +350,6 @@ class ReturnValueConverter : public ReturnValueConverterBase {
     conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
   }
 
-  ConversionContext& context() { return context_; }
-
   ReturnValueConverter(ReturnValueConverter&&) = default;
   ReturnValueConverter& operator=(ReturnValueConverter&&) = default;
 
@@ -372,6 +370,91 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
   ConversionContext& context_;  // must outlive all pending result conversions
   llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+};
+
+// A template that converts function pointer passed as non-type template
+// parameter into the struct compatible with the `StaticReturnValueConverter`.
+template <typename ConversionContext,
+          mlir::LogicalResult (*convert)(ConversionContext&, RemainingResults,
+                                         unsigned, const Type*, const Type*,
+                                         void*)>
+struct ReturnValueConversion {
+  mlir::LogicalResult operator()(ConversionContext& ctx,
+                                 RemainingResults results,
+                                 unsigned result_index, const Type* t,
+                                 const Type* rt, void* ret) const {
+    return convert(ctx, results, result_index, t, rt, ret);
+  }
+};
+
+// Return value converter class with statically registered conversion functions.
+//
+// Conversion function type must define `operator()` with a signature:
+//
+//   mlir::LogicalResult operator()(ConversionContext&, RemainingResults,
+//                                  unsigned result_index, const Type* type,
+//                                  const Type* runtime_type, void*) const;
+//
+// Conversion function must return `success` if it successfully handled the
+// return type and set the result async value. If conversion function returns
+// `failure` converter will try the next conversion function.
+//
+// TODO(ezhulenev): Currently we only support default constructed conversion
+// functions, however we can potentially pass conversion functions with
+// non-empty captures.
+template <typename ConversionContext, typename... ConversionFns>
+class StaticReturnValueConverter : public ReturnValueConverterBase {
+ public:
+  StaticReturnValueConverter(RemainingResults results,
+                             ConversionContext& context)
+      : ReturnValueConverterBase(results), context_(context) {}
+
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
+                                  const Type* runtime_type,
+                                  void* ret) const final {
+    return convert_(context_, results(), result_index, type, runtime_type, ret);
+  }
+
+ private:
+  template <typename... Fns>
+  struct Impl;
+
+  template <typename Fn, typename... Fns>
+  struct Impl<Fn, Fns...> {
+    LLVM_ATTRIBUTE_ALWAYS_INLINE
+    mlir::LogicalResult operator()(ConversionContext& ctx,
+                                   RemainingResults results,
+                                   unsigned result_index, const Type* t,
+                                   const Type* rt, void* ret) const {
+      auto converted = convert(ctx, results, result_index, t, rt, ret);
+      if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
+      return try_next(ctx, results, result_index, t, rt, ret);
+    }
+
+    Fn convert;
+    Impl<Fns...> try_next;
+  };
+
+  template <typename Fn>
+  struct Impl<Fn> {
+    LLVM_ATTRIBUTE_ALWAYS_INLINE
+    mlir::LogicalResult operator()(ConversionContext& ctx,
+                                   RemainingResults results,
+                                   unsigned result_index, const Type* t,
+                                   const Type* rt, void* ret) const {
+      auto converted = convert(ctx, results, result_index, t, rt, ret);
+      if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
+      results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
+                                               " (derived from: ", *t, ")"));
+      return mlir::failure();
+    }
+
+    Fn convert;
+  };
+
+  ConversionContext& context_;  // must outlive all pending result conversions
+  Impl<ConversionFns...> convert_;
 };
 
 // -------------------------------------------------------------------------- //

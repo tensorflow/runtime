@@ -18,6 +18,7 @@
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_TYPES_H_
 
 #include <memory>
+#include <utility>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
@@ -72,7 +73,7 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type);
 // Async Token type corresponding to the mlir::async::TokenType
 class AsyncTokenType : public Type {
  public:
-  AsyncTokenType();
+  AsyncTokenType() : Type(TypeKind::kAsyncToken) {}
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kAsyncToken;
@@ -82,9 +83,10 @@ class AsyncTokenType : public Type {
 // Async Value type corresponding to the mlir::async::ValueType.
 class AsyncValueType : public Type {
  public:
-  explicit AsyncValueType(std::unique_ptr<Type> value_type);
+  explicit AsyncValueType(std::unique_ptr<Type> value_type)
+      : Type(TypeKind::kAsyncValue), value_type_(std::move(value_type)) {}
 
-  Type& value_type() const { return *value_type_; }
+  const Type& value_type() const { return *value_type_; }
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kAsyncValue;
@@ -98,11 +100,15 @@ class AsyncValueType : public Type {
 class RankedTensorType : public Type {
  public:
   static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
-  RankedTensorType(ArrayRef<Index> sizes, DType element_type);
 
-  ArrayRef<Index> sizes() const;
-  unsigned rank() const;
-  DType element_type() const;
+  RankedTensorType(ArrayRef<Index> sizes, DType element_type)
+      : Type(TypeKind::kRankedTensor),
+        sizes_(sizes.begin(), sizes.end()),
+        element_type_(element_type) {}
+
+  ArrayRef<Index> sizes() const { return sizes_; }
+  unsigned rank() const { return sizes_.size(); }
+  DType element_type() const { return element_type_; }
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kRankedTensor;
@@ -116,8 +122,10 @@ class RankedTensorType : public Type {
 // Unranked Tensor type corresponding to the mlir::UnrankedTensorType.
 class UnrankedTensorType : public Type {
  public:
-  explicit UnrankedTensorType(DType element_type);
-  DType element_type() const;
+  explicit UnrankedTensorType(DType element_type)
+      : Type(TypeKind::kUnrankedTensor), element_type_(element_type) {}
+
+  DType element_type() const { return element_type_; }
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kUnrankedTensor;
@@ -131,11 +139,15 @@ class UnrankedTensorType : public Type {
 class MemrefType : public Type {
  public:
   static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
-  MemrefType(ArrayRef<Index> sizes, DType element_type);
 
-  ArrayRef<Index> sizes() const;
-  unsigned rank() const;
-  DType element_type() const;
+  MemrefType(ArrayRef<Index> sizes, DType element_type)
+      : Type(TypeKind::kMemref),
+        sizes_(sizes.begin(), sizes.end()),
+        element_type_(element_type) {}
+
+  ArrayRef<Index> sizes() const { return sizes_; }
+  unsigned rank() const { return sizes_.size(); }
+  DType element_type() const { return element_type_; }
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kMemref;
@@ -149,8 +161,10 @@ class MemrefType : public Type {
 // Unranked Memref type corresponding to the mlir::UnrankedMemrefType.
 class UnrankedMemrefType : public Type {
  public:
-  explicit UnrankedMemrefType(DType element_type);
-  DType element_type() const;
+  explicit UnrankedMemrefType(DType element_type)
+      : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
+
+  DType element_type() const { return element_type_; }
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kUnrankedMemref;
@@ -163,7 +177,7 @@ class UnrankedMemrefType : public Type {
 // Corresponds to the RT dialect's KernelContextType.
 class KernelContextOperandType : public Type {
  public:
-  KernelContextOperandType();
+  KernelContextOperandType() : Type(TypeKind::kKernelContext) {}
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kKernelContext;
@@ -173,18 +187,19 @@ class KernelContextOperandType : public Type {
 // Compiled function signature type corresponding to the mlir::FunctionType.
 class FunctionType {
  public:
-  const Type* operand(unsigned index) const;
-  const Type* result(unsigned index) const;
+  const Type* operand(unsigned index) const { return operands_[index].get(); }
+  const Type* result(unsigned index) const { return results_[index].get(); }
 
-  unsigned num_operands() const;
-  unsigned num_results() const;
+  unsigned num_operands() const { return operands_.size(); }
+  unsigned num_results() const { return results_.size(); }
 
   // Converts MLIR function type to the runtime function type. Returns error if
   // function has unsupported operands or results types.
   static Expected<FunctionType> Convert(mlir::FunctionType type);
 
   FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
-               llvm::SmallVector<std::unique_ptr<Type>> results);
+               llvm::SmallVector<std::unique_ptr<Type>> results)
+      : operands_(std::move(operands)), results_(std::move(results)) {}
 
  private:
   llvm::SmallVector<std::unique_ptr<Type>> operands_;

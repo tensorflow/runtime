@@ -147,11 +147,12 @@ tfrt_cc_library(
         "EIGEN_AVOID_STL_ARRAY",
     ]) + select({
         ":disable_eigen_mkldnn_contraction_kernel": [],
-        "//conditions:default": [
+        "@tf_runtime//:linux_x86_64": [
             # Custom contraction kernel defines.
             "TFRT_EIGEN_USE_CUSTOM_CONTRACTION_KERNEL",
             "TFRT_EIGEN_USE_MKLDNN_CONTRACTION_KERNEL",
         ],
+        "//conditions:default": [],
     }),
     visibility = ["@tf_runtime//:friends"],
     deps = [
@@ -167,10 +168,11 @@ tfrt_cc_library(
         "//third_party/tensorflow/core/platform:mutex",
     ]) + select({
         ":disable_eigen_mkldnn_contraction_kernel": [],
-        "//conditions:default": [
+        "@tf_runtime//:linux_x86_64": [
             # Custom contraction kernel dependencies.
             "@dnnl//:dnnl_single_threaded",
         ],
+        "//conditions:default": [],
     }),
 )
 

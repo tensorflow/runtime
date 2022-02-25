@@ -38,6 +38,12 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "linux_x86_64",
+    values = {"cpu": "k8"},
+    visibility = ["//visibility:public"],
+)
+
 # Flag to build tf_runtime with std::thread/mutex instead of ABSL's:
 # bazel build --@tf_runtime//:std_thread
 # This is the default and only valid option in open-source.

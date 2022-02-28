@@ -630,7 +630,7 @@ class JitCompilationContext {
   // Optional specialization identifier specifies if the compiled executable is
   // a default one, or a specialization.
   static Expected<Executable> Compile(
-      std::unique_ptr<JitCompilationContext>,
+      std::unique_ptr<JitCompilationContext>, string_view memory_region_name,
       Optional<size_t> specialization = llvm::None);
 
   template <typename OriginalError>
@@ -734,7 +734,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 }
 
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
-    std::unique_ptr<JitCompilationContext> ctx,
+    std::unique_ptr<JitCompilationContext> ctx, string_view memory_region_name,
     Optional<size_t> specialization) {
   mlir::FuncOp entry_func = ctx->entrypoint();
   std::string entrypoint = entry_func.getName().str();
@@ -797,6 +797,25 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   engine_options.transformer = transformer;
   engine_options.jitCodeGenOptLevel = ctx->options().jit_code_opt_level;
   engine_options.sharedLibPaths = libs;
+
+  // Escape slashes, substituting them with double underscores.
+  // The profiler's UI might interpret slashes as callchain separators,
+  // whereas we want the region name to be shown in full.
+  auto escape_region_name = [](llvm::StringRef str) -> std::string {
+    llvm::SmallVector<llvm::StringRef> vec;
+    for (llvm::StringRef sub : llvm::split(str, '/')) {
+      vec.push_back(sub);
+    }
+    return llvm::join(vec, "__");
+  };
+  std::string mapper_name = llvm::formatv(
+      "/jitrt{0}{1}:@{2}:{3}", memory_region_name.empty() ? "" : ":",
+      escape_region_name(memory_region_name), entrypoint,
+      specialization.hasValue() ? "specialized" : "default");
+
+  std::unique_ptr<JitRtMemoryMapper> memory_mapper =
+      JitRtMemoryMapper::Create(std::move(mapper_name));
+  engine_options.sectionMemoryMapper = memory_mapper.get();
   auto engine = mlir::ExecutionEngine::create(ctx->module(), engine_options);
   if (auto err = engine.takeError()) return std::move(err);
 
@@ -819,10 +838,10 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto time_to_compile = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - compilation_start);
 
-  return Executable(ctx->name().str(), std::move(*engine), *kernel_fn,
-                    std::move(*signature), std::move(*runtime_signature),
-                    std::move(*results_memory_layout), specialization,
-                    time_to_compile);
+  return Executable(
+      ctx->name().str(), std::move(memory_mapper), std::move(*engine),
+      *kernel_fn, std::move(*signature), std::move(*runtime_signature),
+      std::move(*results_memory_layout), specialization, time_to_compile);
 }
 
 llvm::Error JitCompilationContext::Specialize(
@@ -918,7 +937,8 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
     string_view mlir_module, string_view entrypoint,
-    CompilationOptions compilation_opts, CompilationTaskRunner runner) {
+    CompilationOptions compilation_opts, string_view memory_region_name,
+    CompilationTaskRunner runner) {
   // Set up LLVM target for code generation.
   InitializeCompiler();
 
@@ -956,21 +976,24 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   // compiled executable.
   if (compilation_opts.specialization == Specialization::kAlways ||
       IsSpecializationOnly(*constraints))
-    return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
-                         std::move(*constraints), std::move(*signature),
+    return JitExecutable(mlir_module, entrypoint, memory_region_name,
+                         std::move(compilation_opts), std::move(*constraints),
+                         std::move(*signature),
                          /*default_executable=*/llvm::None, std::move(runner));
 
   // Otherwise try to compile the default executable.
   Expected<Executable> executable =
-      JitCompilationContext::Compile(std::move(*ctx));
+      JitCompilationContext::Compile(std::move(*ctx), memory_region_name);
   if (auto err = executable.takeError()) return std::move(err);
 
-  return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
-                       std::move(*constraints), std::move(*signature),
-                       std::move(*executable), std::move(runner));
+  return JitExecutable(mlir_module, entrypoint, memory_region_name,
+                       std::move(compilation_opts), std::move(*constraints),
+                       std::move(*signature), std::move(*executable),
+                       std::move(runner));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
+                             string_view memory_region_name,
                              CompilationOptions compilation_opts,
                              ArrayRef<OperandConstraint> constraints,
                              FunctionType signature,
@@ -978,6 +1001,7 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              CompilationTaskRunner runner)
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
+      memory_region_name_(memory_region_name.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
       has_value_constraints_(HasValueConstraints(constraints_)),
@@ -1121,9 +1145,10 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Construct the task that will do the specialized executable compilation.
   auto compile = TaskFunction([ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
+                               memory_region_name = memory_region_name_,
                                specialization]() mutable {
-    Expected<Executable> executable =
-        JitCompilationContext::Compile(std::move(ctx), specialization);
+    Expected<Executable> executable = JitCompilationContext::Compile(
+        std::move(ctx), memory_region_name, specialization);
 
     // Set the allocated entry async value state to error or concrete.
     if (auto err = executable.takeError()) {

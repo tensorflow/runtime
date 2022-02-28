@@ -114,6 +114,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "memory_mapper",
+    srcs = ["lib/memory_mapper.cc"],
+    hdrs = ["include/tfrt/jitrt/memory_mapper.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:ExecutionEngine",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "jitrt",
     srcs = ["lib/jitrt.cc"],
     hdrs = [
@@ -127,6 +139,7 @@ tfrt_cc_library(
         ":async_runtime_api",
         ":async_values_cache",
         ":constraints",
+        ":memory_mapper",
         ":rt_transforms",
         ":specialization",
         ":support",

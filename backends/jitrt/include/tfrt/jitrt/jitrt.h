@@ -49,6 +49,7 @@
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
+#include "tfrt/jitrt/memory_mapper.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/types.h"
@@ -773,6 +774,7 @@ class Executable {
   struct KernelContext;
 
   Executable(llvm::StringRef name,
+             std::unique_ptr<JitRtMemoryMapper> memory_mapper,
              std::unique_ptr<mlir::ExecutionEngine> engine,
              KernelFunctionPtr fptr, FunctionType signature,
              FunctionType runtime_signature,
@@ -780,6 +782,7 @@ class Executable {
              Optional<size_t> specialization,
              std::chrono::milliseconds time_to_compile)
       : name_(name.str()),
+        memory_mapper_(std::move(memory_mapper)),
         engine_(std::move(engine)),
         fptr_(fptr),
         signature_(std::move(signature)),
@@ -922,6 +925,9 @@ class Executable {
  private:
   std::string name_;  // name of the compiled kernel module
 
+  // Called by `engine_`'s destructor; must appear before it.
+  std::unique_ptr<JitRtMemoryMapper> memory_mapper_;
+
   std::unique_ptr<mlir::ExecutionEngine> engine_;
   KernelFunctionPtr fptr_;  // compiled function owned by the `engine_`
 
@@ -997,7 +1003,7 @@ class JitExecutable {
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      CompilationOptions compilation_opts,
+      CompilationOptions compilation_opts, string_view memory_region_name = "",
       CompilationTaskRunner runner = InlineCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
@@ -1044,6 +1050,7 @@ class JitExecutable {
 
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
+                string_view memory_region_name,
                 CompilationOptions compilation_opts,
                 ArrayRef<OperandConstraint> constraints, FunctionType signature,
                 Optional<Executable> default_executable,
@@ -1051,6 +1058,12 @@ class JitExecutable {
 
   std::string mlir_module_;
   std::string entrypoint_;
+
+  // Name of the memory region where JIT'ed code is compiled to.
+  // This allows profilers to correctly label JIT-executed code.
+  // Note: this feature might only be available on some platforms, e.g. Linux.
+  std::string memory_region_name_;
+
   CompilationOptions compilation_opts_;
 
   // Entrypoint operands constraints after resolving them using the statically

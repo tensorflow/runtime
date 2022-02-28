@@ -2,6 +2,7 @@ load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
@@ -39,9 +40,23 @@ config_setting(
 )
 
 config_setting(
-    name = "linux_x86_64",
+    name = "linux_k8",
     values = {"cpu": "k8"},
     visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "linux_haswell",
+    values = {"cpu": "haswell"},
+    visibility = ["//visibility:public"],
+)
+
+selects.config_setting_group(
+    name = "linux_x86_64",
+    match_any = [
+        ":linux_k8",
+        ":linux_haswell",
+    ],
 )
 
 # Flag to build tf_runtime with std::thread/mutex instead of ABSL's:

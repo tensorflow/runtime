@@ -27,7 +27,13 @@ namespace wrapper {
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipfftResult_t result);
 
+llvm::Expected<hipfftType> FftTypeToHipfftType(FftType type);
+
 llvm::Expected<LibraryVersion> HipfftGetVersion();
+
+// Creates an opaque handle and allocates small data for the plan. Use
+// HipfftMakePlan* to do the plan generation.
+llvm::Expected<OwningFftHandle> HipfftCreate();
 
 // Frees all GPU resources associated with the plan and destroys internal data
 // structures.
@@ -37,13 +43,13 @@ llvm::Error HipfftDestroy(hipfftHandle plan);
 // may consist of many kernel invocations.
 llvm::Error HipfftSetStream(hipfftHandle plan, hipStream_t stream);
 
-// Creates FFT plans for the specific dimension, window dimensions, transform
-// type.
-llvm::Expected<OwningFftHandle> HipfftPlan1d(int nx, hipfftType type,
-                                             int batch);
-llvm::Expected<OwningFftHandle> HipfftPlan2d(int nx, int ny, hipfftType type);
-llvm::Expected<OwningFftHandle> HipfftPlan3d(int nx, int ny, int nz,
-                                             hipfftType type);
+llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle plan, int rank,
+                                          llvm::ArrayRef<int64_t> n,
+                                          llvm::ArrayRef<int64_t> inembed,
+                                          int64_t istride, int64_t idist,
+                                          llvm::ArrayRef<int64_t> onembed,
+                                          int64_t ostride, int64_t odist,
+                                          hipfftType type, int64_t batch);
 
 llvm::Expected<size_t> HipfftGetSize(hipfftHandle plan);
 
@@ -67,6 +73,9 @@ llvm::Error HipfftExecC2R(hipfftHandle plan, hipfftComplex* input_data,
 
 llvm::Error HipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* input_data,
                           hipfftDoubleReal* output_data);
+
+llvm::Error HipfftExec(hipfftHandle plan, Pointer<void> raw_input,
+                       Pointer<void> raw_output, FftType type);
 
 }  // namespace wrapper
 }  // namespace gpu

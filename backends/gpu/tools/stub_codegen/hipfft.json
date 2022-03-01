@@ -10,6 +10,7 @@
       "hipfftType"
    ],
    "functions":[
+      "hipfftCreate",
       "hipfftDestroy",
       "hipfftExecC2C",
       "hipfftExecC2R",
@@ -19,10 +20,7 @@
       "hipfftExecZ2Z",
       "hipfftGetProperty",
       "hipfftGetSize",
-      "hipfftPlan1d",
-      "hipfftPlan2d",
-      "hipfftPlan3d",
-      "hipfftPlanMany",
+      "hipfftMakePlanMany64",
       "hipfftSetStream",
       "hipfftSetWorkArea"
    ],

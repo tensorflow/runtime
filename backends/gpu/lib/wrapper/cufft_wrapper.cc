@@ -19,16 +19,15 @@
 #include <cstddef>
 #include <utility>
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "tfrt/gpu/wrapper/fft_wrapper.h"
+#include "tfrt/support/error_util.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
-
-void internal::CufftHandleDeleter::operator()(cufftHandle handle) const {
-  LogIfError(CufftDestroy(handle));
-}
 
 namespace {
 
@@ -43,7 +42,7 @@ namespace {
 // above warning, and assist in debugging if we do run into a "not-really-const"
 // input issue.
 template <typename T>
-T* ToCufft(llvm::SmallVector<T, 3> t) {
+T* ToCufft(llvm::ArrayRef<T> t) {
   if (t.empty()) return nullptr;
   return const_cast<T*>(t.data());
 }
@@ -55,27 +54,22 @@ struct CufftDataType {
   Precision precision;
 };
 
-template <typename IntT>
-llvm::Error ValidateOptions(const CufftManyOptions<IntT>& options) {
-  if (options.dims.size() != options.rank) {
-    return llvm::createStringError(
-        std::errc::invalid_argument,
-        "Mismatch between size of dims and options rank, %d vs %d",
-        options.dims.size(), options.rank);
+llvm::Error ValidateOptions(int rank, llvm::ArrayRef<int64_t> dims,
+                            llvm::ArrayRef<int64_t> input_embed,
+                            llvm::ArrayRef<int64_t> output_embed) {
+  if (dims.size() != rank) {
+    return MakeStringError("Mismatch between size of dims and rank, %d vs %d",
+                           dims.size(), rank);
   }
-  if (!options.input_embed.empty() &&
-      options.input_embed.size() != options.rank) {
-    return llvm::createStringError(
-        std::errc::invalid_argument,
-        "Mismatch between size of input_embed and options rank, %d vs %d",
-        options.dims.size(), options.rank);
+  if (!input_embed.empty() && input_embed.size() != rank) {
+    return MakeStringError(
+        "Mismatch between size of input_embed and rank, %d vs %d", dims.size(),
+        rank);
   }
-  if (!options.output_embed.empty() &&
-      options.output_embed.size() != options.rank) {
-    return llvm::createStringError(
-        std::errc::invalid_argument,
-        "Mismatch between size of output_embed and options rank, %d vs %d",
-        options.dims.size(), options.rank);
+  if (!output_embed.empty() && output_embed.size() != rank) {
+    return MakeStringError(
+        "Mismatch between size of output_embed and rank, %d vs %d", dims.size(),
+        rank);
   }
   return llvm::Error::success();
 }
@@ -212,31 +206,6 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType type) {
   }
 }
 
-llvm::Error DataTypesCompatible(const CufftXtManyOptions& options) {
-  CufftDataType input_type = FromCudaDataType(options.input_type);
-  CufftDataType output_type = FromCudaDataType(options.output_type);
-  CufftDataType execution_type = FromCudaDataType(options.execution_type);
-
-  // All parameters must match precision.
-  if (input_type.precision != output_type.precision ||
-      input_type.precision != execution_type.precision) {
-    return llvm::createStringError(
-        std::errc::invalid_argument,
-        "Input, output, and execution types must have the same precision. "
-        "input=%s, output=%s, execution=%s",
-        options.input_type, options.output_type, options.execution_type);
-  }
-
-  // Execution type must be complex.
-  if (execution_type.domain != CufftDataType::Domain::kComplex) {
-    return llvm::createStringError(std::errc::invalid_argument,
-                                   "Execution type must be complex but saw %s",
-                                   options.execution_type);
-  }
-
-  return llvm::Error::success();
-}
-
 }  // namespace
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result) {
@@ -291,10 +260,10 @@ llvm::Expected<LibraryVersion> CufftGetVersion() {
   return version;
 }
 
-llvm::Expected<OwningCufftHandle> CufftCreate() {
+llvm::Expected<OwningFftHandle> CufftCreate() {
   cufftHandle plan;
   RETURN_IF_ERROR(cufftCreate(&plan));
-  return OwningCufftHandle(plan);
+  return OwningFftHandle(plan);
 }
 
 llvm::Error CufftDestroy(cufftHandle plan) {
@@ -305,193 +274,50 @@ llvm::Error CufftSetStream(cufftHandle plan, cudaStream_t stream) {
   return TO_ERROR(cufftSetStream(plan, stream));
 }
 
-llvm::Expected<OwningCufftHandle> CufftPlan1d(int nx, cufftType type,
-                                              int batch) {
-  cufftHandle plan;
-  RETURN_IF_ERROR(cufftPlan1d(&plan, nx, type, batch));
-  return OwningCufftHandle(plan);
-}
-
-llvm::Expected<OwningCufftHandle> CufftPlan2d(int nx, int ny, cufftType type) {
-  cufftHandle plan;
-  RETURN_IF_ERROR(cufftPlan2d(&plan, nx, ny, type));
-  return OwningCufftHandle(plan);
-}
-
-llvm::Expected<OwningCufftHandle> CufftPlan3d(int nx, int ny, int nz,
-                                              cufftType type) {
-  cufftHandle plan;
-  RETURN_IF_ERROR(cufftPlan3d(&plan, nx, ny, nz, type));
-  return OwningCufftHandle(plan);
-}
-
-llvm::Expected<OwningCufftHandle> CufftPlanMany(
-    cufftType type, int batch, const CufftManyOptions<int>& options) {
-  if (auto err = ValidateOptions(options)) return std::move(err);
-
-  cufftHandle plan;
-  RETURN_IF_ERROR(cufftPlanMany(
-      &plan, options.rank, ToCufft(options.dims), ToCufft(options.input_embed),
-      options.input_stride, options.input_dist, ToCufft(options.output_embed),
-      options.output_stride, options.output_dist, type, batch));
-  return OwningCufftHandle(plan);
-}
-
-llvm::Expected<size_t> CufftMakePlan1d(cufftHandle plan, int nx, cufftType type,
-                                       int batch) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftMakePlan1d(plan, nx, type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftMakePlan2d(cufftHandle plan, int nx, int ny,
-                                       cufftType type) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftMakePlan2d(plan, nx, ny, type, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftMakePlan3d(cufftHandle plan, int nx, int ny, int nz,
-                                       cufftType type) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftMakePlan3d(plan, nx, ny, nz, type, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftMakePlanMany(cufftHandle plan, cufftType type,
-                                         int batch,
-                                         CufftManyOptions<int>& options) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftMakePlanMany(
-      plan, options.rank, ToCufft(options.dims), ToCufft(options.input_embed),
-      options.input_stride, options.input_dist, ToCufft(options.output_embed),
-      options.output_stride, options.output_dist, type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftMakePlanMany(cufftHandle plan, cufftType type,
-                                         int64_t batch,
-                                         CufftManyOptions<int64_t>& options) {
+llvm::Expected<size_t> CufftMakePlanMany(
+    cufftHandle plan, cufftType type, int64_t batch, int rank,
+    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
+    int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
+    int64_t output_stride, int64_t input_dist, int64_t output_dist) {
   // NOLINTNEXTLINE(google-runtime-int)
   static_assert(sizeof(int64_t) == sizeof(long long),
                 "cuFFT uses long long for 64-bit values, but there is a size "
                 "mismatch between long long and int64_t");
   size_t work_size;
   RETURN_IF_ERROR(cufftMakePlanMany64(
-      plan, options.rank, reinterpret_cast<long long*>(ToCufft(options.dims)),
-      reinterpret_cast<long long*>(ToCufft(options.input_embed)),
-      static_cast<long long>(options.input_stride),
-      static_cast<long long>(options.input_dist),
-      reinterpret_cast<long long*>(ToCufft(options.output_embed)),
-      static_cast<long long>(options.output_stride),
-      static_cast<long long>(options.output_dist), type, batch, &work_size));
+      plan, rank, reinterpret_cast<long long*>(ToCufft(dims)),
+      reinterpret_cast<long long*>(ToCufft(input_embed)), input_stride,
+      input_dist, reinterpret_cast<long long*>(ToCufft(output_embed)),
+      output_stride, output_dist, type, batch, &work_size));
   return work_size;
 }
 
-llvm::Expected<size_t> CufftXtMakePlanMany(cufftHandle plan, int64_t batch,
-                                           CufftXtManyOptions& options) {
-  if (auto err = DataTypesCompatible(options)) return std::move(err);
+llvm::Expected<size_t> CufftEstimateMany(cufftType type, int batch, int rank,
+                                         llvm::ArrayRef<int> dims,
+                                         llvm::ArrayRef<int> input_embed,
+                                         int input_stride,
+                                         llvm::ArrayRef<int> output_embed,
+                                         int output_stride, int input_dist,
+                                         int output_dist) {
   size_t work_size;
-  RETURN_IF_ERROR(cufftXtMakePlanMany(
-      plan, options.rank, reinterpret_cast<long long*>(ToCufft(options.dims)),
-      reinterpret_cast<long long*>(ToCufft(options.input_embed)),
-      static_cast<long long>(options.input_stride),
-      static_cast<long long>(options.input_dist), options.input_type,
-      reinterpret_cast<long long*>(ToCufft(options.output_embed)),
-      static_cast<long long>(options.output_stride),
-      static_cast<long long>(options.output_dist), options.output_type, batch,
-      &work_size, options.execution_type));
+  RETURN_IF_ERROR(cufftEstimateMany(rank, ToCufft(dims), ToCufft(input_embed),
+                                    input_stride, input_dist,
+                                    ToCufft(output_embed), output_stride,
+                                    output_dist, type, batch, &work_size));
   return work_size;
 }
 
-llvm::Expected<size_t> CufftEstimate1d(int nx, cufftType type, int batch) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftEstimate1d(nx, type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftEstimate2d(int nx, int ny, cufftType type) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftEstimate2d(nx, ny, type, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftEstimate3d(int nx, int ny, int nz, cufftType type) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftEstimate3d(nx, ny, nz, type, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftEstimateMany(cufftType type, int batch,
-                                         CufftManyOptions<int>& options) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftEstimateMany(
-      options.rank, ToCufft(options.dims), ToCufft(options.input_embed),
-      options.input_stride, options.input_dist, ToCufft(options.output_embed),
-      options.output_stride, options.output_dist, type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftGetSize1d(cufftHandle plan, int nx, cufftType type,
-                                      int batch) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftGetSize1d(plan, nx, type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftGetSize2d(cufftHandle plan, int nx, int ny,
-                                      cufftType type) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftGetSize2d(plan, nx, ny, type, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftGetSize3d(cufftHandle plan, int nx, int ny, int nz,
-                                      cufftType type) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftGetSize3d(plan, nx, ny, nz, type, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftGetSizeMany(cufftHandle plan, cufftType type,
-                                        int batch,
-                                        CufftManyOptions<int>& options) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftGetSizeMany(
-      plan, options.rank, ToCufft(options.dims), ToCufft(options.input_embed),
-      options.input_stride, options.input_dist, ToCufft(options.output_embed),
-      options.output_stride, options.output_dist, type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftGetSizeMany(cufftHandle plan, cufftType type,
-                                        int batch,
-                                        CufftManyOptions<int64_t>& options) {
+llvm::Expected<size_t> CufftGetSizeMany(
+    cufftHandle plan, cufftType type, int batch, int rank,
+    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
+    int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
+    int64_t output_stride, int64_t input_dist, int64_t output_dist) {
   size_t work_size;
   RETURN_IF_ERROR(cufftGetSizeMany64(
-      plan, options.rank, reinterpret_cast<long long*>(ToCufft(options.dims)),
-      reinterpret_cast<long long*>(ToCufft(options.input_embed)),
-      static_cast<long long>(options.input_stride),
-      static_cast<long long>(options.input_dist),
-      reinterpret_cast<long long*>(ToCufft(options.output_embed)),
-      static_cast<long long>(options.output_stride),
-      static_cast<long long>(options.output_dist), type, batch, &work_size));
-  return work_size;
-}
-
-llvm::Expected<size_t> CufftXtGetSizeMany(cufftHandle plan, cufftType type,
-                                          int batch,
-                                          CufftXtManyOptions& options) {
-  size_t work_size;
-  RETURN_IF_ERROR(cufftXtGetSizeMany(
-      plan, options.rank, reinterpret_cast<long long*>(ToCufft(options.dims)),
-      reinterpret_cast<long long*>(ToCufft(options.input_embed)),
-      static_cast<long long>(options.input_stride),
-      static_cast<long long>(options.input_dist), options.input_type,
-      reinterpret_cast<long long*>(ToCufft(options.output_embed)),
-      static_cast<long long>(options.output_stride),
-      static_cast<long long>(options.output_dist), options.output_type, batch,
-      &work_size, options.execution_type));
+      plan, rank, reinterpret_cast<long long*>(ToCufft(dims)),
+      reinterpret_cast<long long*>(ToCufft(input_embed)), input_stride,
+      input_dist, reinterpret_cast<long long*>(ToCufft(output_embed)),
+      output_stride, output_dist, type, batch, &work_size));
   return work_size;
 }
 
@@ -513,11 +339,6 @@ llvm::Error CufftSetWorkArea(cufftHandle plan, Pointer<void> work_area) {
   return TO_ERROR(cufftSetWorkArea(plan, ToCuda(work_area)));
 }
 
-llvm::Error CufftXtSetWorkAreaPolicy(cufftHandle plan,
-                                     cufftXtWorkAreaPolicy policy) {
-  return TO_ERROR(cufftXtSetWorkAreaPolicy(plan, policy, nullptr));
-}
-
 static int ToCuda(FftDirection direction) {
   switch (direction) {
     case FftDirection::kForward:
@@ -529,47 +350,109 @@ static int ToCuda(FftDirection direction) {
   }
 }
 
-llvm::Error CufftExecC2C(cufftHandle plan, cufftComplex* input_data,
-                         cufftComplex* output_data, FftDirection direction) {
-  return TO_ERROR(
-      cufftExecC2C(plan, input_data, output_data, ToCuda(direction)));
-}
-
-llvm::Error CufftExecZ2Z(cufftHandle plan, cufftDoubleComplex* input_data,
-                         cufftDoubleComplex* output_data,
+llvm::Error CufftExecC2C(cufftHandle plan, Pointer<cufftComplex> input_data,
+                         Pointer<cufftComplex> output_data,
                          FftDirection direction) {
-  return TO_ERROR(
-      cufftExecZ2Z(plan, input_data, output_data, ToCuda(direction)));
+  return TO_ERROR(cufftExecC2C(plan, input_data.raw(Platform::CUDA),
+                               output_data.raw(Platform::CUDA),
+                               ToCuda(direction)));
 }
 
-llvm::Error CufftExecR2C(cufftHandle plan, cufftReal* input_data,
-                         cufftComplex* output_data) {
-  return TO_ERROR(cufftExecR2C(plan, input_data, output_data));
+llvm::Error CufftExecZ2Z(cufftHandle plan,
+                         Pointer<cufftDoubleComplex> input_data,
+                         Pointer<cufftDoubleComplex> output_data,
+                         FftDirection direction) {
+  return TO_ERROR(cufftExecZ2Z(plan, input_data.raw(Platform::CUDA),
+                               output_data.raw(Platform::CUDA),
+                               ToCuda(direction)));
 }
 
-llvm::Error CufftExecD2Z(cufftHandle plan, cufftDoubleReal* input_data,
-                         cufftDoubleComplex* output_data) {
-  return TO_ERROR(cufftExecD2Z(plan, input_data, output_data));
+llvm::Error CufftExecR2C(cufftHandle plan, Pointer<cufftReal> input_data,
+                         Pointer<cufftComplex> output_data) {
+  return TO_ERROR(cufftExecR2C(plan, input_data.raw(Platform::CUDA),
+                               output_data.raw(Platform::CUDA)));
 }
 
-llvm::Error CufftExecC2R(cufftHandle plan, cufftComplex* input_data,
-                         cufftReal* output_data) {
-  return TO_ERROR(cufftExecC2R(plan, input_data, output_data));
+llvm::Error CufftExecD2Z(cufftHandle plan, Pointer<cufftDoubleReal> input_data,
+                         Pointer<cufftDoubleComplex> output_data) {
+  return TO_ERROR(cufftExecD2Z(plan, input_data.raw(Platform::CUDA),
+                               output_data.raw(Platform::CUDA)));
 }
 
-llvm::Error CufftExecZ2D(cufftHandle plan, cufftDoubleComplex* input_data,
-                         cufftDoubleReal* output_data) {
-  return TO_ERROR(cufftExecZ2D(plan, input_data, output_data));
+llvm::Error CufftExecC2R(cufftHandle plan, Pointer<cufftComplex> input_data,
+                         Pointer<cufftReal> output_data) {
+  return TO_ERROR(cufftExecC2R(plan, input_data.raw(Platform::CUDA),
+                               output_data.raw(Platform::CUDA)));
 }
 
-llvm::Error CufftXtExec(cufftHandle plan, void* input, void* output,
-                        FftDirection direction) {
-  return TO_ERROR(cufftXtExec(plan, input, output, ToCuda(direction)));
+llvm::Error CufftExecZ2D(cufftHandle plan,
+                         Pointer<cufftDoubleComplex> input_data,
+                         Pointer<cufftDoubleReal> output_data) {
+  return TO_ERROR(cufftExecZ2D(plan, input_data.raw(Platform::CUDA),
+                               output_data.raw(Platform::CUDA)));
 }
 
-llvm::Error CufftXtMemcpy(cufftHandle plan, void* dst, void* src,
-                          cufftXtCopyType type) {
-  return TO_ERROR(cufftXtMemcpy(plan, dst, src, type));
+llvm::Error CufftExec(cufftHandle plan, Pointer<void> raw_input,
+                      Pointer<void> raw_output, FftType type) {
+  switch (type) {
+    case FftType::kC2CForward:
+      return CufftExecC2C(plan, static_cast<Pointer<cufftComplex>>(raw_input),
+                          static_cast<Pointer<cufftComplex>>(raw_output),
+                          FftDirection::kForward);
+    case FftType::kC2CInverse:
+      return CufftExecC2C(plan, static_cast<Pointer<cufftComplex>>(raw_input),
+                          static_cast<Pointer<cufftComplex>>(raw_output),
+                          FftDirection::kInverse);
+    case FftType::kZ2ZForward:
+      return CufftExecZ2Z(plan,
+                          static_cast<Pointer<cufftDoubleComplex>>(raw_input),
+                          static_cast<Pointer<cufftDoubleComplex>>(raw_output),
+                          FftDirection::kForward);
+    case FftType::kZ2ZInverse:
+      return CufftExecZ2Z(plan,
+                          static_cast<Pointer<cufftDoubleComplex>>(raw_input),
+                          static_cast<Pointer<cufftDoubleComplex>>(raw_output),
+                          FftDirection::kInverse);
+    case FftType::kR2C:
+      return CufftExecR2C(plan, static_cast<Pointer<cufftReal>>(raw_input),
+                          static_cast<Pointer<cufftComplex>>(raw_output));
+    case FftType::kD2Z:
+      return CufftExecD2Z(plan,
+                          static_cast<Pointer<cufftDoubleReal>>(raw_input),
+                          static_cast<Pointer<cufftDoubleComplex>>(raw_output));
+    case FftType::kC2R:
+      return CufftExecC2R(plan, static_cast<Pointer<cufftComplex>>(raw_input),
+                          static_cast<Pointer<cufftReal>>(raw_output));
+    case FftType::kZ2D:
+      return CufftExecZ2D(plan,
+                          static_cast<Pointer<cufftDoubleComplex>>(raw_input),
+                          static_cast<Pointer<cufftDoubleReal>>(raw_output));
+    default:
+      return llvm::createStringError(std::errc::invalid_argument,
+                                     "invalid FFT type");
+  }
+}
+
+llvm::Expected<cufftType> FftTypeToCufftType(FftType type) {
+  switch (type) {
+    case FftType::kZ2ZForward:
+    case FftType::kZ2ZInverse:
+      return CUFFT_Z2Z;
+    case FftType::kR2C:
+      return CUFFT_R2C;
+    case FftType::kC2R:
+      return CUFFT_C2R;
+    case FftType::kC2CForward:
+    case FftType::kC2CInverse:
+      return CUFFT_C2C;
+    case FftType::kD2Z:
+      return CUFFT_D2Z;
+    case FftType::kZ2D:
+      return CUFFT_Z2D;
+    default:
+      return llvm::createStringError(std::errc::invalid_argument,
+                                     "invalid FFT type");
+  }
 }
 
 }  // namespace wrapper

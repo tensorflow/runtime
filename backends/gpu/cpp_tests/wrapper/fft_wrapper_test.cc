@@ -16,6 +16,8 @@
 #include "tfrt/gpu/wrapper/fft_wrapper.h"
 
 #include "common.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/cufft_wrapper.h"
 #include "tfrt/gpu/wrapper/hipfft_wrapper.h"
@@ -27,143 +29,42 @@ using ::testing::FloatNear;
 
 TEST_P(Test, Dummy) {}  // Make INSTANTIATE_TEST_SUITE_P happy.
 
-TEST_F(Test, ComplexToComplexTransform_1DCUDA) {
-  auto platform = Platform::CUDA;
+TEST_P(Test, RealToComplex1D) {
+  auto platform = GetParam();
   ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-
-  constexpr size_t kWindowSize = 256;
-  constexpr size_t kWindowSizeBytes = kWindowSize * sizeof(cufftComplex);
-  TFRT_ASSERT_AND_ASSIGN(
-      auto host_data,
-      CuMemHostAlloc(current, kWindowSizeBytes, CU_MEMHOSTALLOC_DEFAULT));
-  for (size_t i = 0; i < kWindowSize; ++i) {
-    static_cast<cufftComplex*>(host_data.get().raw())[i] = {
-        static_cast<float>(2 * i), 0};
-  }
-
-  // Allocate enough memory for output to be written in place.
-  TFRT_ASSERT_AND_ASSIGN(auto device_data,
-                         CuMemAlloc(current, kWindowSizeBytes));
-
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         CuStreamCreate(current, CU_STREAM_DEFAULT));
-
-  // Prepare FFT plan.
-  TFRT_ASSERT_AND_ASSIGN(OwningCufftHandle plan,
-                         CufftPlan1d(kWindowSize, CUFFT_C2C, /*batch=*/1));
-
-  EXPECT_THAT(CufftSetStream(plan.get(), stream.get()), IsSuccess());
-
-  // Copy data and do transform.
-  EXPECT_THAT(CuMemcpyAsync(current, device_data.get(), host_data.get(),
-                            kWindowSizeBytes, stream.get()),
-              IsSuccess());
-  EXPECT_THAT(CufftExecC2C(plan.get(),
-                           static_cast<cufftComplex*>(device_data.get().raw()),
-                           static_cast<cufftComplex*>(device_data.get().raw()),
-                           FftDirection::kForward),
-              IsSuccess());
-  EXPECT_THAT(CufftExecC2C(plan.get(),
-                           static_cast<cufftComplex*>(device_data.get().raw()),
-                           static_cast<cufftComplex*>(device_data.get().raw()),
-                           FftDirection::kInverse),
-              IsSuccess());
-  EXPECT_THAT(CuMemcpyAsync(current, host_data.get(), device_data.get(),
-                            kWindowSizeBytes, stream.get()),
-              IsSuccess());
-
-  EXPECT_THAT(CuStreamSynchronize(stream.get()), IsSuccess());
-
-  for (size_t i = 0; i < kWindowSize; ++i) {
-    const float2 element = static_cast<cufftComplex*>(host_data.get().raw())[i];
-    EXPECT_THAT(element.x, FloatNear(kWindowSize * 2 * i, 0.1));
-    EXPECT_THAT(element.y, FloatNear(0, 0.1));
-  }
-  EXPECT_THAT(CufftDestroy(plan.get()), IsSuccess());
-}
-
-TEST_F(Test, ComplexToComplexTransform_1DROCm) {
-  auto platform = Platform::ROCm;
-  ASSERT_THAT(Init(platform), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
-  ASSERT_GT(count, 0);
-  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
-  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-
-  constexpr size_t kWindowSize = 256;
-  constexpr size_t kWindowSizeBytes = kWindowSize * sizeof(cufftComplex);
-  TFRT_ASSERT_AND_ASSIGN(
-      auto host_data,
-      MemHostAlloc(current, kWindowSizeBytes, MemHostAllocFlags::DEFAULT));
-  for (size_t i = 0; i < kWindowSize; ++i) {
-    static_cast<cufftComplex*>(host_data.get().raw())[i] = {
-        static_cast<float>(2 * i), 0};
-  }
-
-  // Allocate enough memory for output to be written in place.
-  TFRT_ASSERT_AND_ASSIGN(auto device_data, MemAlloc(current, kWindowSizeBytes));
-
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         StreamCreate(current, StreamFlags::DEFAULT));
-
-  // Prepare FFT plan.
-  TFRT_ASSERT_AND_ASSIGN(OwningFftHandle plan,
-                         HipfftPlan1d(kWindowSize, HIPFFT_C2C, /*batch=*/1));
-
-  EXPECT_THAT(FftSetStream(plan.get(), stream.get()), IsSuccess());
-
-  // Copy data and do transform.
-  EXPECT_THAT(MemcpyAsync(current, device_data.get(), host_data.get(),
-                          kWindowSizeBytes, stream.get()),
-              IsSuccess());
-  EXPECT_THAT(
-      HipfftExecC2C(plan.get(),
-                    static_cast<hipfftComplex*>(device_data.get().raw()),
-                    static_cast<hipfftComplex*>(device_data.get().raw()),
-                    FftDirection::kForward),
-      IsSuccess());
-  EXPECT_THAT(
-      HipfftExecC2C(plan.get(),
-                    static_cast<hipfftComplex*>(device_data.get().raw()),
-                    static_cast<hipfftComplex*>(device_data.get().raw()),
-                    FftDirection::kInverse),
-      IsSuccess());
-  EXPECT_THAT(MemcpyAsync(current, host_data.get(), device_data.get(),
-                          kWindowSizeBytes, stream.get()),
-              IsSuccess());
-
-  EXPECT_THAT(StreamSynchronize(stream.get()), IsSuccess());
-
-  for (size_t i = 0; i < kWindowSize; ++i) {
-    auto element = static_cast<hipfftComplex*>(host_data.get().raw())[i];
-    EXPECT_THAT(element.x, FloatNear(kWindowSize * 2 * i, 0.1));
-    EXPECT_THAT(element.y, FloatNear(0, 0.1));
-  }
-}
-
-TEST_F(Test, RealToComplexTransform_1D_PlanManyCUDA) {
-  auto platform = Platform::CUDA;
-  ASSERT_THAT(Init(platform), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
-  ASSERT_GT(count, 0);
-  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
-  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreate(current, {}));
 
   constexpr size_t kWindowSize = 256;
   constexpr size_t kWindowSizeBytesInput = kWindowSize * sizeof(cufftReal);
   constexpr size_t kWindowSizeBytesOutput = kWindowSize * sizeof(cufftComplex);
 
+  // Prepare FFT plan.
+
+  llvm::SmallVector<int64_t, 3> dims = {kWindowSize};
+  llvm::SmallVector<int64_t, 3> input_embed = {};
+  llvm::SmallVector<int64_t, 3> output_embed = {};
+  auto rank = 1;
+  auto input_dist = 1;
+  auto input_stride = 0;
+  auto output_dist = 1;
+  auto output_stride = 0;
+
+  TFRT_ASSERT_AND_ASSIGN(OwningFftHandle plan, FftCreate(platform));
+  EXPECT_THAT(FftMakePlanMany(plan.get(), FftType::kR2C, /*batch=*/1, rank,
+                              dims, input_embed, input_stride, output_embed,
+                              output_stride, input_dist, output_dist)
+                  .takeError(),
+              IsSuccess());
+  EXPECT_THAT(FftSetStream(plan.get(), stream.get()), IsSuccess());
+
   // Allocate enough for reuse as output.
-  TFRT_ASSERT_AND_ASSIGN(
-      auto host_data,
-      CuMemHostAlloc(current, kWindowSizeBytesOutput, CU_MEMHOSTALLOC_DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto host_data,
+                         MemHostAlloc(current, kWindowSizeBytesOutput, {}));
 
   const float kPi = std::acos(-1);
   for (size_t i = 0; i < kWindowSize; ++i) {
@@ -173,41 +74,22 @@ TEST_F(Test, RealToComplexTransform_1D_PlanManyCUDA) {
 
   // Allocate enough memory for output to be written in place.
   TFRT_ASSERT_AND_ASSIGN(auto device_data,
-                         CuMemAlloc(current, kWindowSizeBytesOutput));
-
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         CuStreamCreate(current, CU_STREAM_DEFAULT));
-
-  // Prepare FFT plan.
-  llvm::SmallVector<int, 3> dims = {kWindowSize};
-  // llvm::SmallVector<int, 3> input_embed = {};
-  CufftManyOptions<int> options;
-  options.rank = 1;
-  options.dims = dims;
-  options.input_dist = 1;
-  options.input_embed = {};
-  options.input_stride = 0;
-  options.output_dist = 1;
-  options.output_embed = {};
-  options.output_stride = 0;
-
-  TFRT_ASSERT_AND_ASSIGN(OwningCufftHandle plan,
-                         CufftPlanMany(CUFFT_R2C, /*batch=*/1, options));
-  EXPECT_THAT(CufftSetStream(plan.get(), stream.get()), IsSuccess());
+                         MemAlloc(current, kWindowSizeBytesOutput));
 
   // Copy data and do transform.
-  EXPECT_THAT(CuMemcpyAsync(current, device_data.get(), host_data.get(),
-                            kWindowSizeBytesInput, stream.get()),
+  EXPECT_THAT(MemcpyAsync(current, device_data.get(), host_data.get(),
+                          kWindowSizeBytesInput, stream.get()),
               IsSuccess());
   EXPECT_THAT(
-      CufftExecR2C(plan.get(), static_cast<cufftReal*>(device_data.get().raw()),
-                   static_cast<cufftComplex*>(device_data.get().raw())),
+      FftExec(plan.get(), static_cast<Pointer<cufftReal>>(device_data.get()),
+              static_cast<Pointer<cufftComplex>>(device_data.get()),
+              FftType::kR2C),
       IsSuccess());
-  EXPECT_THAT(CuMemcpyAsync(current, host_data.get(), device_data.get(),
-                            kWindowSizeBytesOutput, stream.get()),
+  EXPECT_THAT(MemcpyAsync(current, host_data.get(), device_data.get(),
+                          kWindowSizeBytesOutput, stream.get()),
               IsSuccess());
 
-  EXPECT_THAT(CuStreamSynchronize(stream.get()), IsSuccess());
+  EXPECT_THAT(StreamSynchronize(stream.get()), IsSuccess());
 
   float2* elements = static_cast<cufftComplex*>(host_data.get().raw());
   EXPECT_THAT(elements[1].y,
@@ -217,7 +99,6 @@ TEST_F(Test, RealToComplexTransform_1D_PlanManyCUDA) {
     EXPECT_THAT(elements[i].x, FloatNear(0, 0.1));
     EXPECT_THAT(elements[i].y, FloatNear(0, 0.1));
   }
-  EXPECT_THAT(CufftDestroy(plan.get()), IsSuccess());
 }
 
 }  // namespace wrapper

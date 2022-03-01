@@ -14,7 +14,8 @@
 
 # Note: we do not use --enable_platform_specific_config because evaluation order
 # becomes unexpected (see https://github.com/bazelbuild/bazel/issues/13603).
-# Instead, users are expected to pick a compiler with `--config=clang/gcc/msvc`.
+# Instead, users are required to pick a compiler with `--config=clang/gcc/msvc`.
+build --@rules_cuda//cuda:compiler="Please specify a compiler (--config=clang/gcc/msvc)."
 
 # LLVM's LIT test runner needs %PATHEXT% on Windows
 test:windows --test_env=PATHEXT

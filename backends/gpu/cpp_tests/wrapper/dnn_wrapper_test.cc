@@ -27,7 +27,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-TEST_P(Test, DnnHandel) {
+TEST_P(Test, DnnHandle) {
   auto platform = GetParam();
   ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));

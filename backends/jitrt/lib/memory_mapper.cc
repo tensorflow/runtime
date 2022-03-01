@@ -25,8 +25,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <system_error>
-
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 
 // Support for memfd_create(2) was added in glibc v2.27.
@@ -43,6 +41,23 @@ namespace jitrt {
 std::unique_ptr<JitRtMemoryMapper> JitRtMemoryMapper::Create(
     llvm::StringRef name) {
   return nullptr;
+}
+
+llvm::sys::MemoryBlock JitRtMemoryMapper::allocateMappedMemory(
+    llvm::SectionMemoryManager::AllocationPurpose purpose, size_t len,
+    const llvm::sys::MemoryBlock* const near_block, unsigned prot_flags,
+    std::error_code& error_code) {
+  llvm_unreachable("JitRtMemoryMapper is not implemented");
+}
+
+std::error_code JitRtMemoryMapper::protectMappedMemory(
+    const llvm::sys::MemoryBlock& block, unsigned prot_flags) {
+  llvm_unreachable("JitRtMemoryMapper is not implemented");
+}
+
+std::error_code JitRtMemoryMapper::releaseMappedMemory(
+    llvm::sys::MemoryBlock& block) {
+  llvm_unreachable("JitRtMemoryMapper is not implemented");
 }
 
 }  // namespace jitrt

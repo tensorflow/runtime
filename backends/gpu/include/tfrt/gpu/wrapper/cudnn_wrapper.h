@@ -76,30 +76,55 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               cudnnConvolutionBwdFilterAlgo_t value);
 
 template <>
-struct PlatformTypeTraits<DnnDataTypeTag, cudnnDataType_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<DnnDataTypeTag, Platform::CUDA>
+    : IdentityType<cudnnDataType_t> {};
 template <>
-struct PlatformTypeTraits<DnnConvolutionModeTag, cudnnConvolutionMode_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<DnnDataTypeTag, cudnnDataType_t>
+    : CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnActivationModeTag, cudnnActivationMode_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<DnnConvolutionModeTag, Platform::CUDA>
+    : IdentityType<cudnnConvolutionMode_t> {};
 template <>
-struct PlatformTypeTraits<DnnMathTypeTag, cudnnMathType_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<DnnConvolutionModeTag, cudnnConvolutionMode_t>
+    : CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnConvFwdAlgoTag, cudnnConvolutionFwdAlgo_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<DnnActivationModeTag, Platform::CUDA>
+    : IdentityType<cudnnActivationMode_t> {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, cudnnConvolutionBwdDataAlgo_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<DnnActivationModeTag, cudnnActivationMode_t>
+    : CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdFilterAlgoTag,
-                          cudnnConvolutionBwdFilterAlgo_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<DnnMathTypeTag, Platform::CUDA>
+    : IdentityType<cudnnMathType_t> {};
 template <>
-struct PlatformTypeTraits<DnnNanPropagationTag, cudnnNanPropagation_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<DnnMathTypeTag, cudnnMathType_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<DnnConvFwdAlgoTag, Platform::CUDA>
+    : IdentityType<cudnnConvolutionFwdAlgo_t> {};
+template <>
+struct internal::EnumPlatform<DnnConvFwdAlgoTag, cudnnConvolutionFwdAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<DnnConvBwdDataAlgoTag, Platform::CUDA>
+    : IdentityType<cudnnConvolutionBwdDataAlgo_t> {};
+template <>
+struct internal::EnumPlatform<DnnConvBwdDataAlgoTag,
+                              cudnnConvolutionBwdDataAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<DnnConvBwdFilterAlgoTag, Platform::CUDA>
+    : IdentityType<cudnnConvolutionBwdFilterAlgo_t> {};
+template <>
+struct internal::EnumPlatform<DnnConvBwdFilterAlgoTag,
+                              cudnnConvolutionBwdFilterAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<DnnNanPropagationTag, Platform::CUDA>
+    : IdentityType<cudnnNanPropagation_t> {};
+template <>
+struct internal::EnumPlatform<DnnNanPropagationTag, cudnnNanPropagation_t>
+    : CudaPlatformType {};
 
 namespace internal {
 struct CudnnPersistentRnnPlanDeleter {

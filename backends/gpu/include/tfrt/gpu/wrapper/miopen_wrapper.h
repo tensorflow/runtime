@@ -45,23 +45,41 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               miopenActivationMode_t value);
 
 template <>
-struct PlatformTypeTraits<DnnDataTypeTag, miopenDataType_t>
-    : public RocmPlatformType {};
+struct internal::EnumType<DnnDataTypeTag, Platform::ROCm>
+    : IdentityType<miopenDataType_t> {};
 template <>
-struct PlatformTypeTraits<DnnConvolutionModeTag, miopenConvolutionMode_t>
-    : public RocmPlatformType {};
+struct internal::EnumPlatform<DnnDataTypeTag, miopenDataType_t>
+    : RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnActivationModeTag, miopenActivationMode_t>
-    : public RocmPlatformType {};
+struct internal::EnumType<DnnConvolutionModeTag, Platform::ROCm>
+    : IdentityType<miopenConvolutionMode_t> {};
 template <>
-struct PlatformTypeTraits<DnnConvFwdAlgoTag, uint64_t>
-    : public RocmPlatformType {};
+struct internal::EnumPlatform<DnnConvolutionModeTag, miopenConvolutionMode_t>
+    : RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, uint64_t>
-    : public RocmPlatformType {};
+struct internal::EnumType<DnnActivationModeTag, Platform::ROCm>
+    : IdentityType<miopenActivationMode_t> {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdFilterAlgoTag, uint64_t>
-    : public RocmPlatformType {};
+struct internal::EnumPlatform<DnnActivationModeTag, miopenActivationMode_t>
+    : RocmPlatformType {};
+template <>
+struct internal::EnumType<DnnConvFwdAlgoTag, Platform::ROCm>
+    : IdentityType<uint64_t> {};
+template <>
+struct internal::EnumPlatform<DnnConvFwdAlgoTag, uint64_t> : RocmPlatformType {
+};
+template <>
+struct internal::EnumType<DnnConvBwdDataAlgoTag, Platform::ROCm>
+    : IdentityType<uint64_t> {};
+template <>
+struct internal::EnumPlatform<DnnConvBwdDataAlgoTag, uint64_t>
+    : RocmPlatformType {};
+template <>
+struct internal::EnumType<DnnConvBwdFilterAlgoTag, Platform::ROCm>
+    : IdentityType<uint64_t> {};
+template <>
+struct internal::EnumPlatform<DnnConvBwdFilterAlgoTag, uint64_t>
+    : RocmPlatformType {};
 
 mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type);
 std::pair<int, int> GetMiopenVectorizedSizeAndDim(miopenDataType_t data_type);

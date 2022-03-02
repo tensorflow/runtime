@@ -209,31 +209,48 @@ class Resource {
   friend class std::hash<Resource>;
 };
 
-template <Platform platform>
-using PlatformType = std::integral_constant<Platform, platform>;
-
-using CudaPlatformType = PlatformType<Platform::CUDA>;
-using RocmPlatformType = PlatformType<Platform::ROCm>;
-
-// Maps platform-specific type T for Tag to CUDA or ROCm.
+namespace internal {
+// Maps tag and enum type to platform, used to enable_if implicit conversion.
 template <typename Tag, typename T>
-struct PlatformTypeTraits : public PlatformType<Platform::NONE> {};
+struct EnumPlatform : std::integral_constant<Platform, Platform::NONE> {};
+
+using CudaPlatformType = std::integral_constant<Platform, Platform::CUDA>;
+using RocmPlatformType = std::integral_constant<Platform, Platform::ROCm>;
+
+// Maps tag and platform to enum type, used to implement Parse and operator<<.
+template <typename Tag, Platform platform>
+struct EnumType {};
+
+// std::identity_type (C++20)
+template <typename T>
+struct IdentityType {
+  using type = T;
+};
+}  // namespace internal
 
 // Enum union type.
 //
 // For a CUDA/ROCm pair of enums with different enumerators, instantiate
 // this template with an opaque tag type (e.g. `struct FooTag;`) and specialize
-// the PlatformTypeTraits struct in the CUDA/ROCm wrapper header, e.g.:
+// kEnumPlatform and EnumType in the CUDA/ROCm wrapper header, e.g.:
+//
 // template <>
-// PlatformTypeTraits<FooTag, cudaFooEnum> : public CudaPlatformType {};
+// struct internal::EnumPlatform<FooTag, cudaFooEnum> : CudaPlatformType {};
+// template <>
+// struct internal::EnumType<FooTag, Platform::CUDA>
+//     : IdentityType<cudaFooEnum> {};
 //
 // Tag may define a 'type' member to override the value's type (default is int).
 template <typename Tag>
 class Enum {
-  template <typename T, typename Tag_>
-  using IsCudaOrRocm =
-      std::enable_if_t<PlatformTypeTraits<Tag_, T>::value != Platform::NONE,
-                       int>;
+  template <typename T>
+  static constexpr Platform kPlatform = internal::EnumPlatform<Tag, T>::value;
+
+  template <typename T>
+  using IfCudaOrRocm = std::enable_if_t<kPlatform<T> != Platform::NONE, int>;
+
+  template <Platform platform>
+  using Type = typename internal::EnumType<Tag, platform>::type;
 
   template <typename T>
   static constexpr auto get_value_type(T*) -> typename T::type;
@@ -242,30 +259,31 @@ class Enum {
 
  public:
   Enum() : Enum({}, Platform::NONE) {}
+  Enum(const Enum&) = default;
   Enum(ValueType value, Platform platform)
       : value_(value), platform_(platform) {}
-  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
-  Enum(T value)
-      : Enum(static_cast<ValueType>(value),
-             PlatformTypeTraits<Tag_, T>::value) {}
-  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
-  operator T() const {
-    using PlatformType = PlatformTypeTraits<Tag_, T>;
-    assert(platform_ == PlatformType::value);
+  template <typename T, IfCudaOrRocm<T> = 0>
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  Enum(T value) : Enum(static_cast<ValueType>(value), kPlatform<T>) {}
+
+  template <typename T, IfCudaOrRocm<T> = 0>
+  operator T() const {  // NOLINT(google-explicit-constructor)
+    assert(platform_ == kPlatform<T>);
     return static_cast<T>(value_);
   }
+
   Platform platform() const { return platform_; }
   bool operator==(Enum other) const {
     return value_ == other.value_ && platform_ == other.platform_;
   }
   bool operator!=(Enum other) const { return !(*this == other); }
-  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
+  template <typename T, IfCudaOrRocm<T> = 0>
   bool operator==(T value) const {
-    return Enum(value) == *this;
+    return value_ == value && platform_ == kPlatform<T>;
   }
-  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
+  template <typename T, IfCudaOrRocm<T> = 0>
   bool operator!=(T value) const {
-    return Enum(value) != *this;
+    return !(*this == value);
   }
 
   ValueType ToOpaqueValue() const {
@@ -277,14 +295,17 @@ class Enum {
     return Enum(opaque >> 2, static_cast<Platform>(opaque & 0x3));
   }
 
+  static Expected<Enum> Parse(llvm::StringRef name) {
+    auto cuda_value = wrapper::Parse<Type<Platform::CUDA>>(name);
+    if (cuda_value) return cuda_value;
+    auto rocm_value = wrapper::Parse<Type<Platform::ROCm>>(name);
+    if (rocm_value) return rocm_value;
+    return llvm::joinErrors(cuda_value.takeError(), rocm_value.takeError());
+  }
+
  private:
   ValueType value_;
   Platform platform_;
-
-  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                       const Enum& pair) {
-    return os << pair.value_ << " (" << pair.platform_ << ")";
-  }
 };
 
 // Non-owning handles of GPU resources. This header only exposes the types that

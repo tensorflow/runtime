@@ -41,24 +41,26 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+namespace internal {
 template <typename Tag, typename T>
-class CclTypeTraits : public std::false_type {};
+class IsCclType : public std::false_type {};
+}  // namespace internal
 
 // Similar to wrapper::Enum, provides a class that is explicitly constructible
 // from and implicitly convertible to a type that is only defined later. We
 // cannot use wrapper::Enum because NCCL and RCCL use the same types.
 template <typename ValueType, typename Tag>
 class CclType {
-  template <typename T, typename Tag_>
-  using EnableIf = std::enable_if_t<CclTypeTraits<Tag_, T>::value, int>;
+  template <typename T>
+  using EnableIf = std::enable_if_t<internal::IsCclType<Tag, T>::value, int>;
 
  public:
   CclType() = default;
   explicit CclType(ValueType value) : value_(value) {}
-  template <typename T, typename Tag_ = Tag, EnableIf<T, Tag_> = 0>
+  template <typename T, EnableIf<T> = 0>
   // NOLINTNEXTLINE(google-explicit-constructor)
   CclType(T value) : CclType(reinterpret_cast<const ValueType&>(value)) {}
-  template <typename T, typename Tag_ = Tag, EnableIf<T, Tag_> = 0>
+  template <typename T, EnableIf<T> = 0>
   operator T() const {  // NOLINT(google-explicit-constructor)
     return reinterpret_cast<const T&>(value_);
   }

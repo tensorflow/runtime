@@ -57,26 +57,47 @@ Expected<cublasSideMode_t> Parse<cublasSideMode_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value);
 
 template <>
-struct PlatformTypeTraits<BlasDataTypeTag, cudaDataType>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<BlasDataTypeTag, cudaDataType>
+    : CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<BlasDiagTypeTag, cublasDiagType_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<BlasDataTypeTag, Platform::CUDA>
+    : IdentityType<cudaDataType> {};
 template <>
-struct PlatformTypeTraits<BlasComputeTypeTag, cublasComputeType_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<BlasDiagTypeTag, cublasDiagType_t>
+    : CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<BlasOperationTag, cublasOperation_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<BlasDiagTypeTag, Platform::CUDA>
+    : IdentityType<cublasDiagType_t> {};
 template <>
-struct PlatformTypeTraits<BlasGemmAlgoTag, cublasGemmAlgo_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<BlasComputeTypeTag, cublasComputeType_t>
+    : CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<BlasFillModeTag, cublasFillMode_t>
-    : public CudaPlatformType {};
+struct internal::EnumType<BlasComputeTypeTag, Platform::CUDA>
+    : IdentityType<cublasComputeType_t> {};
 template <>
-struct PlatformTypeTraits<BlasSideModeTag, cublasSideMode_t>
-    : public CudaPlatformType {};
+struct internal::EnumPlatform<BlasOperationTag, cublasOperation_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<BlasOperationTag, Platform::CUDA>
+    : IdentityType<cublasOperation_t> {};
+template <>
+struct internal::EnumPlatform<BlasGemmAlgoTag, cublasGemmAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<BlasGemmAlgoTag, Platform::CUDA>
+    : IdentityType<cublasGemmAlgo_t> {};
+template <>
+struct internal::EnumPlatform<BlasFillModeTag, cublasFillMode_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<BlasFillModeTag, Platform::CUDA>
+    : IdentityType<cublasFillMode_t> {};
+template <>
+struct internal::EnumPlatform<BlasSideModeTag, cublasSideMode_t>
+    : CudaPlatformType {};
+template <>
+struct internal::EnumType<BlasSideModeTag, Platform::CUDA>
+    : IdentityType<cublasSideMode_t> {};
 
 llvm::Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type);
 mlir::TypeID GetCudaDataTypeId(cudaDataType data_type);

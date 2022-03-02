@@ -52,26 +52,47 @@ Expected<rocblas_side> Parse<rocblas_side>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value);
 
 template <>
-struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
-    : public RocmPlatformType {};
+struct internal::EnumType<BlasDataTypeTag, Platform::ROCm>
+    : IdentityType<rocblas_datatype> {};
 template <>
-struct PlatformTypeTraits<BlasDiagTypeTag, rocblas_diagonal>
-    : public RocmPlatformType {};
+struct internal::EnumPlatform<BlasDataTypeTag, rocblas_datatype>
+    : RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<BlasComputeTypeTag, rocblas_datatype>
-    : public RocmPlatformType {};
+struct internal::EnumType<BlasDiagTypeTag, Platform::ROCm>
+    : IdentityType<rocblas_diagonal> {};
 template <>
-struct PlatformTypeTraits<BlasOperationTag, rocblas_operation>
-    : public RocmPlatformType {};
+struct internal::EnumPlatform<BlasDiagTypeTag, rocblas_diagonal>
+    : RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<BlasGemmAlgoTag, rocblas_gemm_algo>
-    : public RocmPlatformType {};
+struct internal::EnumType<BlasComputeTypeTag, Platform::ROCm>
+    : IdentityType<rocblas_datatype> {};
 template <>
-struct PlatformTypeTraits<BlasFillModeTag, rocblas_fill>
-    : public RocmPlatformType {};
+struct internal::EnumPlatform<BlasComputeTypeTag, rocblas_datatype>
+    : RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<BlasSideModeTag, rocblas_side>
-    : public RocmPlatformType {};
+struct internal::EnumType<BlasOperationTag, Platform::ROCm>
+    : IdentityType<rocblas_operation> {};
+template <>
+struct internal::EnumPlatform<BlasOperationTag, rocblas_operation>
+    : RocmPlatformType {};
+template <>
+struct internal::EnumType<BlasGemmAlgoTag, Platform::ROCm>
+    : IdentityType<rocblas_gemm_algo> {};
+template <>
+struct internal::EnumPlatform<BlasGemmAlgoTag, rocblas_gemm_algo>
+    : RocmPlatformType {};
+template <>
+struct internal::EnumType<BlasFillModeTag, Platform::ROCm>
+    : IdentityType<rocblas_fill> {};
+template <>
+struct internal::EnumPlatform<BlasFillModeTag, rocblas_fill>
+    : RocmPlatformType {};
+template <>
+struct internal::EnumType<BlasSideModeTag, Platform::ROCm>
+    : IdentityType<rocblas_side> {};
+template <>
+struct internal::EnumPlatform<BlasSideModeTag, rocblas_side>
+    : RocmPlatformType {};
 
 llvm::Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type);
 mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type);

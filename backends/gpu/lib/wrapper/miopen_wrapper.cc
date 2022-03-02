@@ -144,7 +144,7 @@ llvm::Expected<DnnConvolutionDescriptorData> MiopenGetConvolutionDescriptor(
   RETURN_IF_ERROR(miopenGetConvolutionNdDescriptor(
       descriptor, kDnnDimMax(), &rank, data.paddings.data(),
       data.filter_strides.data(), data.dilations.data(), &mode));
-  data.mode = static_cast<DnnConvolutionMode>(mode);
+  data.mode = mode;
   data.paddings.resize(rank);
   data.filter_strides.resize(rank);
   data.dilations.resize(rank);

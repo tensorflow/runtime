@@ -31,11 +31,14 @@ namespace gpu {
 namespace wrapper {
 
 template <>
-class CclTypeTraits<CclUniqueIdTag, ncclUniqueId> : public std::true_type {};
+class internal::IsCclType<CclUniqueIdTag, ncclUniqueId>
+    : public std::true_type {};
 template <>
-class CclTypeTraits<CclDataTypeTag, ncclDataType_t> : public std::true_type {};
+class internal::IsCclType<CclDataTypeTag, ncclDataType_t>
+    : public std::true_type {};
 template <>
-class CclTypeTraits<CclReductionOpTag, ncclRedOp_t> : public std::true_type {};
+class internal::IsCclType<CclReductionOpTag, ncclRedOp_t>
+    : public std::true_type {};
 
 static_assert(sizeof(CclUniqueId) == sizeof(ncclUniqueId), "size mismatch");
 static_assert(sizeof(CclDataType) == sizeof(ncclDataType_t), "size mismatch");

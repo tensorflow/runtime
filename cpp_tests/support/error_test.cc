@@ -124,8 +124,9 @@ TEST(Test, StackTrace) {
   EXPECT_TRUE(Contains(buffer, "tfrt::CreateStackTrace2()"));
   // File and line info requires `--strip=never` or `-c dbg`.
   // In case that info is missing, we also don't print the " @ ".
-  if (llvm::StringRef(buffer).contains(" @ "))
+  if (llvm::StringRef(buffer).contains(" @ ")) {
     EXPECT_TRUE(Contains(buffer, __FILE__));
+  }
 }
 
 TEST(Test, TypedError) {

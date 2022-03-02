@@ -388,6 +388,25 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value) {
   }
 }
 
+Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type) {
+  switch (data_type) {
+    case CUDA_R_16F:
+      return sizeof(fp16);
+    case CUDA_C_16F:
+      return sizeof(fp16[2]);
+    case CUDA_R_32F:
+      return sizeof(float);
+    case CUDA_C_32F:
+      return sizeof(cuComplex);
+    case CUDA_R_64F:
+      return sizeof(double);
+    case CUDA_C_64F:
+      return sizeof(cuDoubleComplex);
+    default:
+      return MakeStringError("Unsupported type: ", BlasDataType(data_type));
+  }
+}
+
 mlir::TypeID GetCudaDataTypeId(cudaDataType data_type) {
   switch (data_type) {
     case CUDA_R_16F:

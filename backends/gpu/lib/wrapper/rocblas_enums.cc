@@ -220,6 +220,25 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value) {
   }
 }
 
+Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type) {
+  switch (data_type) {
+    case rocblas_datatype_f16_r:
+      return sizeof(fp16);
+    case rocblas_datatype_f16_c:
+      return sizeof(fp16[2]);
+    case rocblas_datatype_f32_r:
+      return sizeof(float);
+    case rocblas_datatype_f32_c:
+      return sizeof(rocblas_float_complex);
+    case rocblas_datatype_f64_r:
+      return sizeof(double);
+    case rocblas_datatype_f64_c:
+      return sizeof(rocblas_double_complex);
+    default:
+      return MakeStringError("Unsupported type: ", BlasDataType(data_type));
+  }
+}
+
 mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type) {
   switch (data_type) {
     case rocblas_datatype_f16_r:

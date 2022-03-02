@@ -73,6 +73,7 @@ template <>
 struct PlatformTypeTraits<BlasSideModeTag, rocblas_side>
     : public RocmPlatformType {};
 
+llvm::Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type);
 mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type);
 
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);
@@ -110,34 +111,14 @@ llvm::Error RocblasGemmStridedBatchedEx(
     int heightC, int64_t strideC, Pointer<void> D, rocblas_datatype typeD,
     int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
     rocblas_gemm_algo algo);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n, Pointer<const float> alpha,
-                               Pointer<const float*> A, int lda,
-                               Pointer<float*> B, int ldb, int batch_count);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n, Pointer<const double> alpha,
-                               Pointer<const double*> A, int lda,
-                               Pointer<double*> B, int ldb, int batch_count);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n,
-                               Pointer<const rocblas_float_complex> alpha,
-                               Pointer<const rocblas_float_complex*> A, int lda,
-                               Pointer<rocblas_float_complex*> B, int ldb,
-                               int batch_count);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n,
-                               Pointer<const rocblas_double_complex> alpha,
-                               Pointer<const rocblas_double_complex*> A,
-                               int lda, Pointer<rocblas_double_complex*> B,
-                               int ldb, int batch_count);
+
+llvm::Error RocblasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                               rocblas_datatype dataType, rocblas_side sideMode,
+                               rocblas_fill fillMode, rocblas_operation trans,
+                               rocblas_diagonal diag, int m, int n,
+                               Pointer<const void> alpha,
+                               Pointer<const void*> A, int lda,
+                               Pointer<void*> B, int ldb, int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

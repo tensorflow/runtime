@@ -32,6 +32,8 @@ llvm::Expected<OwningSolverHandle> CusolverDnCreate();
 llvm::Error CusolverDnDestroy(cusolverDnHandle_t handle);
 llvm::Error CusolverDnSetStream(cusolverDnHandle_t handle, cudaStream_t stream);
 llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle);
+
+// TODO(hanbinyoon): Replace with a type-punned version of CusolverDnPotrf.
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
                             cublasFillMode_t fillMode, int n, Pointer<float> A,
                             int heightA, Pointer<float> workspace,

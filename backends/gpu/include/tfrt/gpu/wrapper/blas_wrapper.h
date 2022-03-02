@@ -44,6 +44,7 @@ using BlasFillMode = Enum<BlasFillModeTag>;
 struct BlasSideModeTag;
 using BlasSideMode = Enum<BlasSideModeTag>;
 
+Expected<size_t> GetBlasDataTypeSizeBytes(BlasDataType data_type);
 // Returns the id of the type that the enumerator refers to.
 mlir::TypeID GetBlasDataTypeId(BlasDataType data_type);
 mlir::TypeID GetBlasComputeTypeId(BlasComputeType compute_type);

@@ -129,54 +129,42 @@ llvm::Error CublasGemmStridedBatchedEx(
 }
 
 llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
+                              cudaDataType dataType, cublasSideMode_t sideMode,
                               cublasFillMode_t fillMode,
                               cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const float> alpha,
-                              Pointer<const float*> A, int lda,
-                              Pointer<float*> B, int ldb, int batchCount) {
+                              int m, int n, Pointer<const void> alpha,
+                              Pointer<const void*> A, int lda, Pointer<void*> B,
+                              int ldb, int batchCount) {
   CheckCudaContext(current);
-  return TO_ERROR(cublasStrsmBatched(handle, sideMode, fillMode, trans, diag, m,
-                                     n, ToCuda(alpha), ToCuda(A), lda,
-                                     ToCuda(B), ldb, batchCount));
-}
-
-llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
-                              cublasFillMode_t fillMode,
-                              cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const double> alpha,
-                              Pointer<const double*> A, int lda,
-                              Pointer<double*> B, int ldb, int batchCount) {
-  CheckCudaContext(current);
-  return TO_ERROR(cublasDtrsmBatched(handle, sideMode, fillMode, trans, diag, m,
-                                     n, ToCuda(alpha), ToCuda(A), lda,
-                                     ToCuda(B), ldb, batchCount));
-}
-
-llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
-                              cublasFillMode_t fillMode,
-                              cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const cuComplex> alpha,
-                              Pointer<const cuComplex*> A, int lda,
-                              Pointer<cuComplex*> B, int ldb, int batchCount) {
-  CheckCudaContext(current);
-  return TO_ERROR(cublasCtrsmBatched(handle, sideMode, fillMode, trans, diag, m,
-                                     n, ToCuda(alpha), ToCuda(A), lda,
-                                     ToCuda(B), ldb, batchCount));
-}
-
-llvm::Error CublasTrsmBatched(
-    CurrentContext current, cublasHandle_t handle, cublasSideMode_t sideMode,
-    cublasFillMode_t fillMode, cublasOperation_t trans, cublasDiagType_t diag,
-    int m, int n, Pointer<const cuDoubleComplex> alpha,
-    Pointer<const cuDoubleComplex*> A, int lda, Pointer<cuDoubleComplex*> B,
-    int ldb, int batchCount) {
-  CheckCudaContext(current);
-  return TO_ERROR(cublasZtrsmBatched(handle, sideMode, fillMode, trans, diag, m,
-                                     n, ToCuda(alpha), ToCuda(A), lda,
-                                     ToCuda(B), ldb, batchCount));
+  switch (dataType) {
+    case CUDA_R_32F:
+      return TO_ERROR(cublasStrsmBatched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const float*>(ToCuda(alpha)),
+          reinterpret_cast<const float* const*>(ToCuda(A)), lda,
+          reinterpret_cast<float* const*>(ToCuda(B)), ldb, batchCount));
+    case CUDA_C_32F:
+      return TO_ERROR(cublasCtrsmBatched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const cuComplex*>(ToCuda(alpha)),
+          reinterpret_cast<const cuComplex* const*>(ToCuda(A)), lda,
+          reinterpret_cast<cuComplex* const*>(ToCuda(B)), ldb, batchCount));
+    case CUDA_R_64F:
+      return TO_ERROR(cublasDtrsmBatched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const double*>(ToCuda(alpha)),
+          reinterpret_cast<const double* const*>(ToCuda(A)), lda,
+          reinterpret_cast<double* const*>(ToCuda(B)), ldb, batchCount));
+    case CUDA_C_64F:
+      return TO_ERROR(cublasZtrsmBatched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const cuDoubleComplex*>(ToCuda(alpha)),
+          reinterpret_cast<const cuDoubleComplex* const*>(ToCuda(A)), lda,
+          reinterpret_cast<cuDoubleComplex* const*>(ToCuda(B)), ldb,
+          batchCount));
+    default:
+      return MakeStringError("Unsupported type: ", BlasDataType(dataType));
+  }
 }
 
 }  // namespace wrapper

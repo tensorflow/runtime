@@ -29,6 +29,18 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+Expected<size_t> GetBlasDataTypeSizeBytes(BlasDataType data_type) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCublasDataTypeSizeBytes(data_type);
+    case Platform::ROCm:
+      return GetRocblasDataTypeSizeBytes(data_type);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 mlir::TypeID GetBlasDataTypeId(BlasDataType data_type) {
   auto platform = data_type.platform();
   switch (platform) {

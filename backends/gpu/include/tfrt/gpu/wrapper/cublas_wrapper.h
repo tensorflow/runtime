@@ -78,6 +78,7 @@ template <>
 struct PlatformTypeTraits<BlasSideModeTag, cublasSideMode_t>
     : public CudaPlatformType {};
 
+llvm::Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type);
 mlir::TypeID GetCudaDataTypeId(cudaDataType data_type);
 mlir::TypeID GetCublasComputeTypeId(cublasComputeType_t compute_type);
 
@@ -124,35 +125,14 @@ llvm::Error CublasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, cudaDataType typeC, int heightC,
     int64_t strideC, int batchCount, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo);
-// TODO(hanbinyoon): Consider providing a datatype-agnostic CublasTrsmBatched
-// (and CusolverDnPotrf, etc.).
+
 llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
+                              cudaDataType dataType, cublasSideMode_t sideMode,
                               cublasFillMode_t fillMode,
                               cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const float> alpha,
-                              Pointer<const float*> A, int lda,
-                              Pointer<float*> B, int ldb, int batchCount);
-llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
-                              cublasFillMode_t fillMode,
-                              cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const double> alpha,
-                              Pointer<const double*> A, int lda,
-                              Pointer<double*> B, int ldb, int batchCount);
-llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
-                              cublasFillMode_t fillMode,
-                              cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const cuComplex> alpha,
-                              Pointer<const cuComplex*> A, int lda,
-                              Pointer<cuComplex*> B, int ldb, int batchCount);
-llvm::Error CublasTrsmBatched(
-    CurrentContext current, cublasHandle_t handle, cublasSideMode_t sideMode,
-    cublasFillMode_t fillMode, cublasOperation_t trans, cublasDiagType_t diag,
-    int m, int n, Pointer<const cuDoubleComplex> alpha,
-    Pointer<const cuDoubleComplex*> A, int lda, Pointer<cuDoubleComplex*> B,
-    int ldb, int batchCount);
+                              int m, int n, Pointer<const void> alpha,
+                              Pointer<const void*> A, int lda, Pointer<void*> B,
+                              int ldb, int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

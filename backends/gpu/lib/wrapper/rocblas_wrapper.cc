@@ -104,55 +104,43 @@ llvm::Error RocblasGemmStridedBatchedEx(
 }
 
 llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n, Pointer<const float> alpha,
-                               Pointer<const float*> A, int lda,
-                               Pointer<float*> B, int ldb, int batch_count) {
+                               rocblas_datatype dataType, rocblas_side sideMode,
+                               rocblas_fill fillMode, rocblas_operation trans,
+                               rocblas_diagonal diag, int m, int n,
+                               Pointer<const void> alpha,
+                               Pointer<const void*> A, int lda,
+                               Pointer<void*> B, int ldb, int batchCount) {
   CheckHipContext(current);
-  return TO_ERROR(rocblas_strsm_batched(handle, side, uplo, transA, diag, m, n,
-                                        ToRocm(alpha), ToRocm(A), lda,
-                                        ToRocm(B), ldb, batch_count));
-}
-
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n, Pointer<const double> alpha,
-                               Pointer<const double*> A, int lda,
-                               Pointer<double*> B, int ldb, int batch_count) {
-  CheckHipContext(current);
-  return TO_ERROR(rocblas_dtrsm_batched(handle, side, uplo, transA, diag, m, n,
-                                        ToRocm(alpha), ToRocm(A), lda,
-                                        ToRocm(B), ldb, batch_count));
-}
-
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n,
-                               Pointer<const rocblas_float_complex> alpha,
-                               Pointer<const rocblas_float_complex*> A, int lda,
-                               Pointer<rocblas_float_complex*> B, int ldb,
-                               int batch_count) {
-  CheckHipContext(current);
-  return TO_ERROR(rocblas_ctrsm_batched(handle, side, uplo, transA, diag, m, n,
-                                        ToRocm(alpha), ToRocm(A), lda,
-                                        ToRocm(B), ldb, batch_count));
-}
-
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n,
-                               Pointer<const rocblas_double_complex> alpha,
-                               Pointer<const rocblas_double_complex*> A,
-                               int lda, Pointer<rocblas_double_complex*> B,
-                               int ldb, int batch_count) {
-  CheckHipContext(current);
-  return TO_ERROR(rocblas_ztrsm_batched(handle, side, uplo, transA, diag, m, n,
-                                        ToRocm(alpha), ToRocm(A), lda,
-                                        ToRocm(B), ldb, batch_count));
+  switch (dataType) {
+    case rocblas_datatype_f32_r:
+      return TO_ERROR(rocblas_strsm_batched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const float*>(ToCuda(alpha)),
+          reinterpret_cast<const float* const*>(ToCuda(A)), lda,
+          reinterpret_cast<float* const*>(ToCuda(B)), ldb, batchCount));
+    case rocblas_datatype_f32_c:
+      return TO_ERROR(rocblas_ctrsm_batched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const rocblas_float_complex*>(ToCuda(alpha)),
+          reinterpret_cast<const rocblas_float_complex* const*>(ToCuda(A)), lda,
+          reinterpret_cast<rocblas_float_complex* const*>(ToCuda(B)), ldb,
+          batchCount));
+    case rocblas_datatype_f64_r:
+      return TO_ERROR(rocblas_dtrsm_batched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const double*>(ToCuda(alpha)),
+          reinterpret_cast<const double* const*>(ToCuda(A)), lda,
+          reinterpret_cast<double* const*>(ToCuda(B)), ldb, batchCount));
+    case rocblas_datatype_f64_c:
+      return TO_ERROR(rocblas_ztrsm_batched(
+          handle, sideMode, fillMode, trans, diag, m, n,
+          reinterpret_cast<const rocblas_double_complex*>(ToCuda(alpha)),
+          reinterpret_cast<const rocblas_double_complex* const*>(ToCuda(A)),
+          lda, reinterpret_cast<rocblas_double_complex* const*>(ToCuda(B)), ldb,
+          batchCount));
+    default:
+      return MakeStringError("Unsupported type: ", BlasDataType(dataType));
+  }
 }
 
 }  // namespace wrapper

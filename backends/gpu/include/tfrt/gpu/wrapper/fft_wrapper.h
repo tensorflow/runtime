@@ -41,38 +41,50 @@ enum struct FftType {
 class FftHandle {
  public:
   FftHandle() = default;
-  FftHandle(std::nullptr_t) {}
+  FftHandle(std::nullptr_t) {}  // NOLINT(google-explicit-constructor)
+  // NOLINTNEXTLINE(google-explicit-constructor)
   FftHandle(cufftHandle handle) : platform_(Platform::CUDA) {
     union_.cuda_handle = handle;
   }
+  // NOLINTNEXTLINE(google-explicit-constructor)
   FftHandle(hipfftHandle handle) : platform_(Platform::ROCm) {
     union_.hip_handle = handle;
   }
-  // Required for std::unique_ptr<Resource>.
+  FftHandle& operator=(const FftHandle&) = default;
+  // Required for std::unique_ptr<FftHandle>.
   FftHandle& operator=(std::nullptr_t) {
     platform_ = Platform::NONE;
     return *this;
   }
-
-  bool operator!=(hipfftHandle other) { return union_.hip_handle != other; }
-
-  // Required for std::unique_ptr<Resource>.
+  // Required for std::unique_ptr<FftHandle>.
+  // NOLINTNEXTLINE(google-explicit-constructor)
   operator bool() const { return platform() != Platform::NONE; }
-
-  Platform platform() const { return platform_; }
-  operator cufftHandle() const {
+  operator cufftHandle() const {  // NOLINT(google-explicit-constructor)
     assert(platform() == Platform::CUDA);
     return union_.cuda_handle;
   }
-  explicit operator hipfftHandle() const {
+  operator hipfftHandle() const {  // NOLINT(google-explicit-constructor)
     assert(platform() == Platform::ROCm);
     return union_.hip_handle;
   }
+  Platform platform() const { return platform_; }
+
+  bool operator==(cufftHandle handle) const {
+    return platform() == Platform::CUDA && union_.cuda_handle == handle;
+  }
+  bool operator!=(cufftHandle handle) const { return !(*this == handle); }
+  bool operator==(hipfftHandle handle) const {
+    return platform() == Platform::ROCm && union_.hip_handle == handle;
+  }
+  bool operator!=(hipfftHandle handle) const { return !(*this == handle); }
+  bool operator==(std::nullptr_t) const { return platform() == Platform::NONE; }
+  bool operator!=(std::nullptr_t) const { return !(*this == nullptr); }
+
   // For member access from std::unique_ptr.
   const FftHandle* operator->() const { return this; }
 
  private:
-  Platform platform_;
+  Platform platform_ = Platform::NONE;
   union {
     cufftHandle cuda_handle;
     hipfftHandle hip_handle;
@@ -99,11 +111,11 @@ llvm::Expected<size_t> FftGetWorkspaceSize(FftHandle handle);
 llvm::Error FftSetWorkspace(FftHandle handle, Pointer<void> workspace,
                             size_t size_bytes);
 llvm::Expected<size_t> FftMakePlanMany(
-    FftHandle plan, FftType type, int64_t batch, int rank,
+    FftHandle handle, FftType type, int64_t batch, int rank,
     llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
     int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
     int64_t output_stride, int64_t input_dist, int64_t output_dist);
-llvm::Error FftExec(FftHandle plan, wrapper::Pointer<void> input,
+llvm::Error FftExec(FftHandle handle, wrapper::Pointer<void> input,
                     wrapper::Pointer<void> output, FftType type);
 
 }  // namespace wrapper

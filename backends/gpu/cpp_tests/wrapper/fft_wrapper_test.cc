@@ -15,6 +15,8 @@
 // Unit test for cuFFT wrapper.
 #include "tfrt/gpu/wrapper/fft_wrapper.h"
 
+#include <cmath>
+
 #include "common.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -26,8 +28,6 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 using ::testing::FloatNear;
-
-TEST_P(Test, Dummy) {}  // Make INSTANTIATE_TEST_SUITE_P happy.
 
 TEST_P(Test, RealToComplex1D) {
   auto platform = GetParam();
@@ -66,11 +66,10 @@ TEST_P(Test, RealToComplex1D) {
   TFRT_ASSERT_AND_ASSIGN(auto host_data,
                          MemHostAlloc(current, kWindowSizeBytesOutput, {}));
 
-  const float kPi = std::acos(-1);
-  for (size_t i = 0; i < kWindowSize; ++i) {
-    static_cast<cufftReal*>(host_data.get().raw())[i] =
-        static_cast<float>(std::sin(2 * kPi * i / kWindowSize));
-  }
+  const float kPi = acosf(-1.0f);
+  auto* input = static_cast<cufftReal*>(host_data.get().raw());
+  for (size_t i = 0; i < kWindowSize; ++i)
+    input[i] = sinf(2 * kPi * i / kWindowSize);
 
   // Allocate enough memory for output to be written in place.
   TFRT_ASSERT_AND_ASSIGN(auto device_data,
@@ -81,9 +80,7 @@ TEST_P(Test, RealToComplex1D) {
                           kWindowSizeBytesInput, stream.get()),
               IsSuccess());
   EXPECT_THAT(
-      FftExec(plan.get(), static_cast<Pointer<cufftReal>>(device_data.get()),
-              static_cast<Pointer<cufftComplex>>(device_data.get()),
-              FftType::kR2C),
+      FftExec(plan.get(), device_data.get(), device_data.get(), FftType::kR2C),
       IsSuccess());
   EXPECT_THAT(MemcpyAsync(current, host_data.get(), device_data.get(),
                           kWindowSizeBytesOutput, stream.get()),
@@ -91,13 +88,11 @@ TEST_P(Test, RealToComplex1D) {
 
   EXPECT_THAT(StreamSynchronize(stream.get()), IsSuccess());
 
-  float2* elements = static_cast<cufftComplex*>(host_data.get().raw());
-  EXPECT_THAT(elements[1].y,
-              FloatNear(-1 * static_cast<float>(kWindowSize) / 2, 0.1));
+  auto* output = static_cast<cufftComplex*>(host_data.get().raw());
   for (size_t i = 0; i < kWindowSize; ++i) {
-    if (i == 1) continue;
-    EXPECT_THAT(elements[i].x, FloatNear(0, 0.1));
-    EXPECT_THAT(elements[i].y, FloatNear(0, 0.1));
+    EXPECT_THAT(output[i].x, FloatNear(0.0f, 0.1f));
+    float y = i == 1 ? -0.5f * kWindowSize : 0.0f;
+    EXPECT_THAT(output[i].y, FloatNear(y, 0.1f));
   }
 }
 

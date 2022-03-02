@@ -50,20 +50,20 @@ llvm::Expected<LibraryVersion> HipfftGetVersion() {
 }
 
 llvm::Expected<OwningFftHandle> HipfftCreate() {
-  hipfftHandle plan;
-  RETURN_IF_ERROR(hipfftCreate(&plan));
-  return OwningFftHandle(plan);
+  hipfftHandle handle;
+  RETURN_IF_ERROR(hipfftCreate(&handle));
+  return OwningFftHandle(handle);
 }
 
-llvm::Error HipfftDestroy(hipfftHandle plan) {
-  return TO_ERROR(hipfftDestroy(plan));
+llvm::Error HipfftDestroy(hipfftHandle handle) {
+  return TO_ERROR(hipfftDestroy(handle));
 }
 
-llvm::Error HipfftSetStream(hipfftHandle plan, hipStream_t stream) {
-  return TO_ERROR(hipfftSetStream(plan, stream));
+llvm::Error HipfftSetStream(hipfftHandle handle, hipStream_t stream) {
+  return TO_ERROR(hipfftSetStream(handle, stream));
 }
 
-llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle plan, int rank,
+llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle handle, int rank,
                                           llvm::ArrayRef<int64_t> n,
                                           llvm::ArrayRef<int64_t> inembed,
                                           int64_t istride, int64_t idist,
@@ -77,7 +77,7 @@ llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle plan, int rank,
   size_t work_size;
   return hipfftMakePlanMany64(
       // NOLINTNEXTLINE(google-runtime-int)
-      plan, rank, reinterpret_cast<long long*>(ToHipfft(n)),
+      handle, rank, reinterpret_cast<long long*>(ToHipfft(n)),
       // NOLINTNEXTLINE(google-runtime-int)
       reinterpret_cast<long long*>(ToHipfft(inembed)), istride, idist,
       // NOLINTNEXTLINE(google-runtime-int)
@@ -85,14 +85,14 @@ llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle plan, int rank,
       batch, &work_size);
 }
 
-llvm::Expected<size_t> HipfftGetSize(hipfftHandle plan) {
+llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle) {
   size_t work_size;
-  RETURN_IF_ERROR(hipfftGetSize(plan, &work_size));
+  RETURN_IF_ERROR(hipfftGetSize(handle, &work_size));
   return work_size;
 }
 
-llvm::Error HipfftSetWorkArea(hipfftHandle plan, Pointer<void> work_area) {
-  return TO_ERROR(hipfftSetWorkArea(plan, ToRocm(work_area)));
+llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area) {
+  return TO_ERROR(hipfftSetWorkArea(handle, ToRocm(work_area)));
 }
 
 static int ToRocm(FftDirection direction) {
@@ -106,82 +106,87 @@ static int ToRocm(FftDirection direction) {
   }
 }
 
-llvm::Error HipfftExecC2C(hipfftHandle plan, Pointer<hipfftComplex> input_data,
+llvm::Error HipfftExecC2C(hipfftHandle handle,
+                          Pointer<hipfftComplex> input_data,
                           Pointer<hipfftComplex> output_data,
                           FftDirection direction) {
-  return TO_ERROR(hipfftExecC2C(plan, input_data.raw(Platform::ROCm),
+  return TO_ERROR(hipfftExecC2C(handle, input_data.raw(Platform::ROCm),
                                 output_data.raw(Platform::ROCm),
                                 ToRocm(direction)));
 }
 
-llvm::Error HipfftExecZ2Z(hipfftHandle plan,
+llvm::Error HipfftExecZ2Z(hipfftHandle handle,
                           Pointer<hipfftDoubleComplex> input_data,
                           Pointer<hipfftDoubleComplex> output_data,
                           FftDirection direction) {
-  return TO_ERROR(hipfftExecZ2Z(plan, input_data.raw(Platform::ROCm),
+  return TO_ERROR(hipfftExecZ2Z(handle, input_data.raw(Platform::ROCm),
                                 output_data.raw(Platform::ROCm),
                                 ToRocm(direction)));
 }
 
-llvm::Error HipfftExecR2C(hipfftHandle plan, Pointer<hipfftReal> input_data,
+llvm::Error HipfftExecR2C(hipfftHandle handle, Pointer<hipfftReal> input_data,
                           Pointer<hipfftComplex> output_data) {
-  return TO_ERROR(hipfftExecR2C(plan, input_data.raw(Platform::ROCm),
+  return TO_ERROR(hipfftExecR2C(handle, input_data.raw(Platform::ROCm),
                                 output_data.raw(Platform::ROCm)));
 }
 
-llvm::Error HipfftExecD2Z(hipfftHandle plan,
+llvm::Error HipfftExecD2Z(hipfftHandle handle,
                           Pointer<hipfftDoubleReal> input_data,
                           Pointer<hipfftDoubleComplex> output_data) {
-  return TO_ERROR(hipfftExecD2Z(plan, input_data.raw(Platform::ROCm),
+  return TO_ERROR(hipfftExecD2Z(handle, input_data.raw(Platform::ROCm),
                                 output_data.raw(Platform::ROCm)));
 }
 
-llvm::Error HipfftExecC2R(hipfftHandle plan, Pointer<hipfftComplex> input_data,
+llvm::Error HipfftExecC2R(hipfftHandle handle,
+                          Pointer<hipfftComplex> input_data,
                           Pointer<hipfftReal> output_data) {
-  return TO_ERROR(hipfftExecC2R(plan, input_data.raw(Platform::ROCm),
+  return TO_ERROR(hipfftExecC2R(handle, input_data.raw(Platform::ROCm),
                                 output_data.raw(Platform::ROCm)));
 }
 
-llvm::Error HipfftExecZ2D(hipfftHandle plan,
+llvm::Error HipfftExecZ2D(hipfftHandle handle,
                           Pointer<hipfftDoubleComplex> input_data,
                           Pointer<hipfftDoubleReal> output_data) {
-  return TO_ERROR(hipfftExecZ2D(plan, input_data.raw(Platform::ROCm),
+  return TO_ERROR(hipfftExecZ2D(handle, input_data.raw(Platform::ROCm),
                                 output_data.raw(Platform::ROCm)));
 }
 
-llvm::Error HipfftExec(hipfftHandle plan, Pointer<void> raw_input,
+llvm::Error HipfftExec(hipfftHandle handle, Pointer<void> raw_input,
                        Pointer<void> raw_output, FftType type) {
   switch (type) {
     case FftType::kC2CForward:
-      return HipfftExecC2C(plan, static_cast<Pointer<hipfftComplex>>(raw_input),
+      return HipfftExecC2C(handle,
+                           static_cast<Pointer<hipfftComplex>>(raw_input),
                            static_cast<Pointer<hipfftComplex>>(raw_output),
                            FftDirection::kForward);
     case FftType::kC2CInverse:
-      return HipfftExecC2C(plan, static_cast<Pointer<hipfftComplex>>(raw_input),
+      return HipfftExecC2C(handle,
+                           static_cast<Pointer<hipfftComplex>>(raw_input),
                            static_cast<Pointer<hipfftComplex>>(raw_output),
                            FftDirection::kInverse);
     case FftType::kZ2ZForward:
       return HipfftExecZ2Z(
-          plan, static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
+          handle, static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
           static_cast<Pointer<hipfftDoubleComplex>>(raw_output),
           FftDirection::kForward);
     case FftType::kZ2ZInverse:
       return HipfftExecZ2Z(
-          plan, static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
+          handle, static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
           static_cast<Pointer<hipfftDoubleComplex>>(raw_output),
           FftDirection::kInverse);
     case FftType::kR2C:
-      return HipfftExecR2C(plan, static_cast<Pointer<hipfftReal>>(raw_input),
+      return HipfftExecR2C(handle, static_cast<Pointer<hipfftReal>>(raw_input),
                            static_cast<Pointer<hipfftComplex>>(raw_output));
     case FftType::kD2Z:
       return HipfftExecD2Z(
-          plan, static_cast<Pointer<hipfftDoubleReal>>(raw_input),
+          handle, static_cast<Pointer<hipfftDoubleReal>>(raw_input),
           static_cast<Pointer<hipfftDoubleComplex>>(raw_output));
     case FftType::kC2R:
-      return HipfftExecC2R(plan, static_cast<Pointer<hipfftComplex>>(raw_input),
+      return HipfftExecC2R(handle,
+                           static_cast<Pointer<hipfftComplex>>(raw_input),
                            static_cast<Pointer<hipfftReal>>(raw_output));
     case FftType::kZ2D:
-      return HipfftExecZ2D(plan,
+      return HipfftExecZ2D(handle,
                            static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
                            static_cast<Pointer<hipfftDoubleReal>>(raw_output));
     default:

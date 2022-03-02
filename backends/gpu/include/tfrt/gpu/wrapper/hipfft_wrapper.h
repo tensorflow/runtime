@@ -32,18 +32,18 @@ llvm::Expected<hipfftType> FftTypeToHipfftType(FftType type);
 llvm::Expected<LibraryVersion> HipfftGetVersion();
 
 // Creates an opaque handle and allocates small data for the plan. Use
-// HipfftMakePlan* to do the plan generation.
+// HipfftMakePlanMany to do the plan generation.
 llvm::Expected<OwningFftHandle> HipfftCreate();
 
-// Frees all GPU resources associated with the plan and destroys internal data
+// Frees all GPU resources associated with the handle and destroys internal data
 // structures.
-llvm::Error HipfftDestroy(hipfftHandle plan);
+llvm::Error HipfftDestroy(hipfftHandle handle);
 
 // Sets the stream for execution of hipFFT functions. Note that these functions
 // may consist of many kernel invocations.
-llvm::Error HipfftSetStream(hipfftHandle plan, hipStream_t stream);
+llvm::Error HipfftSetStream(hipfftHandle handle, hipStream_t stream);
 
-llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle plan, int rank,
+llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle handle, int rank,
                                           llvm::ArrayRef<int64_t> n,
                                           llvm::ArrayRef<int64_t> inembed,
                                           int64_t istride, int64_t idist,
@@ -51,30 +51,30 @@ llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle plan, int rank,
                                           int64_t ostride, int64_t odist,
                                           hipfftType type, int64_t batch);
 
-llvm::Expected<size_t> HipfftGetSize(hipfftHandle plan);
+llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle);
 
-llvm::Error HipfftSetWorkArea(hipfftHandle plan, Pointer<void> work_area);
+llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area);
 
-llvm::Error HipfftExecC2C(hipfftHandle plan, hipfftComplex* input_data,
+llvm::Error HipfftExecC2C(hipfftHandle handle, hipfftComplex* input_data,
                           hipfftComplex* output_data, FftDirection direction);
 
-llvm::Error HipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex* input_data,
+llvm::Error HipfftExecZ2Z(hipfftHandle handle, hipfftDoubleComplex* input_data,
                           hipfftDoubleComplex* output_data,
                           FftDirection direction);
 
-llvm::Error HipfftExecR2C(hipfftHandle plan, hipfftReal* input_data,
+llvm::Error HipfftExecR2C(hipfftHandle handle, hipfftReal* input_data,
                           hipfftComplex* output_data);
 
-llvm::Error HipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal* input_data,
+llvm::Error HipfftExecD2Z(hipfftHandle handle, hipfftDoubleReal* input_data,
                           hipfftDoubleComplex* output_data);
 
-llvm::Error HipfftExecC2R(hipfftHandle plan, hipfftComplex* input_data,
+llvm::Error HipfftExecC2R(hipfftHandle handle, hipfftComplex* input_data,
                           hipfftReal* output_data);
 
-llvm::Error HipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* input_data,
+llvm::Error HipfftExecZ2D(hipfftHandle handle, hipfftDoubleComplex* input_data,
                           hipfftDoubleReal* output_data);
 
-llvm::Error HipfftExec(hipfftHandle plan, Pointer<void> raw_input,
+llvm::Error HipfftExec(hipfftHandle handle, Pointer<void> raw_input,
                        Pointer<void> raw_output, FftType type);
 
 }  // namespace wrapper

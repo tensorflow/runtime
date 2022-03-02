@@ -50,7 +50,7 @@ llvm::Error FftDestroy(FftHandle handle) {
     case Platform::CUDA:
       return CufftDestroy(handle);
     case Platform::ROCm:
-      return HipfftDestroy(hipfftHandle(handle));
+      return HipfftDestroy(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -62,7 +62,7 @@ llvm::Error FftSetStream(FftHandle handle, Stream stream) {
     case Platform::CUDA:
       return CufftSetStream(handle, stream);
     case Platform::ROCm:
-      return HipfftSetStream(hipfftHandle(handle), stream);
+      return HipfftSetStream(handle, stream);
     default:
       return InvalidPlatform(platform);
   }
@@ -74,7 +74,7 @@ llvm::Expected<size_t> FftGetWorkspaceSize(FftHandle handle) {
     case Platform::CUDA:
       return CufftGetSize(handle);
     case Platform::ROCm:
-      return HipfftGetSize(hipfftHandle(handle));
+      return HipfftGetSize(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -87,40 +87,41 @@ llvm::Error FftSetWorkspace(FftHandle handle, Pointer<void> workspace,
     case Platform::CUDA:
       return CufftSetWorkArea(handle, workspace);
     case Platform::ROCm:
-      return HipfftSetWorkArea(hipfftHandle(handle), workspace);
+      return HipfftSetWorkArea(handle, workspace);
     default:
       return InvalidPlatform(platform);
   }
 }
 
 llvm::Expected<size_t> FftMakePlanMany(
-    FftHandle plan, FftType type, int64_t batch, int rank,
+    FftHandle handle, FftType type, int64_t batch, int rank,
     llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
     int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
     int64_t output_stride, int64_t input_dist, int64_t output_dist) {
-  switch (plan.platform()) {
+  switch (handle.platform()) {
     case Platform::CUDA:
-      return CufftMakePlanMany(
-          plan, FftTypeToCufftType(type).get(), batch, rank, dims, input_embed,
-          input_stride, output_embed, output_stride, input_dist, output_dist);
+      return CufftMakePlanMany(handle, FftTypeToCufftType(type).get(), batch,
+                               rank, dims, input_embed, input_stride,
+                               output_embed, output_stride, input_dist,
+                               output_dist);
     case Platform::ROCm:
-      return HipfftMakePlanMany(hipfftHandle(plan), rank, dims, input_embed,
-                                input_stride, input_dist, output_embed,
-                                output_stride, output_dist,
-                                FftTypeToHipfftType(type).get(), batch);
+      return HipfftMakePlanMany(handle, rank, dims, input_embed, input_stride,
+                                input_dist, output_embed, output_stride,
+                                output_dist, FftTypeToHipfftType(type).get(),
+                                batch);
     default:
-      return InvalidPlatform(plan.platform());
+      return InvalidPlatform(handle.platform());
   }
 }
 
-llvm::Error FftExec(FftHandle plan, wrapper::Pointer<void> input,
+llvm::Error FftExec(FftHandle handle, wrapper::Pointer<void> input,
                     wrapper::Pointer<void> output, FftType type) {
-  Platform platform = plan.platform();
+  Platform platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CufftExec(plan, input, output, type);
+      return CufftExec(handle, input, output, type);
     case Platform::ROCm:
-      return HipfftExec(hipfftHandle(plan), input, output, type);
+      return HipfftExec(handle, input, output, type);
     default:
       return InvalidPlatform(platform);
   }

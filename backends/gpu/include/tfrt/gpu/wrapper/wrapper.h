@@ -287,7 +287,9 @@ class Enum {
   }
 
   ValueType ToOpaqueValue() const {
-    auto result = value_ << 2 | static_cast<ValueType>(platform_);
+    // Cast to unsigned since signed shift behavior is undefined. go/totw/91
+    typename std::make_unsigned<ValueType>::type unsigned_value = value_;
+    auto result = unsigned_value << 2 | static_cast<ValueType>(platform_);
     assert(*this == FromOpaqueValue(result) && "roundtrip failed");
     return result;
   }

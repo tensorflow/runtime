@@ -33,14 +33,10 @@ namespace wrapper {
 constexpr int kDnnDimMax() { return 8; }
 
 // Platform-discriminated enums.
-struct DnnDataTypeTag;
-using DnnDataType = Enum<DnnDataTypeTag>;
-struct DnnConvolutionModeTag;
-using DnnConvolutionMode = Enum<DnnConvolutionModeTag>;
-struct DnnActivationModeTag;
-using DnnActivationMode = Enum<DnnActivationModeTag>;
-struct DnnMathTypeTag;
-using DnnMathType = Enum<DnnMathTypeTag>;
+using DnnDataType = Enum<struct DnnDataTypeTag>;
+using DnnConvolutionMode = Enum<struct DnnConvolutionModeTag>;
+using DnnActivationMode = Enum<struct DnnActivationModeTag>;
+using DnnMathType = Enum<struct DnnMathTypeTag>;
 struct DnnConvFwdAlgoTag {
   using type = uint64_t;
 };
@@ -53,8 +49,7 @@ struct DnnConvBwdFilterAlgoTag {
   using type = uint64_t;
 };
 using DnnConvBwdFilterAlgo = Enum<DnnConvBwdFilterAlgoTag>;
-struct DnnNanPropagationTag;
-using DnnNanPropagation = Enum<DnnNanPropagationTag>;  // cuDNN only.
+using DnnNanPropagation = Enum<struct DnnNanPropagationTag>;  // cuDNN only.
 
 enum class DnnRnnInputMode {  // Matches miopenRNNInputMode_t
   kLinear,

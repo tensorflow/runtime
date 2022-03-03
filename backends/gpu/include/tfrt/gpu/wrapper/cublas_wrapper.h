@@ -26,78 +26,61 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status);
+raw_ostream& Print(raw_ostream& os, cublasStatus_t status);
+raw_ostream& Print(raw_ostream& os, cudaDataType value);
+raw_ostream& Print(raw_ostream& os, cublasDiagType_t value);
+raw_ostream& Print(raw_ostream& os, cublasComputeType_t value);
+raw_ostream& Print(raw_ostream& os, cublasOperation_t value);
+raw_ostream& Print(raw_ostream& os, cublasGemmAlgo_t value);
+raw_ostream& Print(raw_ostream& os, cublasFillMode_t value);
+raw_ostream& Print(raw_ostream& os, cublasSideMode_t value);
+
+Expected<cudaDataType> Parse(llvm::StringRef name, cudaDataType);
+Expected<cublasDiagType_t> Parse(llvm::StringRef name, cublasDiagType_t);
+Expected<cublasComputeType_t> Parse(llvm::StringRef name, cublasComputeType_t);
+Expected<cublasOperation_t> Parse(llvm::StringRef name, cublasOperation_t);
+Expected<cublasGemmAlgo_t> Parse(llvm::StringRef name, cublasGemmAlgo_t);
+Expected<cublasFillMode_t> Parse(llvm::StringRef name, cublasFillMode_t);
+Expected<cublasSideMode_t> Parse(llvm::StringRef name, cublasSideMode_t);
+
+namespace internal {
+template <>
+struct EnumPlatform<BlasDataType, cudaDataType> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasDiagType, cublasDiagType_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasComputeType, cublasComputeType_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasOperation, cublasOperation_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasGemmAlgo, cublasGemmAlgo_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasFillMode, cublasFillMode_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasSideMode, cublasSideMode_t> : CudaPlatformType {};
 
 template <>
-Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value);
-
+struct EnumStream<BlasDataType, Platform::CUDA>
+    : EnumStreamPtrs<cudaDataType, Parse, Print> {};
 template <>
-Expected<cublasDiagType_t> Parse<cublasDiagType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasDiagType_t value);
-
+struct EnumStream<BlasDiagType, Platform::CUDA>
+    : EnumStreamPtrs<cublasDiagType_t, Parse, Print> {};
 template <>
-Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasComputeType_t value);
-
+struct EnumStream<BlasComputeType, Platform::CUDA>
+    : EnumStreamPtrs<cublasComputeType_t, Parse, Print> {};
 template <>
-Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasOperation_t value);
-
+struct EnumStream<BlasOperation, Platform::CUDA>
+    : EnumStreamPtrs<cublasOperation_t, Parse, Print> {};
 template <>
-Expected<cublasGemmAlgo_t> Parse<cublasGemmAlgo_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value);
-
+struct EnumStream<BlasGemmAlgo, Platform::CUDA>
+    : EnumStreamPtrs<cublasGemmAlgo_t, Parse, Print> {};
 template <>
-Expected<cublasFillMode_t> Parse<cublasFillMode_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value);
-
+struct EnumStream<BlasFillMode, Platform::CUDA>
+    : EnumStreamPtrs<cublasFillMode_t, Parse, Print> {};
 template <>
-Expected<cublasSideMode_t> Parse<cublasSideMode_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value);
-
-template <>
-struct internal::EnumPlatform<BlasDataTypeTag, cudaDataType>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasDataTypeTag, Platform::CUDA>
-    : IdentityType<cudaDataType> {};
-template <>
-struct internal::EnumPlatform<BlasDiagTypeTag, cublasDiagType_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasDiagTypeTag, Platform::CUDA>
-    : IdentityType<cublasDiagType_t> {};
-template <>
-struct internal::EnumPlatform<BlasComputeTypeTag, cublasComputeType_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasComputeTypeTag, Platform::CUDA>
-    : IdentityType<cublasComputeType_t> {};
-template <>
-struct internal::EnumPlatform<BlasOperationTag, cublasOperation_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasOperationTag, Platform::CUDA>
-    : IdentityType<cublasOperation_t> {};
-template <>
-struct internal::EnumPlatform<BlasGemmAlgoTag, cublasGemmAlgo_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasGemmAlgoTag, Platform::CUDA>
-    : IdentityType<cublasGemmAlgo_t> {};
-template <>
-struct internal::EnumPlatform<BlasFillModeTag, cublasFillMode_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasFillModeTag, Platform::CUDA>
-    : IdentityType<cublasFillMode_t> {};
-template <>
-struct internal::EnumPlatform<BlasSideModeTag, cublasSideMode_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<BlasSideModeTag, Platform::CUDA>
-    : IdentityType<cublasSideMode_t> {};
+struct EnumStream<BlasSideMode, Platform::CUDA>
+    : EnumStreamPtrs<cublasSideMode_t, Parse, Print> {};
+}  // namespace internal
 
 llvm::Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type);
 mlir::TypeID GetCudaDataTypeId(cudaDataType data_type);

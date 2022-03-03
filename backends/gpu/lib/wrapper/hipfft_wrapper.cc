@@ -195,7 +195,7 @@ llvm::Error HipfftExec(hipfftHandle handle, Pointer<void> raw_input,
   }
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipfftResult_t result) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, hipfftResult_t result) {
   switch (result) {
     case HIPFFT_SUCCESS:
       return os << "HIPFFT_SUCCESS";

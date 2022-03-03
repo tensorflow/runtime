@@ -29,7 +29,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaError_t error);
+raw_ostream& Print(raw_ostream& os, cudaError_t error);
 
 // The following functions map directly to CUDA runtime calls.
 //

@@ -25,7 +25,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipfftResult_t result);
+raw_ostream& Print(raw_ostream& os, hipfftResult_t result);
 
 llvm::Expected<hipfftType> FftTypeToHipfftType(FftType type);
 

@@ -102,7 +102,7 @@ class Device {
   int device_id_ = 0;
   Platform platform_ = Platform::NONE;
 
-  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Device device) {
+  friend raw_ostream& operator<<(raw_ostream& os, Device device) {
     return os << device.device_id_ << " (" << device.platform() << ")";
   }
 };

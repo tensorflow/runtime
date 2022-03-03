@@ -25,74 +25,60 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status);
+raw_ostream& Print(raw_ostream& os, rocblas_status status);
+raw_ostream& Print(raw_ostream& os, rocblas_datatype value);
+raw_ostream& Print(raw_ostream& os, rocblas_diagonal value);
+raw_ostream& Print(raw_ostream& os, rocblas_operation value);
+raw_ostream& Print(raw_ostream& os, rocblas_gemm_algo value);
+raw_ostream& Print(raw_ostream& os, rocblas_fill value);
+raw_ostream& Print(raw_ostream& os, rocblas_side value);
+
+Expected<rocblas_datatype> Parse(llvm::StringRef name, rocblas_datatype);
+Expected<rocblas_diagonal> Parse(llvm::StringRef name, rocblas_diagonal);
+Expected<rocblas_operation> Parse(llvm::StringRef name, rocblas_operation);
+Expected<rocblas_gemm_algo> Parse(llvm::StringRef name, rocblas_gemm_algo);
+Expected<rocblas_fill> Parse(llvm::StringRef name, rocblas_fill);
+Expected<rocblas_side> Parse(llvm::StringRef name, rocblas_side);
+
+namespace internal {
+template <>
+struct EnumPlatform<BlasDataType, rocblas_datatype> : RocmPlatformType {};
+// Also rocblas_datatype (type only differs for CUDA).
+template <>
+struct EnumPlatform<BlasComputeType, rocblas_datatype> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasDiagType, rocblas_diagonal> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasOperation, rocblas_operation> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasGemmAlgo, rocblas_gemm_algo> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasFillMode, rocblas_fill> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasSideMode, rocblas_side> : RocmPlatformType {};
 
 template <>
-Expected<rocblas_datatype> Parse<rocblas_datatype>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value);
-
+struct EnumStream<BlasDataType, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_datatype, Parse, Print> {};
 template <>
-Expected<rocblas_diagonal> Parse<rocblas_diagonal>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_diagonal value);
-
+struct EnumStream<BlasComputeType, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_datatype, Parse, Print> {};
 template <>
-Expected<rocblas_operation> Parse<rocblas_operation>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_operation value);
-
+struct EnumStream<BlasDiagType, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_diagonal, Parse, Print> {};
 template <>
-Expected<rocblas_gemm_algo> Parse<rocblas_gemm_algo>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value);
-
+struct EnumStream<BlasOperation, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_operation, Parse, Print> {};
 template <>
-Expected<rocblas_fill> Parse<rocblas_fill>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value);
-
+struct EnumStream<BlasGemmAlgo, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_gemm_algo, Parse, Print> {};
 template <>
-Expected<rocblas_side> Parse<rocblas_side>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value);
-
+struct EnumStream<BlasFillMode, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_fill, Parse, Print> {};
 template <>
-struct internal::EnumType<BlasDataTypeTag, Platform::ROCm>
-    : IdentityType<rocblas_datatype> {};
-template <>
-struct internal::EnumPlatform<BlasDataTypeTag, rocblas_datatype>
-    : RocmPlatformType {};
-template <>
-struct internal::EnumType<BlasDiagTypeTag, Platform::ROCm>
-    : IdentityType<rocblas_diagonal> {};
-template <>
-struct internal::EnumPlatform<BlasDiagTypeTag, rocblas_diagonal>
-    : RocmPlatformType {};
-template <>
-struct internal::EnumType<BlasComputeTypeTag, Platform::ROCm>
-    : IdentityType<rocblas_datatype> {};
-template <>
-struct internal::EnumPlatform<BlasComputeTypeTag, rocblas_datatype>
-    : RocmPlatformType {};
-template <>
-struct internal::EnumType<BlasOperationTag, Platform::ROCm>
-    : IdentityType<rocblas_operation> {};
-template <>
-struct internal::EnumPlatform<BlasOperationTag, rocblas_operation>
-    : RocmPlatformType {};
-template <>
-struct internal::EnumType<BlasGemmAlgoTag, Platform::ROCm>
-    : IdentityType<rocblas_gemm_algo> {};
-template <>
-struct internal::EnumPlatform<BlasGemmAlgoTag, rocblas_gemm_algo>
-    : RocmPlatformType {};
-template <>
-struct internal::EnumType<BlasFillModeTag, Platform::ROCm>
-    : IdentityType<rocblas_fill> {};
-template <>
-struct internal::EnumPlatform<BlasFillModeTag, rocblas_fill>
-    : RocmPlatformType {};
-template <>
-struct internal::EnumType<BlasSideModeTag, Platform::ROCm>
-    : IdentityType<rocblas_side> {};
-template <>
-struct internal::EnumPlatform<BlasSideModeTag, rocblas_side>
-    : RocmPlatformType {};
+struct EnumStream<BlasSideMode, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_side, Parse, Print> {};
+}  // namespace internal
 
 llvm::Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type);
 mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type);

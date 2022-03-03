@@ -29,20 +29,13 @@ namespace gpu {
 namespace wrapper {
 
 // Platform-discriminated enums.
-struct BlasDataTypeTag;
-using BlasDataType = Enum<BlasDataTypeTag>;
-struct BlasDiagTypeTag;
-using BlasDiagType = Enum<BlasDiagTypeTag>;
-struct BlasComputeTypeTag;
-using BlasComputeType = Enum<BlasComputeTypeTag>;
-struct BlasOperationTag;
-using BlasOperation = Enum<BlasOperationTag>;
-struct BlasGemmAlgoTag;
-using BlasGemmAlgo = Enum<BlasGemmAlgoTag>;
-struct BlasFillModeTag;
-using BlasFillMode = Enum<BlasFillModeTag>;
-struct BlasSideModeTag;
-using BlasSideMode = Enum<BlasSideModeTag>;
+using BlasDataType = Enum<struct BlasDataTypeTag>;
+using BlasDiagType = Enum<struct BlasDiagTypeTag>;
+using BlasComputeType = Enum<struct BlasComputeTypeTag>;
+using BlasOperation = Enum<struct BlasOperationTag>;
+using BlasGemmAlgo = Enum<struct BlasGemmAlgoTag>;
+using BlasFillMode = Enum<struct BlasFillModeTag>;
+using BlasSideMode = Enum<struct BlasSideModeTag>;
 
 Expected<size_t> GetBlasDataTypeSizeBytes(BlasDataType data_type);
 // Returns the id of the type that the enumerator refers to.

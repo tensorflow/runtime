@@ -123,8 +123,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform) {
   }
 }
 
-template <>
-Expected<wrapper::Platform> Parse<wrapper::Platform>(llvm::StringRef platform) {
+Expected<wrapper::Platform> ParsePlatform(llvm::StringRef platform) {
   if (platform == "NONE") return wrapper::Platform::NONE;
   if (platform == "CUDA") return wrapper::Platform::CUDA;
   if (platform == "ROCm") return wrapper::Platform::ROCm;

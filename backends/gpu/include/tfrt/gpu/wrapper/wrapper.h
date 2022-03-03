@@ -101,6 +101,7 @@
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
+
 // Enum of the abstracted platforms.
 enum class Platform {
   NONE,
@@ -108,11 +109,8 @@ enum class Platform {
   ROCm,
 };
 
-template <typename T>
-Expected<T> Parse(llvm::StringRef);
-template <>
-Expected<Platform> Parse<Platform>(llvm::StringRef platform);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform);
+Expected<Platform> ParsePlatform(llvm::StringRef platform);
+raw_ostream& operator<<(raw_ostream& os, Platform platform);
 
 namespace internal {
 // Struct capturing a failed API call with result code type T.
@@ -131,7 +129,7 @@ Error MakeError(T result, const char* expr, Args... args) {
 
 // Write ErrorData to raw_ostream.
 template <typename T>
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ErrorData<T>& data);
+raw_ostream& operator<<(raw_ostream& os, const ErrorData<T>& data);
 
 template <bool... Bs>
 using AllFalse = std::is_same<std::integer_sequence<bool, false, Bs...>,
@@ -163,7 +161,9 @@ class Resource {
   // This constructor is for creating invalid Resources, e.g. to use as
   // sentinel values in maps.
   explicit Resource(void* ptr) : pair_(ptr, Platform::NONE) {}
+  // NOLINTNEXTLINE(google-explicit-constructor)
   Resource(CudaT ptr) : pair_(ptr, Platform::CUDA) {}
+  // NOLINTNEXTLINE(google-explicit-constructor)
   Resource(HipT ptr) : pair_(ptr, Platform::ROCm) {}
   // Required for std::unique_ptr<Resource>.
   Resource& operator=(std::nullptr_t) {
@@ -171,12 +171,14 @@ class Resource {
     return *this;
   }
   // Required for std::unique_ptr<Resource>.
-  operator bool() const { return *this != nullptr; }
-  operator CudaT() const {
+  operator bool() const {  // NOLINT(google-explicit-constructor)
+    return *this != nullptr;
+  }
+  operator CudaT() const {  // NOLINT(google-explicit-constructor)
     assert(platform() == Platform::CUDA);
     return static_cast<CudaT>(pair_.getPointer());
   }
-  operator HipT() const {
+  operator HipT() const {  // NOLINT(google-explicit-constructor)
     assert(platform() == Platform::ROCm);
     return static_cast<HipT>(pair_.getPointer());
   }
@@ -201,8 +203,7 @@ class Resource {
  private:
   llvm::PointerIntPair<void*, 2, Platform> pair_;
 
-  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                       const Resource& resource) {
+  friend raw_ostream& operator<<(raw_ostream& os, const Resource& resource) {
     return os << resource.pair_.getPointer() << " (" << resource.platform()
               << ")";
   }
@@ -210,47 +211,53 @@ class Resource {
 };
 
 namespace internal {
-// Maps tag and enum type to platform, used to enable_if implicit conversion.
-template <typename Tag, typename T>
+// Maps enum type and platform enum to platform, used to enable_if conversion.
+template <typename Enum, typename T>
 struct EnumPlatform : std::integral_constant<Platform, Platform::NONE> {};
 
 using CudaPlatformType = std::integral_constant<Platform, Platform::CUDA>;
 using RocmPlatformType = std::integral_constant<Platform, Platform::ROCm>;
 
-// Maps tag and platform to enum type, used to implement Parse and operator<<.
-template <typename Tag, Platform platform>
-struct EnumType {};
+// Maps enum type and platform to Parse and Print methods.
+template <typename Enum, Platform platform>
+struct EnumStream {};
 
-// std::identity_type (C++20)
-template <typename T>
-struct IdentityType {
-  using type = T;
+template <typename T,  // Platform-specific enum type.
+          Expected<T> (*ParsePtr)(llvm::StringRef, T),
+          raw_ostream& (*PrintPtr)(raw_ostream&, T)>
+struct EnumStreamPtrs {
+  static Expected<T> Parse(llvm::StringRef name) {
+    return ParsePtr(name, /*static dispatch*/ T{});
+  }
+  static raw_ostream& Print(raw_ostream& os, T value) {
+    return PrintPtr(os, value);
+  }
 };
+
 }  // namespace internal
 
 // Enum union type.
 //
 // For a CUDA/ROCm pair of enums with different enumerators, instantiate
 // this template with an opaque tag type (e.g. `struct FooTag;`) and specialize
-// kEnumPlatform and EnumType in the CUDA/ROCm wrapper header, e.g.:
+// EnumPlatform and EnumTypeStream in the CUDA/ROCm wrapper header, e.g.:
 //
+// Expected<cudaFooEnum> Parse(llvm::StringRef name, cudaFooEnum = {});
+// raw_ostream& Print(raw_stream&, cudaFooEnum value);
 // template <>
-// struct internal::EnumPlatform<FooTag, cudaFooEnum> : CudaPlatformType {};
+// struct internal::EnumPlatform<Foo, cudaFooEnum> : CudaPlatformType {};
 // template <>
-// struct internal::EnumType<FooTag, Platform::CUDA>
-//     : IdentityType<cudaFooEnum> {};
+// struct internal::EnumStream<Foo, Platform::CUDA>
+//     : EnumStreamPtrs<Foo, Parse, Print> {};
 //
 // Tag may define a 'type' member to override the value's type (default is int).
 template <typename Tag>
 class Enum {
   template <typename T>
-  static constexpr Platform kPlatform = internal::EnumPlatform<Tag, T>::value;
+  static constexpr Platform kPlatform = internal::EnumPlatform<Enum, T>::value;
 
   template <typename T>
   using IfCudaOrRocm = std::enable_if_t<kPlatform<T> != Platform::NONE, int>;
-
-  template <Platform platform>
-  using Type = typename internal::EnumType<Tag, platform>::type;
 
   template <typename T>
   static constexpr auto get_value_type(T*) -> typename T::type;
@@ -258,6 +265,11 @@ class Enum {
   using ValueType = decltype(get_value_type(static_cast<Tag*>(nullptr)));
 
  public:
+  template <Platform platform>
+  using PlatformType =
+      typename decltype(internal::EnumStream<Enum, platform>::Parse(
+          {}))::value_type;
+
   Enum() : Enum({}, Platform::NONE) {}
   Enum(const Enum&) = default;
   Enum(ValueType value, Platform platform)
@@ -298,11 +310,22 @@ class Enum {
   }
 
   static Expected<Enum> Parse(llvm::StringRef name) {
-    auto cuda_value = wrapper::Parse<Type<Platform::CUDA>>(name);
+    auto cuda_value = internal::EnumStream<Enum, Platform::CUDA>::Parse(name);
     if (cuda_value) return cuda_value;
-    auto rocm_value = wrapper::Parse<Type<Platform::ROCm>>(name);
+    auto rocm_value = internal::EnumStream<Enum, Platform::ROCm>::Parse(name);
     if (rocm_value) return rocm_value;
     return llvm::joinErrors(cuda_value.takeError(), rocm_value.takeError());
+  }
+
+  friend raw_ostream& operator<<(raw_ostream& os, const Enum& value) {
+    switch (value.platform()) {
+      case Platform::CUDA:
+        return internal::EnumStream<Enum, Platform::CUDA>::Print(os, value);
+      case Platform::ROCm:
+        return internal::EnumStream<Enum, Platform::ROCm>::Print(os, value);
+      default:
+        return os << value.platform();
+    }
   }
 
  private:
@@ -365,7 +388,7 @@ class CurrentContext {
   bool operator==(std::nullptr_t) const { return context() == nullptr; }
   bool operator!=(std::nullptr_t) const { return context() != nullptr; }
 };
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CurrentContext current);
+raw_ostream& operator<<(raw_ostream& os, CurrentContext current);
 
 // Non-owning handle to GPU memory.
 //
@@ -533,8 +556,7 @@ class Pointer {
       llvm::PointerLikeTypeTraits<T*>::NumLowBitsAvailable >= 2,
       llvm::PointerIntPair<T*, 2, Platform>, PointerPlatformPair>::type pair_;
 
-  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                       const Pointer& pointer) {
+  friend raw_ostream& operator<<(raw_ostream& os, const Pointer& pointer) {
     return os << pointer.pointer() << " (" << pointer.platform() << ")";
   }
 };

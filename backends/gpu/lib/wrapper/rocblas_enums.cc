@@ -23,7 +23,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_status status) {
   switch (status) {
     case rocblas_status_success:
       return os << "rocblas_status_success";
@@ -59,8 +59,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status) {
   }
 }
 
-template <>
-Expected<rocblas_operation> Parse<rocblas_operation>(llvm::StringRef name) {
+Expected<rocblas_operation> Parse(llvm::StringRef name, rocblas_operation) {
   if (name == "rocblas_operation_none") return rocblas_operation_none;
   if (name == "rocblas_operation_transpose") return rocblas_operation_transpose;
   if (name == "rocblas_operation_conjugate_transpose")
@@ -68,7 +67,7 @@ Expected<rocblas_operation> Parse<rocblas_operation>(llvm::StringRef name) {
   return MakeStringError("Unknown rocblas_operation: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_operation value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_operation value) {
   switch (value) {
     case rocblas_operation_none:
       return os << "rocblas_operation_none";
@@ -82,8 +81,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_operation value) {
   }
 }
 
-template <>
-Expected<rocblas_datatype> Parse<rocblas_datatype>(llvm::StringRef name) {
+Expected<rocblas_datatype> Parse(llvm::StringRef name, rocblas_datatype) {
   if (name == "rocblas_datatype_f16_r") return rocblas_datatype_f16_r;
   if (name == "rocblas_datatype_f32_r") return rocblas_datatype_f32_r;
   if (name == "rocblas_datatype_f64_r") return rocblas_datatype_f64_r;
@@ -103,7 +101,7 @@ Expected<rocblas_datatype> Parse<rocblas_datatype>(llvm::StringRef name) {
   return MakeStringError("Unknown rocblas_datatype: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_datatype value) {
   switch (value) {
     case rocblas_datatype_f16_r:
       return os << "rocblas_datatype_f16_r";
@@ -143,14 +141,13 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value) {
   }
 }
 
-template <>
-Expected<rocblas_diagonal> Parse<rocblas_diagonal>(llvm::StringRef name) {
+Expected<rocblas_diagonal> Parse(llvm::StringRef name, rocblas_diagonal) {
   if (name == "rocblas_diagonal_non_unit") return rocblas_diagonal_non_unit;
   if (name == "rocblas_diagonal_unit") return rocblas_diagonal_unit;
   return MakeStringError("Unknown rocblas_diagonal: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_diagonal value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_diagonal value) {
   switch (value) {
     case rocblas_diagonal_non_unit:
       return os << "rocblas_diagonal_non_unit";
@@ -162,13 +159,12 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_diagonal value) {
   }
 }
 
-template <>
-Expected<rocblas_gemm_algo> Parse<rocblas_gemm_algo>(llvm::StringRef name) {
+Expected<rocblas_gemm_algo> Parse(llvm::StringRef name, rocblas_gemm_algo) {
   if (name == "rocblas_gemm_algo_standard") return rocblas_gemm_algo_standard;
   return MakeStringError("Unknown rocblas_gemm_algo: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_gemm_algo value) {
   switch (value) {
     case rocblas_gemm_algo_standard:
       return os << "rocblas_gemm_algo_standard";
@@ -178,15 +174,14 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value) {
   }
 }
 
-template <>
-Expected<rocblas_fill> Parse<rocblas_fill>(llvm::StringRef name) {
+Expected<rocblas_fill> Parse(llvm::StringRef name, rocblas_fill) {
   if (name == "rocblas_fill_upper") return rocblas_fill_upper;
   if (name == "rocblas_fill_lower") return rocblas_fill_lower;
   if (name == "rocblas_fill_full") return rocblas_fill_full;
   return MakeStringError("Unknown rocblas_fill: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_fill value) {
   switch (value) {
     case rocblas_fill_upper:
       return os << "rocblas_fill_upper";
@@ -199,15 +194,14 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value) {
   }
 }
 
-template <>
-Expected<rocblas_side> Parse<rocblas_side>(llvm::StringRef name) {
+Expected<rocblas_side> Parse(llvm::StringRef name, rocblas_side) {
   if (name == "rocblas_side_left") return rocblas_side_left;
   if (name == "rocblas_side_right") return rocblas_side_right;
   if (name == "rocblas_side_both") return rocblas_side_both;
   return MakeStringError("Unknown rocblas_side: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, rocblas_side value) {
   switch (value) {
     case rocblas_side_left:
       return os << "rocblas_side_left";
@@ -235,7 +229,7 @@ Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type) {
     case rocblas_datatype_f64_c:
       return sizeof(rocblas_double_complex);
     default:
-      return MakeStringError("Unsupported type: ", BlasDataType(data_type));
+      return MakeStringError("Unsupported type: ", data_type);
   }
 }
 

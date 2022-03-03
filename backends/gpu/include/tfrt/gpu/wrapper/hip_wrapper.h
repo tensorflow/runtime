@@ -28,7 +28,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error);
+raw_ostream& Print(raw_ostream& os, hipError_t error);
 
 // The following functions map directly to HIP calls.
 //

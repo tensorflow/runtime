@@ -25,7 +25,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, hipError_t error) {
   const char* msg = hipGetErrorName(error);
   if (msg != nullptr) {
     os << msg;

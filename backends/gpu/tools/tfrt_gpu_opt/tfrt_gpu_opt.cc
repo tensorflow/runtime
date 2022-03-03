@@ -107,8 +107,7 @@ class TestSetEntryPointPass
   StringRef getArgument() const final { return "test-set-entry-point"; }
 
   void runOnOperation() override {
-    auto platform =
-        tfrt::gpu::wrapper::Parse<tfrt::gpu::wrapper::Platform>(platform_);
+    auto platform = tfrt::gpu::wrapper::ParsePlatform(platform_);
     if (!platform) return emitError(toString(platform.takeError()));
 
     mlir::FuncOp func_op;

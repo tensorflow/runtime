@@ -23,7 +23,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnStatus_t status) {
   switch (status) {
     case CUDNN_STATUS_SUCCESS:
       return os << "CUDNN_STATUS_SUCCESS";
@@ -59,8 +59,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status) {
   }
 }
 
-template <>
-Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name) {
+Expected<cudnnDataType_t> Parse(llvm::StringRef name, cudnnDataType_t) {
   if (name == "CUDNN_DATA_FLOAT") return CUDNN_DATA_FLOAT;
   if (name == "CUDNN_DATA_DOUBLE") return CUDNN_DATA_DOUBLE;
   if (name == "CUDNN_DATA_HALF") return CUDNN_DATA_HALF;
@@ -73,7 +72,7 @@ Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cudnnDataType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnDataType_t value) {
   switch (value) {
     case CUDNN_DATA_FLOAT:
       return os << "CUDNN_DATA_FLOAT";
@@ -99,16 +98,14 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value) {
   }
 }
 
-template <>
-Expected<cudnnConvolutionMode_t> Parse<cudnnConvolutionMode_t>(
-    llvm::StringRef name) {
+Expected<cudnnConvolutionMode_t> Parse(llvm::StringRef name,
+                                       cudnnConvolutionMode_t) {
   if (name == "CUDNN_CONVOLUTION") return CUDNN_CONVOLUTION;
   if (name == "CUDNN_CROSS_CORRELATION") return CUDNN_CROSS_CORRELATION;
   return MakeStringError("Unknown cudnnConvolutionMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnConvolutionMode_t value) {
   switch (value) {
     case CUDNN_CONVOLUTION:
       return os << "CUDNN_CONVOLUTION";
@@ -120,9 +117,8 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-template <>
-Expected<cudnnActivationMode_t> Parse<cudnnActivationMode_t>(
-    llvm::StringRef name) {
+Expected<cudnnActivationMode_t> Parse(llvm::StringRef name,
+                                      cudnnActivationMode_t) {
   if (name == "CUDNN_ACTIVATION_SIGMOID") return CUDNN_ACTIVATION_SIGMOID;
   if (name == "CUDNN_ACTIVATION_RELU") return CUDNN_ACTIVATION_RELU;
   if (name == "CUDNN_ACTIVATION_TANH") return CUDNN_ACTIVATION_TANH;
@@ -136,8 +132,7 @@ Expected<cudnnActivationMode_t> Parse<cudnnActivationMode_t>(
   return MakeStringError("Unknown cudnnActivationMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnActivationMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnActivationMode_t value) {
   switch (value) {
     case CUDNN_ACTIVATION_SIGMOID:
       return os << "CUDNN_ACTIVATION_SIGMOID";
@@ -161,8 +156,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-template <>
-Expected<cudnnMathType_t> Parse<cudnnMathType_t>(llvm::StringRef name) {
+Expected<cudnnMathType_t> Parse(llvm::StringRef name, cudnnMathType_t) {
   if (name == "CUDNN_DEFAULT_MATH") return CUDNN_DEFAULT_MATH;
   if (name == "CUDNN_TENSOR_OP_MATH") return CUDNN_TENSOR_OP_MATH;
   if (name == "CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION")
@@ -171,7 +165,7 @@ Expected<cudnnMathType_t> Parse<cudnnMathType_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cudnnMathType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnMathType_t value) {
   switch (value) {
     case CUDNN_DEFAULT_MATH:
       return os << "CUDNN_DEFAULT_MATH";
@@ -187,9 +181,8 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value) {
   }
 }
 
-template <>
-Expected<cudnnConvolutionFwdAlgo_t> Parse<cudnnConvolutionFwdAlgo_t>(
-    llvm::StringRef name) {
+Expected<cudnnConvolutionFwdAlgo_t> Parse(llvm::StringRef name,
+                                          cudnnConvolutionFwdAlgo_t) {
   if (name == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM")
     return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
   if (name == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM")
@@ -211,8 +204,8 @@ Expected<cudnnConvolutionFwdAlgo_t> Parse<cudnnConvolutionFwdAlgo_t>(
   return MakeStringError("Unknown cudnnConvolutionFwdAlgo_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionFwdAlgo_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os,
+                         cudnnConvolutionFwdAlgo_t value) {
   switch (value) {
     case CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM:
       return os << "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM";
@@ -238,9 +231,8 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-template <>
-Expected<cudnnConvolutionBwdDataAlgo_t> Parse<cudnnConvolutionBwdDataAlgo_t>(
-    llvm::StringRef name) {
+Expected<cudnnConvolutionBwdDataAlgo_t> Parse(llvm::StringRef name,
+                                              cudnnConvolutionBwdDataAlgo_t) {
   if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0")
     return CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
   if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1")
@@ -258,8 +250,8 @@ Expected<cudnnConvolutionBwdDataAlgo_t> Parse<cudnnConvolutionBwdDataAlgo_t>(
   return MakeStringError("Unknown cudnnConvolutionBwdDataAlgo_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionBwdDataAlgo_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os,
+                         cudnnConvolutionBwdDataAlgo_t value) {
   switch (value) {
     case CUDNN_CONVOLUTION_BWD_DATA_ALGO_0:
       return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0";
@@ -281,9 +273,8 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-template <>
-Expected<cudnnConvolutionBwdFilterAlgo_t>
-Parse<cudnnConvolutionBwdFilterAlgo_t>(llvm::StringRef name) {
+Expected<cudnnConvolutionBwdFilterAlgo_t> Parse(
+    llvm::StringRef name, cudnnConvolutionBwdFilterAlgo_t) {
   if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0")
     return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
   if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1")
@@ -303,8 +294,8 @@ Parse<cudnnConvolutionBwdFilterAlgo_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cudnnConvolutionBwdFilterAlgo_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionBwdFilterAlgo_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os,
+                         cudnnConvolutionBwdFilterAlgo_t value) {
   switch (value) {
     case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0:
       return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0";

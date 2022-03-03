@@ -13,6 +13,8 @@
 // limitations under the License.
 
 // MIOpen enum parsers and printers.
+#include <sstream>
+
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
@@ -25,7 +27,19 @@ namespace wrapper {
 
 const DnnMathType kRocmDefaultMath = DnnMathType(0, Platform::ROCm);
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status) {
+Expected<DnnMathType> internal::EnumStream<DnnMathType, Platform::ROCm>::Parse(
+    llvm::StringRef name) {
+  if (name == "ROCM_DEFAULT_MATH") return kRocmDefaultMath;
+  return MakeStringError("Unknown DnnMathType: ", name);
+}
+
+raw_ostream& internal::EnumStream<DnnMathType, Platform::ROCm>::Print(
+    raw_ostream& os, DnnMathType value) {
+  assert(value == kRocmDefaultMath);
+  return os << "ROCM_DEFAULT_MATH";
+}
+
+llvm::raw_ostream& Print(llvm::raw_ostream& os, miopenStatus_t status) {
   switch (status) {
     case miopenStatusSuccess:
       return os << "miopenStatusSuccess";
@@ -51,8 +65,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status) {
   }
 }
 
-template <>
-Expected<miopenDataType_t> Parse<miopenDataType_t>(llvm::StringRef name) {
+Expected<miopenDataType_t> Parse(llvm::StringRef name, miopenDataType_t) {
   if (name == "miopenHalf") return miopenHalf;
   if (name == "miopenFloat") return miopenFloat;
   if (name == "miopenInt32") return miopenInt32;
@@ -62,7 +75,7 @@ Expected<miopenDataType_t> Parse<miopenDataType_t>(llvm::StringRef name) {
   return MakeStringError("Unknown miopenDataType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, miopenDataType_t value) {
   switch (value) {
     case miopenHalf:
       return os << "miopenHalf";
@@ -82,9 +95,8 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t value) {
   }
 }
 
-template <>
-Expected<miopenConvolutionMode_t> Parse<miopenConvolutionMode_t>(
-    llvm::StringRef name) {
+Expected<miopenConvolutionMode_t> Parse(llvm::StringRef name,
+                                        miopenConvolutionMode_t) {
   if (name == "miopenConvolution") return miopenConvolution;
   if (name == "miopenTranspose") return miopenTranspose;
   if (name == "miopenGroupConv") return miopenGroupConv;
@@ -92,8 +104,7 @@ Expected<miopenConvolutionMode_t> Parse<miopenConvolutionMode_t>(
   return MakeStringError("Unknown miopenConvolutionMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              miopenConvolutionMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, miopenConvolutionMode_t value) {
   switch (value) {
     case miopenConvolution:
       return os << "miopenConvolution";
@@ -109,9 +120,8 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-template <>
-Expected<miopenActivationMode_t> Parse<miopenActivationMode_t>(
-    llvm::StringRef name) {
+Expected<miopenActivationMode_t> Parse(llvm::StringRef name,
+                                       miopenActivationMode_t) {
   if (name == "miopenActivationPASTHRU") return miopenActivationPASTHRU;
   if (name == "miopenActivationLOGISTIC") return miopenActivationLOGISTIC;
   if (name == "miopenActivationTANH") return miopenActivationTANH;
@@ -125,8 +135,7 @@ Expected<miopenActivationMode_t> Parse<miopenActivationMode_t>(
   return MakeStringError("Unknown miopenActivationMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              miopenActivationMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, miopenActivationMode_t value) {
   switch (value) {
     case miopenActivationPASTHRU:
       return os << "miopenActivationPASTHRU";
@@ -153,6 +162,16 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                  static_cast<int>(value));
   }
 }
+
+Expected<uint64_t> ParseInt(llvm::StringRef name, uint64_t) {
+  std::istringstream iss(name.str());
+  uint64_t result = 0;
+  iss >> result;
+  if (!iss) return MakeStringError("Not an uint64_t: ", name);
+  return result;
+}
+
+raw_ostream& PrintInt(raw_ostream& os, uint64_t value) { return os << value; }
 
 mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type) {
   switch (data_type) {

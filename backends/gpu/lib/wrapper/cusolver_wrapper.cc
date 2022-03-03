@@ -22,10 +22,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template llvm::raw_ostream &internal::operator<<(
-    llvm::raw_ostream &, const ErrorData<cusolverStatus_t> &);
-
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, cusolverStatus_t status) {
+llvm::raw_ostream &Print(llvm::raw_ostream &os, cusolverStatus_t status) {
   switch (status) {
     case CUSOLVER_STATUS_SUCCESS:
       return os << "CUSOLVER_STATUS_SUCCESS";

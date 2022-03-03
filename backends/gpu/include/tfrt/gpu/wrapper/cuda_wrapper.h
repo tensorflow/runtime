@@ -28,7 +28,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result);
+raw_ostream& Print(raw_ostream& os, CUresult result);
 
 // The following functions map directly to CUDA calls.
 //

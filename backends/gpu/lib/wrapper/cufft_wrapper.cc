@@ -141,7 +141,7 @@ static CufftDataType FromCudaDataType(cudaDataType type) {
   }
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType type) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudaDataType type) {
   switch (type) {
     case CUDA_C_16F:
       return os << "CUDA_C_16F";
@@ -208,7 +208,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType type) {
 
 }  // namespace
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cufftResult result) {
   switch (result) {
     case CUFFT_SUCCESS:
       return os << "CUFFT_SUCCESS";

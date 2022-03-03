@@ -23,7 +23,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasStatus_t status) {
   switch (status) {
     case CUBLAS_STATUS_SUCCESS:
       return os << "CUBLAS_STATUS_SUCCESS";
@@ -51,8 +51,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status) {
   }
 }
 
-template <>
-Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name) {
+Expected<cudaDataType> Parse(llvm::StringRef name, cudaDataType) {
   if (name == "CUDA_R_16F") return CUDA_R_16F;
   if (name == "CUDA_C_16F") return CUDA_C_16F;
   if (name == "CUDA_R_32F") return CUDA_R_32F;
@@ -70,7 +69,7 @@ Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name) {
   return MakeStringError("Unknown cudaDataType: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudaDataType value) {
   switch (value) {
     case CUDA_R_16F:
       return os << "CUDA_R_16F";
@@ -105,14 +104,13 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value) {
   }
 }
 
-template <>
-Expected<cublasDiagType_t> Parse<cublasDiagType_t>(llvm::StringRef name) {
+Expected<cublasDiagType_t> Parse(llvm::StringRef name, cublasDiagType_t) {
   if (name == "CUBLAS_DIAG_NON_UNIT") return CUBLAS_DIAG_NON_UNIT;
   if (name == "CUBLAS_DIAG_UNIT") return CUBLAS_DIAG_UNIT;
   return MakeStringError("Unknown cublasDiagType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasDiagType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasDiagType_t value) {
   switch (value) {
     case CUBLAS_DIAG_NON_UNIT:
       return os << "CUBLAS_DIAG_NON_UNIT";
@@ -124,8 +122,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasDiagType_t value) {
   }
 }
 
-template <>
-Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name) {
+Expected<cublasComputeType_t> Parse(llvm::StringRef name, cublasComputeType_t) {
   if (name == "CUBLAS_COMPUTE_16F") return CUBLAS_COMPUTE_16F;
   if (name == "CUBLAS_COMPUTE_16F_PEDANTIC") return CUBLAS_COMPUTE_16F_PEDANTIC;
   if (name == "CUBLAS_COMPUTE_32F") return CUBLAS_COMPUTE_32F;
@@ -142,8 +139,7 @@ Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cublasComputeType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cublasComputeType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasComputeType_t value) {
   switch (value) {
     case CUBLAS_COMPUTE_16F:
       return os << "CUBLAS_COMPUTE_16F";
@@ -173,8 +169,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-template <>
-Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name) {
+Expected<cublasOperation_t> Parse(llvm::StringRef name, cublasOperation_t) {
   if (name == "CUBLAS_OP_N") return CUBLAS_OP_N;
   if (name == "CUBLAS_OP_T") return CUBLAS_OP_T;
   if (name == "CUBLAS_OP_C") return CUBLAS_OP_C;
@@ -183,7 +178,7 @@ Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cublasOperation_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasOperation_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasOperation_t value) {
   switch (value) {
     case CUBLAS_OP_N:
       return os << "CUBLAS_OP_N";
@@ -199,8 +194,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasOperation_t value) {
   }
 }
 
-template <>
-Expected<cublasGemmAlgo_t> Parse<cublasGemmAlgo_t>(llvm::StringRef name) {
+Expected<cublasGemmAlgo_t> Parse(llvm::StringRef name, cublasGemmAlgo_t) {
   if (name == "CUBLAS_GEMM_DFALT") return CUBLAS_GEMM_DFALT;
   if (name == "CUBLAS_GEMM_DEFAULT") return CUBLAS_GEMM_DEFAULT;
   if (name == "CUBLAS_GEMM_ALGO0") return CUBLAS_GEMM_ALGO0;
@@ -255,7 +249,7 @@ Expected<cublasGemmAlgo_t> Parse<cublasGemmAlgo_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cublasGemmAlgo_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasGemmAlgo_t value) {
   switch (value) {
     case CUBLAS_GEMM_DEFAULT:
       return os << "CUBLAS_GEMM_DEFAULT";
@@ -347,15 +341,14 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value) {
   }
 }
 
-template <>
-Expected<cublasFillMode_t> Parse<cublasFillMode_t>(llvm::StringRef name) {
+Expected<cublasFillMode_t> Parse(llvm::StringRef name, cublasFillMode_t) {
   if (name == "CUBLAS_FILL_MODE_LOWER") return CUBLAS_FILL_MODE_LOWER;
   if (name == "CUBLAS_FILL_MODE_UPPER") return CUBLAS_FILL_MODE_UPPER;
   if (name == "CUBLAS_FILL_MODE_FULL") return CUBLAS_FILL_MODE_FULL;
   return MakeStringError("Unknown cublasFillMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasFillMode_t value) {
   switch (value) {
     case CUBLAS_FILL_MODE_LOWER:
       return os << "CUBLAS_FILL_MODE_LOWER";
@@ -369,14 +362,13 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value) {
   }
 }
 
-template <>
-Expected<cublasSideMode_t> Parse<cublasSideMode_t>(llvm::StringRef name) {
+Expected<cublasSideMode_t> Parse(llvm::StringRef name, cublasSideMode_t) {
   if (name == "CUBLAS_SIDE_LEFT") return CUBLAS_SIDE_LEFT;
   if (name == "CUBLAS_SIDE_RIGHT") return CUBLAS_SIDE_RIGHT;
   return MakeStringError("Unknown cublasSideMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cublasSideMode_t value) {
   switch (value) {
     case CUBLAS_SIDE_LEFT:
       return os << "CUBLAS_SIDE_LEFT";
@@ -403,7 +395,7 @@ Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type) {
     case CUDA_C_64F:
       return sizeof(cuDoubleComplex);
     default:
-      return MakeStringError("Unsupported type: ", BlasDataType(data_type));
+      return MakeStringError("Unsupported type: ", data_type);
   }
 }
 

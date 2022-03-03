@@ -22,7 +22,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, CUresult result) {
   const char* name = nullptr;
   cuGetErrorName(result, &name);
   if (name != nullptr) {

@@ -22,25 +22,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template <>
-Expected<CclDataType> Parse<CclDataType>(llvm::StringRef name) {
-  return Parse<ncclDataType_t>(name);
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CclDataType value) {
-  return os << static_cast<ncclDataType_t>(value);
-}
-
-template <>
-Expected<CclReductionOp> Parse<CclReductionOp>(llvm::StringRef name) {
-  return Parse<ncclRedOp_t>(name);
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CclReductionOp value) {
-  return os << static_cast<ncclRedOp_t>(value);
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, ncclResult_t result) {
   switch (result) {
     case ncclSuccess:
       return os << "ncclSuccess";
@@ -59,8 +41,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result) {
   }
 }
 
-template <>
-Expected<ncclDataType_t> Parse<ncclDataType_t>(llvm::StringRef name) {
+Expected<ncclDataType_t> Parse(llvm::StringRef name, ncclDataType_t) {
   if (name == "ncclInt8") return ncclInt8;
   if (name == "ncclChar") return ncclChar;
   if (name == "ncclUint8") return ncclUint8;
@@ -78,7 +59,7 @@ Expected<ncclDataType_t> Parse<ncclDataType_t>(llvm::StringRef name) {
   return MakeStringError("Unknown ncclDataType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclDataType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, ncclDataType_t value) {
   switch (value) {
     case ncclInt8:
       return os << "ncclInt8";
@@ -104,8 +85,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclDataType_t value) {
   }
 }
 
-template <>
-Expected<ncclRedOp_t> Parse<ncclRedOp_t>(llvm::StringRef name) {
+Expected<ncclRedOp_t> Parse(llvm::StringRef name, ncclRedOp_t) {
   if (name == "ncclSum") return ncclSum;
   if (name == "ncclProd") return ncclProd;
   if (name == "ncclMax") return ncclMax;
@@ -114,7 +94,7 @@ Expected<ncclRedOp_t> Parse<ncclRedOp_t>(llvm::StringRef name) {
   return MakeStringError("Unknown ncclRedOp_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclRedOp_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, ncclRedOp_t value) {
   switch (value) {
     case ncclSum:
       return os << "ncclSum";

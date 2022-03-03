@@ -52,14 +52,16 @@ class IsCclType : public std::false_type {};
 template <typename ValueType, typename Tag>
 class CclType {
   template <typename T>
-  using EnableIf = std::enable_if_t<internal::IsCclType<Tag, T>::value, int>;
+  using EnableIf =
+      std::enable_if_t<internal::IsCclType<CclType, T>::value, int>;
+
+  explicit CclType(ValueType value) : value_(value) {}
 
  public:
   CclType() = default;
-  explicit CclType(ValueType value) : value_(value) {}
   template <typename T, EnableIf<T> = 0>
   // NOLINTNEXTLINE(google-explicit-constructor)
-  CclType(T value) : CclType(reinterpret_cast<const ValueType&>(value)) {}
+  CclType(T value) : value_(reinterpret_cast<const ValueType&>(value)) {}
   template <typename T, EnableIf<T> = 0>
   operator T() const {  // NOLINT(google-explicit-constructor)
     return reinterpret_cast<const T&>(value_);
@@ -67,6 +69,16 @@ class CclType {
 
   ValueType ToOpaqueValue() const { return value_; }
   static CclType FromOpaqueValue(ValueType opaque) { return CclType(opaque); }
+
+  static Expected<CclType> Parse(llvm::StringRef name) {
+    auto result = internal::EnumStream<CclType, Platform::NONE>::Parse(name);
+    if (result) return CclType(*result);
+    return result.takeError();
+  }
+
+  friend raw_ostream& operator<<(raw_ostream& os, const CclType& value) {
+    return internal::EnumStream<CclType, Platform::NONE>::Print(os, value);
+  }
 
  private:
   ValueType value_;
@@ -80,14 +92,6 @@ using CclDataType = CclType<int, CclDataTypeTag>;
 
 struct CclReductionOpTag;
 using CclReductionOp = CclType<int, CclReductionOpTag>;
-
-template <>
-Expected<CclDataType> Parse<CclDataType>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CclDataType value);
-
-template <>
-Expected<CclReductionOp> Parse<CclReductionOp>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CclReductionOp value);
 
 // Non-owning NCCL communicator for a specific platform.
 class CclComm {
@@ -123,8 +127,7 @@ class CclComm {
  private:
   llvm::PointerIntPair<ncclComm_t, 2, Platform> pair_;
 
-  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                       const CclComm& comm) {
+  friend raw_ostream& operator<<(raw_ostream& os, const CclComm& comm) {
     return os << comm.pair_.getPointer() << " (" << comm.platform() << ")";
   }
 };

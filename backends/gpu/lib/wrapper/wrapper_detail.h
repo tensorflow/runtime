@@ -41,12 +41,10 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-// Note: requires that 'operator<<(llvm::raw_ostream&, T)' is declared first.
+// Note: requires that 'Print(raw_ostream&, T)' is declared first.
 template <typename T>
-llvm::raw_ostream& internal::operator<<(llvm::raw_ostream& os,
-                                        const ErrorData<T>& data) {
-  os << "'" << data.expr << "': ";
-  wrapper::operator<<(os, data.result);  // Prevent casting enum to int.
+raw_ostream& internal::operator<<(raw_ostream& os, const ErrorData<T>& data) {
+  Print(os << "'" << data.expr << "': ", data.result);
   if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
   return os;
 }
@@ -161,7 +159,7 @@ enum class ResourceType {
   kHostMemory,
   kRegisteredMemory,
 };
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ResourceType type);
+raw_ostream& operator<<(raw_ostream& os, ResourceType type);
 
 // Map of resources created by the wrapper API. See CheckNoDanglingResources().
 class ResourceMap {

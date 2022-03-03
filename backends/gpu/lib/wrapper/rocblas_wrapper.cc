@@ -139,7 +139,7 @@ llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
           lda, reinterpret_cast<rocblas_double_complex* const*>(ToCuda(B)), ldb,
           batchCount));
     default:
-      return MakeStringError("Unsupported type: ", BlasDataType(dataType));
+      return MakeStringError("Unsupported type: ", dataType);
   }
 }
 

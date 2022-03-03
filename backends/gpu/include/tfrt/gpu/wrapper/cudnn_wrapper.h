@@ -18,6 +18,8 @@
 #ifndef TFRT_GPU_WRAPPER_CUDNN_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_CUDNN_WRAPPER_H_
 
+#include <string>
+
 #include "cudnn.h"           // from @cudnn_headers
 #include "cudnn_frontend.h"  // from @cudnn_frontend
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
@@ -35,96 +37,85 @@ struct ErrorData<cudnnStatus_t> {
   StackTrace stack_trace;
   std::string log;
 };
-llvm::raw_ostream& operator<<(llvm::raw_ostream&,
-                              const ErrorData<cudnnStatus_t>&);
+raw_ostream& operator<<(raw_ostream&, const ErrorData<cudnnStatus_t>&);
 }  // namespace internal
 
 Error MakeError(cudnnStatus_t result, const char* expr);
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status);
+raw_ostream& Print(raw_ostream& os, cudnnStatus_t status);
+raw_ostream& Print(raw_ostream& os, cudnnDataType_t value);
+raw_ostream& Print(raw_ostream& os, cudnnConvolutionMode_t value);
+raw_ostream& Print(raw_ostream& os, cudnnActivationMode_t value);
+raw_ostream& Print(raw_ostream& os, cudnnMathType_t value);
+raw_ostream& Print(raw_ostream& os, cudnnConvolutionFwdAlgo_t value);
+raw_ostream& Print(raw_ostream& os, cudnnConvolutionBwdDataAlgo_t value);
+raw_ostream& Print(raw_ostream& os, cudnnConvolutionBwdFilterAlgo_t value);
+raw_ostream& Print(raw_ostream& os, cudnnNanPropagation_t value);
+
+Expected<cudnnDataType_t> Parse(llvm::StringRef name, cudnnDataType_t);
+Expected<cudnnConvolutionMode_t> Parse(llvm::StringRef name,
+                                       cudnnConvolutionMode_t);
+Expected<cudnnActivationMode_t> Parse(llvm::StringRef name,
+                                      cudnnActivationMode_t);
+Expected<cudnnMathType_t> Parse(llvm::StringRef name, cudnnMathType_t);
+Expected<cudnnConvolutionFwdAlgo_t> Parse(llvm::StringRef name,
+                                          cudnnConvolutionFwdAlgo_t);
+Expected<cudnnConvolutionBwdDataAlgo_t> Parse(llvm::StringRef name,
+                                              cudnnConvolutionBwdDataAlgo_t);
+Expected<cudnnConvolutionBwdFilterAlgo_t> Parse(
+    llvm::StringRef name, cudnnConvolutionBwdFilterAlgo_t);
+Expected<cudnnNanPropagation_t> Parse(llvm::StringRef name,
+                                      cudnnNanPropagation_t);
+
+namespace internal {
+template <>
+struct EnumPlatform<DnnDataType, cudnnDataType_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnConvolutionMode, cudnnConvolutionMode_t>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnActivationMode, cudnnActivationMode_t>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnMathType, cudnnMathType_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnConvFwdAlgo, cudnnConvolutionFwdAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnConvBwdDataAlgo, cudnnConvolutionBwdDataAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnConvBwdFilterAlgo, cudnnConvolutionBwdFilterAlgo_t>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<DnnNanPropagation, cudnnNanPropagation_t>
+    : CudaPlatformType {};
 
 template <>
-Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value);
+struct EnumStream<DnnDataType, Platform::CUDA>
+    : EnumStreamPtrs<cudnnDataType_t, Parse, Print> {};
 template <>
-Expected<cudnnConvolutionMode_t> Parse<cudnnConvolutionMode_t>(
-    llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionMode_t value);
+struct EnumStream<DnnConvolutionMode, Platform::CUDA>
+    : EnumStreamPtrs<cudnnConvolutionMode_t, Parse, Print> {};
 template <>
-Expected<cudnnActivationMode_t> Parse<cudnnActivationMode_t>(
-    llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnActivationMode_t value);
+struct EnumStream<DnnActivationMode, Platform::CUDA>
+    : EnumStreamPtrs<cudnnActivationMode_t, Parse, Print> {};
 template <>
-Expected<cudnnMathType_t> Parse<cudnnMathType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnMathType_t value);
+struct EnumStream<DnnMathType, Platform::CUDA>
+    : EnumStreamPtrs<cudnnMathType_t, Parse, Print> {};
 template <>
-Expected<cudnnConvolutionFwdAlgo_t> Parse<cudnnConvolutionFwdAlgo_t>(
-    llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionFwdAlgo_t value);
+struct EnumStream<DnnConvFwdAlgo, Platform::CUDA>
+    : EnumStreamPtrs<cudnnConvolutionFwdAlgo_t, Parse, Print> {};
 template <>
-Expected<cudnnConvolutionBwdDataAlgo_t> Parse<cudnnConvolutionBwdDataAlgo_t>(
-    llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionBwdDataAlgo_t value);
+struct EnumStream<DnnConvBwdDataAlgo, Platform::CUDA>
+    : EnumStreamPtrs<cudnnConvolutionBwdDataAlgo_t, Parse, Print> {};
 template <>
-Expected<cudnnConvolutionBwdFilterAlgo_t>
-Parse<cudnnConvolutionBwdFilterAlgo_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionBwdFilterAlgo_t value);
-
+struct EnumStream<DnnConvBwdFilterAlgo, Platform::CUDA>
+    : EnumStreamPtrs<cudnnConvolutionBwdFilterAlgo_t, Parse, Print> {};
 template <>
-struct internal::EnumType<DnnDataTypeTag, Platform::CUDA>
-    : IdentityType<cudnnDataType_t> {};
-template <>
-struct internal::EnumPlatform<DnnDataTypeTag, cudnnDataType_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnConvolutionModeTag, Platform::CUDA>
-    : IdentityType<cudnnConvolutionMode_t> {};
-template <>
-struct internal::EnumPlatform<DnnConvolutionModeTag, cudnnConvolutionMode_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnActivationModeTag, Platform::CUDA>
-    : IdentityType<cudnnActivationMode_t> {};
-template <>
-struct internal::EnumPlatform<DnnActivationModeTag, cudnnActivationMode_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnMathTypeTag, Platform::CUDA>
-    : IdentityType<cudnnMathType_t> {};
-template <>
-struct internal::EnumPlatform<DnnMathTypeTag, cudnnMathType_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnConvFwdAlgoTag, Platform::CUDA>
-    : IdentityType<cudnnConvolutionFwdAlgo_t> {};
-template <>
-struct internal::EnumPlatform<DnnConvFwdAlgoTag, cudnnConvolutionFwdAlgo_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnConvBwdDataAlgoTag, Platform::CUDA>
-    : IdentityType<cudnnConvolutionBwdDataAlgo_t> {};
-template <>
-struct internal::EnumPlatform<DnnConvBwdDataAlgoTag,
-                              cudnnConvolutionBwdDataAlgo_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnConvBwdFilterAlgoTag, Platform::CUDA>
-    : IdentityType<cudnnConvolutionBwdFilterAlgo_t> {};
-template <>
-struct internal::EnumPlatform<DnnConvBwdFilterAlgoTag,
-                              cudnnConvolutionBwdFilterAlgo_t>
-    : CudaPlatformType {};
-template <>
-struct internal::EnumType<DnnNanPropagationTag, Platform::CUDA>
-    : IdentityType<cudnnNanPropagation_t> {};
-template <>
-struct internal::EnumPlatform<DnnNanPropagationTag, cudnnNanPropagation_t>
-    : CudaPlatformType {};
+struct EnumStream<DnnNanPropagation, Platform::CUDA>
+    : EnumStreamPtrs<cudnnNanPropagation_t, Parse, Print> {};
+}  // namespace internal
 
 namespace internal {
 struct CudnnPersistentRnnPlanDeleter {

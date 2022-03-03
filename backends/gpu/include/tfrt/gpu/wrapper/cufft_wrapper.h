@@ -25,7 +25,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result);
+raw_ostream& Print(raw_ostream& os, cufftResult result);
 
 // Cufft can only configure plans up to 3D.
 constexpr bool IsValidFftRank(int rank) {

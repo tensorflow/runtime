@@ -54,6 +54,7 @@ enum hipError_t {
   hipErrorOperatingSystem = 304,
   hipErrorInvalidHandle = 400,
   hipErrorInvalidResourceHandle = 400,
+  hipErrorIllegalState = 401,
   hipErrorNotFound = 500,
   hipErrorNotReady = 600,
   hipErrorIllegalAddress = 700,
@@ -62,12 +63,23 @@ enum hipError_t {
   hipErrorPeerAccessAlreadyEnabled = 704,
   hipErrorPeerAccessNotEnabled = 705,
   hipErrorSetOnActiveProcess = 708,
+  hipErrorContextIsDestroyed = 709,
   hipErrorAssert = 710,
   hipErrorHostMemoryAlreadyRegistered = 712,
   hipErrorHostMemoryNotRegistered = 713,
   hipErrorLaunchFailure = 719,
   hipErrorCooperativeLaunchTooLarge = 720,
   hipErrorNotSupported = 801,
+  hipErrorStreamCaptureUnsupported = 900,
+  hipErrorStreamCaptureInvalidated = 901,
+  hipErrorStreamCaptureMerge = 902,
+  hipErrorStreamCaptureUnmatched = 903,
+  hipErrorStreamCaptureUnjoined = 904,
+  hipErrorStreamCaptureIsolation = 905,
+  hipErrorStreamCaptureImplicit = 906,
+  hipErrorCapturedEvent = 907,
+  hipErrorStreamCaptureWrongThread = 908,
+  hipErrorGraphExecUpdateFailure = 910,
   hipErrorUnknown = 999,
   hipErrorRuntimeMemory = 1052,
   hipErrorRuntimeOther = 1053,
@@ -75,59 +87,114 @@ enum hipError_t {
 };
 
 enum hipDeviceAttribute_t {
-  hipDeviceAttributeMaxThreadsPerBlock,
+  hipDeviceAttributeCudaCompatibleBegin = 0,
+  hipDeviceAttributeEccEnabled = hipDeviceAttributeCudaCompatibleBegin,
+  hipDeviceAttributeAccessPolicyMaxWindowSize,
+  hipDeviceAttributeAsyncEngineCount,
+  hipDeviceAttributeCanMapHostMemory,
+  hipDeviceAttributeCanUseHostPointerForRegisteredMem,
+  hipDeviceAttributeClockRate,
+  hipDeviceAttributeComputeMode,
+  hipDeviceAttributeComputePreemptionSupported,
+  hipDeviceAttributeConcurrentKernels,
+  hipDeviceAttributeConcurrentManagedAccess,
+  hipDeviceAttributeCooperativeLaunch,
+  hipDeviceAttributeCooperativeMultiDeviceLaunch,
+  hipDeviceAttributeDeviceOverlap,
+  hipDeviceAttributeDirectManagedMemAccessFromHost,
+  hipDeviceAttributeGlobalL1CacheSupported,
+  hipDeviceAttributeHostNativeAtomicSupported,
+  hipDeviceAttributeIntegrated,
+  hipDeviceAttributeIsMultiGpuBoard,
+  hipDeviceAttributeKernelExecTimeout,
+  hipDeviceAttributeL2CacheSize,
+  hipDeviceAttributeLocalL1CacheSupported,
+  hipDeviceAttributeLuid,
+  hipDeviceAttributeLuidDeviceNodeMask,
+  hipDeviceAttributeComputeCapabilityMajor,
+  hipDeviceAttributeManagedMemory,
+  hipDeviceAttributeMaxBlocksPerMultiProcessor,
   hipDeviceAttributeMaxBlockDimX,
   hipDeviceAttributeMaxBlockDimY,
   hipDeviceAttributeMaxBlockDimZ,
   hipDeviceAttributeMaxGridDimX,
   hipDeviceAttributeMaxGridDimY,
   hipDeviceAttributeMaxGridDimZ,
-  hipDeviceAttributeMaxSharedMemoryPerBlock,
-  hipDeviceAttributeTotalConstantMemory,
-  hipDeviceAttributeWarpSize,
-  hipDeviceAttributeMaxRegistersPerBlock,
-  hipDeviceAttributeClockRate,
-  hipDeviceAttributeMemoryClockRate,
-  hipDeviceAttributeMemoryBusWidth,
-  hipDeviceAttributeMultiprocessorCount,
-  hipDeviceAttributeComputeMode,
-  hipDeviceAttributeL2CacheSize,
-  hipDeviceAttributeMaxThreadsPerMultiProcessor,
-  hipDeviceAttributeComputeCapabilityMajor,
-  hipDeviceAttributeComputeCapabilityMinor,
-  hipDeviceAttributeConcurrentKernels,
-  hipDeviceAttributePciBusId,
-  hipDeviceAttributePciDeviceId,
-  hipDeviceAttributeMaxSharedMemoryPerMultiprocessor,
-  hipDeviceAttributeIsMultiGpuBoard,
-  hipDeviceAttributeIntegrated,
-  hipDeviceAttributeCooperativeLaunch,
-  hipDeviceAttributeCooperativeMultiDeviceLaunch,
+  hipDeviceAttributeMaxSurface1D,
+  hipDeviceAttributeMaxSurface1DLayered,
+  hipDeviceAttributeMaxSurface2D,
+  hipDeviceAttributeMaxSurface2DLayered,
+  hipDeviceAttributeMaxSurface3D,
+  hipDeviceAttributeMaxSurfaceCubemap,
+  hipDeviceAttributeMaxSurfaceCubemapLayered,
   hipDeviceAttributeMaxTexture1DWidth,
+  hipDeviceAttributeMaxTexture1DLayered,
+  hipDeviceAttributeMaxTexture1DLinear,
+  hipDeviceAttributeMaxTexture1DMipmap,
   hipDeviceAttributeMaxTexture2DWidth,
   hipDeviceAttributeMaxTexture2DHeight,
+  hipDeviceAttributeMaxTexture2DGather,
+  hipDeviceAttributeMaxTexture2DLayered,
+  hipDeviceAttributeMaxTexture2DLinear,
+  hipDeviceAttributeMaxTexture2DMipmap,
   hipDeviceAttributeMaxTexture3DWidth,
   hipDeviceAttributeMaxTexture3DHeight,
   hipDeviceAttributeMaxTexture3DDepth,
-  hipDeviceAttributeHdpMemFlushCntl,
-  hipDeviceAttributeHdpRegFlushCntl,
+  hipDeviceAttributeMaxTexture3DAlt,
+  hipDeviceAttributeMaxTextureCubemap,
+  hipDeviceAttributeMaxTextureCubemapLayered,
+  hipDeviceAttributeMaxThreadsDim,
+  hipDeviceAttributeMaxThreadsPerBlock,
+  hipDeviceAttributeMaxThreadsPerMultiProcessor,
   hipDeviceAttributeMaxPitch,
+  hipDeviceAttributeMemoryBusWidth,
+  hipDeviceAttributeMemoryClockRate,
+  hipDeviceAttributeComputeCapabilityMinor,
+  hipDeviceAttributeMultiGpuBoardGroupID,
+  hipDeviceAttributeMultiprocessorCount,
+  hipDeviceAttributeName,
+  hipDeviceAttributePageableMemoryAccess,
+  hipDeviceAttributePageableMemoryAccessUsesHostPageTables,
+  hipDeviceAttributePciBusId,
+  hipDeviceAttributePciDeviceId,
+  hipDeviceAttributePciDomainID,
+  hipDeviceAttributePersistingL2CacheMaxSize,
+  hipDeviceAttributeMaxRegistersPerBlock,
+  hipDeviceAttributeMaxRegistersPerMultiprocessor,
+  hipDeviceAttributeReservedSharedMemPerBlock,
+  hipDeviceAttributeMaxSharedMemoryPerBlock,
+  hipDeviceAttributeSharedMemPerBlockOptin,
+  hipDeviceAttributeSharedMemPerMultiprocessor,
+  hipDeviceAttributeSingleToDoublePrecisionPerfRatio,
+  hipDeviceAttributeStreamPrioritiesSupported,
+  hipDeviceAttributeSurfaceAlignment,
+  hipDeviceAttributeTccDriver,
   hipDeviceAttributeTextureAlignment,
   hipDeviceAttributeTexturePitchAlignment,
-  hipDeviceAttributeKernelExecTimeout,
-  hipDeviceAttributeCanMapHostMemory,
-  hipDeviceAttributeEccEnabled,
+  hipDeviceAttributeTotalConstantMemory,
+  hipDeviceAttributeTotalGlobalMem,
+  hipDeviceAttributeUnifiedAddressing,
+  hipDeviceAttributeUuid,
+  hipDeviceAttributeWarpSize,
+  hipDeviceAttributeCudaCompatibleEnd = 9999,
+  hipDeviceAttributeAmdSpecificBegin = 10000,
+  hipDeviceAttributeClockInstructionRate = hipDeviceAttributeAmdSpecificBegin,
+  hipDeviceAttributeArch,
+  hipDeviceAttributeMaxSharedMemoryPerMultiprocessor,
+  hipDeviceAttributeGcnArch,
+  hipDeviceAttributeGcnArchName,
+  hipDeviceAttributeHdpMemFlushCntl,
+  hipDeviceAttributeHdpRegFlushCntl,
   hipDeviceAttributeCooperativeMultiDeviceUnmatchedFunc,
   hipDeviceAttributeCooperativeMultiDeviceUnmatchedGridDim,
   hipDeviceAttributeCooperativeMultiDeviceUnmatchedBlockDim,
   hipDeviceAttributeCooperativeMultiDeviceUnmatchedSharedMem,
+  hipDeviceAttributeIsLargeBar,
   hipDeviceAttributeAsicRevision,
-  hipDeviceAttributeManagedMemory,
-  hipDeviceAttributeDirectManagedMemAccessFromHost,
-  hipDeviceAttributeConcurrentManagedAccess,
-  hipDeviceAttributePageableMemoryAccess,
-  hipDeviceAttributePageableMemoryAccessUsesHostPageTables,
   hipDeviceAttributeCanUseStreamWaitValue,
+  hipDeviceAttributeImageSupport,
+  hipDeviceAttributeAmdSpecificEnd = 19999,
+  hipDeviceAttributeVendorSpecificBegin = 20000,
 };
 
 enum hipMemcpyKind {
@@ -153,6 +220,7 @@ enum hipFunction_attribute {
 };
 
 enum hipLimit_t {
+  hipLimitPrintfFifoSize = 0x01,
   hipLimitMallocHeapSize = 0x02,
 };
 
@@ -196,10 +264,6 @@ hipError_t hipDriverGetVersion(int* driverVersion);
 
 hipError_t hipRuntimeGetVersion(int* runtimeVersion);
 
-hipError_t hipGetLastError(void);
-
-hipError_t hipPeekAtLastError(void);
-
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal);
 
 hipError_t hipDeviceGetName(char* name, int len, hipDevice_t device);
@@ -220,6 +284,10 @@ hipError_t hipDeviceGetAttribute(int* pi, hipDeviceAttribute_t attr,
 hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int deviceId);
 
 hipError_t hipDeviceGetLimit(size_t* pValue, enum hipLimit_t limit);
+
+hipError_t hipGetLastError(void);
+
+hipError_t hipPeekAtLastError(void);
 
 hipError_t hipStreamCreateWithFlags(hipStream_t* stream, unsigned int flags);
 
@@ -277,6 +345,9 @@ hipError_t hipHostFree(void* ptr);
 
 hipError_t hipMemcpy(void* dst, const void* src, size_t sizeBytes,
                      hipMemcpyKind kind);
+
+hipError_t hipModuleGetGlobal(hipDeviceptr_t* dptr, size_t* bytes,
+                              hipModule_t hmod, const char* name);
 
 hipError_t hipMemcpyAsync(void* dst, const void* src, size_t sizeBytes,
                           hipMemcpyKind kind, hipStream_t stream __dparm(0));
@@ -351,9 +422,6 @@ hipError_t hipDevicePrimaryCtxSetFlags(hipDevice_t dev, unsigned int flags);
 hipError_t hipModuleUnload(hipModule_t module);
 
 hipError_t hipModuleGetFunction(hipFunction_t* function, hipModule_t module,
-                                const char* kname);
-
-hipError_t hipModuleGetGlobal(void** ptr, size_t* bytes, hipModule_t module,
                                 const char* kname);
 
 hipError_t hipFuncGetAttributes(struct hipFuncAttributes* attr,

@@ -186,6 +186,28 @@ llvm::Error BlasGemmStridedBatchedEx(
   }
 }
 
+llvm::Error BlasTrsmBatched(CurrentContext current, BlasHandle handle,
+                            BlasDataType dataType, BlasSideMode sideMode,
+                            BlasFillMode fillMode, BlasOperation trans,
+                            BlasDiagType diag, int m, int n,
+                            Pointer<const void> alpha, Pointer<const void*> A,
+                            int lda, Pointer<void*> B, int ldb,
+                            int batchCount) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CublasTrsmBatched(current, handle, dataType, sideMode, fillMode,
+                               trans, diag, m, n, alpha, A, lda, B, ldb,
+                               batchCount);
+    case Platform::ROCm:
+      return RocblasTrsmBatched(current, handle, dataType, sideMode, fillMode,
+                                trans, diag, m, n, alpha, A, lda, B, ldb,
+                                batchCount);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

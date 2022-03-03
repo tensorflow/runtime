@@ -119,7 +119,7 @@ llvm::Error RocblasGemmStridedBatchedEx(
     int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
     rocblas_gemm_algo algo);
 
-llvm::Error RocblasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
                                rocblas_datatype dataType, rocblas_side sideMode,
                                rocblas_fill fillMode, rocblas_operation trans,
                                rocblas_diagonal diag, int m, int n,

@@ -178,13 +178,7 @@ static Error BlasTrsmBatch(
     Attribute<int32_t> dataType, Attribute<int32_t> diagType,
     Attribute<int32_t> fillMode, Attribute<int32_t> sideMode,
     Attribute<int32_t> trans) {
-  // TODO(hanbinyoon): Also support the ROCm function corresponding to
-  // cublas<t>trsmBatched.
-  auto platform = handle->platform();
-  if (platform != wrapper::Platform::CUDA)
-    return MakeStringError("Unsupported platform ", platform);
-
-  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto alpha_ptr = GetScalePointer(alpha, data_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
 
@@ -201,6 +195,7 @@ static Error BlasTrsmBatch(
       handle.context()->AllocateHostPoolMemory<void*>(*current, 2 * batchCount);
   if (!pointer_array) return pointer_array.takeError();
 
+  wrapper::Platform platform = handle->platform();
   void** b_array = pointer_array->get().raw(platform);
   const void** a_array = const_cast<const void**>(b_array + batchCount);
 
@@ -218,7 +213,7 @@ static Error BlasTrsmBatch(
   wrapper::Pointer<const void*> a_array_ptr(a_array, platform);
   wrapper::Pointer<void*> b_array_ptr(b_array, platform);
 
-  return wrapper::CublasTrsmBatched(
+  return wrapper::BlasTrsmBatched(
       *current, handle.get(), data_type, side_mode,
       wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
       wrapper::BlasOperation::FromOpaqueValue(*trans),

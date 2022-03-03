@@ -16,8 +16,8 @@
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/PatternMatch.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"

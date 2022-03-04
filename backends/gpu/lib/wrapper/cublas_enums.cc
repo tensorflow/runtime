@@ -66,6 +66,23 @@ Expected<cudaDataType> Parse(llvm::StringRef name, cudaDataType) {
   if (name == "CUDA_C_32I") return CUDA_C_32I;
   if (name == "CUDA_R_32U") return CUDA_R_32U;
   if (name == "CUDA_C_32U") return CUDA_C_32U;
+#if CUDA_VERSION >= 11000
+  if (name == "CUDA_R_16F") return CUDA_R_16F;
+  if (name == "CUDA_R_16BF") return CUDA_R_16BF;
+  if (name == "CUDA_C_16BF") return CUDA_C_16BF;
+  if (name == "CUDA_R_4I") return CUDA_R_4I;
+  if (name == "CUDA_C_4I") return CUDA_C_4I;
+  if (name == "CUDA_R_4U") return CUDA_R_4U;
+  if (name == "CUDA_C_4U") return CUDA_C_4U;
+  if (name == "CUDA_R_16I") return CUDA_R_16I;
+  if (name == "CUDA_C_16I") return CUDA_C_16I;
+  if (name == "CUDA_R_16U") return CUDA_R_16U;
+  if (name == "CUDA_C_16U") return CUDA_C_16U;
+  if (name == "CUDA_R_64I") return CUDA_R_64I;
+  if (name == "CUDA_C_64I") return CUDA_C_64I;
+  if (name == "CUDA_R_64U") return CUDA_R_64U;
+  if (name == "CUDA_C_64U") return CUDA_C_64U;
+#endif
   return MakeStringError("Unknown cudaDataType: ", name);
 }
 
@@ -99,6 +116,36 @@ llvm::raw_ostream& Print(llvm::raw_ostream& os, cudaDataType value) {
       return os << "CUDA_R_32U";
     case CUDA_C_32U:
       return os << "CUDA_C_32U";
+#if CUDA_VERSION >= 11000
+    case CUDA_R_16BF:
+      return os << "CUDA_R_16BF";
+    case CUDA_C_16BF:
+      return os << "CUDA_C_16BF";
+    case CUDA_R_4I:
+      return os << "xCUDA_R_4I";
+    case CUDA_C_4I:
+      return os << "CUDA_C_4I";
+    case CUDA_R_4U:
+      return os << "CUDA_R_4U";
+    case CUDA_C_4U:
+      return os << "CUDA_C_4U";
+    case CUDA_R_16I:
+      return os << "CUDA_R_16I";
+    case CUDA_C_16I:
+      return os << "CUDA_C_16I";
+    case CUDA_R_16U:
+      return os << "CUDA_R_16U";
+    case CUDA_C_16U:
+      return os << "CUDA_C_16U";
+    case CUDA_R_64I:
+      return os << "CUDA_R_64I";
+    case CUDA_C_64I:
+      return os << "CUDA_C_64I";
+    case CUDA_R_64U:
+      return os << "CUDA_R_64U";
+    case CUDA_C_64U:
+      return os << "CUDA_C_64U";
+#endif
     default:
       return os << llvm::formatv("cudaDataType({0})", static_cast<int>(value));
   }

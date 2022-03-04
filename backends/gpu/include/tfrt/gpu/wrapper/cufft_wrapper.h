@@ -17,8 +17,7 @@
 #ifndef TFRT_GPU_WRAPPER_CUFFT_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_CUFFT_WRAPPER_H_
 
-#include "cufft.h"    // from @cuda_headers
-#include "cufftXt.h"  // from @cuda_headers
+#include "cufft.h"  // from @cuda_headers
 #include "tfrt/gpu/wrapper/fft_wrapper.h"
 
 namespace tfrt {
@@ -26,13 +25,30 @@ namespace gpu {
 namespace wrapper {
 
 raw_ostream& Print(raw_ostream& os, cufftResult result);
+raw_ostream& Print(raw_ostream& os, cufftType value);
+raw_ostream& Print(raw_ostream& os, cufftDirection value);
+
+Expected<cufftType> Parse(llvm::StringRef name, cufftType);
+Expected<cufftDirection> Parse(llvm::StringRef name, cufftDirection);
+
+namespace internal {
+template <>
+struct EnumPlatform<FftType, cufftType> : CudaPlatformType {};
+template <>
+struct EnumPlatform<FftDirection, cufftDirection> : CudaPlatformType {};
+
+template <>
+struct EnumStream<FftType, Platform::CUDA>
+    : EnumStreamPtrs<cufftType, Parse, Print> {};
+template <>
+struct EnumStream<FftDirection, Platform::CUDA>
+    : EnumStreamPtrs<cufftDirection, Parse, Print> {};
+}  // namespace internal
 
 // Cufft can only configure plans up to 3D.
 constexpr bool IsValidFftRank(int rank) {
   return rank == 1 || rank == 2 || rank == 3;
 }
-
-llvm::Expected<cufftType> FftTypeToCufftType(FftType type);
 
 llvm::Expected<LibraryVersion> CufftGetVersion();
 
@@ -54,26 +70,24 @@ llvm::Error CufftSetStream(cufftHandle handle, cudaStream_t stream);
 // GPU used.
 llvm::Expected<size_t> CufftMakePlanMany(
     cufftHandle handle, cufftType type, int64_t batch, int rank,
-    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
-    int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
-    int64_t output_stride, int64_t input_dist, int64_t output_dist);
+    ArrayRef<int64_t> dims, ArrayRef<int64_t> input_embed, int64_t input_stride,
+    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t input_dist,
+    int64_t output_dist);
 
 // Functions for getting estimated size of work area for temporary results
 // during plan execution.
 // See https://docs.nvidia.com/cuda/cufft/index.html#work-estimate.
 
-llvm::Expected<size_t> CufftEstimateMany(cufftType type, int batch, int rank,
-                                         llvm::SmallVector<int, 3> dims,
-                                         llvm::SmallVector<int, 3> input_embed,
-                                         int input_stride,
-                                         llvm::SmallVector<int, 3> output_embed,
-                                         int output_stride, int input_dist,
-                                         int output_dist);
+llvm::Expected<size_t> CufftEstimateMany(
+    cufftType type, int batch, int rank, ArrayRef<int> dims,
+    ArrayRef<int> input_embed, int input_stride, ArrayRef<int> output_embed,
+    int output_stride, int input_dist, int output_dist);
+
 llvm::Expected<size_t> CufftGetSizeMany(
     cufftHandle handle, cufftType type, int batch, int rank,
-    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
-    int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
-    int64_t output_stride, int64_t input_dist, int64_t output_dist);
+    ArrayRef<int64_t> dims, ArrayRef<int64_t> input_embed, int64_t input_stride,
+    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t input_dist,
+    int64_t output_dist);
 
 llvm::Expected<size_t> CufftGetSize(cufftHandle handle);
 
@@ -85,33 +99,9 @@ llvm::Error CufftEnableAutoAllocation(cufftHandle handle);
 
 llvm::Error CufftSetWorkArea(cufftHandle handle, Pointer<void> work_area);
 
-// TODO(gkg): The nvidia API currently supports an unused work_size
-// parameter. Expose this flag once there is functionality there.
-llvm::Error CufftXtSetWorkAreaPolicy(cufftHandle handle,
-                                     cufftXtWorkAreaPolicy policy);
-
-llvm::Error CufftExecC2C(cufftHandle handle, Pointer<cufftComplex> input_data,
-                         Pointer<cufftComplex> output_data,
-                         FftDirection direction);
-llvm::Error CufftExecZ2Z(cufftHandle handle,
-                         Pointer<cufftDoubleComplex> input_data,
-                         Pointer<cufftDoubleComplex> output_data,
-                         FftDirection direction);
-
-llvm::Error CufftExecR2C(cufftHandle handle, Pointer<cufftReal> input_data,
-                         Pointer<cufftComplex> output_data);
-llvm::Error CufftExecD2Z(cufftHandle handle,
-                         Pointer<cufftDoubleReal> input_data,
-                         Pointer<cufftDoubleComplex> output_data);
-
-llvm::Error CufftExecC2R(cufftHandle handle, Pointer<cufftComplex> input_data,
-                         Pointer<cufftReal> output_data);
-llvm::Error CufftExecZ2D(cufftHandle handle,
-                         Pointer<cufftDoubleComplex> input_data,
-                         Pointer<cufftDoubleReal> output_data);
-
-llvm::Error CufftExec(cufftHandle handle, Pointer<void> raw_input,
-                      Pointer<void> raw_output, FftType type);
+llvm::Error CufftExec(cufftHandle handle, Pointer<const void> raw_input,
+                      Pointer<void> raw_output, cufftType type,
+                      cufftDirection direction);
 
 }  // namespace wrapper
 }  // namespace gpu

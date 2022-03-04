@@ -68,6 +68,30 @@ llvm::Error FftSetStream(FftHandle handle, Stream stream) {
   }
 }
 
+llvm::Error FftDisableAutoAllocation(FftHandle handle) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CufftDisableAutoAllocation(handle);
+    case Platform::ROCm:
+      return HipfftDisableAutoAllocation(handle);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error FftEnableAutoAllocation(FftHandle handle) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CufftEnableAutoAllocation(handle);
+    case Platform::ROCm:
+      return HipfftEnableAutoAllocation(handle);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Expected<size_t> FftGetWorkspaceSize(FftHandle handle) {
   auto platform = handle.platform();
   switch (platform) {
@@ -100,28 +124,27 @@ llvm::Expected<size_t> FftMakePlanMany(
     int64_t output_stride, int64_t input_dist, int64_t output_dist) {
   switch (handle.platform()) {
     case Platform::CUDA:
-      return CufftMakePlanMany(handle, FftTypeToCufftType(type).get(), batch,
-                               rank, dims, input_embed, input_stride,
-                               output_embed, output_stride, input_dist,
-                               output_dist);
+      return CufftMakePlanMany(handle, type, batch, rank, dims, input_embed,
+                               input_stride, output_embed, output_stride,
+                               input_dist, output_dist);
     case Platform::ROCm:
       return HipfftMakePlanMany(handle, rank, dims, input_embed, input_stride,
                                 input_dist, output_embed, output_stride,
-                                output_dist, FftTypeToHipfftType(type).get(),
-                                batch);
+                                output_dist, type, batch);
     default:
       return InvalidPlatform(handle.platform());
   }
 }
 
-llvm::Error FftExec(FftHandle handle, wrapper::Pointer<void> input,
-                    wrapper::Pointer<void> output, FftType type) {
+llvm::Error FftExec(FftHandle handle, wrapper::Pointer<const void> input,
+                    wrapper::Pointer<void> output, FftType type,
+                    FftDirection direction) {
   Platform platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CufftExec(handle, input, output, type);
+      return CufftExec(handle, input, output, type, direction);
     case Platform::ROCm:
-      return HipfftExec(handle, input, output, type);
+      return HipfftExec(handle, input, output, type, direction);
     default:
       return InvalidPlatform(platform);
   }

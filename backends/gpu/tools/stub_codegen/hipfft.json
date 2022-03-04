@@ -22,6 +22,7 @@
       "hipfftGetSize",
       "hipfftMakePlanMany64",
       "hipfftSetStream",
-      "hipfftSetWorkArea"
+      "hipfftSetWorkArea",
+      "hipfftSetAutoAllocation"
    ],
 }

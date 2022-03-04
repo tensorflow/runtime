@@ -42,6 +42,8 @@ HIPFFT_EXPORT hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize);
 
 HIPFFT_EXPORT hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea);
 
+HIPFFT_EXPORT hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int enable);
+
 HIPFFT_EXPORT hipfftResult hipfftExecC2C(hipfftHandle plan,
                                          hipfftComplex* idata,
                                          hipfftComplex* odata, int direction);

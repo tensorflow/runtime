@@ -27,16 +27,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-enum struct FftType {
-  kZ2ZForward,
-  kC2CForward,
-  kZ2ZInverse,
-  kC2CInverse,
-  kZ2D,
-  kC2R,
-  kD2Z,
-  kR2C
-};
+using FftType = Enum<struct FftTypeTag>;
+using FftDirection = Enum<struct FftDirectionTag>;
 
 class FftHandle {
  public:
@@ -91,8 +83,6 @@ class FftHandle {
   } union_;
 };
 
-enum class FftDirection : int { kForward, kInverse };
-
 namespace internal {
 // Helper to wrap resources and memory into RAII types.
 struct FftHandleDeleter {
@@ -107,6 +97,8 @@ using OwningFftHandle = internal::OwningResource<internal::FftHandleDeleter>;
 llvm::Expected<OwningFftHandle> FftCreate(Platform platform);
 llvm::Error FftDestroy(FftHandle handle);
 llvm::Error FftSetStream(FftHandle handle, Stream stream);
+llvm::Error FftDisableAutoAllocation(FftHandle handle);
+llvm::Error FftEnableAutoAllocation(FftHandle handle);
 llvm::Expected<size_t> FftGetWorkspaceSize(FftHandle handle);
 llvm::Error FftSetWorkspace(FftHandle handle, Pointer<void> workspace,
                             size_t size_bytes);
@@ -115,8 +107,9 @@ llvm::Expected<size_t> FftMakePlanMany(
     llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
     int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
     int64_t output_stride, int64_t input_dist, int64_t output_dist);
-llvm::Error FftExec(FftHandle handle, wrapper::Pointer<void> input,
-                    wrapper::Pointer<void> output, FftType type);
+llvm::Error FftExec(FftHandle handle, wrapper::Pointer<const void> input,
+                    wrapper::Pointer<void> output, FftType type,
+                    FftDirection direction);
 
 }  // namespace wrapper
 }  // namespace gpu

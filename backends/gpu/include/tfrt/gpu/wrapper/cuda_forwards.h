@@ -87,5 +87,11 @@ using ncclComm_t = struct ncclComm *;
 
 // Forward declaration of cuFFT types.
 using cufftHandle = int;
+// Enums for corresponding #defines in the cuFFT headers.
+enum cufftDirection_t : int {
+  // CUFFT_FORWARD = -1,
+  // CUFFT_INVERSE = 1
+};
+using cufftDirection = cufftDirection_t;
 
 #endif  // TFRT_GPU_WRAPPER_CUDA_FORWARDS_H_

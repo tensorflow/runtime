@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Thin wrapper around the cuFFT API that adapts the library for TFRT
+// Thin wrapper around the hipFFT API that adapts the library for TFRT
 // conventions.
 #include "tfrt/gpu/wrapper/hipfft_wrapper.h"
 
@@ -26,20 +26,6 @@
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
-
-// The hipFFT library does not enforce const correctness. We try to improve
-// usability by providing some level of const correctness in the wrapper, but
-// this means that we need to const cast some input pointers.
-//
-// This wrapper is intended to enhance readability, avoid repetition of the
-// above warning, and assist in debugging if we do run into a "not-really-const"
-// input issue.
-// cf the coreesponding function in cufft_wrapper.cc
-template <typename T>
-T* ToHipfft(llvm::ArrayRef<T> t) {
-  if (t.empty()) return nullptr;
-  return const_cast<T*>(t.data());
-}
 
 llvm::Expected<LibraryVersion> HipfftGetVersion() {
   LibraryVersion version;
@@ -61,6 +47,20 @@ llvm::Error HipfftDestroy(hipfftHandle handle) {
 
 llvm::Error HipfftSetStream(hipfftHandle handle, hipStream_t stream) {
   return TO_ERROR(hipfftSetStream(handle, stream));
+}
+
+// The hipFFT library does not enforce const correctness. We try to improve
+// usability by providing some level of const correctness in the wrapper, but
+// this means that we need to const cast some input pointers.
+//
+// This wrapper is intended to enhance readability, avoid repetition of the
+// above warning, and assist in debugging if we do run into a "not-really-const"
+// input issue.
+// cf the coreesponding function in hipfft_wrapper.cc
+template <typename T>
+static T* ToHipfft(llvm::ArrayRef<T> array_ref) {
+  if (array_ref.empty()) return nullptr;
+  return const_cast<T*>(array_ref.data());
 }
 
 llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle handle, int rank,
@@ -91,107 +91,50 @@ llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle) {
   return work_size;
 }
 
+llvm::Error HipfftDisableAutoAllocation(hipfftHandle handle) {
+  return TO_ERROR(hipfftSetAutoAllocation(handle, 0));
+}
+
+llvm::Error HipfftEnableAutoAllocation(hipfftHandle handle) {
+  return TO_ERROR(hipfftSetAutoAllocation(handle, 1));
+}
+
 llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area) {
   return TO_ERROR(hipfftSetWorkArea(handle, ToRocm(work_area)));
 }
 
-static int ToRocm(FftDirection direction) {
-  switch (direction) {
-    case FftDirection::kForward:
-      return HIPFFT_FORWARD;
-    case FftDirection::kInverse:
-      return HIPFFT_BACKWARD;
-    default:
-      return 0;  // 0 is an invalid value.
-  }
-}
+llvm::Error HipfftExec(hipfftHandle handle, Pointer<const void> input,
+                       Pointer<void> output, hipfftType type,
+                       hipfftDirection direction) {
+  void* input_ptr = const_cast<void*>(input.raw(Platform::ROCm));
+  void* output_ptr = output.raw(Platform::ROCm);
 
-llvm::Error HipfftExecC2C(hipfftHandle handle,
-                          Pointer<hipfftComplex> input_data,
-                          Pointer<hipfftComplex> output_data,
-                          FftDirection direction) {
-  return TO_ERROR(hipfftExecC2C(handle, input_data.raw(Platform::ROCm),
-                                output_data.raw(Platform::ROCm),
-                                ToRocm(direction)));
-}
-
-llvm::Error HipfftExecZ2Z(hipfftHandle handle,
-                          Pointer<hipfftDoubleComplex> input_data,
-                          Pointer<hipfftDoubleComplex> output_data,
-                          FftDirection direction) {
-  return TO_ERROR(hipfftExecZ2Z(handle, input_data.raw(Platform::ROCm),
-                                output_data.raw(Platform::ROCm),
-                                ToRocm(direction)));
-}
-
-llvm::Error HipfftExecR2C(hipfftHandle handle, Pointer<hipfftReal> input_data,
-                          Pointer<hipfftComplex> output_data) {
-  return TO_ERROR(hipfftExecR2C(handle, input_data.raw(Platform::ROCm),
-                                output_data.raw(Platform::ROCm)));
-}
-
-llvm::Error HipfftExecD2Z(hipfftHandle handle,
-                          Pointer<hipfftDoubleReal> input_data,
-                          Pointer<hipfftDoubleComplex> output_data) {
-  return TO_ERROR(hipfftExecD2Z(handle, input_data.raw(Platform::ROCm),
-                                output_data.raw(Platform::ROCm)));
-}
-
-llvm::Error HipfftExecC2R(hipfftHandle handle,
-                          Pointer<hipfftComplex> input_data,
-                          Pointer<hipfftReal> output_data) {
-  return TO_ERROR(hipfftExecC2R(handle, input_data.raw(Platform::ROCm),
-                                output_data.raw(Platform::ROCm)));
-}
-
-llvm::Error HipfftExecZ2D(hipfftHandle handle,
-                          Pointer<hipfftDoubleComplex> input_data,
-                          Pointer<hipfftDoubleReal> output_data) {
-  return TO_ERROR(hipfftExecZ2D(handle, input_data.raw(Platform::ROCm),
-                                output_data.raw(Platform::ROCm)));
-}
-
-llvm::Error HipfftExec(hipfftHandle handle, Pointer<void> raw_input,
-                       Pointer<void> raw_output, FftType type) {
   switch (type) {
-    case FftType::kC2CForward:
-      return HipfftExecC2C(handle,
-                           static_cast<Pointer<hipfftComplex>>(raw_input),
-                           static_cast<Pointer<hipfftComplex>>(raw_output),
-                           FftDirection::kForward);
-    case FftType::kC2CInverse:
-      return HipfftExecC2C(handle,
-                           static_cast<Pointer<hipfftComplex>>(raw_input),
-                           static_cast<Pointer<hipfftComplex>>(raw_output),
-                           FftDirection::kInverse);
-    case FftType::kZ2ZForward:
-      return HipfftExecZ2Z(
-          handle, static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
-          static_cast<Pointer<hipfftDoubleComplex>>(raw_output),
-          FftDirection::kForward);
-    case FftType::kZ2ZInverse:
-      return HipfftExecZ2Z(
-          handle, static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
-          static_cast<Pointer<hipfftDoubleComplex>>(raw_output),
-          FftDirection::kInverse);
-    case FftType::kR2C:
-      return HipfftExecR2C(handle, static_cast<Pointer<hipfftReal>>(raw_input),
-                           static_cast<Pointer<hipfftComplex>>(raw_output));
-    case FftType::kD2Z:
-      return HipfftExecD2Z(
-          handle, static_cast<Pointer<hipfftDoubleReal>>(raw_input),
-          static_cast<Pointer<hipfftDoubleComplex>>(raw_output));
-    case FftType::kC2R:
-      return HipfftExecC2R(handle,
-                           static_cast<Pointer<hipfftComplex>>(raw_input),
-                           static_cast<Pointer<hipfftReal>>(raw_output));
-    case FftType::kZ2D:
-      return HipfftExecZ2D(handle,
-                           static_cast<Pointer<hipfftDoubleComplex>>(raw_input),
-                           static_cast<Pointer<hipfftDoubleReal>>(raw_output));
+    case HIPFFT_C2C:
+      return TO_ERROR(
+          hipfftExecC2C(handle, static_cast<hipfftComplex*>(input_ptr),
+                        static_cast<hipfftComplex*>(output_ptr), direction));
+    case HIPFFT_Z2Z:
+      return TO_ERROR(hipfftExecZ2Z(
+          handle, static_cast<hipfftDoubleComplex*>(input_ptr),
+          static_cast<hipfftDoubleComplex*>(output_ptr), direction));
+    case HIPFFT_R2C:
+      return TO_ERROR(hipfftExecR2C(handle, static_cast<hipfftReal*>(input_ptr),
+                                    static_cast<hipfftComplex*>(output_ptr)));
+    case HIPFFT_D2Z:
+      return TO_ERROR(
+          hipfftExecD2Z(handle, static_cast<hipfftDoubleReal*>(input_ptr),
+                        static_cast<hipfftDoubleComplex*>(output_ptr)));
+    case HIPFFT_C2R:
+      return TO_ERROR(hipfftExecC2R(handle,
+                                    static_cast<hipfftComplex*>(input_ptr),
+                                    static_cast<hipfftReal*>(output_ptr)));
+    case HIPFFT_Z2D:
+      return TO_ERROR(
+          hipfftExecZ2D(handle, static_cast<hipfftDoubleComplex*>(input_ptr),
+                        static_cast<hipfftDoubleReal*>(output_ptr)));
     default:
-      return llvm::createStringError(std::errc::invalid_argument,
-                                     "invalid FFT type");
+      return MakeStringError("invalid hipfftType: ", type);
   }
 }
 
@@ -235,24 +178,50 @@ llvm::raw_ostream& Print(llvm::raw_ostream& os, hipfftResult_t result) {
   }
 }
 
-llvm::Expected<hipfftType> FftTypeToHipfftType(FftType type) {
-  switch (type) {
-    case FftType::kZ2ZForward:
-    case FftType::kZ2ZInverse:
-      return HIPFFT_Z2Z;
-    case FftType::kR2C:
-      return HIPFFT_R2C;
-    case FftType::kC2R:
-      return HIPFFT_C2R;
-    case FftType::kC2CForward:
-    case FftType::kC2CInverse:
-      return HIPFFT_C2C;
-    case FftType::kD2Z:
-      return HIPFFT_D2Z;
-    case FftType::kZ2D:
-      return HIPFFT_Z2D;
+Expected<hipfftType> Parse(llvm::StringRef name, hipfftType) {
+  if (name == "HIPFFT_R2C") return HIPFFT_R2C;
+  if (name == "HIPFFT_C2R") return HIPFFT_C2R;
+  if (name == "HIPFFT_C2C") return HIPFFT_C2C;
+  if (name == "HIPFFT_D2Z") return HIPFFT_D2Z;
+  if (name == "HIPFFT_Z2D") return HIPFFT_Z2D;
+  if (name == "HIPFFT_Z2Z") return HIPFFT_Z2Z;
+  return MakeStringError("Unknown hipfftType: ", name);
+}
+
+raw_ostream& Print(raw_ostream& os, hipfftType value) {
+  switch (value) {
+    case HIPFFT_R2C:
+      return os << "HIPFFT_R2C";
+    case HIPFFT_C2R:
+      return os << "HIPFFT_C2R";
+    case HIPFFT_C2C:
+      return os << "HIPFFT_C2C";
+    case HIPFFT_D2Z:
+      return os << "HIPFFT_D2Z";
+    case HIPFFT_Z2D:
+      return os << "HIPFFT_Z2D";
+    case HIPFFT_Z2Z:
+      return os << "HIPFFT_Z2Z";
     default:
-      return MakeStringError("invalid FFT type");
+      return os << llvm::formatv("hipfftType({0})", static_cast<int>(value));
+  }
+}
+
+Expected<hipfftDirection> Parse(llvm::StringRef name, hipfftDirection) {
+  if (name == "HIPFFT_FORWARD") return hipfftDirection(HIPFFT_FORWARD);
+  if (name == "HIPFFT_INVERSE") return hipfftDirection(HIPFFT_INVERSE);
+  return MakeStringError("Unknown hipfftDirection: ", name);
+}
+
+raw_ostream& Print(raw_ostream& os, hipfftDirection value) {
+  switch (static_cast<int>(value)) {
+    case HIPFFT_FORWARD:
+      return os << "HIPFFT_FORWARD";
+    case HIPFFT_INVERSE:
+      return os << "HIPFFT_INVERSE";
+    default:
+      return os << llvm::formatv("hipfftDirection({0})",
+                                 static_cast<int>(value));
   }
 }
 

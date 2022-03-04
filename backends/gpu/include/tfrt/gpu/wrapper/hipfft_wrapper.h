@@ -26,8 +26,25 @@ namespace gpu {
 namespace wrapper {
 
 raw_ostream& Print(raw_ostream& os, hipfftResult_t result);
+raw_ostream& Print(raw_ostream& os, hipfftType value);
+raw_ostream& Print(raw_ostream& os, hipfftDirection value);
 
-llvm::Expected<hipfftType> FftTypeToHipfftType(FftType type);
+Expected<hipfftType> Parse(llvm::StringRef name, hipfftType);
+Expected<hipfftDirection> Parse(llvm::StringRef name, hipfftDirection);
+
+namespace internal {
+template <>
+struct EnumPlatform<FftType, hipfftType> : RocmPlatformType {};
+template <>
+struct EnumPlatform<FftDirection, hipfftDirection> : RocmPlatformType {};
+
+template <>
+struct EnumStream<FftType, Platform::ROCm>
+    : EnumStreamPtrs<hipfftType, Parse, Print> {};
+template <>
+struct EnumStream<FftDirection, Platform::ROCm>
+    : EnumStreamPtrs<hipfftDirection, Parse, Print> {};
+}  // namespace internal
 
 llvm::Expected<LibraryVersion> HipfftGetVersion();
 
@@ -44,38 +61,23 @@ llvm::Error HipfftDestroy(hipfftHandle handle);
 llvm::Error HipfftSetStream(hipfftHandle handle, hipStream_t stream);
 
 llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle handle, int rank,
-                                          llvm::ArrayRef<int64_t> n,
-                                          llvm::ArrayRef<int64_t> inembed,
+                                          ArrayRef<int64_t> n,
+                                          ArrayRef<int64_t> inembed,
                                           int64_t istride, int64_t idist,
-                                          llvm::ArrayRef<int64_t> onembed,
+                                          ArrayRef<int64_t> onembed,
                                           int64_t ostride, int64_t odist,
                                           hipfftType type, int64_t batch);
 
 llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle);
 
+llvm::Error HipfftDisableAutoAllocation(hipfftHandle handle);
+llvm::Error HipfftEnableAutoAllocation(hipfftHandle handle);
+
 llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area);
 
-llvm::Error HipfftExecC2C(hipfftHandle handle, hipfftComplex* input_data,
-                          hipfftComplex* output_data, FftDirection direction);
-
-llvm::Error HipfftExecZ2Z(hipfftHandle handle, hipfftDoubleComplex* input_data,
-                          hipfftDoubleComplex* output_data,
-                          FftDirection direction);
-
-llvm::Error HipfftExecR2C(hipfftHandle handle, hipfftReal* input_data,
-                          hipfftComplex* output_data);
-
-llvm::Error HipfftExecD2Z(hipfftHandle handle, hipfftDoubleReal* input_data,
-                          hipfftDoubleComplex* output_data);
-
-llvm::Error HipfftExecC2R(hipfftHandle handle, hipfftComplex* input_data,
-                          hipfftReal* output_data);
-
-llvm::Error HipfftExecZ2D(hipfftHandle handle, hipfftDoubleComplex* input_data,
-                          hipfftDoubleReal* output_data);
-
-llvm::Error HipfftExec(hipfftHandle handle, Pointer<void> raw_input,
-                       Pointer<void> raw_output, FftType type);
+llvm::Error HipfftExec(hipfftHandle handle, Pointer<const void> raw_input,
+                       Pointer<void> raw_output, hipfftType type,
+                       hipfftDirection direction);
 
 }  // namespace wrapper
 }  // namespace gpu

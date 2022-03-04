@@ -54,13 +54,16 @@ TEST_P(Test, RealToComplex1D) {
   auto output_dist = 1;
   auto output_stride = 0;
 
-  TFRT_ASSERT_AND_ASSIGN(OwningFftHandle plan, FftCreate(platform));
-  EXPECT_THAT(FftMakePlanMany(plan.get(), FftType::kR2C, /*batch=*/1, rank,
-                              dims, input_embed, input_stride, output_embed,
+  FftType type(CUFFT_R2C, platform);
+  FftDirection direction(CUFFT_FORWARD, platform);
+
+  TFRT_ASSERT_AND_ASSIGN(OwningFftHandle handle, FftCreate(platform));
+  EXPECT_THAT(FftMakePlanMany(handle.get(), type, /*batch=*/1, rank, dims,
+                              input_embed, input_stride, output_embed,
                               output_stride, input_dist, output_dist)
                   .takeError(),
               IsSuccess());
-  EXPECT_THAT(FftSetStream(plan.get(), stream.get()), IsSuccess());
+  EXPECT_THAT(FftSetStream(handle.get(), stream.get()), IsSuccess());
 
   // Allocate enough for reuse as output.
   MemHostAllocFlags alloc_flags(CU_MEMHOSTALLOC_DEVICEMAP, platform);
@@ -81,9 +84,10 @@ TEST_P(Test, RealToComplex1D) {
   EXPECT_THAT(MemcpyAsync(current, device_data.get(), host_data.get(),
                           kWindowSizeBytesInput, stream.get()),
               IsSuccess());
-  EXPECT_THAT(
-      FftExec(plan.get(), device_data.get(), device_data.get(), FftType::kR2C),
-      IsSuccess());
+
+  EXPECT_THAT(FftExec(handle.get(), device_data.get(), device_data.get(), type,
+                      direction),
+              IsSuccess());
   EXPECT_THAT(MemcpyAsync(current, host_data.get(), device_data.get(),
                           kWindowSizeBytesOutput, stream.get()),
               IsSuccess());

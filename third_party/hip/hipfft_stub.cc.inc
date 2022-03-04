@@ -19,6 +19,11 @@ HIPFFT_EXPORT hipfftResult hipfftSetWorkArea(hipfftHandle plan,
       "hipfftSetWorkArea", plan, workArea);
 }
 
+HIPFFT_EXPORT hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int enable) {
+  return DynamicCall<decltype(hipfftSetAutoAllocation), &hipfftSetAutoAllocation>(
+      "hipfftSetAutoAllocation", plan, enable);
+}
+
 HIPFFT_EXPORT hipfftResult hipfftExecC2C(hipfftHandle plan,
                                          hipfftComplex* idata,
                                          hipfftComplex* odata, int direction) {

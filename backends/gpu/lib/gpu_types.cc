@@ -23,8 +23,10 @@
 
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/ccl_wrapper.h"
+#include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
+#include "tfrt/gpu/wrapper/hip_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/host_context.h"
@@ -46,9 +48,7 @@ Expected<wrapper::HostMemory<void>> GpuContext::HostMemoryPool::Allocate(
   }
   // Write-combined results in faster transfers from/to GPU, but the pages are
   // not cached on CPU and should therefore be read/written at once.
-  wrapper::MemHostAllocFlags flags = wrapper::MemHostAllocFlags::DEVICEMAP |
-                                     wrapper::MemHostAllocFlags::WRITECOMBINED;
-  return wrapper::MemHostAlloc(current, size_bytes, flags);
+  return wrapper::MemHostAllocWriteCombined(current, size_bytes);
 }
 
 void GpuContext::HostMemoryPool::Deallocate(GpuPointer pointer,
@@ -157,8 +157,7 @@ class GpuContext::CallbackManager : public ReferenceCounted<CallbackManager> {
     mutex_lock lock(pool_mutex_);
     // Amortize the cost of event instancing with a pool.
     if (event_pool_.empty()) {
-      auto event =
-          wrapper::EventCreate(current, wrapper::EventFlags::DISABLE_TIMING);
+      auto event = wrapper::EventCreateNoTiming(current);
       if (!event) return event.takeError();
       event_pool_.emplace_back(std::move(*event));
     }

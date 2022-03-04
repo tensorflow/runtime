@@ -39,8 +39,7 @@ using wrapper::Test;
 TEST_P(Test, GpuContext) {
   ASSERT_THAT(Init(GetParam()), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto device, wrapper::DeviceGet(GetParam(), 0));
-  TFRT_ASSERT_AND_ASSIGN(
-      auto context, wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, wrapper::CtxCreate(device));
 
   GpuContext gpu_context(std::move(context));
   gpu_context.release();
@@ -50,15 +49,13 @@ TEST_P(Test, GpuContext) {
 TEST_P(Test, GpuStream) {
   ASSERT_THAT(Init(GetParam()), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto device, wrapper::DeviceGet(GetParam(), 0));
-  TFRT_ASSERT_AND_ASSIGN(
-      auto context, wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, wrapper::CtxCreate(device));
 
   auto gpu_context = MakeAvailableAsyncValueRef<GpuContext>(std::move(context));
   TFRT_ASSERT_AND_ASSIGN(auto current, wrapper::CtxGetCurrent());
 
-  TFRT_ASSERT_AND_ASSIGN(
-      auto stream,
-      wrapper::StreamCreate(current, wrapper::StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stream,
+                         wrapper::StreamCreateNonBlocking(current));
 
   GpuStream gpu_stream(gpu_context.CopyRef(), std::move(stream));
   EXPECT_THAT(gpu_stream.get(), NotNull());
@@ -69,14 +66,12 @@ TEST_P(Test, GpuStream) {
 TEST_P(Test, GpuEvent) {
   ASSERT_THAT(Init(GetParam()), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto device, wrapper::DeviceGet(GetParam(), 0));
-  TFRT_ASSERT_AND_ASSIGN(
-      auto context, wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, wrapper::CtxCreate(device));
 
   auto gpu_context = MakeAvailableAsyncValueRef<GpuContext>(std::move(context));
   TFRT_ASSERT_AND_ASSIGN(auto current, wrapper::CtxGetCurrent());
 
-  TFRT_ASSERT_AND_ASSIGN(
-      auto event, wrapper::EventCreate(current, wrapper::EventFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto event, wrapper::EventCreateNoTiming(current));
 
   GpuEvent gpu_event(gpu_context.CopyRef(), std::move(event));
   EXPECT_THAT(gpu_event.get(), NotNull());
@@ -85,16 +80,14 @@ TEST_P(Test, GpuEvent) {
 TEST_P(Test, GpuBuffer) {
   ASSERT_THAT(Init(GetParam()), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto device, wrapper::DeviceGet(GetParam(), 0));
-  TFRT_ASSERT_AND_ASSIGN(
-      auto context, wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, wrapper::CtxCreate(device));
 
   auto gpu_context = MakeAvailableAsyncValueRef<GpuContext>(std::move(context));
   auto gpu_allocator =
       MakeAvailableAsyncValueRef<GpuDefaultAllocator>(gpu_context.CopyRef());
 
-  TFRT_ASSERT_AND_ASSIGN(
-      auto stream,
-      wrapper::StreamCreate(wrapper::Current(), wrapper::StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stream,
+                         wrapper::StreamCreateNonBlocking(wrapper::Current()));
 
   size_t buffer_size = 512;
   TFRT_ASSERT_AND_ASSIGN(
@@ -149,15 +142,13 @@ TEST_F(Test, CallbackManagerCUDA) {
   ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(wrapper::Device device,
                          wrapper::DeviceGet(platform, /*ordinal=*/0));
-  TFRT_ASSERT_AND_ASSIGN(wrapper::OwningContext context,
-                         CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(wrapper::OwningContext context, CtxCreate(device));
   AsyncValueRef<GpuContext> gpu_context =
       MakeAvailableAsyncValueRef<GpuContext>(std::move(context));
   TFRT_ASSERT_AND_ASSIGN(wrapper::CurrentContext current,
                          wrapper::CtxGetCurrent());
-  TFRT_ASSERT_AND_ASSIGN(
-      wrapper::OwningStream stream,
-      wrapper::StreamCreate(current, wrapper::StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(wrapper::OwningStream stream,
+                         wrapper::StreamCreateNonBlocking(current));
   GpuStream gpu_stream(gpu_context.CopyRef(), std::move(stream));
 
   HostContext host([](const tfrt::DecodedDiagnostic&) {},

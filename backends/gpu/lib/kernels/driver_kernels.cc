@@ -25,6 +25,7 @@
 #include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
+#include "tfrt/gpu/wrapper/hip_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/attribute_utils.h"
@@ -55,7 +56,7 @@ static Expected<GpuContext> GpuContextPrimary(wrapper::Device device) {
 
 // tfrt_gpu.context.create creates a gpu context for the given device.
 static Expected<GpuContext> GpuContextCreate(wrapper::Device device) {
-  auto context = wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device);
+  auto context = wrapper::CtxCreate(device);
   if (!context) return context.takeError();
   return GpuContext(std::move(*context));
 }
@@ -65,8 +66,7 @@ static Expected<GpuContext> GpuContextCreate(wrapper::Device device) {
 static Expected<GpuStream> GpuStreamCreate(Argument<GpuContext> context) {
   auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
-  auto stream =
-      wrapper::StreamCreate(*current, wrapper::StreamFlags::NON_BLOCKING);
+  auto stream = wrapper::StreamCreateNonBlocking(*current);
   if (!stream) return stream.takeError();
   return GpuStream(context.ValueRef(), std::move(*stream));
 }
@@ -103,8 +103,7 @@ static AsyncValueRef<Chain> GpuStreamSynchronize(
 static Expected<GpuEvent> GpuEventCreate(Argument<GpuContext> context) {
   auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
-  auto event =
-      wrapper::EventCreate(*current, wrapper::EventFlags::DISABLE_TIMING);
+  auto event = wrapper::EventCreateNoTiming(*current);
   if (!event) return event.takeError();
   return GpuEvent(context.ValueRef(), std::move(*event));
 }
@@ -234,10 +233,7 @@ static Expected<GpuBuffer> GpuMemRegister(
   if (!current) return current.takeError();
 
   auto size = (*buffer)->size();
-  auto flags = wrapper::MemHostRegisterFlags::PORTABLE |
-               wrapper::MemHostRegisterFlags::DEVICEMAP;
-  auto memory =
-      wrapper::MemHostRegister(*current, (*buffer)->data(), size, flags);
+  auto memory = wrapper::MemHostRegister(*current, (*buffer)->data(), size);
   if (!memory) return memory.takeError();
   auto pointer = memory->get();
 

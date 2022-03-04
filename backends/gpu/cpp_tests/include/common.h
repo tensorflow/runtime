@@ -36,11 +36,11 @@ std::ostream& operator<<(std::ostream& os, T item) {
   raw_os << item;
   return os;
 }
-inline std::ostream& operator<<(std::ostream& os, CtxFlags flags) {
-  return os << static_cast<int>(flags);
+inline std::ostream& operator<<(std::ostream& os, ContextFlags flags) {
+  return os << flags.ToOpaqueValue();
 }
 inline std::ostream& operator<<(std::ostream& os, StreamFlags flags) {
-  return os << static_cast<int>(flags);
+  return os << flags.ToOpaqueValue();
 }
 
 // Return the current context or die if an error occurs. This is intended for

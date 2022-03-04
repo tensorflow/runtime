@@ -395,7 +395,7 @@ Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type) {
     case CUDA_C_64F:
       return sizeof(cuDoubleComplex);
     default:
-      return MakeStringError("Unsupported type: ", data_type);
+      return MakeStringError("Unsupported data type: ", Printed(data_type));
   }
 }
 

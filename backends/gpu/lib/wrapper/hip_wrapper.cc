@@ -203,7 +203,7 @@ llvm::Expected<ContextState> HipDevicePrimaryCtxGetState(Device device) {
   unsigned flags;
   int active;
   RETURN_IF_ERROR(hipDevicePrimaryCtxGetState(ToRocm(device), &flags, &active));
-  return ContextState{static_cast<CtxFlags>(flags), active};
+  return ContextState{static_cast<hipDeviceFlags_t>(flags), active};
 }
 
 llvm::Error HipDevicePrimaryCtxSetFlags(Device device, hipDeviceFlags_t flags) {

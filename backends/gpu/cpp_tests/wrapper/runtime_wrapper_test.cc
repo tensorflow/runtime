@@ -43,7 +43,7 @@ TEST_F(Test, DevicePropertiesCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto dev_props, CudaGetDeviceProperties(current));
   ASSERT_GT(dev_props.major, 0);
@@ -55,7 +55,7 @@ TEST_F(Test, DevicePropertiesROCm) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto dev_props, HipGetDeviceProperties(current));
   ASSERT_GT(dev_props.major, 0);

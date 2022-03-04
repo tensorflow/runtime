@@ -30,6 +30,23 @@ namespace wrapper {
 
 raw_ostream& Print(raw_ostream& os, hipError_t error);
 
+namespace internal {
+template <>
+struct EnumPlatform<ContextFlags, hipDeviceFlags_t> : RocmPlatformType {};
+template <>
+struct EnumPlatform<StreamFlags, hipStreamFlags_t> : RocmPlatformType {};
+template <>
+struct EnumPlatform<EventFlags, hipEventFlags_t> : RocmPlatformType {};
+template <>
+struct EnumPlatform<MemHostAllocFlags, hipHostMallocFlags_t>
+    : RocmPlatformType {};
+template <>
+struct EnumPlatform<MemHostRegisterFlags, hipHostRegisterFlags_t>
+    : RocmPlatformType {};
+template <>
+struct EnumPlatform<MemAttachFlags, hipMemAttachFlags_t> : RocmPlatformType {};
+}  // namespace internal
+
 // The following functions map directly to HIP calls.
 //
 // Please consult AMD's documentation for more detail:

@@ -163,7 +163,7 @@ llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
           reinterpret_cast<cuDoubleComplex* const*>(ToCuda(B)), ldb,
           batchCount));
     default:
-      return MakeStringError("Unsupported type: ", dataType);
+      return MakeStringError("Unsupported data type: ", Printed(dataType));
   }
 }
 

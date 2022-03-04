@@ -49,6 +49,24 @@ raw_ostream& internal::operator<<(raw_ostream& os, const ErrorData<T>& data) {
   return os;
 }
 
+namespace internal {
+template <typename T>
+struct Printer {
+  friend raw_ostream& operator<<(raw_ostream& os, Printer printer) {
+    return Print(os, printer.value);
+  }
+  T value;
+};
+}  // namespace internal
+
+// Forwards 'operator<<(os, Printed(value))' to 'Print(os, value)'.
+// This is useful for CUDA/ROCm enums in the global namespace without
+// operator<< that could be found through ADL.
+template <typename T>
+internal::Printer<T> Printed(T value) {
+  return {value};
+}
+
 template <typename T>
 static T* ToCuda(Pointer<T> ptr) {
   return ptr.raw(Platform::CUDA);

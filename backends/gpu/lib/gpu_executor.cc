@@ -208,8 +208,7 @@ static Expected<GpuStream> CreateGpuStreamImpl(wrapper::Platform platform,
   if (!context) return context.takeError();
   auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
-  auto stream =
-      wrapper::StreamCreate(*current, wrapper::StreamFlags::NON_BLOCKING);
+  auto stream = wrapper::StreamCreateNonBlocking(*current);
   if (!stream) return stream.takeError();
   auto gpu_ctx = MakeAvailableAsyncValueRef<GpuContext>(std::move(*context));
   return GpuStream(std::move(gpu_ctx), std::move(*stream));

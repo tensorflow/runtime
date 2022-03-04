@@ -35,9 +35,9 @@ TEST_P(Test, RealToComplex1D) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreate(current, {}));
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreateNonBlocking(current));
 
   constexpr size_t kWindowSize = 256;
   constexpr size_t kWindowSizeBytesInput = kWindowSize * sizeof(cufftReal);
@@ -63,8 +63,10 @@ TEST_P(Test, RealToComplex1D) {
   EXPECT_THAT(FftSetStream(plan.get(), stream.get()), IsSuccess());
 
   // Allocate enough for reuse as output.
-  TFRT_ASSERT_AND_ASSIGN(auto host_data,
-                         MemHostAlloc(current, kWindowSizeBytesOutput, {}));
+  MemHostAllocFlags alloc_flags(CU_MEMHOSTALLOC_DEVICEMAP, platform);
+  TFRT_ASSERT_AND_ASSIGN(
+      auto host_data,
+      MemHostAlloc(current, kWindowSizeBytesOutput, alloc_flags));
 
   const float kPi = acosf(-1.0f);
   auto* input = static_cast<cufftReal*>(host_data.get().raw());

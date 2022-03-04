@@ -119,8 +119,7 @@ llvm::Error GpuDevice::Impl::Initialize() {
     TFRT_ASSIGN_OR_RETURN(auto current, CtxSetCurrent(context_));
     current_context.emplace(current);
 
-    TFRT_ASSIGN_OR_RETURN(owned_stream_,
-                          StreamCreate(current, wrapper::StreamFlags::DEFAULT));
+    TFRT_ASSIGN_OR_RETURN(owned_stream_, StreamCreateNonBlocking(current));
     stream_ = owned_stream_.get();
 
     allocator_ = std::make_unique<gpu::BfcGpuAllocator>(current);

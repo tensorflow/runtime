@@ -33,7 +33,7 @@ TEST_P(Test, DnnHandle) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
 }
@@ -58,7 +58,7 @@ TEST_F(Test, DnnConvFwdFloatCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
 
@@ -121,7 +121,7 @@ TEST_F(Test, DnnConvFwdInt8x4CUDA) {
   if (std::make_pair(cc_major, cc_minor) < std::make_pair(6, 1))
     GTEST_SKIP() << "No DP4A support on sm_" << cc_major << cc_minor;
 
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
 
@@ -192,7 +192,7 @@ TEST_F(Test, CudnnLogCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
   TFRT_ASSERT_AND_ASSIGN(auto descriptor,

@@ -44,8 +44,7 @@ llvm::Expected<int> GetCclDataTypeSizeBytes(ncclDataType_t data_type) {
     case ncclFloat64:
       return 8;
     default:
-      return MakeStringError("Unknown ncclDataType_t: ",
-                             CclDataType(data_type));
+      return MakeStringError("Unsupported data type: ", Printed(data_type));
   }
 }
 

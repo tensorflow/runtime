@@ -148,7 +148,7 @@ llvm::Expected<ContextState> CuDevicePrimaryCtxGetState(Device device) {
   unsigned flags;
   int active;
   RETURN_IF_ERROR(cuDevicePrimaryCtxGetState(ToCuda(device), &flags, &active));
-  return ContextState{static_cast<CtxFlags>(flags), active};
+  return ContextState{static_cast<CUctx_flags>(flags), active};
 }
 
 llvm::Error CuDevicePrimaryCtxSetFlags(Device device, CUctx_flags flags) {

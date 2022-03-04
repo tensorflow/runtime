@@ -28,56 +28,13 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-// Enums that can safely be static_cast'ed to the corresponding CUDA/HIP types.
-enum class CtxFlags {
-  SCHED_AUTO = 0x0,
-  SCHED_SPIN = 0x1,
-  SCHED_YIELD = 0x2,
-  SCHED_BLOCKING_SYNC = 0x4,
-  MAP_HOST = 0x8,
-  LMEM_RESIZE_TO_MAX = 0x10,
-};
-enum class StreamFlags {
-  DEFAULT = 0x0,
-  NON_BLOCKING = 0x1,
-};
-enum class EventFlags {
-  DEFAULT = 0x0,
-  BLOCKING_SYNC = 0x1,
-  DISABLE_TIMING = 0x2,
-  INTERPROCESS = 0x4,
-};
-enum class MemHostAllocFlags {
-  DEFAULT = 0x0,
-  PORTABLE = 0x1,
-  DEVICEMAP = 0x2,
-  WRITECOMBINED = 0x4,
-};
-enum class MemHostRegisterFlags {
-  DEFAULT = 0x0,
-  PORTABLE = 0x1,
-  DEVICEMAP = 0x2,
-};
-enum class MemAttachFlags {
-  GLOBAL = 1,
-  HOST = 2,
-};
-
-namespace internal {
-template <typename E, typename... Ts>
-using IfOneOf =
-    std::enable_if_t<!AllFalse<(std::is_same<E, Ts>::value)...>::value, E>;
-}  // namespace internal
-
-// Binary operators for bitmask enums.
-template <typename E>
-internal::IfOneOf<E, CtxFlags, StreamFlags, EventFlags, MemHostAllocFlags,
-                  MemHostRegisterFlags>
-operator|(E lhs, E rhs) {
-  using underlying = typename std::underlying_type<E>::type;
-  return static_cast<E>(static_cast<underlying>(lhs) |
-                        static_cast<underlying>(rhs));
-}
+// Platform-discriminated enums.
+using ContextFlags = Enum<struct ContextFlagsTag>;
+using StreamFlags = Enum<struct StreamFlagsTag>;
+using EventFlags = Enum<struct EventFlagsTag>;
+using MemHostAllocFlags = Enum<struct MemHostAllocFlagsTag>;
+using MemHostRegisterFlags = Enum<struct MemHostRegisterFlagsTag>;
+using MemAttachFlags = Enum<struct MemAttachFlagsTag>;
 
 // Handle to CUDA or ROCm device.
 class Device {
@@ -163,7 +120,7 @@ using RegisteredMemory =
 
 // Return types for functions returning multiple values.
 struct ContextState {
-  CtxFlags flags;
+  ContextFlags flags;
   int active;
 };
 template <typename T>
@@ -201,9 +158,10 @@ llvm::Expected<OwningContext> DevicePrimaryCtxRetain(Device device);
 llvm::Error DevicePrimaryCtxRelease(Device device);
 llvm::Error DevicePrimaryCtxReset(Device device);
 llvm::Expected<ContextState> DevicePrimaryCtxGetState(Device device);
-llvm::Error DevicePrimaryCtxSetFlags(Device device, CtxFlags flags);
+llvm::Error DevicePrimaryCtxSetFlags(Device device, ContextFlags flags);
 
-llvm::Expected<OwningContext> CtxCreate(CtxFlags flags, Device device);
+llvm::Expected<OwningContext> CtxCreate(Device device);
+llvm::Expected<OwningContext> CtxCreate(ContextFlags flags, Device device);
 llvm::Error CtxDestroy(Context context);
 // Avoid if possible. See documentation of CurrentContext.
 llvm::Expected<CurrentContext> CtxGetCurrent();
@@ -211,7 +169,7 @@ llvm::Expected<CurrentContext> CtxSetCurrent(Context context);
 llvm::Error CtxSynchronize(CurrentContext current);
 llvm::Expected<unsigned> CtxGetApiVersion(Context context);
 llvm::Expected<Device> CtxGetDevice(CurrentContext current);
-llvm::Expected<CtxFlags> CtxGetFlags(CurrentContext current);
+llvm::Expected<ContextFlags> CtxGetFlags(CurrentContext current);
 llvm::Expected<StreamPriorityRange> CtxGetStreamPriorityRange(
     CurrentContext current);
 
@@ -219,6 +177,7 @@ llvm::Expected<OwningStream> StreamCreate(CurrentContext current,
                                           StreamFlags flags);
 llvm::Expected<OwningStream> StreamCreate(CurrentContext current,
                                           StreamFlags flags, int priority);
+llvm::Expected<OwningStream> StreamCreateNonBlocking(CurrentContext current);
 llvm::Error StreamDestroy(Stream stream);
 llvm::Expected<int> StreamGetPriority(Stream stream);
 llvm::Expected<StreamFlags> StreamGetFlags(Stream stream);
@@ -228,6 +187,7 @@ llvm::Error StreamWaitEvent(Stream stream, Event event);
 
 llvm::Expected<OwningEvent> EventCreate(CurrentContext current,
                                         EventFlags flags);
+llvm::Expected<OwningEvent> EventCreateNoTiming(CurrentContext current);
 llvm::Error EventDestroy(Event event);
 llvm::Error EventRecord(Event event, Stream stream);
 llvm::Error EventSynchronize(Event event);
@@ -240,10 +200,16 @@ llvm::Error MemFree(Pointer<void> pointer);
 llvm::Expected<HostMemory<void>> MemHostAlloc(CurrentContext current,
                                               size_t size_bytes,
                                               MemHostAllocFlags flags);
+llvm::Expected<HostMemory<void>> MemHostAllocWriteCombined(
+    CurrentContext current, size_t size_bytes);
 llvm::Error MemHostFree(Pointer<void> pointer);
 llvm::Expected<RegisteredMemory<void>> MemHostRegister(
     CurrentContext current, void* ptr, size_t size_bytes,
     MemHostRegisterFlags flags);
+// Forwards to above with CU_MEMHOSTREGISTER_DEVICEMAP/hipHostRegisterMapped.
+llvm::Expected<RegisteredMemory<void>> MemHostRegister(CurrentContext current,
+                                                       void* ptr,
+                                                       size_t size_bytes);
 llvm::Error MemHostUnregister(Pointer<void> pointer);
 llvm::Expected<DeviceMemory<void>> MemAllocManaged(CurrentContext current,
                                                    size_t size_bytes,

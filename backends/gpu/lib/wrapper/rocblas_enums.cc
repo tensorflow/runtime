@@ -229,7 +229,7 @@ Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type) {
     case rocblas_datatype_f64_c:
       return sizeof(rocblas_double_complex);
     default:
-      return MakeStringError("Unsupported type: ", data_type);
+      return MakeStringError("Unsupported data type: ", Printed(data_type));
   }
 }
 

@@ -26,90 +26,6 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-#define ASSERT_EQ(x, y) \
-  static_assert(static_cast<int>(x) == static_cast<int>(y), "")
-
-// Cast driver wrapper flags to CUDA enums.
-static auto ToCuda(CtxFlags flag) {
-  ASSERT_EQ(CU_CTX_SCHED_AUTO, CtxFlags::SCHED_AUTO);
-  ASSERT_EQ(CU_CTX_SCHED_SPIN, CtxFlags::SCHED_SPIN);
-  ASSERT_EQ(CU_CTX_SCHED_YIELD, CtxFlags::SCHED_YIELD);
-  ASSERT_EQ(CU_CTX_SCHED_BLOCKING_SYNC, CtxFlags::SCHED_BLOCKING_SYNC);
-  ASSERT_EQ(CU_CTX_MAP_HOST, CtxFlags::MAP_HOST);
-  ASSERT_EQ(CU_CTX_LMEM_RESIZE_TO_MAX, CtxFlags::LMEM_RESIZE_TO_MAX);
-  return static_cast<CUctx_flags>(flag);
-}
-static constexpr auto ToCuda(StreamFlags flag) {
-  ASSERT_EQ(CU_STREAM_DEFAULT, StreamFlags::DEFAULT);
-  ASSERT_EQ(CU_STREAM_NON_BLOCKING, StreamFlags::NON_BLOCKING);
-  return static_cast<CUstream_flags>(flag);
-}
-static constexpr auto ToCuda(EventFlags flag) {
-  ASSERT_EQ(CU_EVENT_DEFAULT, EventFlags::DEFAULT);
-  ASSERT_EQ(CU_EVENT_BLOCKING_SYNC, EventFlags::BLOCKING_SYNC);
-  ASSERT_EQ(CU_EVENT_DISABLE_TIMING, EventFlags::DISABLE_TIMING);
-  ASSERT_EQ(CU_EVENT_INTERPROCESS, EventFlags::INTERPROCESS);
-  return static_cast<CUevent_flags>(flag);
-}
-static constexpr auto ToCuda(MemHostAllocFlags flag) {
-  ASSERT_EQ(CU_MEMHOSTALLOC_DEFAULT, MemHostAllocFlags::DEFAULT);
-  ASSERT_EQ(CU_MEMHOSTALLOC_PORTABLE, MemHostAllocFlags::PORTABLE);
-  ASSERT_EQ(CU_MEMHOSTALLOC_DEVICEMAP, MemHostAllocFlags::DEVICEMAP);
-  ASSERT_EQ(CU_MEMHOSTALLOC_WRITECOMBINED, MemHostAllocFlags::WRITECOMBINED);
-  return static_cast<CUmemhostalloc_flags>(flag);
-}
-static constexpr auto ToCuda(MemHostRegisterFlags flag) {
-  ASSERT_EQ(CU_MEMHOSTREGISTER_DEFAULT, MemHostRegisterFlags::DEFAULT);
-  ASSERT_EQ(CU_MEMHOSTREGISTER_PORTABLE, MemHostRegisterFlags::PORTABLE);
-  ASSERT_EQ(CU_MEMHOSTREGISTER_DEVICEMAP, MemHostRegisterFlags::DEVICEMAP);
-  return static_cast<CUmemhostregister_flags>(flag);
-}
-static constexpr auto ToCuda(MemAttachFlags flag) {
-  ASSERT_EQ(CU_MEM_ATTACH_GLOBAL, MemAttachFlags::GLOBAL);
-  ASSERT_EQ(CU_MEM_ATTACH_HOST, MemAttachFlags::HOST);
-  return static_cast<CUmemAttach_flags>(flag);
-}
-
-// Cast driver wrapper flags to HIP enums.
-static constexpr auto ToHip(CtxFlags flag) {
-  ASSERT_EQ(hipDeviceScheduleAuto, CtxFlags::SCHED_AUTO);
-  ASSERT_EQ(hipDeviceScheduleSpin, CtxFlags::SCHED_SPIN);
-  ASSERT_EQ(hipDeviceScheduleYield, CtxFlags::SCHED_YIELD);
-  ASSERT_EQ(hipDeviceScheduleBlockingSync, CtxFlags::SCHED_BLOCKING_SYNC);
-  ASSERT_EQ(hipDeviceMapHost, CtxFlags::MAP_HOST);
-  ASSERT_EQ(hipDeviceLmemResizeToMax, CtxFlags::LMEM_RESIZE_TO_MAX);
-  return static_cast<hipDeviceFlags_t>(flag);
-}
-static constexpr auto ToHip(StreamFlags flag) {
-  ASSERT_EQ(hipStreamDefault, StreamFlags::DEFAULT);
-  ASSERT_EQ(hipStreamNonBlocking, StreamFlags::NON_BLOCKING);
-  return static_cast<hipStreamFlags_t>(flag);
-}
-static constexpr auto ToHip(EventFlags flag) {
-  ASSERT_EQ(hipEventDefault, EventFlags::DEFAULT);
-  ASSERT_EQ(hipEventBlockingSync, EventFlags::BLOCKING_SYNC);
-  ASSERT_EQ(hipEventDisableTiming, EventFlags::DISABLE_TIMING);
-  ASSERT_EQ(hipEventInterprocess, EventFlags::INTERPROCESS);
-  return static_cast<hipEventFlags_t>(flag);
-}
-static constexpr auto ToHip(MemHostAllocFlags flag) {
-  ASSERT_EQ(hipHostMallocDefault, MemHostAllocFlags::DEFAULT);
-  ASSERT_EQ(hipHostMallocPortable, MemHostAllocFlags::PORTABLE);
-  ASSERT_EQ(hipHostMallocMapped, MemHostAllocFlags::DEVICEMAP);
-  ASSERT_EQ(hipHostMallocWriteCombined, MemHostAllocFlags::WRITECOMBINED);
-  return static_cast<hipHostMallocFlags_t>(flag);
-}
-static constexpr auto ToHip(MemHostRegisterFlags flag) {
-  ASSERT_EQ(hipHostRegisterDefault, MemHostRegisterFlags::DEFAULT);
-  ASSERT_EQ(hipHostRegisterMapped, MemHostRegisterFlags::DEVICEMAP);
-  return static_cast<hipHostRegisterFlags_t>(flag);
-}
-static constexpr auto ToHip(MemAttachFlags flag) {
-  ASSERT_EQ(hipMemAttachGlobal, MemAttachFlags::GLOBAL);
-  ASSERT_EQ(hipMemAttachHost, MemAttachFlags::HOST);
-  return static_cast<hipMemAttachFlags_t>(flag);
-}
-
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform) {
   switch (platform) {
     case Platform::NONE:
@@ -342,25 +258,31 @@ llvm::Expected<ContextState> DevicePrimaryCtxGetState(Device device) {
   }
 }
 
-llvm::Error DevicePrimaryCtxSetFlags(Device device, CtxFlags flags) {
+llvm::Error DevicePrimaryCtxSetFlags(Device device, ContextFlags flags) {
   auto platform = device.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuDevicePrimaryCtxSetFlags(device, ToCuda(flags));
+      return CuDevicePrimaryCtxSetFlags(device, flags);
     case Platform::ROCm:
-      return HipDevicePrimaryCtxSetFlags(device, ToHip(flags));
+      return HipDevicePrimaryCtxSetFlags(device, flags);
     default:
       return InvalidPlatform(platform);
   }
 }
 
-llvm::Expected<OwningContext> CtxCreate(CtxFlags flags, Device device) {
+llvm::Expected<OwningContext> CtxCreate(Device device) {
+  constexpr int flag = CU_CTX_SCHED_AUTO;
+  static_assert(flag == hipDeviceScheduleAuto, "different value");
+  return CtxCreate(ContextFlags(flag, device.platform()), device);
+}
+
+llvm::Expected<OwningContext> CtxCreate(ContextFlags flags, Device device) {
   auto platform = device.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuCtxCreate(ToCuda(flags), device);
+      return CuCtxCreate(flags, device);
     case Platform::ROCm:
-      return HipCtxCreate(ToHip(flags), device);
+      return HipCtxCreate(flags, device);
     default:
       return InvalidPlatform(platform);
   }
@@ -431,18 +353,18 @@ llvm::Expected<Device> CtxGetDevice(CurrentContext current) {
   }
 }
 
-llvm::Expected<CtxFlags> CtxGetFlags(CurrentContext current) {
+llvm::Expected<ContextFlags> CtxGetFlags(CurrentContext current) {
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA: {
       auto result = CuCtxGetFlags(current);
       if (!result) return result.takeError();
-      return static_cast<CtxFlags>(*result);
+      return static_cast<ContextFlags>(*result);
     }
     case Platform::ROCm: {
       auto result = HipCtxGetFlags(current);
       if (!result) return result.takeError();
-      return static_cast<CtxFlags>(*result);
+      return static_cast<ContextFlags>(*result);
     }
     default:
       return InvalidPlatform(platform);
@@ -467,9 +389,9 @@ llvm::Expected<OwningStream> StreamCreate(CurrentContext current,
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuStreamCreate(current, ToCuda(flags));
+      return CuStreamCreate(current, flags);
     case Platform::ROCm:
-      return HipStreamCreate(current, ToHip(flags));
+      return HipStreamCreate(current, flags);
     default:
       return InvalidPlatform(platform);
   }
@@ -480,12 +402,18 @@ llvm::Expected<OwningStream> StreamCreate(CurrentContext current,
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuStreamCreate(current, ToCuda(flags), priority);
+      return CuStreamCreate(current, flags, priority);
     case Platform::ROCm:
-      return HipStreamCreate(current, ToHip(flags), priority);
+      return HipStreamCreate(current, flags, priority);
     default:
       return InvalidPlatform(platform);
   }
+}
+
+llvm::Expected<OwningStream> StreamCreateNonBlocking(CurrentContext current) {
+  constexpr int flag = CU_STREAM_NON_BLOCKING;
+  static_assert(flag == hipStreamNonBlocking, "different value");
+  return StreamCreate(current, StreamFlags(flag, current.platform()));
 }
 
 llvm::Error StreamDestroy(Stream stream) {
@@ -571,12 +499,18 @@ llvm::Expected<OwningEvent> EventCreate(CurrentContext current,
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuEventCreate(current, ToCuda(flags));
+      return CuEventCreate(current, flags);
     case Platform::ROCm:
-      return HipEventCreate(current, ToHip(flags));
+      return HipEventCreate(current, flags);
     default:
       return InvalidPlatform(platform);
   }
+}
+
+llvm::Expected<OwningEvent> EventCreateNoTiming(CurrentContext current) {
+  constexpr int flag = CU_EVENT_DISABLE_TIMING;
+  static_assert(flag == hipEventDisableTiming, "different value");
+  return EventCreate(current, EventFlags(flag, current.platform()));
 }
 
 llvm::Error EventDestroy(Event event) {
@@ -670,12 +604,25 @@ llvm::Expected<HostMemory<void>> MemHostAlloc(CurrentContext current,
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuMemHostAlloc(current, size_bytes, ToCuda(flags));
+      return CuMemHostAlloc(current, size_bytes, flags);
     case Platform::ROCm:
-      return HipMemHostAlloc(current, size_bytes, ToHip(flags));
+      return HipMemHostAlloc(current, size_bytes, flags);
     default:
       return InvalidPlatform(platform);
   }
+}
+
+llvm::Expected<HostMemory<void>> MemHostAllocWriteCombined(
+    CurrentContext current, size_t size_bytes) {
+  // Write-combined makes only sense if memory is also GPU accessible.
+  // Besides, GPUs all use UVA these days and this makes DEVICEMAP a no-op.
+  constexpr int dm_flag = CU_MEMHOSTALLOC_DEVICEMAP;
+  constexpr int wc_flag = CU_MEMHOSTALLOC_WRITECOMBINED;
+  static_assert(dm_flag == hipHostMallocMapped, "different value");
+  static_assert(wc_flag == hipHostMallocWriteCombined, "different value");
+  return wrapper::MemHostAlloc(
+      current, size_bytes,
+      MemHostAllocFlags(dm_flag | wc_flag, current.platform()));
 }
 
 llvm::Error MemHostFree(Pointer<void> pointer) {
@@ -696,12 +643,22 @@ llvm::Expected<RegisteredMemory<void>> MemHostRegister(
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuMemHostRegister(current, ptr, size_bytes, ToCuda(flags));
+      return CuMemHostRegister(current, ptr, size_bytes, flags);
     case Platform::ROCm:
-      return HipMemHostRegister(current, ptr, size_bytes, ToHip(flags));
+      return HipMemHostRegister(current, ptr, size_bytes, flags);
     default:
       return InvalidPlatform(platform);
   }
+}
+
+llvm::Expected<RegisteredMemory<void>> MemHostRegister(CurrentContext current,
+                                                       void* ptr,
+                                                       size_t size_bytes) {
+  constexpr int flags = CU_MEMHOSTREGISTER_DEVICEMAP;
+  static_assert(flags == hipHostRegisterMapped, "different value");
+  return MemHostRegister(
+      current, ptr, size_bytes,
+      wrapper::MemHostRegisterFlags(flags, current.platform()));
 }
 
 llvm::Error MemHostUnregister(Pointer<void> pointer) {
@@ -722,9 +679,9 @@ llvm::Expected<DeviceMemory<void>> MemAllocManaged(CurrentContext current,
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuMemAllocManaged(current, size_bytes, ToCuda(flags));
+      return CuMemAllocManaged(current, size_bytes, flags);
     case Platform::ROCm:
-      return HipMemAllocManaged(current, size_bytes, ToHip(flags));
+      return HipMemAllocManaged(current, size_bytes, flags);
     default:
       return InvalidPlatform(platform);
   }

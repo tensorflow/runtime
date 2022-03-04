@@ -64,7 +64,7 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
   }
 
   llvm::Expected<OwningEvent> event_or_error =
-      EventCreate(current_context, EventFlags::DISABLE_TIMING);
+      wrapper::EventCreateNoTiming(current_context);
   if (!event_or_error) {
     return MakeErrorAsyncValueRef(
         host, "could not create event to wait for host to device memcpy: " +
@@ -121,7 +121,7 @@ Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
     return std::move(error);
 
   llvm::Expected<OwningEvent> event_or_error =
-      EventCreate(current_context, EventFlags::DISABLE_TIMING);
+      wrapper::EventCreateNoTiming(current_context);
   if (!event_or_error) return event_or_error.takeError();
 
   OwningEvent event = std::move(*event_or_error);

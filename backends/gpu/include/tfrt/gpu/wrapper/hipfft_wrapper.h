@@ -50,7 +50,7 @@ llvm::Expected<LibraryVersion> HipfftGetVersion();
 
 // Creates an opaque handle and allocates small data for the plan. Use
 // HipfftMakePlanMany to do the plan generation.
-llvm::Expected<OwningFftHandle> HipfftCreate();
+llvm::Expected<OwningFftHandle> HipfftCreate(CurrentContext current);
 
 // Frees all GPU resources associated with the handle and destroys internal data
 // structures.
@@ -60,13 +60,10 @@ llvm::Error HipfftDestroy(hipfftHandle handle);
 // may consist of many kernel invocations.
 llvm::Error HipfftSetStream(hipfftHandle handle, hipStream_t stream);
 
-llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle handle, int rank,
-                                          ArrayRef<int64_t> n,
-                                          ArrayRef<int64_t> inembed,
-                                          int64_t istride, int64_t idist,
-                                          ArrayRef<int64_t> onembed,
-                                          int64_t ostride, int64_t odist,
-                                          hipfftType type, int64_t batch);
+llvm::Expected<size_t> HipfftMakePlanMany(
+    hipfftHandle handle, hipfftType type, int64_t batch, ArrayRef<int64_t> dims,
+    ArrayRef<int64_t> input_embed, int64_t input_stride, int64_t input_dist,
+    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t output_dist);
 
 llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle);
 
@@ -75,9 +72,9 @@ llvm::Error HipfftEnableAutoAllocation(hipfftHandle handle);
 
 llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area);
 
-llvm::Error HipfftExec(hipfftHandle handle, Pointer<const void> raw_input,
-                       Pointer<void> raw_output, hipfftType type,
-                       hipfftDirection direction);
+llvm::Error HipfftExec(CurrentContext current, hipfftHandle handle,
+                       Pointer<const void> raw_input, Pointer<void> raw_output,
+                       hipfftType type, hipfftDirection direction);
 
 }  // namespace wrapper
 }  // namespace gpu

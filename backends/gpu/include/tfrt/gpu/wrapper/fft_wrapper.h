@@ -94,7 +94,7 @@ struct FftHandleDeleter {
 // RAII wrappers for resources. Instances own the underlying resource.
 using OwningFftHandle = internal::OwningResource<internal::FftHandleDeleter>;
 
-llvm::Expected<OwningFftHandle> FftCreate(Platform platform);
+llvm::Expected<OwningFftHandle> FftCreate(CurrentContext current);
 llvm::Error FftDestroy(FftHandle handle);
 llvm::Error FftSetStream(FftHandle handle, Stream stream);
 llvm::Error FftDisableAutoAllocation(FftHandle handle);
@@ -103,11 +103,16 @@ llvm::Expected<size_t> FftGetWorkspaceSize(FftHandle handle);
 llvm::Error FftSetWorkspace(FftHandle handle, Pointer<void> workspace,
                             size_t size_bytes);
 llvm::Expected<size_t> FftMakePlanMany(
-    FftHandle handle, FftType type, int64_t batch, int rank,
-    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
-    int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
-    int64_t output_stride, int64_t input_dist, int64_t output_dist);
-llvm::Error FftExec(FftHandle handle, wrapper::Pointer<const void> input,
+    FftHandle handle, FftType type, int64_t batch, llvm::ArrayRef<int64_t> dims,
+    llvm::ArrayRef<int64_t> input_embed, int64_t input_stride,
+    int64_t input_dist, llvm::ArrayRef<int64_t> output_embed,
+    int64_t output_stride, int64_t output_dist);
+// Overload for dense row-major inputs and outputs.
+llvm::Expected<size_t> FftMakePlanMany(FftHandle handle, FftType type,
+                                       int64_t batch,
+                                       llvm::ArrayRef<int64_t> dims);
+llvm::Error FftExec(CurrentContext current, FftHandle handle,
+                    wrapper::Pointer<const void> input,
                     wrapper::Pointer<void> output, FftType type,
                     FftDirection direction);
 

@@ -163,7 +163,6 @@ def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
     tfrt_gpu.allocator.create creates an allocator for the given context.
 
     Example:
-      %ch1 = tfrt.new.chain
       %allocator = tfrt_gpu.allocator.create %context
   }];
   let arguments = (ins GPU_ContextType);

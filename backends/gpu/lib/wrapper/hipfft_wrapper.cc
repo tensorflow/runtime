@@ -35,7 +35,8 @@ llvm::Expected<LibraryVersion> HipfftGetVersion() {
   return version;
 }
 
-llvm::Expected<OwningFftHandle> HipfftCreate() {
+llvm::Expected<OwningFftHandle> HipfftCreate(CurrentContext current) {
+  CheckHipContext(current);
   hipfftHandle handle;
   RETURN_IF_ERROR(hipfftCreate(&handle));
   return OwningFftHandle(handle);
@@ -63,26 +64,31 @@ static T* ToHipfft(llvm::ArrayRef<T> array_ref) {
   return const_cast<T*>(array_ref.data());
 }
 
-llvm::Expected<size_t> HipfftMakePlanMany(hipfftHandle handle, int rank,
-                                          llvm::ArrayRef<int64_t> n,
-                                          llvm::ArrayRef<int64_t> inembed,
-                                          int64_t istride, int64_t idist,
-                                          llvm::ArrayRef<int64_t> onembed,
-                                          int64_t ostride, int64_t odist,
-                                          hipfftType type, int64_t batch) {
+llvm::Expected<size_t> HipfftMakePlanMany(
+    hipfftHandle handle, hipfftType type, int64_t batch,
+    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
+    int64_t input_stride, int64_t input_dist,
+    llvm::ArrayRef<int64_t> output_embed, int64_t output_stride,
+    int64_t output_dist) {
   // NOLINTNEXTLINE(google-runtime-int)
   static_assert(sizeof(int64_t) == sizeof(long long),
                 "hipFFT uses long long for 64-bit values, but there is a size "
                 "mismatch between long long and int64_t");
-  size_t work_size;
+  int64_t rank = dims.size();
+  if (!input_embed.empty() && input_embed.size() != rank)
+    return MakeStringError("Expected input_embed to be empty or of size rank");
+  if (!output_embed.empty() && output_embed.size() != rank)
+    return MakeStringError("Expected output_embed to be empty or of size rank");
+  size_t workspace_size_bytes;
   return hipfftMakePlanMany64(
       // NOLINTNEXTLINE(google-runtime-int)
-      handle, rank, reinterpret_cast<long long*>(ToHipfft(n)),
+      handle, rank, reinterpret_cast<long long*>(ToHipfft(dims)),
       // NOLINTNEXTLINE(google-runtime-int)
-      reinterpret_cast<long long*>(ToHipfft(inembed)), istride, idist,
+      reinterpret_cast<long long*>(ToHipfft(input_embed)), input_stride,
+      input_dist,
       // NOLINTNEXTLINE(google-runtime-int)
-      reinterpret_cast<long long*>(ToHipfft(onembed)), ostride, odist, type,
-      batch, &work_size);
+      reinterpret_cast<long long*>(ToHipfft(output_embed)), output_stride,
+      output_dist, type, batch, &workspace_size_bytes);
 }
 
 llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle) {
@@ -103,9 +109,10 @@ llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area) {
   return TO_ERROR(hipfftSetWorkArea(handle, ToRocm(work_area)));
 }
 
-llvm::Error HipfftExec(hipfftHandle handle, Pointer<const void> input,
-                       Pointer<void> output, hipfftType type,
-                       hipfftDirection direction) {
+llvm::Error HipfftExec(CurrentContext current, hipfftHandle handle,
+                       Pointer<const void> input, Pointer<void> output,
+                       hipfftType type, hipfftDirection direction) {
+  CheckHipContext(current);
   void* input_ptr = const_cast<void*>(input.raw(Platform::ROCm));
   void* output_ptr = output.raw(Platform::ROCm);
 

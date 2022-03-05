@@ -45,17 +45,12 @@ struct EnumStream<FftDirection, Platform::CUDA>
     : EnumStreamPtrs<cufftDirection, Parse, Print> {};
 }  // namespace internal
 
-// Cufft can only configure plans up to 3D.
-constexpr bool IsValidFftRank(int rank) {
-  return rank == 1 || rank == 2 || rank == 3;
-}
-
 llvm::Expected<LibraryVersion> CufftGetVersion();
 
 // Creates an opaque handle and allocates small data for the plan. Use
 // CufftMakePlanMany to do the plan generation. (See
 // https://docs.nvidia.com/cuda/cufft/index.html#plan-extensible).
-llvm::Expected<OwningFftHandle> CufftCreate();
+llvm::Expected<OwningFftHandle> CufftCreate(CurrentContext current);
 
 // Frees all GPU resources associated with the handle and destroys internal data
 // structures.
@@ -69,10 +64,9 @@ llvm::Error CufftSetStream(cufftHandle handle, cudaStream_t stream);
 // and type. Work size contains the size(s) in bytes of the work areas for each
 // GPU used.
 llvm::Expected<size_t> CufftMakePlanMany(
-    cufftHandle handle, cufftType type, int64_t batch, int rank,
-    ArrayRef<int64_t> dims, ArrayRef<int64_t> input_embed, int64_t input_stride,
-    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t input_dist,
-    int64_t output_dist);
+    cufftHandle handle, cufftType type, int64_t batch, ArrayRef<int64_t> dims,
+    ArrayRef<int64_t> input_embed, int64_t input_stride, int64_t input_dist,
+    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t output_dist);
 
 // Functions for getting estimated size of work area for temporary results
 // during plan execution.
@@ -99,9 +93,9 @@ llvm::Error CufftEnableAutoAllocation(cufftHandle handle);
 
 llvm::Error CufftSetWorkArea(cufftHandle handle, Pointer<void> work_area);
 
-llvm::Error CufftExec(cufftHandle handle, Pointer<const void> raw_input,
-                      Pointer<void> raw_output, cufftType type,
-                      cufftDirection direction);
+llvm::Error CufftExec(CurrentContext current, cufftHandle handle,
+                      Pointer<const void> raw_input, Pointer<void> raw_output,
+                      cufftType type, cufftDirection direction);
 
 }  // namespace wrapper
 }  // namespace gpu

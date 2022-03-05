@@ -21,6 +21,7 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/FormatVariadic.h"
+#include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/fft_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "wrapper_detail.h"
@@ -40,14 +41,18 @@ llvm::Expected<LibraryVersion> CufftGetVersion() {
   return version;
 }
 
-llvm::Expected<OwningFftHandle> CufftCreate() {
+llvm::Expected<OwningFftHandle> CufftCreate(CurrentContext current) {
+  CheckCudaContext(current);
   cufftHandle handle;
   RETURN_IF_ERROR(cufftCreate(&handle));
   return OwningFftHandle(handle);
 }
 
 llvm::Error CufftDestroy(cufftHandle handle) {
-  return TO_ERROR(cufftDestroy(handle));
+  auto fft_error = TO_ERROR(cufftDestroy(handle));
+  // Restores the current context after cufftDestroy has fiddled with it.
+  auto ctx_error = TO_ERROR(cuCtxSetCurrent(kContextTls.cuda_ctx));
+  return llvm::joinErrors(std::move(fft_error), std::move(ctx_error));
 }
 
 llvm::Error CufftSetStream(cufftHandle handle, cudaStream_t stream) {
@@ -71,21 +76,26 @@ static T* ToCufft(ArrayRef<T> array_ref) {
 }
 
 llvm::Expected<size_t> CufftMakePlanMany(
-    cufftHandle handle, cufftType type, int64_t batch, int rank,
-    ArrayRef<int64_t> dims, ArrayRef<int64_t> input_embed, int64_t input_stride,
-    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t input_dist,
+    cufftHandle handle, cufftType type, int64_t batch, ArrayRef<int64_t> dims,
+    ArrayRef<int64_t> input_embed, int64_t input_stride, int64_t input_dist,
+    ArrayRef<int64_t> output_embed, int64_t output_stride,
     int64_t output_dist) {
   // NOLINTNEXTLINE(google-runtime-int)
   static_assert(sizeof(int64_t) == sizeof(long long),
                 "cuFFT uses long long for 64-bit values, but there is a size "
                 "mismatch between long long and int64_t");
-  size_t work_size;
+  int rank = dims.size();
+  if (!input_embed.empty() && input_embed.size() != rank)
+    return MakeStringError("Expected input_embed to be empty or of size rank");
+  if (!output_embed.empty() && output_embed.size() != rank)
+    return MakeStringError("Expected output_embed to be empty or of size rank");
+  size_t workspace_size_bytes;
   RETURN_IF_ERROR(cufftMakePlanMany64(
       handle, rank, reinterpret_cast<long long*>(ToCufft(dims)),
       reinterpret_cast<long long*>(ToCufft(input_embed)), input_stride,
       input_dist, reinterpret_cast<long long*>(ToCufft(output_embed)),
-      output_stride, output_dist, type, batch, &work_size));
-  return work_size;
+      output_stride, output_dist, type, batch, &workspace_size_bytes));
+  return workspace_size_bytes;
 }
 
 llvm::Expected<size_t> CufftEstimateMany(
@@ -132,9 +142,11 @@ llvm::Error CufftSetWorkArea(cufftHandle handle, Pointer<void> work_area) {
   return TO_ERROR(cufftSetWorkArea(handle, ToCuda(work_area)));
 }
 
-llvm::Error CufftExec(cufftHandle handle, Pointer<const void> input,
-                      Pointer<void> output, cufftType type,
-                      cufftDirection direction) {
+llvm::Error CufftExec(CurrentContext current, cufftHandle handle,
+                      Pointer<const void> input, Pointer<void> output,
+                      cufftType type, cufftDirection direction) {
+  CheckCudaContext(current);
+
   void* input_ptr = const_cast<void*>(input.raw(Platform::CUDA));
   void* output_ptr = output.raw(Platform::CUDA);
 

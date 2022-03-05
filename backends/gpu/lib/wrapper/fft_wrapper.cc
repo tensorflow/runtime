@@ -33,14 +33,14 @@ void internal::FftHandleDeleter::operator()(FftHandle handle) const {
   LogIfError(FftDestroy(handle));
 }
 
-llvm::Expected<OwningFftHandle> FftCreate(Platform platform) {
-  switch (platform) {
+llvm::Expected<OwningFftHandle> FftCreate(CurrentContext current) {
+  switch (current.platform()) {
     case Platform::CUDA:
-      return CufftCreate();
+      return CufftCreate(current);
     case Platform::ROCm:
-      return HipfftCreate();
+      return HipfftCreate(current);
     default:
-      return InvalidPlatform(platform);
+      return InvalidPlatform(current.platform());
   }
 }
 
@@ -118,33 +118,40 @@ llvm::Error FftSetWorkspace(FftHandle handle, Pointer<void> workspace,
 }
 
 llvm::Expected<size_t> FftMakePlanMany(
-    FftHandle handle, FftType type, int64_t batch, int rank,
-    llvm::ArrayRef<int64_t> dims, llvm::ArrayRef<int64_t> input_embed,
-    int64_t input_stride, llvm::ArrayRef<int64_t> output_embed,
-    int64_t output_stride, int64_t input_dist, int64_t output_dist) {
+    FftHandle handle, FftType type, int64_t batch, llvm::ArrayRef<int64_t> dims,
+    llvm::ArrayRef<int64_t> input_embed, int64_t input_stride,
+    int64_t input_dist, llvm::ArrayRef<int64_t> output_embed,
+    int64_t output_stride, int64_t output_dist) {
   switch (handle.platform()) {
     case Platform::CUDA:
-      return CufftMakePlanMany(handle, type, batch, rank, dims, input_embed,
-                               input_stride, output_embed, output_stride,
-                               input_dist, output_dist);
+      return CufftMakePlanMany(handle, type, batch, dims, input_embed,
+                               input_stride, input_dist, output_embed,
+                               output_stride, output_dist);
     case Platform::ROCm:
-      return HipfftMakePlanMany(handle, rank, dims, input_embed, input_stride,
-                                input_dist, output_embed, output_stride,
-                                output_dist, type, batch);
+      return HipfftMakePlanMany(handle, type, batch, dims, input_embed,
+                                input_stride, input_dist, output_embed,
+                                output_stride, output_dist);
     default:
       return InvalidPlatform(handle.platform());
   }
 }
 
-llvm::Error FftExec(FftHandle handle, wrapper::Pointer<const void> input,
+llvm::Expected<size_t> FftMakePlanMany(FftHandle handle, FftType type,
+                                       int64_t batch,
+                                       llvm::ArrayRef<int64_t> dims) {
+  return FftMakePlanMany(handle, type, batch, dims, {}, 0, 0, {}, 0, 0);
+}
+
+llvm::Error FftExec(CurrentContext current, FftHandle handle,
+                    wrapper::Pointer<const void> input,
                     wrapper::Pointer<void> output, FftType type,
                     FftDirection direction) {
   Platform platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CufftExec(handle, input, output, type, direction);
+      return CufftExec(current, handle, input, output, type, direction);
     case Platform::ROCm:
-      return HipfftExec(handle, input, output, type, direction);
+      return HipfftExec(current, handle, input, output, type, direction);
     default:
       return InvalidPlatform(platform);
   }

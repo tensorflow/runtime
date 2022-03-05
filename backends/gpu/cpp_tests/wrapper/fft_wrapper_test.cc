@@ -44,25 +44,13 @@ TEST_P(Test, RealToComplex1D) {
   constexpr size_t kWindowSizeBytesOutput = kWindowSize * sizeof(cufftComplex);
 
   // Prepare FFT plan.
-
-  llvm::SmallVector<int64_t, 3> dims = {kWindowSize};
-  llvm::SmallVector<int64_t, 3> input_embed = {};
-  llvm::SmallVector<int64_t, 3> output_embed = {};
-  auto rank = 1;
-  auto input_dist = 1;
-  auto input_stride = 0;
-  auto output_dist = 1;
-  auto output_stride = 0;
-
   FftType type(CUFFT_R2C, platform);
   FftDirection direction(CUFFT_FORWARD, platform);
 
-  TFRT_ASSERT_AND_ASSIGN(OwningFftHandle handle, FftCreate(platform));
-  EXPECT_THAT(FftMakePlanMany(handle.get(), type, /*batch=*/1, rank, dims,
-                              input_embed, input_stride, output_embed,
-                              output_stride, input_dist, output_dist)
-                  .takeError(),
-              IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(OwningFftHandle handle, FftCreate(current));
+  EXPECT_THAT(
+      FftMakePlanMany(handle.get(), type, /*batch=*/1, kWindowSize).takeError(),
+      IsSuccess());
   EXPECT_THAT(FftSetStream(handle.get(), stream.get()), IsSuccess());
 
   // Allocate enough for reuse as output.
@@ -85,8 +73,8 @@ TEST_P(Test, RealToComplex1D) {
                           kWindowSizeBytesInput, stream.get()),
               IsSuccess());
 
-  EXPECT_THAT(FftExec(handle.get(), device_data.get(), device_data.get(), type,
-                      direction),
+  EXPECT_THAT(FftExec(current, handle.get(), device_data.get(),
+                      device_data.get(), type, direction),
               IsSuccess());
   EXPECT_THAT(MemcpyAsync(current, host_data.get(), device_data.get(),
                           kWindowSizeBytesOutput, stream.get()),

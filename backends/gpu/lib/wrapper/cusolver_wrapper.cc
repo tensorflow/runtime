@@ -76,90 +76,70 @@ llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle) {
 }
 
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n, Pointer<float> A,
-                            int heightA, Pointer<float> workspace,
+                            cudaDataType dataType, cublasFillMode_t fillMode, int n,
+                            Pointer<void> A, int heightA, Pointer<void> workspace,
                             int workspaceSize, Pointer<int> devInfo) {
   CheckCudaContext(current);
-  return TO_ERROR(cusolverDnSpotrf(handle, fillMode, n, ToCuda(A), heightA,
-                                   ToCuda(workspace), workspaceSize,
-                                   ToCuda(devInfo)));
-}
-
-llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n, Pointer<double> A,
-                            int heightA, Pointer<double> workspace,
-                            int workspaceSize, Pointer<int> devInfo) {
-  CheckCudaContext(current);
-  return TO_ERROR(cusolverDnDpotrf(handle, fillMode, n, ToCuda(A), heightA,
-                                   ToCuda(workspace), workspaceSize,
-                                   ToCuda(devInfo)));
-}
-
-llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n,
-                            Pointer<cuComplex> A, int heightA,
-                            Pointer<cuComplex> workspace, int workspaceSize,
-                            Pointer<int> devInfo) {
-  CheckCudaContext(current);
-  return TO_ERROR(cusolverDnCpotrf(handle, fillMode, n, ToCuda(A), heightA,
-                                   ToCuda(workspace), workspaceSize,
-                                   ToCuda(devInfo)));
-}
-
-llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n,
-                            Pointer<cuDoubleComplex> A, int heightA,
-                            Pointer<cuDoubleComplex> workspace,
-                            int workspaceSize, Pointer<int> devInfo) {
-  CheckCudaContext(current);
-  return TO_ERROR(cusolverDnZpotrf(handle, fillMode, n, ToCuda(A), heightA,
-                                   ToCuda(workspace), workspaceSize,
-                                   ToCuda(devInfo)));
+  switch (dataType) {
+    case CUDA_R_32F:
+      return TO_ERROR(cusolverDnSpotrf(
+          handle, fillMode, n,
+          reinterpret_cast<float*>(ToCuda(A)), heightA,
+          reinterpret_cast<float*>(ToCuda(workspace)),
+          workspaceSize, ToCuda(devInfo)));
+    case CUDA_C_32F:
+      return TO_ERROR(cusolverDnCpotrf(
+          handle, fillMode, n,
+          reinterpret_cast<cuComplex*>(ToCuda(A)), heightA,
+          reinterpret_cast<cuComplex*>(ToCuda(workspace)),
+          workspaceSize, ToCuda(devInfo)));
+    case CUDA_R_64F:
+      return TO_ERROR(cusolverDnDpotrf(
+          handle, fillMode, n,
+          reinterpret_cast<double*>(ToCuda(A)), heightA,
+          reinterpret_cast<double*>(ToCuda(workspace)),
+          workspaceSize, ToCuda(devInfo)));
+    case CUDA_C_64F:
+      return TO_ERROR(cusolverDnZpotrf(
+          handle, fillMode, n,
+          reinterpret_cast<cuDoubleComplex*>(ToCuda(A)), heightA,
+          reinterpret_cast<cuDoubleComplex*>(ToCuda(workspace)),
+          workspaceSize, ToCuda(devInfo)));
+    default:
+      return MakeStringError("Unsupported type: ", Printed(dataType));
+  }
 }
 
 llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
+                                   cusolverDnHandle_t handle, cudaDataType dataType,
                                    cublasFillMode_t fillMode, int n,
-                                   Pointer<float *> Aarray, int heightA,
+                                   Pointer<void *> Aarray, int heightA,
                                    Pointer<int> devInfoArray, int batchSize) {
   CheckCudaContext(current);
-  return TO_ERROR(cusolverDnSpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
-                                          heightA, ToCuda(devInfoArray),
-                                          batchSize));
-}
-
-llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
-                                   cublasFillMode_t fillMode, int n,
-                                   Pointer<double *> Aarray, int heightA,
-                                   Pointer<int> devInfoArray, int batchSize) {
-  CheckCudaContext(current);
-  return TO_ERROR(cusolverDnDpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
-                                          heightA, ToCuda(devInfoArray),
-                                          batchSize));
-}
-
-llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
-                                   cublasFillMode_t fillMode, int n,
-                                   Pointer<cuComplex *> Aarray, int heightA,
-                                   Pointer<int> devInfoArray, int batchSize) {
-  CheckCudaContext(current);
-  return TO_ERROR(cusolverDnCpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
-                                          heightA, ToCuda(devInfoArray),
-                                          batchSize));
-}
-
-llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
-                                   cublasFillMode_t fillMode, int n,
-                                   Pointer<cuDoubleComplex *> Aarray,
-                                   int heightA, Pointer<int> devInfoArray,
-                                   int batchSize) {
-  CheckCudaContext(current);
-  return TO_ERROR(cusolverDnZpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
-                                          heightA, ToCuda(devInfoArray),
-                                          batchSize));
+  switch (dataType) {
+    case CUDA_R_32F:
+      return TO_ERROR(cusolverDnSpotrfBatched(
+          handle, fillMode, n,
+          reinterpret_cast<float**>(ToCuda(Aarray)), heightA,
+          ToCuda(devInfoArray), batchSize));
+    case CUDA_C_32F:
+      return TO_ERROR(cusolverDnCpotrfBatched(
+          handle, fillMode, n,
+          reinterpret_cast<cuComplex**>(ToCuda(Aarray)), heightA,
+          ToCuda(devInfoArray), batchSize));
+    case CUDA_R_64F:
+      return TO_ERROR(cusolverDnDpotrfBatched(
+          handle, fillMode, n,
+          reinterpret_cast<double**>(ToCuda(Aarray)), heightA,
+          ToCuda(devInfoArray), batchSize));
+    case CUDA_C_64F:
+      return TO_ERROR(cusolverDnZpotrfBatched(
+          handle, fillMode, n,
+          reinterpret_cast<cuDoubleComplex**>(ToCuda(Aarray)), heightA,
+          ToCuda(devInfoArray), batchSize));
+    default:
+      return MakeStringError("Unsupported type: ", Printed(dataType));
+  }
 }
 
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,

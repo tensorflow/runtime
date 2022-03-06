@@ -32,47 +32,15 @@ llvm::Expected<OwningSolverHandle> CusolverDnCreate();
 llvm::Error CusolverDnDestroy(cusolverDnHandle_t handle);
 llvm::Error CusolverDnSetStream(cusolverDnHandle_t handle, cudaStream_t stream);
 llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle);
-
-// TODO(hanbinyoon): Replace with a type-punned version of CusolverDnPotrf.
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n, Pointer<float> A,
-                            int heightA, Pointer<float> workspace,
-                            int workspaceSize, Pointer<int> devInfo);
-llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n, Pointer<double> A,
-                            int heightA, Pointer<double> workspace,
-                            int workspaceSize, Pointer<int> devInfo);
-llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n,
-                            Pointer<cuComplex> A, int heightA,
-                            Pointer<cuComplex> workspace, int workspaceSize,
-                            Pointer<int> devInfo);
-llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t fillMode, int n,
-                            Pointer<cuDoubleComplex> A, int heightA,
-                            Pointer<cuDoubleComplex> workspace,
+                            cudaDataType dataType, cublasFillMode_t fillMode, int n,
+                            Pointer<void> A, int heightA, Pointer<void> workspace,
                             int workspaceSize, Pointer<int> devInfo);
 llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
+                                   cusolverDnHandle_t handle, cudaDataType dataType,
                                    cublasFillMode_t fillMode, int n,
-                                   Pointer<float *> Aarray, int heightA,
+                                   Pointer<void *> Aarray, int heightA,
                                    Pointer<int> devInfoArray, int batchSize);
-llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
-                                   cublasFillMode_t fillMode, int n,
-                                   Pointer<double *> Aarray, int heightA,
-                                   Pointer<int> devInfoArray, int batchSize);
-llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
-                                   cublasFillMode_t fillMode, int n,
-                                   Pointer<cuComplex *> Aarray, int heightA,
-                                   Pointer<int> devInfoArray, int batchSize);
-llvm::Error CusolverDnPotrfBatched(CurrentContext current,
-                                   cusolverDnHandle_t handle,
-                                   cublasFillMode_t fillMode, int n,
-                                   Pointer<cuDoubleComplex *> Aarray,
-                                   int heightA, Pointer<int> devInfoArray,
-                                   int batchSize);
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
                                               cublasFillMode_t fillMode, int n,

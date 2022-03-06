@@ -22,6 +22,7 @@
 #include <memory>
 
 #include "tfrt/gpu/wrapper/wrapper.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -46,6 +47,15 @@ llvm::Expected<OwningSolverHandle> SolverCreate(Platform platform);
 llvm::Error SolverDestroy(SolverHandle handle);
 llvm::Error SolverSetStream(SolverHandle handle, Stream stream);
 llvm::Expected<Stream> SolverGetStream(SolverHandle handle);
+llvm::Error SolverPotrf(CurrentContext current, SolverHandle handle,
+                        BlasDataType dataType, BlasFillMode fillMode, int n,
+                        Pointer<void> buffer, int stride,
+                        Pointer<void> workspace, int workspaceSize,
+                        Pointer<int> devInfo);
+llvm::Error SolverPotrfBatched(CurrentContext current, SolverHandle handle,
+                               BlasDataType dataType, BlasFillMode fillMode, int n,
+                               Pointer<void*> Aarray, int heightA,
+                               Pointer<int> devInfoArray, int batchSize);
 
 }  // namespace wrapper
 }  // namespace gpu

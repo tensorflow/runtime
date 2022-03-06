@@ -8,6 +8,10 @@
       "rocsolver_spotrf",
       "rocsolver_dpotrf",
       "rocsolver_cpotrf",
-      "rocsolver_zpotrf"
-   ],
+      "rocsolver_zpotrf",
+      "rocsolver_spotrf_batched",
+      "rocsolver_dpotrf_batched",
+      "rocsolver_cpotrf_batched",
+      "rocsolver_zpotrf_batched"
+   ]
 }

@@ -19,6 +19,8 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/gpu/wrapper/cublas_wrapper.h"
+#include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
 #include "tfrt/gpu/wrapper/rocsolver_wrapper.h"
 #include "wrapper_detail.h"
@@ -73,6 +75,41 @@ llvm::Expected<Stream> SolverGetStream(SolverHandle handle) {
       return CusolverDnGetStream(handle);
     case Platform::ROCm:
       return RocsolverGetStream(handle);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error SolverPotrf(CurrentContext current, SolverHandle handle,
+                        BlasDataType dataType, BlasFillMode fillMode, int n,
+                        Pointer<void> buffer, int stride,
+                        Pointer<void> workspace, int workspaceSize,
+                        Pointer<int> devInfo) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CusolverDnPotrf(current, handle, dataType, fillMode, n, buffer,
+                             stride, workspace, workspaceSize, devInfo);
+    case Platform::ROCm:
+      return RocsolverPotrf(current, handle, dataType, fillMode, n, buffer,
+                            stride, devInfo);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error SolverPotrfBatched(CurrentContext current, SolverHandle handle,
+                               BlasDataType dataType, BlasFillMode fillMode, int n,
+                               Pointer<void*> Aarray, int heightA,
+                               Pointer<int> devInfoArray, int batchSize) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CusolverDnPotrfBatched(current, handle, dataType, fillMode, n,
+          Aarray, heightA, devInfoArray, batchSize);
+    case Platform::ROCm:
+      return RocsolverPotrfBatched(current, handle, dataType, fillMode, n,
+          Aarray, heightA, devInfoArray, batchSize);
     default:
       return InvalidPlatform(platform);
   }

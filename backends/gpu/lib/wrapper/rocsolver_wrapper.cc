@@ -46,37 +46,57 @@ llvm::Expected<Stream> RocsolverGetStream(rocblas_handle handle) {
 }
 
 llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n, Pointer<float> A,
-                           int heightA, Pointer<int> devInfo) {
+                           rocblas_datatype dataType, rocblas_fill fillMode, int n,
+                           Pointer<void> A, int heightA, Pointer<int> devInfo) {
   CheckHipContext(current);
-  return TO_ERROR(rocsolver_spotrf(handle, fillMode, n, ToRocm(A), heightA,
-                                   ToRocm(devInfo)));
+  switch (dataType) {
+    case rocblas_datatype_f32_r:
+      return TO_ERROR(rocsolver_spotrf(handle, fillMode, n,
+                      reinterpret_cast<float*>(ToRocm(A)),
+                      heightA, ToRocm(devInfo)));
+    case rocblas_datatype_f32_c:
+      return TO_ERROR(rocsolver_cpotrf(handle, fillMode, n,
+                      reinterpret_cast<rocblas_float_complex*>(ToRocm(A)),
+                      heightA, ToRocm(devInfo)));
+    case rocblas_datatype_f64_r:
+      return TO_ERROR(rocsolver_dpotrf(handle, fillMode, n,
+                      reinterpret_cast<double*>(ToRocm(A)),
+                      heightA, ToRocm(devInfo)));
+    case rocblas_datatype_f64_c:
+      return TO_ERROR(rocsolver_zpotrf(handle, fillMode, n,
+                      reinterpret_cast<rocblas_double_complex*>(ToRocm(A)),
+                      heightA, ToRocm(devInfo)));
+    default:
+      return MakeStringError("Unsupported type: ", dataType);
+  }
 }
 
-llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n, Pointer<double> A,
-                           int heightA, Pointer<int> devInfo) {
+llvm::Error RocsolverPotrfBatched(CurrentContext current, rocblas_handle handle,
+                                  rocblas_datatype dataType, rocblas_fill fillMode,
+                                  int n, Pointer<void *> Aarray,
+                                  int heightA, Pointer<int> devInfo,
+                                  int batchSize) {
   CheckHipContext(current);
-  return TO_ERROR(rocsolver_dpotrf(handle, fillMode, n, ToRocm(A), heightA,
-                                   ToRocm(devInfo)));
-}
-
-llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n,
-                           Pointer<rocblas_float_complex> A, int heightA,
-                           Pointer<int> devInfo) {
-  CheckHipContext(current);
-  return TO_ERROR(rocsolver_cpotrf(handle, fillMode, n, ToRocm(A), heightA,
-                                   ToRocm(devInfo)));
-}
-
-llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n,
-                           Pointer<rocblas_double_complex> A, int heightA,
-                           Pointer<int> devInfo) {
-  CheckHipContext(current);
-  return TO_ERROR(rocsolver_zpotrf(handle, fillMode, n, ToRocm(A), heightA,
-                                   ToRocm(devInfo)));
+  switch (dataType) {
+    case rocblas_datatype_f32_r:
+      return TO_ERROR(rocsolver_spotrf_batched(handle, fillMode, n,
+                      reinterpret_cast<float**>(ToRocm(Aarray)),
+                      heightA, ToRocm(devInfo), batchSize));
+    case rocblas_datatype_f32_c:
+      return TO_ERROR(rocsolver_cpotrf_batched(handle, fillMode, n,
+                      reinterpret_cast<rocblas_float_complex**>(ToRocm(Aarray)),
+                      heightA, ToRocm(devInfo), batchSize));
+    case rocblas_datatype_f64_r:
+      return TO_ERROR(rocsolver_dpotrf_batched(handle, fillMode, n,
+                      reinterpret_cast<double**>(ToRocm(Aarray)),
+                      heightA, ToRocm(devInfo), batchSize));
+    case rocblas_datatype_f64_c:
+      return TO_ERROR(rocsolver_zpotrf_batched(handle, fillMode, n,
+                      reinterpret_cast<rocblas_double_complex**>(ToRocm(Aarray)),
+                      heightA, ToRocm(devInfo), batchSize));
+    default:
+      return MakeStringError("Unsupported type: ", dataType);
+  }
 }
 
 }  // namespace wrapper

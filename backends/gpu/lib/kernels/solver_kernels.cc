@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file implements the tfrt_gpu.solver kernels, at the moment for CUDA
-// only. Support for ROCm still needs to be implemented.
+// This file implements the tfrt_gpu.solver kernels.
+// Support for ROCm has been partially implemented.
+
 #include <cstdint>
 
 #include "llvm/Support/Errc.h"
@@ -22,7 +23,9 @@
 #include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
+#include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
+#include "tfrt/gpu/wrapper/rocsolver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -81,14 +84,7 @@ static Error SolverPotrf(const GpuSolverHandle& handle, const GpuStream& stream,
                          const GpuBuffer& workspace, const GpuBuffer& devInfo,
                          Attribute<int32_t> dataType,
                          Attribute<int32_t> fillMode) {
-  // These functions eventually need to make two separate calls to
-  // CusolverDn<t>potrf and corresponding ROCm function, as wrappers
-  // SolverPotrf for CUDA/ROCm is not feasible due to mismatch in APIs
-  // (Cusolver requires use of CusolverDn<t>potrf_bufferSize). Right now only
-  // CusolverDnPotrf calls are supported.
   auto platform = handle->platform();
-  if (platform != wrapper::Platform::CUDA)
-    return MakeStringError("Unsupported platform ", platform);
 
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
@@ -96,30 +92,14 @@ static Error SolverPotrf(const GpuSolverHandle& handle, const GpuStream& stream,
   if (auto error = wrapper::SolverSetStream(handle.get(), stream.get()))
     return error;
 
-  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
 
-  auto call = [&](auto dummy) {
-    using Pointer = wrapper::Pointer<decltype(dummy)>;
-    return wrapper::CusolverDnPotrf(
-        current.get(), handle.get(), fill_mode, n,
-        static_cast<Pointer>(buffer.pointer()), stride,
-        static_cast<Pointer>(workspace.pointer()), workspace.size(),
-        static_cast<wrapper::Pointer<int>>(devInfo.pointer()));
-  };
-
-  switch (data_type) {
-    case CUDA_R_32F:
-      return call(float{});
-    case CUDA_R_64F:
-      return call(double{});
-    case CUDA_C_32F:
-      return call(cuComplex{});
-    case CUDA_C_64F:
-      return call(cuDoubleComplex{});
-    default:
-      return MakeStringError("Unsupported data type ", data_type);
-  }
+  return wrapper::SolverPotrf(
+      *current, handle.get(), data_type, fill_mode, n,
+      static_cast<wrapper::Pointer<void>>(buffer.pointer()), stride,
+      static_cast<wrapper::Pointer<void>>(workspace.pointer()), workspace.size(),
+      static_cast<wrapper::Pointer<int>>(devInfo.pointer()));
 }
 
 static Error SolverPotrfBatch(const GpuSolverHandle& handle,
@@ -128,54 +108,36 @@ static Error SolverPotrfBatch(const GpuSolverHandle& handle,
                               const GpuBuffer& devInfo, int32_t batch_size,
                               Attribute<int32_t> dataType,
                               Attribute<int32_t> fillMode) {
-  // These functions eventually need to make two separate calls to
-  // CusolverDn<t>potrfBatched and corresponding ROCm function, as wrappers
-  // SolverPotrf for CUDA/ROCm is not feasible due to mismatch in APIs.
-  auto platform = handle->platform();
-  if (platform != wrapper::Platform::CUDA)
-    return MakeStringError("Unsupported platform ", platform);
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
+  if (!current) return current.takeError();
 
-  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  if (auto error = wrapper::SolverSetStream(handle.get(), stream.get()))
+    return error;
+
+  auto platform = handle->platform();
+
+  auto data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
 
-  auto call = [&](auto dummy) {
-    auto current = wrapper::CtxSetCurrent(handle.context()->get());
-    if (!current) return current.takeError();
+  auto data_type_size_bytes = wrapper::GetBlasDataTypeSizeBytes(data_type);
+  if (!data_type_size_bytes) return data_type_size_bytes.takeError();
 
-    if (auto error = wrapper::SolverSetStream(handle.get(), stream.get()))
-      return error;
+  auto pointer_array =
+      handle.context()->AllocateHostPoolMemory<void*>(*current, batch_size);
+  if (!pointer_array) return pointer_array.takeError();
+  void** buffer_array = pointer_array->get().raw(platform);
 
-    using T = decltype(dummy);
-    auto pointer_array =
-        handle.context()->AllocateHostPoolMemory<T*>(*current, batch_size);
-    if (!pointer_array) return pointer_array.takeError();
-    T** buffer_array = pointer_array->get().raw(platform);
-
-    T* buffer_ptr = static_cast<T*>(buffer.pointer().raw(platform));
-    ptrdiff_t batch_stride = n * n;
-    for (int32_t i = 0; i < batch_size; ++i) {
-      buffer_array[i] = buffer_ptr + i * batch_stride;
-    }
-
-    wrapper::Pointer<T*> buffer_array_ptr(buffer_array, platform);
-    auto devInfo_ptr = static_cast<wrapper::Pointer<int>>(devInfo.pointer());
-    return wrapper::CusolverDnPotrfBatched(*current, handle.get(), fill_mode, n,
-                                           buffer_array_ptr, stride,
-                                           devInfo_ptr, batch_size);
-  };
-
-  switch (data_type) {
-    case CUDA_R_32F:
-      return call(float{});
-    case CUDA_R_64F:
-      return call(double{});
-    case CUDA_C_32F:
-      return call(cuComplex{});
-    case CUDA_C_64F:
-      return call(cuDoubleComplex{});
-    default:
-      return MakeStringError("Unsupported data type ", data_type);
+  char* buffer_ptr = static_cast<char*>(buffer.pointer().raw(platform));
+  ptrdiff_t batch_stride_bytes = *data_type_size_bytes * n * n;
+  for (int32_t i = 0; i < batch_size; ++i) {
+    buffer_array[i] = buffer_ptr + i * batch_stride_bytes;
   }
+
+  wrapper::Pointer<void*> buffer_array_ptr(buffer_array, platform);
+  auto devInfoPtr = static_cast<wrapper::Pointer<int>>(devInfo.pointer());
+  return wrapper::SolverPotrfBatched(
+      *current, handle.get(), data_type, fill_mode, n, buffer_array_ptr,
+      stride, devInfoPtr, batch_size);
 }
 
 void RegisterGpuSolverKernels(KernelRegistry* kernel_reg) {

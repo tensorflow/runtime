@@ -23,6 +23,10 @@
 
 #include <sys/types.h>
 
+#if __cplusplus >= 201703L
+#include <any>
+#endif
+
 #include <chrono>  // NOLINT(build/c++11)
 #include <cstddef>
 #include <cstdint>
@@ -45,6 +49,7 @@
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
+#include "tfrt/jitrt/memory_mapper.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/types.h"
@@ -278,8 +283,9 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor);
 // below) is relying on user defined set of conversion functions.
 class ReturnValueConverterBase {
  public:
-  explicit ReturnValueConverterBase(RemainingResults results);
-  virtual ~ReturnValueConverterBase();
+  explicit ReturnValueConverterBase(RemainingResults results)
+      : results_(results) {}
+  virtual ~ReturnValueConverterBase() = default;
 
   // Converts value `ret` of type `runtime_type` (runtime type derived from the
   // original `type`) returned from the compiled function at `result_index`
@@ -309,12 +315,10 @@ class ReturnValueConverter : public ReturnValueConverterBase {
                 "Conversion context can't be void");
 
  public:
-  explicit ReturnValueConverter(RemainingResults results)
-      : ReturnValueConverter(results, std::make_unique<ConversionContext>()) {}
-
-  ReturnValueConverter(RemainingResults results,
-                       std::unique_ptr<ConversionContext> context)
-      : ReturnValueConverterBase(results), context_(std::move(context)) {
+  // It is the caller's responsibility to guarantee that conversion context
+  // will outlive all pending conversions (in case of returning async values).
+  ReturnValueConverter(RemainingResults results, ConversionContext& context)
+      : ReturnValueConverterBase(results), context_(context) {
     AddConversion(UnsupportedReturnType);
   }
 
@@ -325,7 +329,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
                                   void* ret) const final {
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
       auto converted =
-          convert(*context_, results(), result_index, type, runtime_type, ret);
+          convert(context_, results(), result_index, type, runtime_type, ret);
       if (mlir::succeeded(converted)) return mlir::success();
     }
     return mlir::failure();
@@ -335,7 +339,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   // convertible to the `ConversionCallbackFn` function type:
   //
   //   mlir::LogicalResult(ConversionContext&, RemainingResults, unsigned,
-  //                       const Type* type, void*)
+  //                       const Type* type, const Type* runtime_type, void*)
   //
   // Conversion function must return `success` if it successfully handled the
   // return type and set the result async value. If conversion function returns
@@ -346,17 +350,6 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   template <typename FnT>
   void AddConversion(FnT&& callback) {
     conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
-  }
-
-  ConversionContext& context() { return *context_; }
-
-  // Transfers the ownership of the conversion context from this converter to
-  // the caller. It is the responsibility of the caller to extend the lifetime
-  // of the conversion context if conversion function accesses it and can be
-  // executed asynchronously when async result will become available (for
-  // example see `ReturnAsyncStridedMemref` implemented below).
-  std::unique_ptr<ConversionContext> TakeConversionContext() {
-    return std::move(context_);
   }
 
   ReturnValueConverter(ReturnValueConverter&&) = default;
@@ -377,8 +370,93 @@ class ReturnValueConverter : public ReturnValueConverterBase {
     return mlir::failure();
   }
 
-  std::unique_ptr<ConversionContext> context_;
+  ConversionContext& context_;  // must outlive all pending result conversions
   llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+};
+
+// A template that converts function pointer passed as non-type template
+// parameter into the struct compatible with the `StaticReturnValueConverter`.
+template <typename ConversionContext,
+          mlir::LogicalResult (*convert)(ConversionContext&, RemainingResults,
+                                         unsigned, const Type*, const Type*,
+                                         void*)>
+struct ReturnValueConversion {
+  mlir::LogicalResult operator()(ConversionContext& ctx,
+                                 RemainingResults results,
+                                 unsigned result_index, const Type* t,
+                                 const Type* rt, void* ret) const {
+    return convert(ctx, results, result_index, t, rt, ret);
+  }
+};
+
+// Return value converter class with statically registered conversion functions.
+//
+// Conversion function type must define `operator()` with a signature:
+//
+//   mlir::LogicalResult operator()(ConversionContext&, RemainingResults,
+//                                  unsigned result_index, const Type* type,
+//                                  const Type* runtime_type, void*) const;
+//
+// Conversion function must return `success` if it successfully handled the
+// return type and set the result async value. If conversion function returns
+// `failure` converter will try the next conversion function.
+//
+// TODO(ezhulenev): Currently we only support default constructed conversion
+// functions, however we can potentially pass conversion functions with
+// non-empty captures.
+template <typename ConversionContext, typename... ConversionFns>
+class StaticReturnValueConverter : public ReturnValueConverterBase {
+ public:
+  StaticReturnValueConverter(RemainingResults results,
+                             ConversionContext& context)
+      : ReturnValueConverterBase(results), context_(context) {}
+
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
+                                  const Type* runtime_type,
+                                  void* ret) const final {
+    return convert_(context_, results(), result_index, type, runtime_type, ret);
+  }
+
+ private:
+  template <typename... Fns>
+  struct Impl;
+
+  template <typename Fn, typename... Fns>
+  struct Impl<Fn, Fns...> {
+    LLVM_ATTRIBUTE_ALWAYS_INLINE
+    mlir::LogicalResult operator()(ConversionContext& ctx,
+                                   RemainingResults results,
+                                   unsigned result_index, const Type* t,
+                                   const Type* rt, void* ret) const {
+      auto converted = convert(ctx, results, result_index, t, rt, ret);
+      if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
+      return try_next(ctx, results, result_index, t, rt, ret);
+    }
+
+    Fn convert;
+    Impl<Fns...> try_next;
+  };
+
+  template <typename Fn>
+  struct Impl<Fn> {
+    LLVM_ATTRIBUTE_ALWAYS_INLINE
+    mlir::LogicalResult operator()(ConversionContext& ctx,
+                                   RemainingResults results,
+                                   unsigned result_index, const Type* t,
+                                   const Type* rt, void* ret) const {
+      auto converted = convert(ctx, results, result_index, t, rt, ret);
+      if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
+      results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
+                                               " (derived from: ", *t, ")"));
+      return mlir::failure();
+    }
+
+    Fn convert;
+  };
+
+  ConversionContext& context_;  // must outlive all pending result conversions
+  Impl<ConversionFns...> convert_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -476,24 +554,32 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
           result_index, Converter::template Convert<T, rank>(ctx, result_ptr));
     };
 
-    if (rank == 0)
-      convert_and_emplace(std::integral_constant<int, 0>{});
-    else if (rank == 1)
-      convert_and_emplace(std::integral_constant<int, 1>{});
-    else if (rank == 2)
-      convert_and_emplace(std::integral_constant<int, 2>{});
-    else if (rank == 3)
-      convert_and_emplace(std::integral_constant<int, 3>{});
-    else if (rank == 4)
-      convert_and_emplace(std::integral_constant<int, 4>{});
-    else if (rank == 5)
-      convert_and_emplace(std::integral_constant<int, 5>{});
-    else
-      // TODO(ezhulenev): To simplify conversion from a void* pointer to memref
-      // descriptor we rely on the StridedMemrefType<T, rank> and dispatch
-      // only up to a fixed rank.
-      results.MakeErrorAt(result_index,
-                          StrCat("unsupported returned memref rank: ", rank));
+    switch (rank) {
+      case 0:
+        convert_and_emplace(std::integral_constant<int, 0>{});
+        break;
+      case 1:
+        convert_and_emplace(std::integral_constant<int, 1>{});
+        break;
+      case 2:
+        convert_and_emplace(std::integral_constant<int, 2>{});
+        break;
+      case 3:
+        convert_and_emplace(std::integral_constant<int, 3>{});
+        break;
+      case 4:
+        convert_and_emplace(std::integral_constant<int, 4>{});
+        break;
+      case 5:
+        convert_and_emplace(std::integral_constant<int, 5>{});
+        break;
+      default:
+        // TODO(ezhulenev): To simplify conversion from a void* pointer to
+        // memref descriptor we rely on the StridedMemrefType<T, rank> and
+        // dispatch only up to a fixed rank.
+        results.MakeErrorAt(result_index,
+                            StrCat("unsupported returned memref rank: ", rank));
+    }
   };
 
   // Dispatch based on the element type.
@@ -593,32 +679,47 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
     // Pass an opaque pointer to the operands context to the emplace function.
     void* ptr = const_cast<void*>(reinterpret_cast<const void*>(&ctx));
 
-    if (rank == 0)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 0>);
-    else if (rank == 1)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 1>);
-    else if (rank == 2)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 2>);
-    else if (rank == 3)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 3>);
-    else if (rank == 4)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 4>);
-    else if (rank == 5)
-      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 5>);
-    else
-      // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
-      // we can't pass a runtime arguments to emplace functions via lambda
-      // capture, because the value might become available asynchronously and
-      // this will lead to use after free. Consider adding an std::function
-      // alternative for ranks higher then 5? Lambdas with small captures should
-      // be stack allocated anyway, however it is implementation defined.
-      //
-      // TODO(ezhulenev): Another alternative is to pass the desired result
-      // type after conversion via the conversion context. Emplace function can
-      // query all the information it needs from the conversion context, e.g.
-      // expected result type rank and data type.
-      results.MakeErrorAt(result_index,
-                          StrCat("unsupported returned memref rank: ", rank));
+    switch (rank) {
+      case 0:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 0>);
+        break;
+      case 1:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 1>);
+        break;
+      case 2:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 2>);
+        break;
+      case 3:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 3>);
+        break;
+      case 4:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 4>);
+        break;
+      case 5:
+        ExtractAsyncValue(value, dst(), ptr,
+                          internal::Emplace<Converter, T, 5>);
+        break;
+      default:
+        // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
+        // we can't pass a runtime arguments to emplace functions via lambda
+        // capture, because the value might become available asynchronously and
+        // this will lead to use after free. Consider adding an std::function
+        // alternative for ranks higher then 5? Lambdas with small captures
+        // should be stack allocated anyway, however it is implementation
+        // defined.
+        //
+        // TODO(ezhulenev): Another alternative is to pass the desired result
+        // type after conversion via the conversion context. Emplace function
+        // can query all the information it needs from the conversion context,
+        // e.g. expected result type rank and data type.
+        results.MakeErrorAt(result_index,
+                            StrCat("unsupported returned memref rank: ", rank));
+    }
   };
 
   // Dispatch based on the memref element type.
@@ -673,6 +774,7 @@ class Executable {
   struct KernelContext;
 
   Executable(llvm::StringRef name,
+             std::unique_ptr<JitRtMemoryMapper> memory_mapper,
              std::unique_ptr<mlir::ExecutionEngine> engine,
              KernelFunctionPtr fptr, FunctionType signature,
              FunctionType runtime_signature,
@@ -680,6 +782,7 @@ class Executable {
              Optional<size_t> specialization,
              std::chrono::milliseconds time_to_compile)
       : name_(name.str()),
+        memory_mapper_(std::move(memory_mapper)),
         engine_(std::move(engine)),
         fptr_(fptr),
         signature_(std::move(signature)),
@@ -822,6 +925,9 @@ class Executable {
  private:
   std::string name_;  // name of the compiled kernel module
 
+  // Called by `engine_`'s destructor; must appear before it.
+  std::unique_ptr<JitRtMemoryMapper> memory_mapper_;
+
   std::unique_ptr<mlir::ExecutionEngine> engine_;
   KernelFunctionPtr fptr_;  // compiled function owned by the `engine_`
 
@@ -868,6 +974,13 @@ class Executable {
 // constraints.
 class JitExecutable {
  public:
+// TODO(ezhulenev): Use std::any once TFRT switches to C++17.
+#if __cplusplus >= 201703L
+  using UserData = std::any;
+#else
+  using UserData = llvm::Any;
+#endif
+
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates
   // the internal state of the `JitExecutable`. This runner can be used by the
@@ -879,19 +992,18 @@ class JitExecutable {
   // will be passed to the runner if recompilation is required. It is guaranteed
   // that the runner will be called in the same thread as `GetExecutable`.
   //
-  // TODO(ezhulenev): Use std::any once TFRT switches to C++17.
-  using CompilationTaskRunner = llvm::unique_function<void(
-      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
-      llvm::Any)>;
+  using CompilationTaskRunner =
+      llvm::unique_function<void(size_t, ArrayRef<OperandConstraint>,
+                                 ArrayRef<MemrefDesc>, TaskFunction, UserData)>;
 
   // Inline compilation task runner runs compilation task in the caller thread.
   static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task, llvm::Any user_data);
+      ArrayRef<MemrefDesc> operands, TaskFunction task, UserData user_data);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      CompilationOptions compilation_opts,
+      CompilationOptions compilation_opts, string_view memory_region_name = "",
       CompilationTaskRunner runner = InlineCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
@@ -925,7 +1037,7 @@ class JitExecutable {
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
-      ArrayRef<MemrefDesc> operands, llvm::Any user_data = {},
+      ArrayRef<MemrefDesc> operands, UserData user_data = {},
       const SpecializationListener* listener = nullptr);
 
   // Returns an async value that becomes ready when all executables owned by
@@ -938,6 +1050,7 @@ class JitExecutable {
 
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
+                string_view memory_region_name,
                 CompilationOptions compilation_opts,
                 ArrayRef<OperandConstraint> constraints, FunctionType signature,
                 Optional<Executable> default_executable,
@@ -945,6 +1058,12 @@ class JitExecutable {
 
   std::string mlir_module_;
   std::string entrypoint_;
+
+  // Name of the memory region where JIT'ed code is compiled to.
+  // This allows profilers to correctly label JIT-executed code.
+  // Note: this feature might only be available on some platforms, e.g. Linux.
+  std::string memory_region_name_;
+
   CompilationOptions compilation_opts_;
 
   // Entrypoint operands constraints after resolving them using the statically
@@ -954,6 +1073,9 @@ class JitExecutable {
   // rank), then the constraint value for that operand will be updated to
   // `kResolved`.
   llvm::SmallVector<OperandConstraint> constraints_;
+
+  // True if any of the operands has `OperandConstraint::kValue` constraint.
+  bool has_value_constraints_;
 
   // Signature of the compiled module entrypoint function.
   //
@@ -984,7 +1106,11 @@ class JitExecutable {
 };
 
 // Resource context caches all JitExecutables in the async value cache.
-using JitExecutableCache = AsyncValuesCache<intptr_t, JitExecutable>;
+//
+// We use compilation unit id as a cache key. Because this id is unique only
+// within a single Bef file, it is the user's responsibility to guarantee that
+// the JitExecutableCache is not reused between multiple Bef files.
+using JitExecutableCache = AsyncValuesCache<size_t, JitExecutable>;
 
 }  // namespace jitrt
 }  // namespace tfrt

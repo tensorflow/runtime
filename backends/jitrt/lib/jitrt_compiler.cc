@@ -33,6 +33,8 @@
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
 #include "mlir/Dialect/Async/Passes.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/MemRef/Transforms/Passes.h"
 #include "mlir/Dialect/Tensor/IR/TensorInferTypeOpInterfaceImpl.h"
@@ -56,7 +58,7 @@ void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
                   mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
                   mlir::linalg::LinalgDialect, mlir::math::MathDialect,
                   mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
-                  mlir::StandardOpsDialect, mlir::tensor::TensorDialect,
+                  mlir::func::FuncDialect, mlir::tensor::TensorDialect,
                   mlir::vector::VectorDialect, RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.

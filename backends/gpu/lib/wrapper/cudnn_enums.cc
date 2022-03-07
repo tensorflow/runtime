@@ -23,7 +23,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnStatus_t status) {
   switch (status) {
     case CUDNN_STATUS_SUCCESS:
       return os << "CUDNN_STATUS_SUCCESS";
@@ -59,8 +59,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status) {
   }
 }
 
-template <>
-Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name) {
+Expected<cudnnDataType_t> Parse(llvm::StringRef name, cudnnDataType_t) {
   if (name == "CUDNN_DATA_FLOAT") return CUDNN_DATA_FLOAT;
   if (name == "CUDNN_DATA_DOUBLE") return CUDNN_DATA_DOUBLE;
   if (name == "CUDNN_DATA_HALF") return CUDNN_DATA_HALF;
@@ -73,7 +72,7 @@ Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name) {
   return MakeStringError("Unknown cudnnDataType_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnDataType_t value) {
   switch (value) {
     case CUDNN_DATA_FLOAT:
       return os << "CUDNN_DATA_FLOAT";
@@ -99,16 +98,14 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value) {
   }
 }
 
-template <>
-Expected<cudnnConvolutionMode_t> Parse<cudnnConvolutionMode_t>(
-    llvm::StringRef name) {
+Expected<cudnnConvolutionMode_t> Parse(llvm::StringRef name,
+                                       cudnnConvolutionMode_t) {
   if (name == "CUDNN_CONVOLUTION") return CUDNN_CONVOLUTION;
   if (name == "CUDNN_CROSS_CORRELATION") return CUDNN_CROSS_CORRELATION;
   return MakeStringError("Unknown cudnnConvolutionMode_t: ", name);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              cudnnConvolutionMode_t value) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnConvolutionMode_t value) {
   switch (value) {
     case CUDNN_CONVOLUTION:
       return os << "CUDNN_CONVOLUTION";
@@ -116,6 +113,208 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
       return os << "CUDNN_CROSS_CORRELATION";
     default:
       return os << llvm::formatv("cudnnConvolutionMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+Expected<cudnnActivationMode_t> Parse(llvm::StringRef name,
+                                      cudnnActivationMode_t) {
+  if (name == "CUDNN_ACTIVATION_SIGMOID") return CUDNN_ACTIVATION_SIGMOID;
+  if (name == "CUDNN_ACTIVATION_RELU") return CUDNN_ACTIVATION_RELU;
+  if (name == "CUDNN_ACTIVATION_TANH") return CUDNN_ACTIVATION_TANH;
+  if (name == "CUDNN_ACTIVATION_CLIPPED_RELU")
+    return CUDNN_ACTIVATION_CLIPPED_RELU;
+  if (name == "CUDNN_ACTIVATION_ELU") return CUDNN_ACTIVATION_ELU;
+  if (name == "CUDNN_ACTIVATION_IDENTITY") return CUDNN_ACTIVATION_IDENTITY;
+#if CUDNN_VERSION >= 8200
+  if (name == "CUDNN_ACTIVATION_SWISH") return CUDNN_ACTIVATION_SWISH;
+#endif
+  return MakeStringError("Unknown cudnnActivationMode_t: ", name);
+}
+
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnActivationMode_t value) {
+  switch (value) {
+    case CUDNN_ACTIVATION_SIGMOID:
+      return os << "CUDNN_ACTIVATION_SIGMOID";
+    case CUDNN_ACTIVATION_RELU:
+      return os << "CUDNN_ACTIVATION_RELU";
+    case CUDNN_ACTIVATION_TANH:
+      return os << "CUDNN_ACTIVATION_TANH";
+    case CUDNN_ACTIVATION_CLIPPED_RELU:
+      return os << "CUDNN_ACTIVATION_CLIPPED_RELU";
+    case CUDNN_ACTIVATION_ELU:
+      return os << "CUDNN_ACTIVATION_ELU";
+    case CUDNN_ACTIVATION_IDENTITY:
+      return os << "CUDNN_ACTIVATION_IDENTITY";
+#if CUDNN_VERSION >= 8200
+    case CUDNN_ACTIVATION_SWISH:
+      return os << "CUDNN_ACTIVATION_SWISH";
+#endif
+    default:
+      return os << llvm::formatv("cudnnActivationMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+Expected<cudnnMathType_t> Parse(llvm::StringRef name, cudnnMathType_t) {
+  if (name == "CUDNN_DEFAULT_MATH") return CUDNN_DEFAULT_MATH;
+  if (name == "CUDNN_TENSOR_OP_MATH") return CUDNN_TENSOR_OP_MATH;
+  if (name == "CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION")
+    return CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION;
+  if (name == "CUDNN_FMA_MATH") return CUDNN_FMA_MATH;
+  return MakeStringError("Unknown cudnnMathType_t: ", name);
+}
+
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudnnMathType_t value) {
+  switch (value) {
+    case CUDNN_DEFAULT_MATH:
+      return os << "CUDNN_DEFAULT_MATH";
+    case CUDNN_TENSOR_OP_MATH:
+      return os << "CUDNN_TENSOR_OP_MATH";
+    case CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION:
+      return os << "CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION";
+    case CUDNN_FMA_MATH:
+      return os << "CUDNN_FMA_MATH";
+    default:
+      return os << llvm::formatv("cudnnMathType_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+Expected<cudnnConvolutionFwdAlgo_t> Parse(llvm::StringRef name,
+                                          cudnnConvolutionFwdAlgo_t) {
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM")
+    return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM")
+    return CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_GEMM")
+    return CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT")
+    return CUDNN_CONVOLUTION_FWD_ALGO_DIRECT;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_FFT")
+    return CUDNN_CONVOLUTION_FWD_ALGO_FFT;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING")
+    return CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD")
+    return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED")
+    return CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED;
+  if (name == "CUDNN_CONVOLUTION_FWD_ALGO_COUNT")
+    return CUDNN_CONVOLUTION_FWD_ALGO_COUNT;
+  return MakeStringError("Unknown cudnnConvolutionFwdAlgo_t: ", name);
+}
+
+llvm::raw_ostream& Print(llvm::raw_ostream& os,
+                         cudnnConvolutionFwdAlgo_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM";
+    case CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM";
+    case CUDNN_CONVOLUTION_FWD_ALGO_GEMM:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_GEMM";
+    case CUDNN_CONVOLUTION_FWD_ALGO_DIRECT:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_DIRECT";
+    case CUDNN_CONVOLUTION_FWD_ALGO_FFT:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_FFT";
+    case CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING";
+    case CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD";
+    case CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED";
+    case CUDNN_CONVOLUTION_FWD_ALGO_COUNT:
+      return os << "CUDNN_CONVOLUTION_FWD_ALGO_COUNT";
+    default:
+      return os << llvm::formatv("cudnnConvolutionFwdAlgo_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+Expected<cudnnConvolutionBwdDataAlgo_t> Parse(llvm::StringRef name,
+                                              cudnnConvolutionBwdDataAlgo_t) {
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_0;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED;
+  if (name == "CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT")
+    return CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT;
+  return MakeStringError("Unknown cudnnConvolutionBwdDataAlgo_t: ", name);
+}
+
+llvm::raw_ostream& Print(llvm::raw_ostream& os,
+                         cudnnConvolutionBwdDataAlgo_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_0:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_0";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_1:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_1";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT_TILING";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED";
+    case CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT:
+      return os << "CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT";
+    default:
+      return os << llvm::formatv("cudnnConvolutionFwdAlgo_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+Expected<cudnnConvolutionBwdFilterAlgo_t> Parse(
+    llvm::StringRef name, cudnnConvolutionBwdFilterAlgo_t) {
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING;
+  if (name == "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT")
+    return CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT;
+  return MakeStringError("Unknown cudnnConvolutionBwdFilterAlgo_t: ", name);
+}
+
+llvm::raw_ostream& Print(llvm::raw_ostream& os,
+                         cudnnConvolutionBwdFilterAlgo_t value) {
+  switch (value) {
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_3";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_FFT_TILING";
+    case CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT:
+      return os << "CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT";
+    default:
+      return os << llvm::formatv("cudnnConvolutionFwdAlgo_t({0})",
                                  static_cast<int>(value));
   }
 }

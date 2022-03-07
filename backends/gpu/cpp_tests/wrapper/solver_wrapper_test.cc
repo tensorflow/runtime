@@ -23,7 +23,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-TEST_P(Test, SolverDnHandel) {
+TEST_P(Test, SolverDnHandle) {
   auto platform = GetParam();
   ASSERT_THAT(Init(platform), IsSuccess());
   EXPECT_THAT(SolverCreate(platform).takeError(), IsSuccess());

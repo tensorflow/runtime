@@ -54,22 +54,14 @@ static Type GetDistributedContextConfigurationType(Builder *builder) {
   return builder->getType<tfrt::dist::DistributedContextConfigurationType>();
 }
 
-static ParseResult parseCreateConfigurations(OpAsmParser &parser,
-                                             OperationState &result) {
-  auto &builder = parser.getBuilder();
-
-  int64_t num_results = 0;
-  if (succeeded(parser.parseOptionalColon())) {
-    IntegerAttr attr;
-    mlir::NamedAttrList attrs;
-    if (failed(parser.parseAttribute(attr, "num_results", attrs)))
-      return failure();
-    num_results = attr.getValue().getSExtValue();
-  }
-  auto configuration_type = GetDistributedContextConfigurationType(&builder);
-
-  result.types.append(num_results, configuration_type);
-
+LogicalResult CreateConfigurations::inferReturnTypes(
+    MLIRContext *ctx, Optional<Location> location, ValueRange operands,
+    DictionaryAttr attr, RegionRange ranges,
+    SmallVectorImpl<Type> &inferredReturnTypes) {
+  CreateConfigurationsAdaptor op(operands, attr, ranges);
+  inferredReturnTypes.insert(
+      inferredReturnTypes.begin(), op.n(),
+      tfrt::dist::DistributedContextConfigurationType::get(ctx));
   return success();
 }
 

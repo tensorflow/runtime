@@ -23,7 +23,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaError_t error) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, cudaError_t error) {
   const char* name = cudaGetErrorName(error);
   if (name != nullptr) {
     os << name;

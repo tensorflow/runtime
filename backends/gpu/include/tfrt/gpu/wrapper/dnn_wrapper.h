@@ -33,10 +33,10 @@ namespace wrapper {
 constexpr int kDnnDimMax() { return 8; }
 
 // Platform-discriminated enums.
-struct DnnDataTypeTag;
-using DnnDataType = Enum<DnnDataTypeTag>;
-struct DnnConvolutionModeTag;
-using DnnConvolutionMode = Enum<DnnConvolutionModeTag>;
+using DnnDataType = Enum<struct DnnDataTypeTag>;
+using DnnConvolutionMode = Enum<struct DnnConvolutionModeTag>;
+using DnnActivationMode = Enum<struct DnnActivationModeTag>;
+using DnnMathType = Enum<struct DnnMathTypeTag>;
 struct DnnConvFwdAlgoTag {
   using type = uint64_t;
 };
@@ -45,12 +45,11 @@ struct DnnConvBwdDataAlgoTag {
   using type = uint64_t;
 };
 using DnnConvBwdDataAlgo = Enum<DnnConvBwdDataAlgoTag>;
-struct DnnConvBwdWeightsAlgoTag {
+struct DnnConvBwdFilterAlgoTag {
   using type = uint64_t;
 };
-using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
-struct DnnNanPropagationTag;
-using DnnNanPropagation = Enum<DnnNanPropagationTag>;  // cuDNN only.
+using DnnConvBwdFilterAlgo = Enum<DnnConvBwdFilterAlgoTag>;
+using DnnNanPropagation = Enum<struct DnnNanPropagationTag>;  // cuDNN only.
 
 enum class DnnRnnInputMode {  // Matches miopenRNNInputMode_t
   kLinear,
@@ -98,15 +97,6 @@ enum class DnnPoolingMode {  // Values do not match miopenPoolingMode_t!
   kPoolingMax,
   kPoolingAverageCountIncludePadding,
   kPoolingAverageCountExcludePadding,
-};
-
-enum class DnnActivationMode {  // Values do not match miopenActivationMode_t!
-  kActivationSigmoid,
-  kActivationRelu,
-  kActivationTanh,
-  kActivationClippedRelu,
-  kActivationElu,
-  kActivationIdentity,
 };
 
 enum class DnnBatchNormMode {  // Matches miopenBatchNormMode_t
@@ -278,6 +268,11 @@ llvm::Expected<OwningDnnActivationDescriptor> DnnCreateActivationDescriptor(
     Platform platform);
 llvm::Error DnnDestroyActivationDescriptor(DnnActivationDescriptor descriptor);
 
+llvm::Error DnnSetActivationDescriptor(DnnActivationDescriptor descriptor,
+                                       DnnActivationMode mode,
+                                       bool nan_progapation,
+                                       double coefficient);
+
 llvm::Expected<OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
     Platform platform);
 llvm::Error DnnDestroyFilterDescriptor(DnnFilterDescriptor descriptor);
@@ -317,24 +312,24 @@ DnnGetConvolutionForwardOutputDim(DnnConvolutionDescriptor conv_desc,
                                   DnnTensorDescriptor input_tensor_desc,
                                   DnnFilterDescriptor filter_desc);
 llvm::Error DnnConvolutionForward(
-    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnTensorDescriptor x_desc, Pointer<const void> x,
     DnnFilterDescriptor w_desc, Pointer<const void> w,
     DnnConvolutionDescriptor conv_desc, DnnConvFwdAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnTensorDescriptor y_desc, Pointer<void> y);
 llvm::Error DnnConvolutionBackwardData(
-    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnFilterDescriptor w_desc, Pointer<const void> w,
     DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdDataAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnTensorDescriptor dx_desc, Pointer<void> dx);
 llvm::Error DnnConvolutionBackwardFilter(
-    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnTensorDescriptor x_desc, Pointer<const void> x,
     DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
+    DnnConvolutionDescriptor conv_desc, DnnConvBwdFilterAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnFilterDescriptor dw_desc, Pointer<void> dw);
 llvm::Error DnnConvolutionBackwardBias(CurrentContext current, DnnHandle handle,
@@ -353,15 +348,6 @@ llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
                               Pointer<const void> x, Pointer<const void> beta,
                               const DnnTensorDescriptor y_desc,
                               Pointer<void> y);
-
-llvm::Error DnnPoolingBackward(
-    CurrentContext current, DnnHandle handle,
-    const DnnPoolingDescriptor pooling_desc, Pointer<const void> alpha,
-    const DnnTensorDescriptor y_desc, Pointer<const void> y,
-    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    const DnnTensorDescriptor x_desc, Pointer<const void> x,
-    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
-    Pointer<void> dx);
 
 llvm::Error DnnActivationForward(CurrentContext current, DnnHandle handle,
                                  DnnActivationDescriptor activation_desc,

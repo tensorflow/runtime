@@ -22,9 +22,9 @@
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
@@ -49,10 +49,12 @@ struct TestGpuAsyncConversionPass
   StringRef getArgument() const final { return "test-gpu-async-conversion"; }
 
   void getDependentDialects(DialectRegistry &registry) const override {
+    tfrt::RegisterTFRTDialects(registry);
+    tfrt::RegisterTFRTCompiledDialects(registry);
     registry.insert<tfrt::gpu::GpuDialect, arith::ArithmeticDialect,
                     cf::ControlFlowDialect,
                     tfrt::gpu::conversion::GpuConversionDialect,
-                    gpu::GPUDialect, memref::MemRefDialect, StandardOpsDialect,
+                    gpu::GPUDialect, memref::MemRefDialect, func::FuncDialect,
                     tfrt::compiler::TFRTDialect>();
   }
 
@@ -92,12 +94,20 @@ class TestSetEntryPointPass
  public:
   TestSetEntryPointPass() = default;
   TestSetEntryPointPass(const TestSetEntryPointPass &pass) {}
+  void getDependentDialects(DialectRegistry &registry) const override {
+    tfrt::RegisterTFRTDialects(registry);
+    tfrt::RegisterTFRTCompiledDialects(registry);
+    registry.insert<tfrt::gpu::GpuDialect, arith::ArithmeticDialect,
+                    cf::ControlFlowDialect,
+                    tfrt::gpu::conversion::GpuConversionDialect,
+                    gpu::GPUDialect, memref::MemRefDialect, func::FuncDialect,
+                    tfrt::compiler::TFRTDialect>();
+  }
 
   StringRef getArgument() const final { return "test-set-entry-point"; }
 
   void runOnOperation() override {
-    auto platform =
-        tfrt::gpu::wrapper::Parse<tfrt::gpu::wrapper::Platform>(platform_);
+    auto platform = tfrt::gpu::wrapper::ParsePlatform(platform_);
     if (!platform) return emitError(toString(platform.takeError()));
 
     mlir::FuncOp func_op;
@@ -134,7 +144,7 @@ class TestSetEntryPointPass
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
-  registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect,
+  registry.insert<mlir::func::FuncDialect, mlir::arith::ArithmeticDialect,
                   mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
                   mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
@@ -145,5 +155,5 @@ int main(int argc, char **argv) {
   tfrt::gpu::registerPasses();
 
   return mlir::asMainReturnCode(
-      mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry, true));
+      mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
 }

@@ -114,6 +114,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "memory_mapper",
+    srcs = ["lib/memory_mapper.cc"],
+    hdrs = ["include/tfrt/jitrt/memory_mapper.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:ExecutionEngine",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "jitrt",
     srcs = ["lib/jitrt.cc"],
     hdrs = [
@@ -127,6 +139,7 @@ tfrt_cc_library(
         ":async_runtime_api",
         ":async_values_cache",
         ":constraints",
+        ":memory_mapper",
         ":rt_transforms",
         ":specialization",
         ":support",
@@ -172,6 +185,8 @@ tfrt_cc_library(
         "@llvm-project//mlir:ArmSVEToLLVMIRTranslation",
         "@llvm-project//mlir:AsyncToLLVM",
         "@llvm-project//mlir:AsyncTransforms",
+        "@llvm-project//mlir:ControlFlowOps",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:LLVMCommonConversion",
         "@llvm-project//mlir:LLVMToLLVMIRTranslation",
         "@llvm-project//mlir:LLVMTransforms",
@@ -184,7 +199,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:ReconcileUnrealizedCasts",
         "@llvm-project//mlir:SCFToStandard",
-        "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:StandardOpsTransforms",
         "@llvm-project//mlir:TensorInferTypeOpInterfaceImpl",
         "@llvm-project//mlir:ToLLVMIRTranslation",
@@ -485,12 +499,12 @@ tfrt_cc_library(
         ":rt_conversion_passes_inc_gen",
         ":rt_opdefs",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:LLVMCommonConversion",
         "@llvm-project//mlir:LLVMDialect",
         "@llvm-project//mlir:LLVMTransforms",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:StandardOpsTransforms",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
@@ -507,9 +521,9 @@ tfrt_cc_library(
         ":rt_transforms_passes_inc_gen",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ControlFlowOps",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:Support",
     ],
 )

@@ -1,5 +1,3 @@
-#define ROCSOLVER_EXPORT __attribute__((visibility("default")))
-
 ROCSOLVER_EXPORT rocblas_status rocsolver_spotrf(rocblas_handle handle,
                                                  const rocblas_fill uplo,
                                                  const rocblas_int n, float* A,

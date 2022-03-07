@@ -24,66 +24,13 @@
 #include <string>
 #include <utility>
 
+#include "llvm/Support/Compiler.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace jitrt {
-
-AsyncTokenType::AsyncTokenType() : Type(TypeKind::kAsyncToken) {}
-
-AsyncValueType::AsyncValueType(std::unique_ptr<Type> value_type)
-    : Type(TypeKind::kAsyncValue), value_type_(std::move(value_type)) {}
-
-RankedTensorType::RankedTensorType(ArrayRef<Index> sizes, DType element_type)
-    : Type(TypeKind::kRankedTensor),
-      sizes_(sizes.begin(), sizes.end()),
-      element_type_(element_type) {}
-
-ArrayRef<Index> RankedTensorType::sizes() const { return sizes_; }
-
-unsigned RankedTensorType::rank() const { return sizes_.size(); }
-
-DType RankedTensorType::element_type() const { return element_type_; }
-
-UnrankedTensorType::UnrankedTensorType(DType element_type)
-    : Type(TypeKind::kUnrankedTensor), element_type_(element_type) {}
-
-DType UnrankedTensorType::element_type() const { return element_type_; }
-
-MemrefType::MemrefType(ArrayRef<Index> sizes, DType element_type)
-    : Type(TypeKind::kMemref),
-      sizes_(sizes.begin(), sizes.end()),
-      element_type_(element_type) {}
-
-ArrayRef<Index> MemrefType::sizes() const { return sizes_; }
-
-unsigned MemrefType::rank() const { return sizes_.size(); }
-
-DType MemrefType::element_type() const { return element_type_; }
-
-UnrankedMemrefType::UnrankedMemrefType(DType element_type)
-    : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
-
-DType UnrankedMemrefType::element_type() const { return element_type_; }
-
-KernelContextOperandType::KernelContextOperandType()
-    : Type(TypeKind::kKernelContext) {}
-
-FunctionType::FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
-                           llvm::SmallVector<std::unique_ptr<Type>> results)
-    : operands_(std::move(operands)), results_(std::move(results)) {}
-
-const Type* FunctionType::operand(unsigned index) const {
-  return operands_[index].get();
-}
-const Type* FunctionType::result(unsigned index) const {
-  return results_[index].get();
-}
-
-unsigned FunctionType::num_operands() const { return operands_.size(); }
-unsigned FunctionType::num_results() const { return results_.size(); }
 
 raw_ostream& operator<<(raw_ostream& os, const Type& type) {
   auto print_arr = [&](ArrayRef<Index> arr) {
@@ -130,6 +77,23 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type) {
     assert(false && "pretty printing is not implemented");
     os << "<unknown type>";
   }
+
+  return os;
+}
+
+raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
+  auto print_arr = [&](string_view name, ArrayRef<Index> arr) {
+    os << " " << name << ": [";
+    if (!arr.empty()) {
+      os << arr[0];
+      for (int i = 1; i < arr.size(); ++i) os << ", " << arr[i];
+    }
+    os << "]";
+  };
+
+  os << "MemrefDesc: dtype: " << desc.dtype << " offset: " << desc.offset;
+  print_arr("sizes", desc.sizes);
+  print_arr("strides", desc.strides);
 
   return os;
 }
@@ -234,23 +198,6 @@ Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
   return FunctionType(std::move(operands), std::move(results));
 }
 
-raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
-  auto print_arr = [&](string_view name, ArrayRef<Index> arr) {
-    os << " " << name << ": [";
-    if (!arr.empty()) {
-      os << arr[0];
-      for (int i = 1; i < arr.size(); ++i) os << ", " << arr[i];
-    }
-    os << "]";
-  };
-
-  os << "MemrefDesc: dtype: " << desc.dtype << " offset: " << desc.offset;
-  print_arr("sizes", desc.sizes);
-  print_arr("strides", desc.strides);
-
-  return os;
-}
-
 // -------------------------------------------------------------------------- //
 // Verify that operands types are matching runtime values.
 // -------------------------------------------------------------------------- //
@@ -310,7 +257,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
   };
 
   // Check that memref data type is compatible with the operand element type.
-  if (!AreCompatibleTypes(element_type, memref.dtype)) {
+  if (LLVM_UNLIKELY(!AreCompatibleTypes(element_type, memref.dtype))) {
     return MakeStringError(
         "operand #", index,
         " type is not compatible with the expected element type: ",
@@ -321,7 +268,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
   if (!sizes.hasValue()) return Error::success();
 
   // Check that memref rank is the same as operand rank.
-  if (memref.sizes.size() != sizes->size())
+  if (LLVM_UNLIKELY(memref.sizes.size() != sizes->size()))
     return MakeStringError(
         "operand #", index,
         " rank does not match expected input rank: ", memref.sizes.size(),
@@ -334,7 +281,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
 
     bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
 
-    if (operand_dim != expected_dim && !is_dynamic_dim)
+    if (LLVM_UNLIKELY(operand_dim != expected_dim && !is_dynamic_dim))
       return MakeStringError(
           "operand #", index, " dimension #", pair.index(),
           " does not match expected input dimension: ", operand_dim, " vs ",

@@ -1,5 +1,3 @@
-#define ROCBLAS_EXPORT __attribute__((visibility("default")))
-
 typedef enum rocblas_operation_ {
   rocblas_operation_none = 111,
   rocblas_operation_transpose = 112,
@@ -72,6 +70,7 @@ typedef enum rocblas_gemm_flags_ {
   rocblas_gemm_flags_none = 0x0,
   rocblas_gemm_flags_pack_int8x4 = 0x1,
   rocblas_gemm_flags_use_cu_efficiency = 0x2,
+  rocblas_gemm_flags_fp16_alt_impl = 0x4,
 } rocblas_gemm_flags;
 
 ROCBLAS_EXPORT rocblas_status rocblas_create_handle(rocblas_handle* handle);

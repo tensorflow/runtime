@@ -135,13 +135,49 @@ llvm::Error CudnnDestroyTensorDescriptor(cudnnTensorDescriptor_t descriptor) {
   return TO_ERROR(cudnnDestroyTensorDescriptor(descriptor));
 }
 
+// Returns the dimensions of a CUDNN_TENSOR_NCHW_VECT_C tensor if the arguments
+// describe such a tensor, llvm::None otherwise.
+llvm::Optional<llvm::SmallVector<int, 4>> GetNchwVectDimensions(
+    cudnnDataType_t data_type, llvm::ArrayRef<int> dimensions,
+    llvm::ArrayRef<int> strides) {
+  switch (data_type) {
+    case CUDNN_DATA_INT8x4:
+    case CUDNN_DATA_UINT8x4:
+    case CUDNN_DATA_INT8x32:
+      break;
+    default:
+      return llvm::None;
+  }
+  // Test whether format is NCHW (i.e. dense row-major).
+  int stride = 1;
+  assert(dimensions.size() == strides.size());
+  for (int i = dimensions.size() - 1; i >= 0; --i) {
+    if (strides[i] != stride) return llvm::None;
+    stride *= dimensions[i];
+  }
+  auto result = llvm::to_vector<4>(dimensions);
+  if (result.size() < 2) return llvm::None;
+  // Multiply channel count by vector width.
+  result[1] *= data_type == CUDNN_DATA_INT8x32 ? 32 : 4;
+  return result;
+}
+
 llvm::Error CudnnSetTensorDescriptor(cudnnTensorDescriptor_t descriptor,
                                      cudnnDataType_t data_type,
                                      llvm::ArrayRef<int> dimensions,
                                      llvm::ArrayRef<int> strides) {
-  if (dimensions.size() != strides.size()) {
+  if (dimensions.size() != strides.size())
     return MakeStringError("Expected dimensions and strides to be equal size");
+
+  if (auto nhwc_dims = GetNchwVectDimensions(data_type, dimensions, strides)) {
+    // cuDNN (v8.2) reports unsupported (IMPLICIT_PRECOMP_GEMM) convolutions for
+    // vectorized tensor descriptors initialized from the non-Ex API below.
+    // Detect CUDNN_TENSOR_NCHW_VECT_C tensors and use the Ex API instead.
+    return TO_ERROR(cudnnSetTensorNdDescriptorEx(
+        descriptor, CUDNN_TENSOR_NCHW_VECT_C, data_type, nhwc_dims->size(),
+        nhwc_dims->data()));
   }
+
   return TO_ERROR(
       cudnnSetTensorNdDescriptor(descriptor, data_type, dimensions.size(),
                                  dimensions.data(), strides.data()));
@@ -609,21 +645,20 @@ llvm::Error CudnnConvolutionForward(
 }
 
 llvm::Error CudnnConvolutionBiasActivationForward(
-    CurrentContext current, cudnnHandle_t handle, Pointer<const void> alpha1,
+    CurrentContext current, cudnnHandle_t handle, const void* alpha1,
     cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
     cudnnFilterDescriptor_t w_desc, Pointer<const void> w,
     cudnnConvolutionDescriptor_t conv_desc, cudnnConvolutionFwdAlgo_t algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
-    Pointer<const void> alpha2, cudnnTensorDescriptor_t z_desc,
-    Pointer<const void> z, cudnnTensorDescriptor_t bias_desc,
-    Pointer<const void> bias, cudnnActivationDescriptor_t activation_desc,
-    cudnnTensorDescriptor_t y_desc, Pointer<void> y) {
+    const void* alpha2, cudnnTensorDescriptor_t z_desc, Pointer<const void> z,
+    cudnnTensorDescriptor_t bias_desc, Pointer<const void> bias,
+    cudnnActivationDescriptor_t activation_desc, cudnnTensorDescriptor_t y_desc,
+    Pointer<void> y) {
   CheckCudaContext(current);
   return TO_ERROR(cudnnConvolutionBiasActivationForward(
-      handle, ToCuda(alpha1), x_desc, ToCuda(x), w_desc, ToCuda(w), conv_desc,
-      algo, ToCuda(work_space), work_space_size_in_bytes, ToCuda(alpha2),
-      z_desc, ToCuda(z), bias_desc, ToCuda(bias), activation_desc, y_desc,
-      ToCuda(y)));
+      handle, alpha1, x_desc, ToCuda(x), w_desc, ToCuda(w), conv_desc, algo,
+      ToCuda(work_space), work_space_size_in_bytes, alpha2, z_desc, ToCuda(z),
+      bias_desc, ToCuda(bias), activation_desc, y_desc, ToCuda(y)));
 }
 
 llvm::Error CudnnConvolutionBackwardBias(

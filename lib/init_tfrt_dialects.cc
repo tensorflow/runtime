@@ -22,11 +22,11 @@
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/IR/VectorOps.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
@@ -63,7 +63,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
   registry.insert<jitrt::RuntimeDialect>();
-  registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect,
+  registry.insert<mlir::func::FuncDialect, mlir::arith::ArithmeticDialect,
                   mlir::cf::ControlFlowDialect>();
   registry.insert<mlir::async::AsyncDialect>();
   registry.insert<mlir::linalg::LinalgDialect>();

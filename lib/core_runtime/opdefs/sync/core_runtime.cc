@@ -70,17 +70,17 @@ LogicalResult ExecuteOp::verify() {
   return corert::VerifyExecuteOpImpl(op);
 }
 
-static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
+ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
   return corert::ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
                                     /*has_func_attr=*/false);
 }
 
-static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "corert_sync.executeop(" << op.op_handler() << ") "
-    << op->getAttr("op_name") << '(' << op.operands() << ')';
+void ExecuteOp::print(OpAsmPrinter &p) {
+  p << "corert_sync.executeop(" << op_handler() << ") "
+    << (*this)->getAttr("op_name") << '(' << operands() << ')';
 
-  corert::PrintExecuteOpImpl(p, op);
-  if (!op.results().empty()) p << " : " << op.results().size();
+  corert::PrintExecuteOpImpl(p, *this);
+  if (!results().empty()) p << " : " << results().size();
 }
 
 void ExecuteOp::getOpAttrs(

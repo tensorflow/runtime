@@ -179,14 +179,9 @@ union ScalingFactor {
 
 static llvm::Expected<FusedBatchNormActivationMode>
 ParseFusedBatchNormActivationMode(string_view mode) {
-  if (mode == "Identity") {
-    return FusedBatchNormActivationMode::kIdentity;
-  } else if (mode == "Relu") {
-    return FusedBatchNormActivationMode::kRelu;
-  } else {
-    return MakeStringError(
-        "ParseFusedBatchNormActivationMode does not support mode: ", mode);
-  }
+  if (mode == "Identity") return FusedBatchNormActivationMode::kIdentity;
+  if (mode == "Relu") return FusedBatchNormActivationMode::kRelu;
+  return MakeStringError("Unknown FusedBatchNormActivationMode: ", mode);
 }
 
 // A helper function to read the default algorithm for cudnnConvolutionForward.

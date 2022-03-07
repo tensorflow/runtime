@@ -1,8 +1,8 @@
 {
-   "header":"/opt/rocm-4.5.2/include/rocblas.h",
+   "header":"/opt/rocm-5.0.0/include/rocblas.h",
    "extra_args":[
       "-I.",
-      "-I/opt/rocm-4.5.2/include/"
+      "-I/opt/rocm-5.0.0/include/"
    ],
    "enums":[
       "rocblas_operation",
@@ -30,7 +30,4 @@
       "rocblas_ctrsm_batched",
       "rocblas_ztrsm_batched"
    ],
-   "macros":[
-      "ROCBLAS_EXPORT"
-   ]
 }

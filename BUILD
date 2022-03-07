@@ -2,6 +2,7 @@ load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
@@ -36,6 +37,26 @@ config_setting(
         {},
     ),
     visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "linux_k8",
+    values = {"cpu": "k8"},
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "linux_haswell",
+    values = {"cpu": "haswell"},
+    visibility = ["//visibility:public"],
+)
+
+selects.config_setting_group(
+    name = "linux_x86_64",
+    match_any = [
+        ":linux_k8",
+        ":linux_haswell",
+    ],
 )
 
 # Flag to build tf_runtime with std::thread/mutex instead of ABSL's:
@@ -1408,10 +1429,10 @@ tfrt_cc_library(
         ":tensor",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:StandardOps",
     ],
 )
 
@@ -1464,10 +1485,10 @@ tfrt_cc_library(
         ":tensor",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:StandardOps",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
@@ -1491,6 +1512,7 @@ gentbl_cc_library(
     deps = [
         ":CoreRTTdFiles",
         ":OpBaseTdFiles",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
@@ -1512,6 +1534,7 @@ tfrt_cc_library(
         ":distributed_kernels_opdefs_inc_gen",
         ":tensor_opdefs",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:SideEffects",
     ],
 )
@@ -1657,12 +1680,12 @@ tfrt_cc_library(
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:ControlFlowOps",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:LinalgOps",
         "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:SCFDialect",
-        "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:VectorOps",
         "@tf_runtime//backends/jitrt:jitrt_opdefs",
         "@tf_runtime//backends/jitrt:rt_opdefs",
@@ -1685,11 +1708,11 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:StandardOps",
     ],
 )
 

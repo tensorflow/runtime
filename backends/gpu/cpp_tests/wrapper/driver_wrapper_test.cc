@@ -114,7 +114,7 @@ TEST_P(Test, CreatedContextIsCurrent) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   EXPECT_NE(context.get(), nullptr);
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   EXPECT_EQ(context.get(), current.context());
@@ -139,11 +139,9 @@ TEST_P(Test, TestMultipleContexts) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context1,
-                         CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context1, CtxCreate(device));
   EXPECT_EQ(CtxGetCurrent()->context(), context1.get());
-  TFRT_ASSERT_AND_ASSIGN(auto context2,
-                         CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context2, CtxCreate(device));
   EXPECT_EQ(CtxGetCurrent()->context(), context2.get());
   TFRT_ASSERT_AND_ASSIGN(auto current1, CtxSetCurrent(context1.get()));
   EXPECT_NE(current1.context(), context2.get());
@@ -155,20 +153,22 @@ TEST_P(Test, TestDestroyResourcesWithoutCurrentContext) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
 
   TFRT_ASSERT_AND_ASSIGN(auto device_ptr,
                          MemAlloc(Current(), /*size_bytes=*/8));
+  MemHostAllocFlags alloc_flags(CU_MEMHOSTALLOC_PORTABLE, platform);
   TFRT_ASSERT_AND_ASSIGN(
-      auto host_ptr,
-      MemHostAlloc(Current(), /*size_bytes=*/8, MemHostAllocFlags::PORTABLE));
+      auto host_ptr, MemHostAlloc(Current(), /*size_bytes=*/8, alloc_flags));
+  MemAttachFlags attach_flags(CU_MEM_ATTACH_GLOBAL, platform);
   TFRT_ASSERT_AND_ASSIGN(
       auto managed_ptr,
-      MemAllocManaged(Current(), /*size_bytes=*/8, MemAttachFlags::GLOBAL));
+      MemAllocManaged(Current(), /*size_bytes=*/8, attach_flags));
   char buffer[8];
-  TFRT_ASSERT_AND_ASSIGN(auto registered_ptr,
-                         MemHostRegister(Current(), buffer, sizeof(buffer),
-                                         MemHostRegisterFlags::DEVICEMAP));
+  MemHostRegisterFlags register_flags(CU_MEMHOSTREGISTER_DEVICEMAP, platform);
+  TFRT_ASSERT_AND_ASSIGN(
+      auto registered_ptr,
+      MemHostRegister(Current(), buffer, sizeof(buffer), register_flags));
 
   EXPECT_TRUE(SetNullContext(platform));
 }
@@ -179,10 +179,9 @@ TEST_P(Test, TestStreamsWithoutCurrentContext) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
 
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         StreamCreate(Current(), StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreateNonBlocking(Current()));
   EXPECT_TRUE(SetNullContext(platform));
 
   TFRT_ASSERT_AND_ASSIGN(auto ready, StreamQuery(stream.get()));
@@ -198,12 +197,10 @@ TEST_P(Test, TestEventsWithoutCurrentContext) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
 
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         StreamCreate(Current(), StreamFlags::DEFAULT));
-  TFRT_ASSERT_AND_ASSIGN(auto event,
-                         EventCreate(Current(), EventFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreateNonBlocking(Current()));
+  TFRT_ASSERT_AND_ASSIGN(auto event, EventCreateNoTiming(Current()));
   EXPECT_TRUE(SetNullContext(platform));
 
   TFRT_ASSERT_AND_ASSIGN(auto ready, EventQuery(event.get()));
@@ -225,7 +222,7 @@ TEST_P(Test, TestContextFlags) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  auto flags = CtxFlags::SCHED_SPIN | CtxFlags::LMEM_RESIZE_TO_MAX;
+  ContextFlags flags(CU_CTX_SCHED_SPIN | CU_CTX_LMEM_RESIZE_TO_MAX, platform);
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(flags, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto get_flags, CtxGetFlags(current));
@@ -238,7 +235,7 @@ TEST_P(Test, TestContextDevice) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto get_device, CtxGetDevice(current));
   EXPECT_EQ(device, get_device);
@@ -250,7 +247,7 @@ TEST_F(Test, TestContextLimitCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   auto limit = CU_LIMIT_PRINTF_FIFO_SIZE;
   size_t value = 1024 * 1024;
@@ -265,7 +262,7 @@ TEST_F(Test, TestContextCacheConfigCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   auto cache_cfg = CU_FUNC_CACHE_PREFER_SHARED;
   EXPECT_THAT(CuCtxSetCacheConfig(current, cache_cfg), IsSuccess());
@@ -279,7 +276,7 @@ TEST_F(Test, TestContextSharedConfigCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   auto shread_cfg = CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE;
   EXPECT_THAT(CuCtxSetSharedMemConfig(current, shread_cfg), IsSuccess());
@@ -293,7 +290,7 @@ TEST_P(Test, ContextApiVersionIsGreaterZero) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto version, CtxGetApiVersion(context.get()));
   EXPECT_GT(version, 0);
 }
@@ -304,7 +301,7 @@ TEST_P(Test, TestContextStreamPriorityRange) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto range, CtxGetStreamPriorityRange(current));
   EXPECT_GE(range.least, 0);
@@ -318,7 +315,7 @@ TEST_P(Test, TestPrimaryContextState) {
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   EXPECT_THAT(DevicePrimaryCtxReset(device), IsSuccess());
-  auto flags = CtxFlags::SCHED_SPIN | CtxFlags::LMEM_RESIZE_TO_MAX;
+  ContextFlags flags(CU_CTX_SCHED_SPIN | CU_CTX_LMEM_RESIZE_TO_MAX, platform);
   EXPECT_THAT(DevicePrimaryCtxSetFlags(device, flags), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
   TFRT_ASSERT_AND_ASSIGN(auto state, DevicePrimaryCtxGetState(device));
@@ -358,8 +355,7 @@ TEST_P(Test, TestNoCurrentContext) {
   const char* error_str = "Existing CurrentContext instance(s) in same thread.";
   EXPECT_THAT(toString(DevicePrimaryCtxRelease(device)), Eq(error_str));
   EXPECT_THAT(toString(DevicePrimaryCtxReset(device)), Eq(error_str));
-  EXPECT_THAT(toString(CtxCreate(CtxFlags::SCHED_AUTO, device).takeError()),
-              Eq(error_str));
+  EXPECT_THAT(toString(CtxCreate(device).takeError()), Eq(error_str));
   EXPECT_THAT(toString(CtxSetCurrent(context.get()).takeError()),
               Eq(error_str));
   EXPECT_THAT(toString(CtxDestroy(context.get())), Eq(error_str));
@@ -379,7 +375,7 @@ TEST_F(Test, TestModuleLoadDataCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   unsigned int log_buffer_size = 1024 * 1024;
   auto log_buffer = std::make_unique<char[]>(log_buffer_size);
   std::vector<CUjit_option> jit_options = {
@@ -474,7 +470,7 @@ TEST_P(Test, MemcpyRequeriesContext) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   size_t size_bytes = 1024 * 1024;
 
   TFRT_ASSERT_AND_ASSIGN(auto src, MemAlloc(Current(), size_bytes));
@@ -493,8 +489,8 @@ TEST_P(Test, TestStreamProperties) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
-  auto flags = StreamFlags::NON_BLOCKING;
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
+  StreamFlags flags(CU_STREAM_NON_BLOCKING, platform);
   int priority = -1;
 
   TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreate(Current(), flags, priority));
@@ -512,18 +508,16 @@ TEST_F(Test, TestEventsCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   EXPECT_THAT(CtxGetCurrent().takeError(), IsSuccess());
 
   int expected = 1;
   int desired = 2;
 
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         StreamCreate(Current(), StreamFlags::DEFAULT));
-  TFRT_ASSERT_AND_ASSIGN(auto start,
-                         EventCreate(Current(), EventFlags::DEFAULT));
-  TFRT_ASSERT_AND_ASSIGN(auto stop,
-                         EventCreate(Current(), EventFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreateNonBlocking(Current()));
+  EventFlags event_flags(CU_EVENT_DEFAULT, platform);
+  TFRT_ASSERT_AND_ASSIGN(auto start, EventCreate(Current(), event_flags));
+  TFRT_ASSERT_AND_ASSIGN(auto stop, EventCreate(Current(), event_flags));
   EXPECT_THAT(EventRecord(start.get(), stream.get()), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto dst, MemAlloc<int>(Current(), 1));
   EXPECT_THAT(MemsetD32(Current(), dst.get(), /*value=*/0, /*count=*/1),
@@ -584,8 +578,7 @@ TEST_F(Test, TestEventsCUDA) {
   EXPECT_FALSE(event_ready);
 
   EXPECT_THAT(CtxSetCurrent(context.get()).takeError(), IsSuccess());
-  TFRT_ASSERT_AND_ASSIGN(auto other_stream,
-                         StreamCreate(Current(), StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto other_stream, StreamCreateNonBlocking(Current()));
   // Unblock kernel execution.
   EXPECT_THAT(MemsetD32Async(Current(), dst.get(), expected,
                              /*count=*/1, other_stream.get()),
@@ -623,12 +616,13 @@ TEST_P(Test, MemHostGetDevicePointer) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   char buffer[32];
-  TFRT_ASSERT_AND_ASSIGN(auto registered_ptr,
-                         MemHostRegister(current, buffer, sizeof(buffer),
-                                         MemHostRegisterFlags::DEVICEMAP));
+  MemHostRegisterFlags flags(CU_MEMHOSTREGISTER_DEVICEMAP, platform);
+  TFRT_ASSERT_AND_ASSIGN(
+      auto registered_ptr,
+      MemHostRegister(current, buffer, sizeof(buffer), flags));
   auto host_ptr = static_cast<Pointer<char>>(registered_ptr.get());
   TFRT_ASSERT_AND_ASSIGN(auto device_ptr, MemHostGetDevicePointer(host_ptr));
   EXPECT_NE(device_ptr, Pointer<char>(nullptr, platform));
@@ -640,7 +634,7 @@ TEST_P(Test, MemGetAddressRange) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   size_t size_bytes = 32;
   TFRT_ASSERT_AND_ASSIGN(auto pointer, MemAlloc(current, size_bytes));
@@ -656,7 +650,7 @@ TEST_P(Test, OutOfMemory) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   size_t size_bytes = 1ull << 40;
   std::string log_string;
@@ -672,19 +666,19 @@ static void CheckDanglingResources(
   EXPECT_THAT(context.takeError(), IsSuccess());
   EXPECT_THAT(CtxSetCurrent(context->get()).takeError(), IsSuccess());
 
-  TFRT_ASSERT_AND_ASSIGN(auto stream,
-                         StreamCreate(Current(), StreamFlags::DEFAULT));
-  TFRT_ASSERT_AND_ASSIGN(auto event,
-                         EventCreate(Current(), EventFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreateNonBlocking(Current()));
+  TFRT_ASSERT_AND_ASSIGN(auto event, EventCreateNoTiming(Current()));
   const size_t size_bytes = 32;
   TFRT_ASSERT_AND_ASSIGN(auto device_mem, MemAlloc(Current(), size_bytes));
-  TFRT_ASSERT_AND_ASSIGN(
-      auto host_mem,
-      MemHostAlloc(Current(), size_bytes, MemHostAllocFlags::DEFAULT));
+  MemHostAllocFlags alloc_flags(CU_MEMHOSTALLOC_DEFAULT, stream->platform());
+  TFRT_ASSERT_AND_ASSIGN(auto host_mem,
+                         MemHostAlloc(Current(), size_bytes, alloc_flags));
+  MemHostRegisterFlags register_flags(CU_MEMHOSTREGISTER_DEFAULT,
+                                      stream->platform());
   char array[size_bytes];
-  TFRT_ASSERT_AND_ASSIGN(auto registered_mem,
-                         MemHostRegister(Current(), array, size_bytes,
-                                         MemHostRegisterFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(
+      auto registered_mem,
+      MemHostRegister(Current(), array, size_bytes, register_flags));
 
   // Release resources and let the driver destroy them with the context.
   stream.release();
@@ -714,7 +708,7 @@ TEST_P(Test, DanglingResources) {
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
 
-  CheckDanglingResources(CtxCreate(CtxFlags::SCHED_AUTO, device), &CtxDestroy);
+  CheckDanglingResources(CtxCreate(device), &CtxDestroy);
   CheckDanglingResources(DevicePrimaryCtxRetain(device), [&](Context) {
     return DevicePrimaryCtxRelease(device);
   });

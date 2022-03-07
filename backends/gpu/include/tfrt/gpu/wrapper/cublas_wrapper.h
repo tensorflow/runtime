@@ -26,58 +26,63 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status);
+raw_ostream& Print(raw_ostream& os, cublasStatus_t status);
+raw_ostream& Print(raw_ostream& os, cudaDataType value);
+raw_ostream& Print(raw_ostream& os, cublasDiagType_t value);
+raw_ostream& Print(raw_ostream& os, cublasComputeType_t value);
+raw_ostream& Print(raw_ostream& os, cublasOperation_t value);
+raw_ostream& Print(raw_ostream& os, cublasGemmAlgo_t value);
+raw_ostream& Print(raw_ostream& os, cublasFillMode_t value);
+raw_ostream& Print(raw_ostream& os, cublasSideMode_t value);
+
+Expected<cudaDataType> Parse(llvm::StringRef name, cudaDataType);
+Expected<cublasDiagType_t> Parse(llvm::StringRef name, cublasDiagType_t);
+Expected<cublasComputeType_t> Parse(llvm::StringRef name, cublasComputeType_t);
+Expected<cublasOperation_t> Parse(llvm::StringRef name, cublasOperation_t);
+Expected<cublasGemmAlgo_t> Parse(llvm::StringRef name, cublasGemmAlgo_t);
+Expected<cublasFillMode_t> Parse(llvm::StringRef name, cublasFillMode_t);
+Expected<cublasSideMode_t> Parse(llvm::StringRef name, cublasSideMode_t);
+
+namespace internal {
+template <>
+struct EnumPlatform<BlasDataType, cudaDataType> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasDiagType, cublasDiagType_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasComputeType, cublasComputeType_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasOperation, cublasOperation_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasGemmAlgo, cublasGemmAlgo_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasFillMode, cublasFillMode_t> : CudaPlatformType {};
+template <>
+struct EnumPlatform<BlasSideMode, cublasSideMode_t> : CudaPlatformType {};
 
 template <>
-Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value);
+struct EnumStream<BlasDataType, Platform::CUDA>
+    : EnumStreamPtrs<cudaDataType, Parse, Print> {};
+template <>
+struct EnumStream<BlasDiagType, Platform::CUDA>
+    : EnumStreamPtrs<cublasDiagType_t, Parse, Print> {};
+template <>
+struct EnumStream<BlasComputeType, Platform::CUDA>
+    : EnumStreamPtrs<cublasComputeType_t, Parse, Print> {};
+template <>
+struct EnumStream<BlasOperation, Platform::CUDA>
+    : EnumStreamPtrs<cublasOperation_t, Parse, Print> {};
+template <>
+struct EnumStream<BlasGemmAlgo, Platform::CUDA>
+    : EnumStreamPtrs<cublasGemmAlgo_t, Parse, Print> {};
+template <>
+struct EnumStream<BlasFillMode, Platform::CUDA>
+    : EnumStreamPtrs<cublasFillMode_t, Parse, Print> {};
+template <>
+struct EnumStream<BlasSideMode, Platform::CUDA>
+    : EnumStreamPtrs<cublasSideMode_t, Parse, Print> {};
+}  // namespace internal
 
-template <>
-Expected<cublasDiagType_t> Parse<cublasDiagType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasDiagType_t value);
-
-template <>
-Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasComputeType_t value);
-
-template <>
-Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasOperation_t value);
-
-template <>
-Expected<cublasGemmAlgo_t> Parse<cublasGemmAlgo_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value);
-
-template <>
-Expected<cublasFillMode_t> Parse<cublasFillMode_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value);
-
-template <>
-Expected<cublasSideMode_t> Parse<cublasSideMode_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value);
-
-template <>
-struct PlatformTypeTraits<BlasDataTypeTag, cudaDataType>
-    : public CudaPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasDiagTypeTag, cublasDiagType_t>
-    : public CudaPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasComputeTypeTag, cublasComputeType_t>
-    : public CudaPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasOperationTag, cublasOperation_t>
-    : public CudaPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasGemmAlgoTag, cublasGemmAlgo_t>
-    : public CudaPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasFillModeTag, cublasFillMode_t>
-    : public CudaPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasSideModeTag, cublasSideMode_t>
-    : public CudaPlatformType {};
-
+llvm::Expected<size_t> GetCublasDataTypeSizeBytes(cudaDataType data_type);
 mlir::TypeID GetCudaDataTypeId(cudaDataType data_type);
 mlir::TypeID GetCublasComputeTypeId(cublasComputeType_t compute_type);
 
@@ -124,35 +129,14 @@ llvm::Error CublasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, cudaDataType typeC, int heightC,
     int64_t strideC, int batchCount, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo);
-// TODO(hanbinyoon): Consider providing a datatype-agnostic CublasTrsmBatched
-// (and CusolverDnPotrf, etc.).
+
 llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
+                              cudaDataType dataType, cublasSideMode_t sideMode,
                               cublasFillMode_t fillMode,
                               cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const float> alpha,
-                              Pointer<const float*> A, int lda,
-                              Pointer<float*> B, int ldb, int batchCount);
-llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
-                              cublasFillMode_t fillMode,
-                              cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const double> alpha,
-                              Pointer<const double*> A, int lda,
-                              Pointer<double*> B, int ldb, int batchCount);
-llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
-                              cublasSideMode_t sideMode,
-                              cublasFillMode_t fillMode,
-                              cublasOperation_t trans, cublasDiagType_t diag,
-                              int m, int n, Pointer<const cuComplex> alpha,
-                              Pointer<const cuComplex*> A, int lda,
-                              Pointer<cuComplex*> B, int ldb, int batchCount);
-llvm::Error CublasTrsmBatched(
-    CurrentContext current, cublasHandle_t handle, cublasSideMode_t sideMode,
-    cublasFillMode_t fillMode, cublasOperation_t trans, cublasDiagType_t diag,
-    int m, int n, Pointer<const cuDoubleComplex> alpha,
-    Pointer<const cuDoubleComplex*> A, int lda, Pointer<cuDoubleComplex*> B,
-    int ldb, int batchCount);
+                              int m, int n, Pointer<const void> alpha,
+                              Pointer<const void*> A, int lda, Pointer<void*> B,
+                              int ldb, int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

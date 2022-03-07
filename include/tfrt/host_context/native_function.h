@@ -75,6 +75,12 @@ class NativeFunction : public Function {
                ArrayRef<AsyncValue*> arguments,
                MutableArrayRef<RCReference<AsyncValue>> results) const final;
 
+  void ExecuteAsync(
+      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const override {
+    assert(false && "not implemented");
+  }
+
   // Do nothing with reference counting as a native function should be always
   // available.
   void AddRef() const final {}

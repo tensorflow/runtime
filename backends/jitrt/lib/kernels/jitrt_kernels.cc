@@ -142,7 +142,8 @@ static void ExecuteImpl(const Executable& executable,
                         RemainingResults results,
                         const ExecutionContext& exec_ctx) {
   // If execution failed errors will be automatically allocated for all results.
-  ReturnValueConverter<ConversionCtx> converter(results);
+  ConversionCtx conversion_ctx;
+  ReturnValueConverter<ConversionCtx> converter(results, conversion_ctx);
   converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);

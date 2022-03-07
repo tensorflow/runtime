@@ -22,7 +22,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, CUresult result) {
   const char* name = nullptr;
   cuGetErrorName(result, &name);
   if (name != nullptr) {
@@ -148,7 +148,7 @@ llvm::Expected<ContextState> CuDevicePrimaryCtxGetState(Device device) {
   unsigned flags;
   int active;
   RETURN_IF_ERROR(cuDevicePrimaryCtxGetState(ToCuda(device), &flags, &active));
-  return ContextState{static_cast<CtxFlags>(flags), active};
+  return ContextState{static_cast<CUctx_flags>(flags), active};
 }
 
 llvm::Error CuDevicePrimaryCtxSetFlags(Device device, CUctx_flags flags) {

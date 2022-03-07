@@ -17,7 +17,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser.h"
@@ -241,7 +241,7 @@ class FakeCompilerPass : public CompilerPass {
       string_view program, mlir::MLIRContext* context) const override {
     mlir::DialectRegistry registry;
     tfrt::RegisterTFRTDialects(registry);
-    registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect>();
+    registry.insert<mlir::func::FuncDialect, mlir::arith::ArithmeticDialect>();
     context->appendDialectRegistry(registry);
     context->allowUnregisteredDialects();
 

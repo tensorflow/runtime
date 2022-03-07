@@ -29,21 +29,15 @@ namespace gpu {
 namespace wrapper {
 
 // Platform-discriminated enums.
-struct BlasDataTypeTag;
-using BlasDataType = Enum<BlasDataTypeTag>;
-struct BlasDiagTypeTag;
-using BlasDiagType = Enum<BlasDiagTypeTag>;
-struct BlasComputeTypeTag;
-using BlasComputeType = Enum<BlasComputeTypeTag>;
-struct BlasOperationTag;
-using BlasOperation = Enum<BlasOperationTag>;
-struct BlasGemmAlgoTag;
-using BlasGemmAlgo = Enum<BlasGemmAlgoTag>;
-struct BlasFillModeTag;
-using BlasFillMode = Enum<BlasFillModeTag>;
-struct BlasSideModeTag;
-using BlasSideMode = Enum<BlasSideModeTag>;
+using BlasDataType = Enum<struct BlasDataTypeTag>;
+using BlasDiagType = Enum<struct BlasDiagTypeTag>;
+using BlasComputeType = Enum<struct BlasComputeTypeTag>;
+using BlasOperation = Enum<struct BlasOperationTag>;
+using BlasGemmAlgo = Enum<struct BlasGemmAlgoTag>;
+using BlasFillMode = Enum<struct BlasFillModeTag>;
+using BlasSideMode = Enum<struct BlasSideModeTag>;
 
+Expected<size_t> GetBlasDataTypeSizeBytes(BlasDataType data_type);
 // Returns the id of the type that the enumerator refers to.
 mlir::TypeID GetBlasDataTypeId(BlasDataType data_type);
 mlir::TypeID GetBlasComputeTypeId(BlasComputeType compute_type);
@@ -94,6 +88,13 @@ llvm::Error BlasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
     int64_t strideC, int batchCount, BlasComputeType computeType,
     BlasGemmAlgo algo);
+
+llvm::Error BlasTrsmBatched(CurrentContext current, BlasHandle handle,
+                            BlasDataType dataType, BlasSideMode sideMode,
+                            BlasFillMode fillMode, BlasOperation trans,
+                            BlasDiagType diag, int m, int n,
+                            Pointer<const void> alpha, Pointer<const void*> A,
+                            int lda, Pointer<void*> B, int ldb, int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

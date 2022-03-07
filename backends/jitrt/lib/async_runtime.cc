@@ -301,20 +301,5 @@ void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {
   Await(group->GetCompletionAsyncValue());
 }
 
-HostContextAsyncTaskRunner::HostContextAsyncTaskRunner(HostContext* host)
-    : host_(host) {}
-
-void HostContextAsyncTaskRunner::Schedule(Task task) {
-  EnqueueWork(host_, std::move(task));
-}
-
-EigenThreadPoolAsyncTaskRunner::EigenThreadPoolAsyncTaskRunner(
-    Eigen::ThreadPoolInterface* thread_pool)
-    : thread_pool_(thread_pool) {}
-
-void EigenThreadPoolAsyncTaskRunner::Schedule(Task task) {
-  thread_pool_->Schedule(std::move(task));
-}
-
 }  // namespace jitrt
 }  // namespace tfrt

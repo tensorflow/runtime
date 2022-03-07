@@ -14,6 +14,173 @@
 
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
+// CHECK-LABEL: --- Running 'dnn_convolution_test'
+func @dnn_convolution_test() {
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
+
+  %ch0 = tfrt.new.chain
+
+  // Input tensor
+  %i00 = tfrt.constant.f32 1.0
+  %i01 = tfrt.constant.f32 2.0
+  %i02 = tfrt.constant.f32 3.0
+  %i03 = tfrt.constant.f32 4.0
+  %i04 = tfrt.constant.f32 5.0
+  %i05 = tfrt.constant.f32 6.0
+  %i06 = tfrt.constant.f32 7.0
+  %i07 = tfrt.constant.f32 8.0
+  %i08 = tfrt.constant.f32 9.0
+  %i09 = tfrt.constant.f32 10.0
+  %i10 = tfrt.constant.f32 11.0
+  %i11 = tfrt.constant.f32 12.0
+  %i12 = tfrt.constant.f32 13.0
+  %i13 = tfrt.constant.f32 14.0
+  %i14 = tfrt.constant.f32 15.0
+  %i15 = tfrt.constant.f32 16.0
+  %input_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [1 : i64, 1 : i64, 4 : i64, 4 : i64]
+  %ch1 = "tfrt_dht.set_tensor_with_values.f32"(%input_tensor, %ch0, %i00, %i01, %i02, %i03, %i04, %i05, %i06, %i07, %i08, %i09, %i10, %i11, %i12, %i13, %i14, %i15): (!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
+
+  // Filter tensor
+  %f00 = tfrt.constant.f32 5.0
+  %f01 = tfrt.constant.f32 6.0
+  %f02 = tfrt.constant.f32 7.0
+  %f03 = tfrt.constant.f32 8.0
+  %filter_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [1 : i64, 1 : i64, 2 : i64, 2 : i64]
+  %ch2 = "tfrt_dht.set_tensor_with_values.f32"(%filter_tensor, %ch0, %f00, %f01, %f02, %f03):(!t.tensor, !tfrt.chain, f32, f32, f32, f32) -> !tfrt.chain
+
+  // Output tensor (initialize to zero)
+  %output_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [1 : i64, 1 : i64, 3 : i64, 3 : i64]
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %output_tensor, %ch0 0.0 : f32
+  // CHECK: shape = [1, 1, 3, 3], values = [0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00]
+  %ch4 = tfrt_dht.print_tensor %output_tensor, %ch3
+
+  // Allocate device memory
+  %input_size = tfrt.constant.i64 64   //  (1 * 1 * 4 * 4) * (size of f32 = 4);
+  %output_size = tfrt.constant.i64 36  //  (1 * 1 * 3 * 3) * (size of f32 = 4);
+  %filter_size = tfrt.constant.i64 16  //  (1 * 1 * 2 * 2) * (size of f32 = 4);
+  %workspace_size = tfrt.constant.i64 128
+  %device_input_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %input_size, %ch0
+  %device_output_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %output_size, %ch0
+  %device_filter_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %filter_size, %ch0
+  %device_workspace_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %workspace_size, %ch0
+
+  // Fill device memory
+  %host_input_buffer, %ch5 = tfrt_dht.get_buffer %input_tensor, %ch1
+  %host_filter_buffer, %ch6 = tfrt_dht.get_buffer %filter_tensor, %ch2
+  %host_output_buffer, %ch7 = tfrt_dht.get_buffer %output_tensor, %ch3
+  %ch8 = tfrt_gpu.mem.copy %device_input_buffer, %host_input_buffer, %stream, %ch5 : !tfrt_gpu.buffer, !ht.host_buffer
+  %ch9 = tfrt_gpu.mem.copy %device_filter_buffer, %host_filter_buffer, %stream, %ch6 : !tfrt_gpu.buffer, !ht.host_buffer
+  %cha = tfrt_gpu.mem.copy %device_output_buffer, %host_output_buffer, %stream, %ch7 : !tfrt_gpu.buffer, !ht.host_buffer
+
+  // Build and run convolution
+  %dnn = tfrt_gpu.dnn.create %context
+  %plan = tfrt_gpu.dnn.build_convolution %dnn, CUDNN_DATA_FLOAT, CUDNN_DATA_FLOAT,
+    [1, 1, 4, 4], [16, 16, 4, 1], [1, 1, 3, 3], [9, 9, 3, 1], [1, 1, 2, 2],
+    [4, 4, 2, 1], CUDNN_CROSS_CORRELATION, 2, [1, 1], [0, 0], [1, 1], 10, 0, [], []
+  %chb = tfrt_gpu.dnn.run_convolution %dnn, %stream, %plan, %device_input_buffer,
+    %device_output_buffer, %device_filter_buffer, %device_workspace_buffer, %cha
+
+  // Verify output
+  %chc = tfrt_gpu.mem.copy %host_output_buffer, %device_output_buffer, %stream, %chb : !ht.host_buffer, !tfrt_gpu.buffer
+  %chd = tfrt_gpu.stream.synchronize %stream, %chc
+  // CHECK: shape = [1, 1, 3, 3], values = [1.000000e+02, 1.260000e+02, 1.520000e+02, 2.040000e+02, 2.300000e+02, 2.560000e+02, 3.080000e+02, 3.340000e+02, 3.600000e+02]
+  %che = tfrt_dht.print_tensor %output_tensor, %chd
+
+  tfrt.return
+}
+
+// CHECK-LABEL: --- Running 'dnn_legacy_convolution_test'
+func @dnn_legacy_convolution_test() {
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
+
+  %ch0 = tfrt.new.chain
+
+  // Input tensor
+  %i00 = tfrt.constant.f32 1.0
+  %i01 = tfrt.constant.f32 2.0
+  %i02 = tfrt.constant.f32 3.0
+  %i03 = tfrt.constant.f32 4.0
+  %i04 = tfrt.constant.f32 5.0
+  %i05 = tfrt.constant.f32 6.0
+  %i06 = tfrt.constant.f32 7.0
+  %i07 = tfrt.constant.f32 8.0
+  %i08 = tfrt.constant.f32 9.0
+  %i09 = tfrt.constant.f32 10.0
+  %i10 = tfrt.constant.f32 11.0
+  %i11 = tfrt.constant.f32 12.0
+  %i12 = tfrt.constant.f32 13.0
+  %i13 = tfrt.constant.f32 14.0
+  %i14 = tfrt.constant.f32 15.0
+  %i15 = tfrt.constant.f32 16.0
+  %input_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [1 : i64, 1 : i64, 4 : i64, 4 : i64]
+  %ch1 = "tfrt_dht.set_tensor_with_values.f32"(%input_tensor, %ch0, %i00, %i01, %i02, %i03, %i04, %i05, %i06, %i07, %i08, %i09, %i10, %i11, %i12, %i13, %i14, %i15): (!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
+
+  // Filter tensor
+  %f00 = tfrt.constant.f32 5.0
+  %f01 = tfrt.constant.f32 6.0
+  %f02 = tfrt.constant.f32 7.0
+  %f03 = tfrt.constant.f32 8.0
+  %filter_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [1 : i64, 1 : i64, 2 : i64, 2 : i64]
+  %ch2 = "tfrt_dht.set_tensor_with_values.f32"(%filter_tensor, %ch0, %f00, %f01, %f02, %f03):(!t.tensor, !tfrt.chain, f32, f32, f32, f32) -> !tfrt.chain
+
+  // Output tensor (initialize to zero)
+  %output_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [1 : i64, 1 : i64, 3 : i64, 3 : i64]
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %output_tensor, %ch0 0.0 : f32
+  // CHECK: shape = [1, 1, 3, 3], values = [0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00]
+  %ch4 = tfrt_dht.print_tensor %output_tensor, %ch3
+
+  // Allocate device memory
+  %input_size = tfrt.constant.i64 64   //  (1 * 1 * 4 * 4) * (size of f32 = 4);
+  %output_size = tfrt.constant.i64 36  //  (1 * 1 * 3 * 3) * (size of f32 = 4);
+  %filter_size = tfrt.constant.i64 16  //  (1 * 1 * 2 * 2) * (size of f32 = 4);
+  %workspace_size = tfrt.constant.i64 128
+  %device_input_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %input_size, %ch0
+  %device_output_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %output_size, %ch0
+  %device_filter_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %filter_size, %ch0
+  %device_workspace_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %workspace_size, %ch0
+
+  // Fill device memory
+  %host_input_buffer, %ch5 = tfrt_dht.get_buffer %input_tensor, %ch1
+  %host_filter_buffer, %ch6 = tfrt_dht.get_buffer %filter_tensor, %ch2
+  %host_output_buffer, %ch7 = tfrt_dht.get_buffer %output_tensor, %ch3
+  %ch8 = tfrt_gpu.mem.copy %device_input_buffer, %host_input_buffer, %stream, %ch5 : !tfrt_gpu.buffer, !ht.host_buffer
+  %ch9 = tfrt_gpu.mem.copy %device_filter_buffer, %host_filter_buffer, %stream, %ch6 : !tfrt_gpu.buffer, !ht.host_buffer
+  %cha = tfrt_gpu.mem.copy %device_output_buffer, %host_output_buffer, %stream, %ch7 : !tfrt_gpu.buffer, !ht.host_buffer
+
+  // Convolution forward
+  %input_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
+    [1 : i32, 1 : i32, 4 : i32, 4 : i32], [16 : i32, 16 : i32, 4 : i32, 1 : i32]
+  %output_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
+    [1 : i32, 1 : i32, 3 : i32, 3 : i32], [9 : i32, 9 : i32, 3 : i32, 1 : i32]
+  %filter_desc = tfrt_gpu.dnn.create_filter_descriptor CUDNN_DATA_FLOAT, 0,
+    [1 : i32, 1 : i32, 2 : i32, 2 : i32]
+  %conv_desc = tfrt_gpu.dnn.create_convolution_descriptor CUDNN_DATA_FLOAT,
+    CUDNN_CROSS_CORRELATION, CUDNN_FMA_MATH, [0 : i32, 0 : i32],
+    [1 : i32, 1 : i32], [1 : i32, 1 : i32]
+  %dnn = tfrt_gpu.dnn.create %context
+  %algo = tfrt_gpu.dnn.convolution_forward_algorithm CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM
+  %chb = tfrt_gpu.dnn.convolution_forward %dnn, %stream, CUDNN_DATA_FLOAT,
+    %input_desc, %device_input_buffer, %filter_desc, %device_filter_buffer,
+    %conv_desc, %algo, %device_workspace_buffer, %output_desc,
+    %device_output_buffer, %cha
+
+  // Verify output
+  %chc = tfrt_gpu.mem.copy %host_output_buffer, %device_output_buffer, %stream, %chb : !ht.host_buffer, !tfrt_gpu.buffer
+  %chd = tfrt_gpu.stream.synchronize %stream, %chc
+  // CHECK: shape = [1, 1, 3, 3], values = [1.000000e+02, 1.260000e+02, 1.520000e+02, 2.040000e+02, 2.300000e+02, 2.560000e+02, 3.080000e+02, 3.340000e+02, 3.600000e+02]
+  %che = tfrt_dht.print_tensor %output_tensor, %chd
+
+  tfrt.return
+}
+
 // CHECK-LABEL: --- Running 'dnn_pooling_test'
 func @dnn_pooling_test() {
   %ch2 = tfrt.new.chain
@@ -122,16 +289,15 @@ func @dnn_pooling_test() {
   %mode = tfrt.constant.ui32 0
   %nan_propagation = tfrt.constant.ui32 0
   %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode,
-    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
-    [1 : i32, 1 : i32], %ch12
+    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32], [1 : i32, 1 : i32]
 
   %in_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
     [2 : i32, 2 : i32, 10 : i32, 10 : i32],
-    [200 : i32, 100 : i32, 10 : i32, 1 : i32], %ch12
+    [200 : i32, 100 : i32, 10 : i32, 1 : i32]
 
   %out_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
     [2 : i32, 2 : i32, 8 : i32, 8 : i32],
-    [128 : i32, 64 : i32, 8 : i32, 1 : i32], %ch12
+    [128 : i32, 64 : i32, 8 : i32, 1 : i32]
 
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 0.0

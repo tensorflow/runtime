@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: --- Running 'memcpy_host_to_device_and_back_test'
 func @memcpy_host_to_device_and_back_test() {
-  %ch2 = tfrt.new.chain
+  %ch0 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -24,38 +24,32 @@ func @memcpy_host_to_device_and_back_test() {
   %stream = tfrt_gpu.stream.create %context
 
   %size = tfrt.constant.i64 32
-  %device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
+  %gpu_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
 
   // Create source dense host tensor.
-  %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]
-  %ch10 = tfrt_dht.fill_tensor_with_constant.i32 %host_tensor, %ch2 1 : i32
+  %src_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]
+  %src_buffer, %ch12 = tfrt_dht.get_buffer %src_tensor, %ch0
+  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %src_tensor, %ch0 1 : i32
+
   // CHECK: shape = [8], values = [1, 1, 1, 1, 1, 1, 1, 1]
-  %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
-  %host_buffer, %ch12 = tfrt_dht.get_buffer %host_tensor, %ch2
+  %ch2 = tfrt_dht.print_tensor %src_tensor, %ch1
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
-  %ch13 = tfrt_dht.print_buffer %host_buffer, %ch11
+  %ch3 = tfrt_dht.print_buffer %src_buffer, %ch2
 
   // Copy host to device.
-  %ch20 = tfrt_gpu.mem.copy %device_buffer, %host_buffer, %stream, %ch13 : !tfrt_gpu.buffer, !ht.host_buffer
+  %ch4 = tfrt_gpu.mem.copy %gpu_buffer, %src_buffer, %stream, %ch3 : !tfrt_gpu.buffer, !ht.host_buffer
 
   // Create resulting dense host tensor, get its buffer, and copy back to host.
-  %result_host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64, 4 : i64]
-  %result_host_buffer, %ch30 = tfrt_dht.get_buffer %result_host_tensor, %ch2
-  %ch31 = tfrt_gpu.mem.copy %result_host_buffer, %device_buffer, %stream, %ch20 : !ht.host_buffer, !tfrt_gpu.buffer
+  %dst_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64, 4 : i64]
+  %dst_buffer, %ch30 = tfrt_dht.get_buffer %dst_tensor, %ch0
+  %ch5 = tfrt_gpu.mem.copy %dst_buffer, %gpu_buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
 
-  // Create, record, and poll an event to make sure copy back to host completed.
-  %event = tfrt_gpu.event.create %context
-  %ch41 = tfrt_gpu.event.record %event, %stream, %ch31
-  %ch42 = tfrt_gpu.event.synchronize %event, %ch41
+  %ch6 = tfrt_gpu.stream.synchronize %stream, %ch5
 
   // CHECK: shape = [2, 4], values = [1, 1, 1, 1, 1, 1, 1, 1]
-  %ch50 = tfrt_dht.print_tensor %result_host_tensor, %ch42
-
-  // This print is just to make sure (in non error cases) that source host
-  // buffer stays alive for the duration of the copy.
-  // TODO(iga): Add EventMgr and extend the life of host buffer inside memcpy.
+  %ch7 = tfrt_dht.print_tensor %dst_tensor, %ch6
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
-  %ch51 = tfrt_dht.print_buffer %host_buffer, %ch50
+  %ch8 = tfrt_dht.print_buffer %dst_buffer, %ch7
 
   tfrt.return
 }

@@ -24,6 +24,12 @@
 
 #include "tfrt/gpu/wrapper/hip_forwards.h"
 
+#ifdef _WIN32
+#define ROCBLAS_EXPORT __declspec(dllexport)
+#else
+#define ROCBLAS_EXPORT __attribute__((visibility("default")))
+#endif
+
 // Declare types from rocblas.h used in rocblas_stub.h.inc.
 using rocblas_int = int;
 using rocblas_stride = int64_t;

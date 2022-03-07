@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-build --enable_platform_specific_config
-
-build:linux   --config=clang  # On Linux, build with clang by default.
-build:windows --config=msvc   # On Windows, build with MSVC by default.
+# Note: we do not use --enable_platform_specific_config because evaluation order
+# becomes unexpected (see https://github.com/bazelbuild/bazel/issues/13603).
+# Instead, users are required to pick a compiler with `--config=clang/gcc/msvc`.
+build --@rules_cuda//cuda:compiler="Please specify a compiler (--config=clang/gcc/msvc)."
 
 # LLVM's LIT test runner needs %PATHEXT% on Windows
 test:windows --test_env=PATHEXT
@@ -23,15 +23,12 @@ test:windows --test_env=PATHEXT
 # Build with MSVC (and nvcc if --config=cuda)
 build:msvc --config=nvcc
 build:msvc --cxxopt=/std:c++14 --host_cxxopt=/std:c++14
-
 # Workaround for https://github.com/tensorflow/runtime/issues/65
 build:msvc --cxxopt=/d2ReducedOptimizeHugeFunctions
 
 # Build with clang.
 build:clang --repo_env=CC=clang
-# This should be 'build:clang' as well, but then could no longer be overriden by
-# --config=nvcc. See https://github.com/bazelbuild/bazel/issues/13603.
-build       --@rules_cuda//cuda:compiler=clang
+build:clang --@rules_cuda//cuda:compiler=clang
 build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
 build:clang --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
 
@@ -78,6 +75,10 @@ build:rbe --google_default_credentials
 
 # Disable RTTI and exceptions
 build:disable_rtti_and_exceptions --no//:rtti_and_exceptions
+
+# Filter build/test targets by tag.
+test:cuda --build_tag_filters=-no_oss
+test:cuda --test_tag_filters=-no_oss,-requires-gpu-amd
 
 # Minimize code size for //tools:code_size_test_driver target.
 build:code_size_test --compilation_mode=opt --copt=-Os

@@ -67,15 +67,28 @@ static void ReleaseGpuResource(AsyncValueRef<T> value) {
   value->release();
 }
 
+// Calls all pending callbacks in order to release internal ref-counts
+// potentially held by these callbacks (e.g. from a memcpy). The context has
+// already been synchronized appropriately to guarantee no user-held ref-counts.
+static Error InvokeAllCallbacks(const GpuContext& context) {
+  auto none_pending = context.MaybeInvokeCallbacks();
+  if (!none_pending) return none_pending.takeError();
+  if (*none_pending) return Error::success();
+  return MakeStringError("not all pending callbacks invoked");
+}
+
 GpuContextCache::~GpuContextCache() {
-  for (auto& pair : map_) {
+  for (auto& pair : context_resources_) {
+    AsyncValueRef<GpuContext> context = std::move(pair.second.first);
+    LogIfError(InvokeAllCallbacks(*context));
     delete pair.second.second;
-    ReleaseGpuResource<GpuContext>(std::move(pair.second.first));
+    ReleaseGpuResource(std::move(context));
   }
 }
 
-GpuContextCache::Pair GpuContextCache::GetOrCreate(wrapper::Context context) {
-  auto pair = map_.try_emplace(context);
+GpuContextCache::Resources GpuContextCache::GetOrCreate(
+    wrapper::Context context) {
+  auto pair = context_resources_.try_emplace(context);
   if (pair.second) {
     auto gpu_context =
         MakeAvailableAsyncValueRef<GpuContext>(wrapper::OwningContext(context));
@@ -195,8 +208,7 @@ static Expected<GpuStream> CreateGpuStreamImpl(wrapper::Platform platform,
   if (!context) return context.takeError();
   auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
-  auto stream =
-      wrapper::StreamCreate(*current, wrapper::StreamFlags::NON_BLOCKING);
+  auto stream = wrapper::StreamCreateNonBlocking(*current);
   if (!stream) return stream.takeError();
   auto gpu_ctx = MakeAvailableAsyncValueRef<GpuContext>(std::move(*context));
   return GpuStream(std::move(gpu_ctx), std::move(*stream));

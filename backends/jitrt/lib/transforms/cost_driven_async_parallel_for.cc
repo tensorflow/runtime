@@ -84,8 +84,8 @@ class Cost {
   explicit Cost(ImplicitLocOpBuilder &builder, size_t ram_cost = 0,
                 size_t cpu_cost = 0);
 
-  Cost(ImplicitLocOpBuilder &builder, InverseThroughput &&ram_cost,
-       InverseThroughput &&cpu_cost);
+  Cost(ImplicitLocOpBuilder &builder, InverseThroughput ram_cost,
+       InverseThroughput cpu_cost);
 
   InverseThroughput &ram();
   InverseThroughput &cpu();
@@ -115,8 +115,8 @@ class CostModel {
   bool IsBeforeRoot(Value &value);
   Optional<Value> GetIterations(Operation &op, Value lower_bound,
                                 Value upper_bound, Value step);
-  template <typename T>
-  Cost NewCost(T &&ram_cost, T &&cpu_cost);
+  Cost NewCost(size_t ram_cost, size_t cpu_cost);
+  Cost NewCost(InverseThroughput ram_cost, InverseThroughput cpu_cost);
   Cost ZeroCost();
   Cost EstimateCost(Operation &op);
   Cost EstimateCost(Region &region);
@@ -136,8 +136,8 @@ Cost::Cost(ImplicitLocOpBuilder &builder, size_t ram_cost, size_t cpu_cost)
       ram_(builder.create<arith::ConstantIndexOp>(ram_cost)),
       cpu_(builder.create<arith::ConstantIndexOp>(cpu_cost)) {}
 
-Cost::Cost(ImplicitLocOpBuilder &builder, InverseThroughput &&ram_cost,
-           InverseThroughput &&cpu_cost)
+Cost::Cost(ImplicitLocOpBuilder &builder, InverseThroughput ram_cost,
+           InverseThroughput cpu_cost)
     : builder_(builder), ram_(ram_cost), cpu_(cpu_cost) {}
 
 InverseThroughput &Cost::ram() { return ram_; }
@@ -177,7 +177,7 @@ Cost EstimateCostVector(CostModel &helper, Operation &op) {
       if (type.hasStaticShape()) {
         return helper.NewCost(
             /* ram */ type.getNumElements() * type.getElementTypeBitWidth() / 8,
-            /* cpu */ 0L);
+            /* cpu */ 0);
       }
     }
     return helper.ZeroCost();
@@ -197,8 +197,8 @@ Cost EstimateCostVector(CostModel &helper, Operation &op) {
 Cost EstimateCostMemref(CostModel &helper, Operation &op) {
   auto new_cost = [&](Value value) {
     return helper.NewCost(
-        /* ram */ size_t{value.getType().getIntOrFloatBitWidth() / 8},
-        /* cpu */ 0UL);
+        /* ram */ value.getType().getIntOrFloatBitWidth() / 8,
+        /* cpu */ 0);
   };
 
   if (auto load_op = dyn_cast<memref::LoadOp>(op)) {
@@ -296,9 +296,13 @@ Optional<Value> CostModel::GetIterations(Operation &op, Value lower_bound,
   return llvm::None;
 }
 
-template <typename T>
-Cost CostModel::NewCost(T &&ram_cost, T &&cpu_cost) {
-  return Cost(builder_, std::forward<T>(ram_cost), std::forward<T>(cpu_cost));
+Cost CostModel::NewCost(size_t ram_cost, size_t cpu_cost) {
+  return Cost(builder_, ram_cost, cpu_cost);
+}
+
+Cost CostModel::NewCost(InverseThroughput ram_cost,
+                        InverseThroughput cpu_cost) {
+  return Cost(builder_, ram_cost, cpu_cost);
 }
 
 Cost CostModel::ZeroCost() { return NewCost(0, 0); }

@@ -25,6 +25,12 @@
 #include "tfrt/gpu/wrapper/hip_forwards.h"
 #include "tfrt/gpu/wrapper/rocblas_stub.h"
 
+#ifdef _WIN32
+#define ROCSOLVER_EXPORT __declspec(dllexport)
+#else
+#define ROCSOLVER_EXPORT __attribute__((visibility("default")))
+#endif
+
 extern "C" {
 #include "rocsolver_stub.h.inc"
 }

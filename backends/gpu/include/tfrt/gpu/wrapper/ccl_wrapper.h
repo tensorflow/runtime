@@ -30,26 +30,32 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template <>
-class CclTypeTraits<CclUniqueIdTag, ncclUniqueId> : public std::true_type {};
-template <>
-class CclTypeTraits<CclDataTypeTag, ncclDataType_t> : public std::true_type {};
-template <>
-class CclTypeTraits<CclReductionOpTag, ncclRedOp_t> : public std::true_type {};
+raw_ostream& Print(raw_ostream& os, ncclResult_t result);
+raw_ostream& Print(raw_ostream& os, ncclDataType_t value);
+raw_ostream& Print(raw_ostream& os, ncclRedOp_t value);
+
+Expected<ncclDataType_t> Parse(llvm::StringRef name, ncclDataType_t);
+Expected<ncclRedOp_t> Parse(llvm::StringRef name, ncclRedOp_t);
 
 static_assert(sizeof(CclUniqueId) == sizeof(ncclUniqueId), "size mismatch");
 static_assert(sizeof(CclDataType) == sizeof(ncclDataType_t), "size mismatch");
 static_assert(sizeof(CclReductionOp) == sizeof(ncclRedOp_t), "size mismatch");
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result);
+namespace internal {
+template <>
+class IsCclType<CclUniqueId, ncclUniqueId> : public std::true_type {};
+template <>
+class IsCclType<CclDataType, ncclDataType_t> : public std::true_type {};
+template <>
+class IsCclType<CclReductionOp, ncclRedOp_t> : public std::true_type {};
 
 template <>
-Expected<ncclDataType_t> Parse<ncclDataType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclDataType_t value);
-
+struct EnumStream<CclDataType, Platform::NONE>
+    : EnumStreamPtrs<ncclDataType_t, Parse, Print> {};
 template <>
-Expected<ncclRedOp_t> Parse<ncclRedOp_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclRedOp_t value);
+struct EnumStream<CclReductionOp, Platform::NONE>
+    : EnumStreamPtrs<ncclRedOp_t, Parse, Print> {};
+}  // namespace internal
 
 llvm::Expected<int> GetCclDataTypeSizeBytes(ncclDataType_t data_type);
 

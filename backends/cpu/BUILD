@@ -7,8 +7,6 @@ package(
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 tfrt_cc_library(
     name = "core_runtime",
     srcs = [
@@ -160,14 +158,16 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/tf/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        "@dnnl//:dnnl_single_threaded",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:tf_bcast",
-    ],
+    ] + select({
+        "@tf_runtime//:linux_x86_64": ["@dnnl//:dnnl_single_threaded"],
+        "//conditions:default": [],
+    }),
 )
 
 # copybara:uncomment_begin

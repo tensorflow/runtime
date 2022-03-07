@@ -28,7 +28,24 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result);
+raw_ostream& Print(raw_ostream& os, CUresult result);
+
+namespace internal {
+template <>
+struct EnumPlatform<ContextFlags, CUctx_flags> : CudaPlatformType {};
+template <>
+struct EnumPlatform<StreamFlags, CUstream_flags> : CudaPlatformType {};
+template <>
+struct EnumPlatform<EventFlags, CUevent_flags> : CudaPlatformType {};
+template <>
+struct EnumPlatform<MemHostAllocFlags, CUmemhostalloc_flags>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<MemHostRegisterFlags, CUmemhostregister_flags>
+    : CudaPlatformType {};
+template <>
+struct EnumPlatform<MemAttachFlags, CUmemAttach_flags> : CudaPlatformType {};
+}  // namespace internal
 
 // The following functions map directly to CUDA calls.
 //

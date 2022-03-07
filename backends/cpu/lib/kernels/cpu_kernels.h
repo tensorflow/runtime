@@ -21,7 +21,6 @@
 
 #include <type_traits>
 
-#include "dnnl.h"  // from @dnnl
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
@@ -31,6 +30,10 @@
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/scalar_host_tensor.h"
+
+#ifdef __x86_64__
+#include "dnnl.h"  // from @dnnl
+#endif
 
 namespace tfrt {
 namespace cpu {
@@ -74,6 +77,7 @@ void MatMul2DKernel(T alpha, DHTIndexableView<T, 2> A, DHTIndexableView<T, 2> B,
   }
 }
 
+#ifdef __x86_64__
 template <>
 inline void MatMul2DKernel<float>(float alpha, DHTIndexableView<float, 2> A,
                                   DHTIndexableView<float, 2> B, float beta,
@@ -138,6 +142,7 @@ inline void MatMul2DKernel<float>(float alpha, DHTIndexableView<float, 2> A,
   // warning.
   TFRT_MSAN_MEMORY_IS_INITIALIZED(C.data(), C.NumElements() * sizeof(float));
 }
+#endif  // __x86_64__
 
 // TODO(tfrt-devs): Merge this into the matmul kernel interface layer, or
 // expose alpha/beta as attributes.  Either this extensibility is important or

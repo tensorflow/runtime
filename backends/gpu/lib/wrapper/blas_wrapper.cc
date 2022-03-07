@@ -29,6 +29,18 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+Expected<size_t> GetBlasDataTypeSizeBytes(BlasDataType data_type) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCublasDataTypeSizeBytes(data_type);
+    case Platform::ROCm:
+      return GetRocblasDataTypeSizeBytes(data_type);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 mlir::TypeID GetBlasDataTypeId(BlasDataType data_type) {
   auto platform = data_type.platform();
   switch (platform) {
@@ -169,6 +181,28 @@ llvm::Error BlasGemmStridedBatchedEx(
           strideA, B, typeB, heightB, strideB, beta, C, typeC, heightC, strideC,
           // Note: pass C as input and output.
           C, typeC, heightC, strideC, batchCount, computeType, algo);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error BlasTrsmBatched(CurrentContext current, BlasHandle handle,
+                            BlasDataType dataType, BlasSideMode sideMode,
+                            BlasFillMode fillMode, BlasOperation trans,
+                            BlasDiagType diag, int m, int n,
+                            Pointer<const void> alpha, Pointer<const void*> A,
+                            int lda, Pointer<void*> B, int ldb,
+                            int batchCount) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CublasTrsmBatched(current, handle, dataType, sideMode, fillMode,
+                               trans, diag, m, n, alpha, A, lda, B, ldb,
+                               batchCount);
+    case Platform::ROCm:
+      return RocblasTrsmBatched(current, handle, dataType, sideMode, fillMode,
+                                trans, diag, m, n, alpha, A, lda, B, ldb,
+                                batchCount);
     default:
       return InvalidPlatform(platform);
   }

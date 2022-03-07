@@ -29,7 +29,10 @@ include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 def GPU_DnnHandleType : GPU_Type<"DnnHandle"> { let mnemonic = "dnn.handle"; }
 def GPU_DnnConvolutionPlanType : GPU_Type<"DnnConvolutionPlan"> {
-  let mnemonic = "dnn.convolution_plan";
+  let mnemonic = "dnn.convolution.plan";
+}
+def GPU_DnnConvolutionAlgorithmType : GPU_Type<"DnnConvolutionAlgorithmType"> {
+  let mnemonic = "dnn.convolution.algorithm";
 }
 
 // TODO(hanbinyoon): Remove these. Move legacy convolution to the
@@ -52,6 +55,11 @@ def GPU_DnnTensorDescriptorType : GPU_Type<"DnnTensorDescriptor"> {
 
 def GPU_DnnDataTypeAttr : GPU_WrapperAttr<"DnnDataType">;
 def GPU_DnnConvolutionModeAttr : GPU_WrapperAttr<"DnnConvolutionMode">;
+def GPU_DnnActivationModeAttr : GPU_WrapperAttr<"DnnActivationMode">;
+def GPU_DnnMathTypeAttr : GPU_WrapperAttr<"DnnMathType">;
+def GPU_DnnConvFwdAlgoAttr : GPU_WrapperAttr<"DnnConvFwdAlgo">;
+def GPU_DnnConvBwdDataAlgoAttr : GPU_WrapperAttr<"DnnConvBwdDataAlgo">;
+def GPU_DnnConvBwdFilterAlgoAttr : GPU_WrapperAttr<"DnnConvBwdFilterAlgo">;
 
 def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
   let description = [{
@@ -71,9 +79,8 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
   let results = (outs GPU_DnnHandleType);
 }
 
-// TODO(hanbinyoon): Consider removing the input chain for the
-// DnnCreate*DescriptorOp(s).
-def GPU_DnnCreateConvolutionDescriptorOp : GPU_Op<"dnn.create_convolution_descriptor"> {
+def GPU_DnnCreateConvolutionDescriptorOp
+  : GPU_Op<"dnn.create_convolution_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_convolution_descriptor creates a convolution descriptor
     object by allocating the memory needed to hold its opaque structure. The
@@ -81,21 +88,22 @@ def GPU_DnnCreateConvolutionDescriptorOp : GPU_Op<"dnn.create_convolution_descri
 
     Example:
     %desc = tfrt_gpu.dnn.create_convolution_descriptor CUDNN_DATA_FLOAT,
-      CUDNN_CROSS_CORRELATION, [0 : i32, 0 : i32], [1 : i32, 1 : i32],
-      [1 : i32, 1 : i32], %ch0
+      CUDNN_CROSS_CORRELATION, CUDNN_TENSOR_OP_MATH, [0 : i32, 0 : i32],
+      [1 : i32, 1 : i32], [1 : i32, 1 : i32]
   }];
   let arguments = (ins GPU_DnnDataTypeAttr:$compute_type,
-                   GPU_DnnConvolutionModeAttr:$conv_mode, I32ArrayAttr:$pad,
-                   I32ArrayAttr:$filter_stride, I32ArrayAttr:$dilation,
-                   TFRT_ChainType:$chain);
+                   GPU_DnnConvolutionModeAttr:$conv_mode,
+                   GPU_DnnMathTypeAttr:$math_type, I32ArrayAttr:$pad,
+                   I32ArrayAttr:$filter_stride, I32ArrayAttr:$dilation);
   let results = (outs GPU_DnnConvolutionDescriptorType);
   let assemblyFormat = [{
-    custom<Enum>($compute_type)`,` custom<Enum>($conv_mode)`,` $pad`,`
-    $filter_stride`,` $dilation`,` $chain attr-dict
+    custom<Enum>($compute_type)`,` custom<Enum>($conv_mode)`,`
+    custom<Enum>($math_type)`,` $pad`,` $filter_stride`,` $dilation attr-dict
   }];
 }
 
-def GPU_DnnCreateFilterDescriptorOp : GPU_Op<"dnn.create_filter_descriptor"> {
+def GPU_DnnCreateFilterDescriptorOp
+  : GPU_Op<"dnn.create_filter_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_filter_descriptor creates a filter descriptor object by
     allocating the memory needed to hold its opaque structure. The data is
@@ -103,19 +111,19 @@ def GPU_DnnCreateFilterDescriptorOp : GPU_Op<"dnn.create_filter_descriptor"> {
 
     Example:
     %desc = tfrt_gpu.dnn.create_filter_descriptor CUDNN_DATA_FLOAT,
-      [3 : i32, 3 : i32], %ch0
+      [3 : i32, 3 : i32]
   }];
   let arguments = (ins GPU_DnnDataTypeAttr:$data_type,
                    I32Attr:$tensor_format,
-                   I32ArrayAttr:$dimensions, TFRT_ChainType:$chain);
+                   I32ArrayAttr:$dimensions);
   let results = (outs GPU_DnnFilterDescriptorType);
   let assemblyFormat = [{
-    custom<Enum>($data_type)`,` $tensor_format`,` $dimensions`,` $chain
-    attr-dict
+    custom<Enum>($data_type)`,` $tensor_format`,` $dimensions attr-dict
   }];
 }
 
-def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
+def GPU_DnnCreatePoolingDescriptorOp
+  : GPU_Op<"dnn.create_pooling_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_pooling_descriptor creates a pooling descriptor object
     by allocating the memory needed to hold its opaque structure then it
@@ -138,20 +146,20 @@ def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
     %nan_propagation = tfrt.constant.ui32 0
     %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode,
       %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
-      [1 : i32, 1 : i32], %ch0
+      [1 : i32, 1 : i32]
   }];
   let arguments = (ins GPU_ContextType:$context, UI32:$mode,
                    UI32:$nan_propagation, I32ArrayAttr:$window_dimensions,
-                   I32ArrayAttr:$paddings, I32ArrayAttr:$strides,
-                   TFRT_ChainType:$chain);
+                   I32ArrayAttr:$paddings, I32ArrayAttr:$strides);
   let results = (outs GPU_DnnPoolingDescriptorType);
   let assemblyFormat = [{
     $context`,` $mode`,` $nan_propagation`,` $window_dimensions`,` $paddings`,`
-    $strides`,` $chain attr-dict
+    $strides attr-dict
   }];
 }
 
-def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
+def GPU_DnnCreateTensorDescriptorOp
+  : GPU_Op<"dnn.create_tensor_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_tensor_descriptor creates a generic tensor
     descriptor object by allocating the memory needed to hold its opaque
@@ -159,14 +167,48 @@ def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
 
     Example:
     %desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
-      [3 : i32, 3 : i32], [1 : i32, 1 : i32], %ch0
+      [3 : i32, 3 : i32], [1 : i32, 1 : i32]
   }];
   let arguments = (ins GPU_DnnDataTypeAttr:$data_type, I32ArrayAttr:$dimensions,
-                   I32ArrayAttr:$strides, TFRT_ChainType:$chain);
+                   I32ArrayAttr:$strides);
   let results = (outs GPU_DnnTensorDescriptorType);
   let assemblyFormat = [{
-    custom<Enum>($data_type)`,` $dimensions`,` $strides`,` $chain attr-dict
+    custom<Enum>($data_type)`,` $dimensions`,` $strides attr-dict
   }];
+}
+
+def GPU_DnnCreateActivationDescriptorOp
+  : GPU_Op<"dnn.create_activation_descriptor", [NoSideEffect]> {
+  let description = [{
+    tfrt_gpu.dnn.create_activation_descriptor creates an activation descriptor
+    object by allocating the memory needed to hold its opaque structure. The
+    data is initialized to provided values.
+  }];
+  let arguments = (ins F64:$coefficient, GPU_DnnActivationModeAttr:$mode,
+                   BoolAttr:$nan_progapation);
+  let results = (outs GPU_DnnActivationDescriptorType);
+  let assemblyFormat = [{
+    $coefficient`,` custom<Enum>($mode)`,` $nan_progapation attr-dict
+  }];
+}
+
+def GPU_DnnConvolutionForwardAlgorithmOp
+  : GPU_Op<"dnn.convolution_forward_algorithm", [NoSideEffect]> {
+  let arguments = (ins GPU_DnnConvFwdAlgoAttr:$algo);
+  let results = (outs GPU_DnnConvolutionAlgorithmType);
+  let assemblyFormat = "custom<Enum>($algo) attr-dict";
+}
+def GPU_DnnConvolutionBackwardDataAlgorithmOp
+  : GPU_Op<"dnn.convolution_backward_data_algorithm", [NoSideEffect]> {
+  let arguments = (ins GPU_DnnConvBwdDataAlgoAttr:$algo);
+  let results = (outs GPU_DnnConvolutionAlgorithmType);
+  let assemblyFormat = "custom<Enum>($algo) attr-dict";
+}
+def GPU_DnnConvolutionBackwardFilterAlgorithmOp
+  : GPU_Op<"dnn.convolution_backward_filter_algorithm", [NoSideEffect]> {
+  let arguments = (ins GPU_DnnConvBwdFilterAlgoAttr:$algo);
+  let results = (outs GPU_DnnConvolutionAlgorithmType);
+  let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
 
 def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
@@ -228,20 +270,22 @@ def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
   }];
   let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$compute_type,
+                   GPU_DnnDataTypeAttr:$scale_type,
                    GPU_DnnTensorDescriptorType:$x_desc,
                    GPU_BufferType:$x,
                    GPU_DnnFilterDescriptorType:$w_desc,
                    GPU_BufferType:$w,
                    GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   UI64:$algo,
+                   GPU_DnnConvolutionAlgorithmType:$algo,
                    GPU_BufferType:$work_space,
                    GPU_DnnTensorDescriptorType:$y_desc,
-                   GPU_BufferType:$y);
+                   GPU_BufferType:$y,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $stream`,` custom<Enum>($compute_type)`,` $x_desc`,` $x`,` $w_desc`,` $w`,`
-    $conv_desc`,` $algo`,` $work_space`,` $y_desc`,` $y attr-dict
+    $handle`,` $stream`,` custom<Enum>($scale_type)`,` $x_desc`,` $x`,`
+    $w_desc`,` $w`,` $conv_desc`,` $algo`,` $work_space`,` $y_desc`,` $y`,`
+    $chain attr-dict
   }];
 }
 
@@ -258,20 +302,22 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
 }];
   let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$compute_type,
+                   GPU_DnnDataTypeAttr:$scale_type,
                    GPU_DnnFilterDescriptorType:$w_desc,
                    GPU_BufferType:$w,
                    GPU_DnnTensorDescriptorType:$dy_desc,
                    GPU_BufferType:$dy,
                    GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   UI64:$algo,
+                   GPU_DnnConvolutionAlgorithmType:$algo,
                    GPU_BufferType:$work_space,
                    GPU_DnnTensorDescriptorType:$dx_desc,
-                   GPU_BufferType:$dx);
+                   GPU_BufferType:$dx,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $stream`,` custom<Enum>($compute_type)`,` $w_desc`,` $w`,` $dy_desc`,`
-    $dy`,` $conv_desc`,` $algo`,` $work_space`,` $dx_desc`,` $dx attr-dict
+    $handle`,` $stream`,` custom<Enum>($scale_type)`,` $w_desc`,` $w`,`
+    $dy_desc`,` $dy`,` $conv_desc`,` $algo`,` $work_space`,` $dx_desc`,` $dx`,`
+    $chain attr-dict
   }];
 }
 
@@ -288,20 +334,22 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
 }];
   let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$compute_type,
+                   GPU_DnnDataTypeAttr:$scale_type,
                    GPU_DnnTensorDescriptorType:$x_desc,
                    GPU_BufferType:$x,
                    GPU_DnnTensorDescriptorType:$dy_desc,
                    GPU_BufferType:$dy,
                    GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   UI64:$algo,
+                   GPU_DnnConvolutionAlgorithmType:$algo,
                    GPU_BufferType:$work_space,
                    GPU_DnnFilterDescriptorType:$dw_desc,
-                   GPU_BufferType:$dw);
+                   GPU_BufferType:$dw,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $stream`,` custom<Enum>($compute_type)`,` $x_desc`,` $x`,` $dy_desc`,`
-    $dy`,` $conv_desc`,` $algo`,` $work_space`,` $dw_desc`,` $dw attr-dict
+    $handle`,` $stream`,` custom<Enum>($scale_type)`,` $x_desc`,` $x`,`
+    $dy_desc`,` $dy`,` $conv_desc`,` $algo`,` $work_space`,` $dw_desc`,` $dw`,`
+    $chain attr-dict
   }];
 }
 
@@ -316,23 +364,31 @@ def GPU_DnnConvolutionBiasActivationForwardOp :
   }];
   let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_StreamType:$stream,
-                   GPU_BufferType:$alpha1,
+                   GPU_DnnDataTypeAttr:$scale_type,
+                   AnyType:$alpha1,
                    GPU_DnnTensorDescriptorType:$x_desc,
                    GPU_BufferType:$x,
                    GPU_DnnFilterDescriptorType:$w_desc,
                    GPU_BufferType:$w,
                    GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   UI64:$algo,
+                   GPU_DnnConvolutionAlgorithmType:$algo,
                    GPU_BufferType:$work_space,
-                   GPU_BufferType:$alpha2,
+                   AnyType:$alpha2,
                    GPU_DnnTensorDescriptorType:$z_desc,
                    GPU_BufferType:$z,
                    GPU_DnnTensorDescriptorType:$bias_desc,
                    GPU_BufferType:$bias,
                    GPU_DnnActivationDescriptorType:$activation_desc,
                    GPU_DnnTensorDescriptorType:$y_desc,
-                   GPU_BufferType:$y);
+                   GPU_BufferType:$y,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $stream`,` custom<Enum>($scale_type, type($alpha1),
+    type($alpha2))`,` $alpha1`,` $x_desc`,` $x`,` $w_desc`,` $w`,` $conv_desc`,`
+    $algo`,` $work_space`,` $alpha2`,` $z_desc`,` $z`,` $bias_desc`,` $bias`,`
+    $activation_desc`,` $y_desc`,` $y`,` $chain attr-dict
+  }];
 }
 
 def GPU_DnnBuildConvolutionOp : GPU_Op<"dnn.build_convolution"> {

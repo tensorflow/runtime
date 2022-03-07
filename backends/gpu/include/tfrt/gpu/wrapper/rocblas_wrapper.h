@@ -25,54 +25,62 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status);
+raw_ostream& Print(raw_ostream& os, rocblas_status status);
+raw_ostream& Print(raw_ostream& os, rocblas_datatype value);
+raw_ostream& Print(raw_ostream& os, rocblas_diagonal value);
+raw_ostream& Print(raw_ostream& os, rocblas_operation value);
+raw_ostream& Print(raw_ostream& os, rocblas_gemm_algo value);
+raw_ostream& Print(raw_ostream& os, rocblas_fill value);
+raw_ostream& Print(raw_ostream& os, rocblas_side value);
+
+Expected<rocblas_datatype> Parse(llvm::StringRef name, rocblas_datatype);
+Expected<rocblas_diagonal> Parse(llvm::StringRef name, rocblas_diagonal);
+Expected<rocblas_operation> Parse(llvm::StringRef name, rocblas_operation);
+Expected<rocblas_gemm_algo> Parse(llvm::StringRef name, rocblas_gemm_algo);
+Expected<rocblas_fill> Parse(llvm::StringRef name, rocblas_fill);
+Expected<rocblas_side> Parse(llvm::StringRef name, rocblas_side);
+
+namespace internal {
+template <>
+struct EnumPlatform<BlasDataType, rocblas_datatype> : RocmPlatformType {};
+// Also rocblas_datatype (type only differs for CUDA).
+template <>
+struct EnumPlatform<BlasComputeType, rocblas_datatype> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasDiagType, rocblas_diagonal> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasOperation, rocblas_operation> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasGemmAlgo, rocblas_gemm_algo> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasFillMode, rocblas_fill> : RocmPlatformType {};
+template <>
+struct EnumPlatform<BlasSideMode, rocblas_side> : RocmPlatformType {};
 
 template <>
-Expected<rocblas_datatype> Parse<rocblas_datatype>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value);
+struct EnumStream<BlasDataType, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_datatype, Parse, Print> {};
+template <>
+struct EnumStream<BlasComputeType, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_datatype, Parse, Print> {};
+template <>
+struct EnumStream<BlasDiagType, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_diagonal, Parse, Print> {};
+template <>
+struct EnumStream<BlasOperation, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_operation, Parse, Print> {};
+template <>
+struct EnumStream<BlasGemmAlgo, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_gemm_algo, Parse, Print> {};
+template <>
+struct EnumStream<BlasFillMode, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_fill, Parse, Print> {};
+template <>
+struct EnumStream<BlasSideMode, Platform::ROCm>
+    : EnumStreamPtrs<rocblas_side, Parse, Print> {};
+}  // namespace internal
 
-template <>
-Expected<rocblas_diagonal> Parse<rocblas_diagonal>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_diagonal value);
-
-template <>
-Expected<rocblas_operation> Parse<rocblas_operation>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_operation value);
-
-template <>
-Expected<rocblas_gemm_algo> Parse<rocblas_gemm_algo>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value);
-
-template <>
-Expected<rocblas_fill> Parse<rocblas_fill>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value);
-
-template <>
-Expected<rocblas_side> Parse<rocblas_side>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value);
-
-template <>
-struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
-    : public RocmPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasDiagTypeTag, rocblas_diagonal>
-    : public RocmPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasComputeTypeTag, rocblas_datatype>
-    : public RocmPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasOperationTag, rocblas_operation>
-    : public RocmPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasGemmAlgoTag, rocblas_gemm_algo>
-    : public RocmPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasFillModeTag, rocblas_fill>
-    : public RocmPlatformType {};
-template <>
-struct PlatformTypeTraits<BlasSideModeTag, rocblas_side>
-    : public RocmPlatformType {};
-
+llvm::Expected<size_t> GetRocblasDataTypeSizeBytes(rocblas_datatype data_type);
 mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type);
 
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);
@@ -110,34 +118,14 @@ llvm::Error RocblasGemmStridedBatchedEx(
     int heightC, int64_t strideC, Pointer<void> D, rocblas_datatype typeD,
     int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
     rocblas_gemm_algo algo);
+
 llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n, Pointer<const float> alpha,
-                               Pointer<const float*> A, int lda,
-                               Pointer<float*> B, int ldb, int batch_count);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n, Pointer<const double> alpha,
-                               Pointer<const double*> A, int lda,
-                               Pointer<double*> B, int ldb, int batch_count);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n,
-                               Pointer<const rocblas_float_complex> alpha,
-                               Pointer<const rocblas_float_complex*> A, int lda,
-                               Pointer<rocblas_float_complex*> B, int ldb,
-                               int batch_count);
-llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
-                               rocblas_side side, rocblas_fill uplo,
-                               rocblas_operation transA, rocblas_diagonal diag,
-                               int m, int n,
-                               Pointer<const rocblas_double_complex> alpha,
-                               Pointer<const rocblas_double_complex*> A,
-                               int lda, Pointer<rocblas_double_complex*> B,
-                               int ldb, int batch_count);
+                               rocblas_datatype dataType, rocblas_side sideMode,
+                               rocblas_fill fillMode, rocblas_operation trans,
+                               rocblas_diagonal diag, int m, int n,
+                               Pointer<const void> alpha,
+                               Pointer<const void*> A, int lda,
+                               Pointer<void*> B, int ldb, int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

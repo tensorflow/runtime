@@ -58,6 +58,7 @@
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/support.h"
+#include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
@@ -231,7 +232,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // Make sure that we call the kernel with the correct number of operands.
   // We subtract one operand from the signature because it corresponds to the
   // context that we prepend to the given operands.
-  if (operands.size() != runtime_signature_.num_operands() - 1)
+  if (LLVM_UNLIKELY(operands.size() != runtime_signature_.num_operands() - 1))
     return MakeStringError(
         "number of operands doesn't match the function signature: ",
         operands.size(), " vs ", runtime_signature_.num_operands() - 1);
@@ -239,7 +240,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // Verify that all operands passed at runtime are compatible with compiled
   // function signature.
   auto kctx = dyn_cast<KernelContextOperandType>(runtime_signature_.operand(0));
-  if (!kctx) {
+  if (LLVM_UNLIKELY(!kctx)) {
     return MakeStringError(
         "expected KernelContext in first argument of "
         "signature, got: ",
@@ -250,8 +251,9 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // internal implementation detail, and in case of an error users should get
   // back operand index corresponding to the user provided signature.
   for (unsigned i = 0; i < operands.size(); ++i) {
-    if (auto* memref =
-            dyn_cast<MemrefType>(runtime_signature_.operand(1 + i))) {
+    unsigned idx = i + 1;  // use 1-based index to fetch runtime operand
+
+    if (auto* memref = dyn_cast<MemrefType>(runtime_signature_.operand(idx))) {
       if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
     } else {
       return MakeStringError("expected memref operand at #", i,
@@ -289,11 +291,6 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
 // -------------------------------------------------------------------------- //
 // Executable return values unpacking.
 // -------------------------------------------------------------------------- //
-
-ReturnValueConverterBase::ReturnValueConverterBase(RemainingResults results)
-    : results_(results) {}
-
-ReturnValueConverterBase::~ReturnValueConverterBase() {}
 
 void ReturnValueConverterBase::ReturnErrors(
     RCReference<ErrorAsyncValue> error) const {
@@ -480,9 +477,7 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
 
 Error Executable::ReturnResults(const ReturnValueConverterBase& results,
                                 CallFrame* call_frame) const {
-  // Forward error to all results.
-  // TODO(ezhulenev): Forward the underlying error to all results once it will
-  // be supported by the runtime API.
+  // If execution failed, forward error to all results.
   if (call_frame->is_error) {
     results.ReturnErrors(MakeErrorAsyncValueRef(
         StrCat("compiled kernel run time error: ", call_frame->error)));
@@ -500,7 +495,7 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
     converted = converted && res;
   }
 
-  if (!converted)
+  if (LLVM_UNLIKELY(!converted))
     return MakeStringError("failed to convert all returned values");
   else
     return Error::success();
@@ -635,7 +630,7 @@ class JitCompilationContext {
   // Optional specialization identifier specifies if the compiled executable is
   // a default one, or a specialization.
   static Expected<Executable> Compile(
-      std::unique_ptr<JitCompilationContext>,
+      std::unique_ptr<JitCompilationContext>, string_view memory_region_name,
       Optional<size_t> specialization = llvm::None);
 
   template <typename OriginalError>
@@ -739,7 +734,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 }
 
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
-    std::unique_ptr<JitCompilationContext> ctx,
+    std::unique_ptr<JitCompilationContext> ctx, string_view memory_region_name,
     Optional<size_t> specialization) {
   mlir::FuncOp entry_func = ctx->entrypoint();
   std::string entrypoint = entry_func.getName().str();
@@ -798,9 +793,30 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
                                                      target_machine->get());
 
   // Build MLIR execution engine.
-  auto engine = mlir::ExecutionEngine::create(
-      ctx->module(), /*llvmModuleBuilder=*/nullptr, transformer,
-      ctx->options().jit_code_opt_level, libs);
+  mlir::ExecutionEngineOptions engine_options;
+  engine_options.transformer = transformer;
+  engine_options.jitCodeGenOptLevel = ctx->options().jit_code_opt_level;
+  engine_options.sharedLibPaths = libs;
+
+  // Escape slashes, substituting them with double underscores.
+  // The profiler's UI might interpret slashes as callchain separators,
+  // whereas we want the region name to be shown in full.
+  auto escape_region_name = [](llvm::StringRef str) -> std::string {
+    llvm::SmallVector<llvm::StringRef> vec;
+    for (llvm::StringRef sub : llvm::split(str, '/')) {
+      vec.push_back(sub);
+    }
+    return llvm::join(vec, "__");
+  };
+  std::string mapper_name = llvm::formatv(
+      "/jitrt{0}{1}:@{2}:{3}", memory_region_name.empty() ? "" : ":",
+      escape_region_name(memory_region_name), entrypoint,
+      specialization.hasValue() ? "specialized" : "default");
+
+  std::unique_ptr<JitRtMemoryMapper> memory_mapper =
+      JitRtMemoryMapper::Create(std::move(mapper_name));
+  engine_options.sectionMemoryMapper = memory_mapper.get();
+  auto engine = mlir::ExecutionEngine::create(ctx->module(), engine_options);
   if (auto err = engine.takeError()) return std::move(err);
 
   // Register MLIR C Runner API intrinsics (defined in CRunnerUtils).
@@ -822,10 +838,10 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto time_to_compile = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - compilation_start);
 
-  return Executable(ctx->name().str(), std::move(*engine), *kernel_fn,
-                    std::move(*signature), std::move(*runtime_signature),
-                    std::move(*results_memory_layout), specialization,
-                    time_to_compile);
+  return Executable(
+      ctx->name().str(), std::move(memory_mapper), std::move(*engine),
+      *kernel_fn, std::move(*signature), std::move(*runtime_signature),
+      std::move(*results_memory_layout), specialization, time_to_compile);
 }
 
 llvm::Error JitCompilationContext::Specialize(
@@ -862,6 +878,12 @@ using Specialization = CompilationOptions::Specialization;
 static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   return llvm::any_of(constraints, [](OperandConstraint constraint) {
     return constraint != OperandConstraint::kResolved;
+  });
+}
+
+static bool HasValueConstraints(ArrayRef<OperandConstraint> constraints) {
+  return llvm::any_of(constraints, [](OperandConstraint constraint) {
+    return constraint == OperandConstraint::kValue;
   });
 }
 
@@ -909,13 +931,14 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
 /*static*/ void JitExecutable::InlineCompilationTaskRunner(
     size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-    ArrayRef<MemrefDesc> operands, TaskFunction task, llvm::Any user_data) {
+    ArrayRef<MemrefDesc> operands, TaskFunction task, UserData user_data) {
   task();
 }
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
     string_view mlir_module, string_view entrypoint,
-    CompilationOptions compilation_opts, CompilationTaskRunner runner) {
+    CompilationOptions compilation_opts, string_view memory_region_name,
+    CompilationTaskRunner runner) {
   // Set up LLVM target for code generation.
   InitializeCompiler();
 
@@ -953,21 +976,24 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   // compiled executable.
   if (compilation_opts.specialization == Specialization::kAlways ||
       IsSpecializationOnly(*constraints))
-    return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
-                         std::move(*constraints), std::move(*signature),
+    return JitExecutable(mlir_module, entrypoint, memory_region_name,
+                         std::move(compilation_opts), std::move(*constraints),
+                         std::move(*signature),
                          /*default_executable=*/llvm::None, std::move(runner));
 
   // Otherwise try to compile the default executable.
   Expected<Executable> executable =
-      JitCompilationContext::Compile(std::move(*ctx));
+      JitCompilationContext::Compile(std::move(*ctx), memory_region_name);
   if (auto err = executable.takeError()) return std::move(err);
 
-  return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
-                       std::move(*constraints), std::move(*signature),
-                       std::move(*executable), std::move(runner));
+  return JitExecutable(mlir_module, entrypoint, memory_region_name,
+                       std::move(compilation_opts), std::move(*constraints),
+                       std::move(*signature), std::move(*executable),
+                       std::move(runner));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
+                             string_view memory_region_name,
                              CompilationOptions compilation_opts,
                              ArrayRef<OperandConstraint> constraints,
                              FunctionType signature,
@@ -975,8 +1001,10 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              CompilationTaskRunner runner)
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
+      memory_region_name_(memory_region_name.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
+      has_value_constraints_(HasValueConstraints(constraints_)),
       signature_(std::move(signature)),
       symbolic_shapes_resolver_(signature_, constraints_),
       has_default_executable_(default_executable.hasValue()),
@@ -1000,24 +1028,13 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
   return constraints_;
 }
 
-// Hashes the given operands.
-// Note: due to value specialization, the resulting hash might depend on the
-// values (and not only on the types) of the operands.
-static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
-                                    ArrayRef<SymbolicShape> symbolic_shapes,
-                                    ArrayRef<OperandConstraint> constraints) {
-  llvm::hash_code hash(0);
-
-  // Compute hash based on the symbolic shapes of the operands.
-  for (const SymbolicShape& shape : symbolic_shapes) {
-    hash = llvm::hash_combine(
-        hash, shape.size(),
-        llvm::hash_combine_range(shape.begin(), shape.end()));
-  }
-
-  // Mix values of arguments to be sunk into the hash.
+// Combines `hash` with a hash value computed from a value constrained operands.
+static llvm::hash_code CombineWithValueConstraineOperands(
+    llvm::hash_code hash, ArrayRef<MemrefDesc> operands,
+    ArrayRef<OperandConstraint> constraints) {
   for (int i = 0; i < constraints.size(); ++i) {
-    if (constraints[i] != OperandConstraint::kValue) continue;
+    if (LLVM_LIKELY(constraints[i] != OperandConstraint::kValue)) continue;
+
     const MemrefDesc& operand = operands[i];
     const auto* data = static_cast<uint8_t*>(operand.data);
     size_t rank = operand.sizes.size();
@@ -1039,19 +1056,23 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
 // fall back on the default executable. However what to do if default executable
 // is not available, and the number of specializations is above N?
 Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands, llvm::Any user_data,
+    ArrayRef<MemrefDesc> operands, UserData user_data,
     const SpecializationListener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
 
-  // Resolve symbolic shapes based on the static and runtime information.
-  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
-      symbolic_shapes_resolver_.Resolve(operands);
+  // Resolve symbolic shapes hash based on the static and runtime information.
+  //
+  // We rely on the hash code to find the specialized executable. In case of
+  // a collision (practically impossible) incompatible operands will be rejected
+  // by the executable operands verification.
+  mlir::FailureOr<llvm::hash_code> hash =
+      symbolic_shapes_resolver_.ResolveHash(operands);
 
-  // If we failed to resolve the symbolic shapes, then we need to verify all the
-  // operands to find the mismatch and report it to the user.
-  if (mlir::failed(symbolic_shapes)) {
+  // If we failed to resolve the symbolic shapes hash, then we need to verify
+  // all the operands to find the mismatch and report it to the user.
+  if (LLVM_UNLIKELY(mlir::failed(hash))) {
     for (unsigned i = 0; i < operands.size(); ++i) {
       auto* type = signature_.operand(i);
 
@@ -1073,13 +1094,12 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     return MakeStringError("failed to resolve symbolic shapes");
   }
 
-  // We rely on the hash code to find the specialized executable. In case of
-  // a collision (practically impossible) incompatible operands will be rejected
-  // by the executable operands verification.
-  llvm::hash_code hash = HashOperands(operands, *symbolic_shapes, constraints_);
+  // Combine with a hash value computed from the value constrained operands.
+  if (LLVM_UNLIKELY(has_value_constraints_))
+    *hash = CombineWithValueConstraineOperands(*hash, operands, constraints_);
 
   // Maybe return Executable from the cache.
-  if (auto cached = specializations_->Find(hash)) {
+  if (auto cached = specializations_->Find(*hash)) {
     // Always use specialized kernel if required by the compilation options.
     if (compilation_opts_.specialization == Specialization::kAlways)
       return cached;
@@ -1106,6 +1126,8 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
+  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
+      symbolic_shapes_resolver_.Resolve(operands);
   if (auto err = (*ctx)->Specialize(operands, *symbolic_shapes, constraints_,
                                     listener)) {
     return MakeStringError("failed to specialize executable: ", err);
@@ -1113,7 +1135,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Allocate a placeholder for the compiled specialization only after we are
   // ready to dispatch the compilation task.
-  Specializations::Entry entry = specializations_->Allocate(hash);
+  Specializations::Entry entry = specializations_->Allocate(*hash);
 
   // We lost the race; some other invocation will do the compilation.
   if (!entry.allocated) return entry.ptr;
@@ -1123,9 +1145,10 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Construct the task that will do the specialized executable compilation.
   auto compile = TaskFunction([ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
+                               memory_region_name = memory_region_name_,
                                specialization]() mutable {
-    Expected<Executable> executable =
-        JitCompilationContext::Compile(std::move(ctx), specialization);
+    Expected<Executable> executable = JitCompilationContext::Compile(
+        std::move(ctx), memory_region_name, specialization);
 
     // Set the allocated entry async value state to error or concrete.
     if (auto err = executable.takeError()) {

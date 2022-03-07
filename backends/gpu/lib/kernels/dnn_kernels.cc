@@ -16,10 +16,12 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
@@ -76,18 +78,27 @@ static Expected<wrapper::OwningDnnConvolutionDescriptor>
 DnnCreateConvolutionDescriptor(
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> compute_type_attr, Attribute<int32_t> conv_mode_attr,
-    ArrayAttr dilation, ArrayAttr filter_stride, ArrayAttr pad) {
+    ArrayAttr dilation, ArrayAttr filter_stride,
+    Attribute<int32_t> math_type_attr, ArrayAttr pad) {
   auto conv_mode =
       wrapper::DnnConvolutionMode::FromOpaqueValue(*conv_mode_attr);
   auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
-  auto descriptor =
-      wrapper::DnnCreateConvolutionDescriptor(compute_type.platform());
+  auto platform = compute_type.platform();
+  auto accumulator_type = GetConvAccumulatorType(
+      compute_type, DnnEnvVar<ConvDoFP32ComputationFP16Input>::IsEnabled());
+  auto descriptor = wrapper::DnnCreateConvolutionDescriptor(platform);
   if (!descriptor) return descriptor.takeError();
   if (auto error = wrapper::DnnSetConvolutionDescriptor(
           descriptor->get(), pad.GetValue<int32_t>(),
           filter_stride.GetValue<int32_t>(), dilation.GetValue<int32_t>(),
-          conv_mode, compute_type))
+          conv_mode, accumulator_type))
     return std::move(error);
+  if (platform == wrapper::Platform::CUDA) {
+    auto math_type = wrapper::DnnMathType::FromOpaqueValue(*math_type_attr);
+    if (auto error =
+            wrapper::CudnnSetConvolutionMathType(descriptor->get(), math_type))
+      return std::move(error);
+  }
   return std::move(*descriptor);
 }
 
@@ -137,6 +148,20 @@ static Expected<GpuDnnTensorDesc> DnnCreateTensorDescriptor(
   return std::move(*descriptor);
 }
 
+static Expected<wrapper::OwningDnnActivationDescriptor>
+DnnCreateActivationDescriptor(
+    const double coefficient,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> mode_attr, Attribute<bool> nan_propagation_attr) {
+  auto mode = wrapper::DnnActivationMode::FromOpaqueValue(*mode_attr);
+  auto descriptor = wrapper::DnnCreateActivationDescriptor(mode.platform());
+  if (!descriptor) return descriptor.takeError();
+  if (auto error = wrapper::DnnSetActivationDescriptor(
+          descriptor->get(), mode, *nan_propagation_attr, coefficient))
+    return std::move(error);
+  return std::move(*descriptor);
+}
+
 static Error DnnPoolingForward(
     const GpuDnnHandle& handle, const GpuStream& stream,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
@@ -169,13 +194,34 @@ static Error DnnPoolingBackward(
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
-  wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
+  auto platform = handle->platform();
+  wrapper::Pointer<const void> alpha_ptr(&alpha, platform);
+  wrapper::Pointer<const void> beta_ptr(&beta, platform);
 
-  return wrapper::DnnPoolingBackward(
-      *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
-      y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
-      beta_ptr, dx_desc.get(), dx.pointer());
+  switch (platform) {
+    case wrapper::Platform::CUDA:
+      return wrapper::CudnnPoolingBackward(
+          *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
+          y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
+          beta_ptr, dx_desc.get(), dx.pointer());
+    case wrapper::Platform::ROCm: {
+      auto workspace_size_bytes =
+          MiopenPoolingGetWorkSpaceSize(pooling_desc.get(), y_desc.get());
+      if (!workspace_size_bytes) return workspace_size_bytes.takeError();
+      auto workspace = wrapper::MemAlloc(*current, *workspace_size_bytes);
+      if (!workspace) return workspace.takeError();
+      return wrapper::MiopenPoolingBackward(
+          *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
+          y.pointer(), dy_desc.get(), dy.pointer(), x_desc.get(), x.pointer(),
+          beta_ptr, dx_desc.get(), dx.pointer(), workspace->get());
+    }
+    default:
+      return MakeStringError("Unknown platform.");
+  }
+}
+
+static uint64_t DnnConvolutionAlgorithm(Attribute<uint64_t> algo) {
+  return *algo;
 }
 
 static Error DnnConvolutionForward(
@@ -186,17 +232,17 @@ static Error DnnConvolutionForward(
     const GpuBuffer& work_space, const GpuDnnTensorDesc& y_desc,
     const GpuBuffer& y,
     // Needs to be sorted alphabetically by attribute name!
-    Attribute<int32_t> compute_type_attr) {
+    Attribute<int32_t> scale_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
-  auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
+  auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
+  auto algo_dnn = wrapper::DnnConvFwdAlgo::FromOpaqueValue(algo);
   return wrapper::DnnConvolutionForward(
-      *current, handle.get(), compute_type, x_desc.get(), x.pointer(),
+      *current, handle.get(), scale_type, x_desc.get(), x.pointer(),
       w_desc.get(), w.pointer(), conv_desc.get(), algo_dnn,
       work_space.pointer(), work_space.size(), y_desc.get(), y.pointer());
 }
@@ -209,17 +255,17 @@ static Error DnnConvolutionBackwardData(
     const GpuBuffer& work_space, const GpuDnnTensorDesc& dx_desc,
     const GpuBuffer& dx,
     // Needs to be sorted alphabetically by attribute name!
-    Attribute<int32_t> compute_type_attr) {
+    Attribute<int32_t> scale_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
-  auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
+  auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
+  auto algo_dnn = wrapper::DnnConvBwdDataAlgo::FromOpaqueValue(algo);
   return wrapper::DnnConvolutionBackwardData(
-      *current, handle.get(), compute_type, w_desc.get(), w.pointer(),
+      *current, handle.get(), scale_type, w_desc.get(), w.pointer(),
       dy_desc.get(), dy.pointer(), conv_desc.get(), algo_dnn,
       work_space.pointer(), work_space.size(), dx_desc.get(), dx.pointer());
 }
@@ -232,45 +278,57 @@ static Error DnnConvolutionBackwardFilter(
     const GpuBuffer& work_space,
     const wrapper::OwningDnnFilterDescriptor& dw_desc, const GpuBuffer& dw,
     // Needs to be sorted alphabetically by attribute name!
-    Attribute<int32_t> compute_type_attr) {
+    Attribute<int32_t> scale_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  auto compute_type = wrapper::DnnDataType::FromOpaqueValue(*compute_type_attr);
-  auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
+  auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
+  auto algo_dnn = wrapper::DnnConvBwdFilterAlgo::FromOpaqueValue(algo);
   return wrapper::DnnConvolutionBackwardFilter(
-      *current, handle.get(), compute_type, x_desc.get(), x.pointer(),
+      *current, handle.get(), scale_type, x_desc.get(), x.pointer(),
       dy_desc.get(), dy.pointer(), conv_desc.get(), algo_dnn,
       work_space.pointer(), work_space.size(), dw_desc.get(), dw.pointer());
 }
 
 // This is CUDA specific kernel, there is no ROCm counterpart.
 static Error CudnnConvolutionBiasActivationForward(
-    const GpuDnnHandle& handle, const GpuStream& stream,
-    const GpuBuffer& alpha1, const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
+    const GpuDnnHandle& handle, const GpuStream& stream, AsyncValue* alpha1,
+    const GpuDnnTensorDesc& x_desc, const GpuBuffer& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc, const GpuBuffer& w,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
-    const GpuBuffer& work_space, const GpuBuffer& alpha2,
+    const GpuBuffer& work_space, AsyncValue* alpha2,
     const GpuDnnTensorDesc& z_desc, const GpuBuffer& z,
     const GpuDnnTensorDesc& bias_desc, const GpuBuffer& bias,
     const wrapper::OwningDnnActivationDescriptor& activation_desc,
-    const GpuDnnTensorDesc& y_desc, const GpuBuffer& y) {
+    const GpuDnnTensorDesc& y_desc, const GpuBuffer& y,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> scale_type_attr) {
   auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   if (auto error = wrapper::DnnSetStream(handle.get(), stream.get()))
     return error;
 
-  auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
-  return wrapper::CudnnConvolutionBiasActivationForward(
-      *current, handle.get(), alpha1.pointer(), x_desc.get(), x.pointer(),
-      w_desc.get(), w.pointer(), conv_desc.get(), algo_dnn,
-      work_space.pointer(), work_space.size(), alpha2.pointer(), z_desc.get(),
-      z.pointer(), bias_desc.get(), bias.pointer(), activation_desc.get(),
-      y_desc.get(), y.pointer());
+  auto algo_dnn = wrapper::DnnConvFwdAlgo::FromOpaqueValue(algo);
+  auto scale_type = wrapper::DnnDataType::FromOpaqueValue(*scale_type_attr);
+  if (wrapper::GetDnnDataTypeId(scale_type) == mlir::TypeID::get<double>()) {
+    return wrapper::CudnnConvolutionBiasActivationForward(
+        *current, handle.get(), &alpha1->get<double>(), x_desc.get(),
+        x.pointer(), w_desc.get(), w.pointer(), conv_desc.get(), algo_dnn,
+        work_space.pointer(), work_space.size(), &alpha2->get<double>(),
+        z_desc.get(), z.pointer(), bias_desc.get(), bias.pointer(),
+        activation_desc.get(), y_desc.get(), y.pointer());
+  } else {
+    return wrapper::CudnnConvolutionBiasActivationForward(
+        *current, handle.get(), &alpha1->get<float>(), x_desc.get(),
+        x.pointer(), w_desc.get(), w.pointer(), conv_desc.get(), algo_dnn,
+        work_space.pointer(), work_space.size(), &alpha2->get<float>(),
+        z_desc.get(), z.pointer(), bias_desc.get(), bias.pointer(),
+        activation_desc.get(), y_desc.get(), y.pointer());
+  }
 }
 
 static Expected<cudnn_frontend::Tensor> BuildTensor(
@@ -721,10 +779,18 @@ void RegisterGpuDnnKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_tensor_descriptor",
                         TFRT_KERNEL(DnnCreateTensorDescriptor));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.create_activation_descriptor",
+                        TFRT_KERNEL(DnnCreateActivationDescriptor));
   kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_forward",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(DnnPoolingForward));
   kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_backward",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(DnnPoolingBackward));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_forward_algorithm",
+                        TFRT_KERNEL(DnnConvolutionAlgorithm));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_backward_data_algorithm",
+                        TFRT_KERNEL(DnnConvolutionAlgorithm));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_backward_filter_algorithm",
+                        TFRT_KERNEL(DnnConvolutionAlgorithm));
   kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_forward",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(DnnConvolutionForward));
   kernel_reg->AddKernel(

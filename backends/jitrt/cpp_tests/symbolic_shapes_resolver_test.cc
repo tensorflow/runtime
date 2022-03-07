@@ -15,6 +15,7 @@
  */
 
 #include <memory>
+#include <utility>
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
@@ -93,33 +94,49 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100, 100}, {100}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -2}, {-2}, {-2, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, -2, -2, -2, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // All unknown dimensions are unique at runtime.
     auto operands = GetFakeMemrefs({{100, 101}, {102}, {103, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -3}, {-4}, {-5, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, -3, -4, -5, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Ones converted to a static dimension.
     auto operands = GetFakeMemrefs({{1, 1, 1}, {1}, {1, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1, 1, 1}, {1}, {1, 4}}));
+
+    llvm::SmallVector<int64_t> values = {3, 1, 1, 1, 1, 1, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Known constants converted to a static dimension.
     auto operands = GetFakeMemrefs({{100, 4}, {4}, {1, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {4}, {1, 4}}));
+
+    llvm::SmallVector<int64_t> values = {2, -2, 4, 4, 1, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -139,33 +156,49 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100}, {100}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-2}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {-2, -2, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // All unknown dimensions are unique at runtime.
     auto operands = GetFakeMemrefs({{100}, {101}, {102}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-4}}));
+
+    llvm::SmallVector<int64_t> values = {-2, -3, -4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Two of the three dimensions are the same.
     auto operands = GetFakeMemrefs({{100}, {101}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2}, {-3}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {-2, -3, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Ones converted to a static dimension.
     auto operands = GetFakeMemrefs({{1}, {1}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1}, {1}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {1, 1, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -185,41 +218,61 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100, 4}, {100, 8}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-2, 8}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {-2, 4, -2, 8, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // All unknown dimensions are unique at runtime.
     auto operands = GetFakeMemrefs({{100, 4}, {101, 8}, {102}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-4}}));
+
+    llvm::SmallVector<int64_t> values = {-2, 4, -3, 8, -4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Two of the three dimensions are the same.
     auto operands = GetFakeMemrefs({{100, 4}, {101, 8}, {100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-2}}));
+
+    llvm::SmallVector<int64_t> values = {-2, 4, -3, 8, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Ones converted to a static dimension.
     auto operands = GetFakeMemrefs({{1, 4}, {100, 8}, {1}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{1, 4}, {-2, 8}, {1}}));
+
+    llvm::SmallVector<int64_t> values = {1, 4, -2, 8, 1};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Known constants converted to a static dimension.
     auto operands = GetFakeMemrefs({{100, 4}, {8, 8}, {8}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(*symbolic, SymbolicShapes({{-2, 4}, {8, 8}, {8}}));
+
+    llvm::SmallVector<int64_t> values = {-2, 4, 8, 8, 8};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -237,9 +290,13 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
   {  // All unknown materialized as static shapes.
     auto operands = GetFakeMemrefs({{100, 100}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
+
+    llvm::SmallVector<int64_t> values = {100, 100, 100, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -259,17 +316,50 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInputAfterDynamicInput) {
      // resolved based on seen static shapes of the second one).
     auto operands = GetFakeMemrefs({{100, 50}, {100, 50}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, 50}, {100, 50}}));
+
+    llvm::SmallVector<int64_t> values = {100, 50, 100, 50};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 
   {  // Unknown dimension correctly resolved to a symbolic dimension.
     auto operands = GetFakeMemrefs({{100, 50}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(*symbolic, SymbolicShapes({{100, -2}, {100, 4}}));
+
+    llvm::SmallVector<int64_t> values = {100, 4, 100, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
+  }
+}
+
+TEST(SymbolicShapeResolverTest, StaticShapeOperandHash) {
+  // Operands: tensor<?x?xf32>, tensor<4x4xi32>
+  auto dtypes = {DType::F32, DType::I32};
+
+  auto type = GetFunctionType(
+      dtypes,
+      {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}, {{4, 4}}});
+
+  auto constraints = {OperandConstraint::kResolved, OperandConstraint::kShape};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  {  // Static shape doesn't participate in the hash value.
+    auto operands = GetFakeMemrefs({{2, 2}, {4, 4}});
+    auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
+
+    EXPECT_EQ(symbolic->size(), 2);
+    EXPECT_EQ(*symbolic, SymbolicShapes({{-2, -2}, {4, 4}}));
+
+    llvm::SmallVector<int64_t> values = {-2, -2};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -284,15 +374,19 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
   {  // Operand of a different rank;
     auto operands = GetFakeMemrefs({{100, 100, 100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_TRUE(mlir::failed(symbolic));
+    EXPECT_TRUE(mlir::failed(hash));
   }
 
   {  // Operand with mismatched static shape.
     auto operands = GetFakeMemrefs({{100, 100}});
     auto symbolic = resolver.Resolve(operands);
+    auto hash = resolver.ResolveHash(operands);
 
     EXPECT_TRUE(mlir::failed(symbolic));
+    EXPECT_TRUE(mlir::failed(hash));
   }
 }
 
@@ -300,7 +394,22 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
 // Performance benchmarks are below.
 // -------------------------------------------------------------------------- //
 
-static void BM_ResolveFullyDynamic(benchmark::State& state) {
+struct Resolve {
+  static mlir::FailureOr<llvm::SmallVector<SymbolicShape>> Run(
+      SymbolicShapesResolver& resolver, ArrayRef<MemrefDesc> operands) {
+    return resolver.Resolve(operands);
+  }
+};
+
+struct ResolveHash {
+  static mlir::FailureOr<llvm::hash_code> Run(SymbolicShapesResolver& resolver,
+                                              ArrayRef<MemrefDesc> operands) {
+    return resolver.ResolveHash(operands);
+  }
+};
+
+template <typename Resolver>
+static void BenchmarkFullyDynamic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
 
   auto type = GetFunctionType(
@@ -318,57 +427,212 @@ static void BM_ResolveFullyDynamic(benchmark::State& state) {
   auto operands = GetFakeMemrefs({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
 
   for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
   }
+}
+
+template <typename Resolver>
+static void BenchmarkSameDynamic(benchmark::State& state) {
+  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
+  auto type = GetFunctionType(
+      dtypes, {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
+
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  auto operands = GetFakeMemrefs({{2, 2}, {2, 2}, {2, 2}, {2, 2}});
+
+  for (auto _ : state) {
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
+  }
+}
+
+template <typename Resolver>
+static void BenchmarkSomeDynamic(benchmark::State& state) {
+  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
+  auto type = GetFunctionType(
+      dtypes, {{{2, 2}},
+               {{4, 4}},
+               {{8, 8}},
+               {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
+
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  auto operands = GetFakeMemrefs({{2, 2}, {4, 4}, {8, 8}, {16, 16}});
+
+  for (auto _ : state) {
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
+  }
+}
+
+template <typename Resolver>
+static void BenchmarkStatic(benchmark::State& state) {
+  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
+  auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
+                                       {{MemrefType::kDynamicSize, 8}},
+                                       {{MemrefType::kDynamicSize, 16}},
+                                       {{MemrefType::kDynamicSize, 32}}});
+
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  auto operands = GetFakeMemrefs({{32, 4}, {16, 8}, {8, 16}, {4, 32}});
+
+  for (auto _ : state) {
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
+  }
+}
+
+template <typename Resolver>
+static void BenchmarkSymbolic(benchmark::State& state) {
+  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
+  auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
+                                       {{MemrefType::kDynamicSize, 8}},
+                                       {{MemrefType::kDynamicSize, 16}},
+                                       {{MemrefType::kDynamicSize, 32}}});
+
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  auto operands = GetFakeMemrefs({{1, 4}, {2, 8}, {3, 16}, {4, 32}});
+
+  for (auto _ : state) {
+    auto result = Resolver::Run(resolver, operands);
+    benchmark::DoNotOptimize(*result);
+  }
+}
+
+// -------------------------------------------------------------------------- //
+// Run benchmarks for resolving symbolic shapes.
+// -------------------------------------------------------------------------- //
+
+static void BM_ResolveFullyDynamic(benchmark::State& state) {
+  BenchmarkFullyDynamic<Resolve>(state);
+}
+
+static void BM_ResolveSameDynamic(benchmark::State& state) {
+  BenchmarkSameDynamic<Resolve>(state);
+}
+
+static void BM_ResolveSomeDynamic(benchmark::State& state) {
+  BenchmarkSomeDynamic<Resolve>(state);
 }
 
 static void BM_ResolveAsStatic(benchmark::State& state) {
-  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
-
-  auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
-                                       {{MemrefType::kDynamicSize, 8}},
-                                       {{MemrefType::kDynamicSize, 16}},
-                                       {{MemrefType::kDynamicSize, 32}}});
-
-  auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
-
-  SymbolicShapesResolver resolver(type, constraints);
-
-  auto operands = GetFakeMemrefs({{32, 4}, {16, 8}, {8, 8}, {4, 32}});
-
-  for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
-  }
+  BenchmarkStatic<Resolve>(state);
 }
 
 static void BM_ResolveAsSymbolic(benchmark::State& state) {
-  auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
-
-  auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
-                                       {{MemrefType::kDynamicSize, 8}},
-                                       {{MemrefType::kDynamicSize, 16}},
-                                       {{MemrefType::kDynamicSize, 32}}});
-
-  auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
-
-  SymbolicShapesResolver resolver(type, constraints);
-
-  auto operands = GetFakeMemrefs({{1, 4}, {2, 8}, {3, 8}, {4, 32}});
-
-  for (auto _ : state) {
-    auto symbolic = resolver.Resolve(operands);
-    benchmark::DoNotOptimize(symbolic);
-  }
+  BenchmarkSymbolic<Resolve>(state);
 }
 
 BENCHMARK(BM_ResolveFullyDynamic);
+BENCHMARK(BM_ResolveSameDynamic);
+BENCHMARK(BM_ResolveSomeDynamic);
 BENCHMARK(BM_ResolveAsStatic);
 BENCHMARK(BM_ResolveAsSymbolic);
+
+// -------------------------------------------------------------------------- //
+// Run benchmarks for resolving and computing a hash of symbolic shapes.
+// -------------------------------------------------------------------------- //
+
+static void BM_ResolveHashFullyDynamic(benchmark::State& state) {
+  BenchmarkFullyDynamic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashSameDynamic(benchmark::State& state) {
+  BenchmarkSameDynamic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashSomeDynamic(benchmark::State& state) {
+  BenchmarkSomeDynamic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashAsStatic(benchmark::State& state) {
+  BenchmarkStatic<ResolveHash>(state);
+}
+
+static void BM_ResolveHashAsSymbolic(benchmark::State& state) {
+  BenchmarkSymbolic<ResolveHash>(state);
+}
+
+BENCHMARK(BM_ResolveHashFullyDynamic);
+BENCHMARK(BM_ResolveHashSameDynamic);
+BENCHMARK(BM_ResolveHashSomeDynamic);
+BENCHMARK(BM_ResolveHashAsStatic);
+BENCHMARK(BM_ResolveHashAsSymbolic);
+
+// -------------------------------------------------------------------------- //
+// Run benchmarks for hashing resolved symbolic shapes.
+// -------------------------------------------------------------------------- //
+
+static void HashSymbolicShapes(benchmark::State& state,
+                               ArrayRef<SymbolicShape> symbolic_shapes) {
+  for (auto _ : state) {
+    auto hash = SymbolicShapesResolver::Hash(symbolic_shapes);
+    benchmark::DoNotOptimize(hash);
+  }
+}
+
+static void BM_Hash1x1(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(1, {1});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash1x4(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(4, {1});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash1x8(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(8, {1});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash2x1(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(1, {1, 2});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash2x4(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(4, {1, 2});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+static void BM_Hash2x8(benchmark::State& state) {
+  llvm::SmallVector<SymbolicShape> symbolic_shapes(8, {1, 2});
+  HashSymbolicShapes(state, symbolic_shapes);
+}
+
+BENCHMARK(BM_Hash1x1);
+BENCHMARK(BM_Hash1x4);
+BENCHMARK(BM_Hash1x8);
+BENCHMARK(BM_Hash2x1);
+BENCHMARK(BM_Hash2x4);
+BENCHMARK(BM_Hash2x8);
 
 }  // namespace tfrt

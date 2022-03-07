@@ -48,7 +48,7 @@ namespace gpu {
 
 // Creates and caches GpuContexts and an associated tfrt::ResourceContexts.
 class GpuContextCache {
-  using Pair = std::pair<AsyncValueRef<GpuContext>, ResourceContext*>;
+  using Resources = std::pair<AsyncValueRef<GpuContext>, ResourceContext*>;
 
  public:
   GpuContextCache() = default;
@@ -58,19 +58,16 @@ class GpuContextCache {
 
   // Returns the `context` as non-owning AsyncValue plus a resource context
   // that is unique to `context`.
-  Pair GetOrCreate(wrapper::Context context);
+  Resources GetOrCreate(wrapper::Context context);
 
  private:
-  llvm::SmallDenseMap<wrapper::Context, Pair> map_;
+  llvm::SmallDenseMap<wrapper::Context, Resources> context_resources_;
 };
 
 struct BorrowedStreamDeleter {
   using pointer = AsyncValuePtr<GpuStream>;
   void operator()(pointer ptr);
 };
-// std::unique_ptr<AsyncValueRef<GpuStream>> wouldn't allow checking NumRef() on
-// destruction. Wrapping an AsyncValue* is sufficient because this type is only
-// used as BEF function argument.
 using BorrowedStream = std::unique_ptr<void, BorrowedStreamDeleter>;
 // Returns the `stream` belonging to `context` as a non-owning AsyncValue.
 BorrowedStream MakeBorrowedStream(AsyncValueRef<GpuContext> context,

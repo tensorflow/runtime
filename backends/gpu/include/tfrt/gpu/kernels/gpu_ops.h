@@ -23,6 +23,7 @@
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 
 #include <type_traits>
+#include <utility>
 
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/IR/Attributes.h"
@@ -54,49 +55,73 @@ class GpuDialect : public Dialect {
   void printType(Type, DialectAsmPrinter&) const override;
 };
 
-// An attribute that wrapps an I32Attr holding an enum or wrapper::Enum value.
+// An attribute that wraps an IntegerAttr holding an enum or wrapper::Enum.
 template <typename T>
 class EnumAttr : public mlir::Attribute {
- public:
-  using mlir::Attribute::Attribute;
-  static EnumAttr get(MLIRContext* context, T value) {
-    return IntegerAttr::get(IntegerType::get(context, 32),
-                            APInt(32, ToOpaqueValue(value)))
-        .cast<EnumAttr>();
-  }
-  T getValue() const {
-    return FromOpaqueValue(IntegerAttr(impl).getValue().getZExtValue());
-  }
-  static bool classof(mlir::Attribute attr) {
-    IntegerAttr int_attr = attr.dyn_cast<IntegerAttr>();
-    return int_attr && int_attr.getType().isSignlessInteger(32);
-  }
+  // Same as: 'std::enable_if_t<std::is_enum_v<X>, std::underlying_type_t<X>>'.
+  // Old glibc does not want to instantiate std::underlying_type for non-enums.
+  template <class X, bool = std::is_enum<X>::value>
+  struct underlying_type {};
+  template <class X>
+  struct underlying_type<X, true> : std::underlying_type<X> {};
 
- private:
+  // Convert wrapper::Enum or enum to ValueType.
   template <typename X = T>
-  static decltype(&X::ToOpaqueValue, int()) ToOpaqueValue(T value) {
+  static decltype(std::declval<X>().ToOpaqueValue()) ToOpaqueValue(T value) {
     return value.ToOpaqueValue();
   }
   template <typename X = T>
-  static decltype(&X::FromOpaqueValue, T()) FromOpaqueValue(int opaque) {
-    return T::FromOpaqueValue(opaque);
+  static typename underlying_type<X>::type ToOpaqueValue(T value) {
+    return static_cast<ValueType>(value);
   }
 
+  using ValueType = decltype(ToOpaqueValue(T()));  // Some integer type.
+
+  // Convert ValueType to wrapper::Enum or enum.
   template <typename X = T>
-  static typename std::enable_if<std::is_enum<X>::value, int>::type
-  ToOpaqueValue(T value) {
-    return static_cast<int>(value);
+  static T FromOpaqueValue(decltype(&X::FromOpaqueValue, ValueType()) opaque) {
+    return T::FromOpaqueValue(opaque);
   }
   template <typename X = T>
-  static typename std::enable_if<std::is_enum<X>::value, T>::type
-  FromOpaqueValue(int opaque) {
+  static T FromOpaqueValue(
+      std::enable_if_t<std::is_enum<X>::value, ValueType> opaque) {
     return static_cast<T>(opaque);
+  }
+
+  static const unsigned kBitWidth = sizeof(ValueType) * 8;
+  static const bool kIsSigned = std::is_signed<ValueType>::value;
+  static IntegerType GetType(MLIRContext* context) {
+    auto signedness = kIsSigned ? IntegerType::SignednessSemantics::Signed
+                                : IntegerType::SignednessSemantics::Unsigned;
+    return IntegerType::get(context, kBitWidth, signedness);
+  }
+
+ public:
+  using mlir::Attribute::Attribute;
+  static EnumAttr get(MLIRContext* context, T value) {
+    APInt ap_int(kBitWidth, ToOpaqueValue(value), kIsSigned);
+    // Note: mlir-to-bef expects IntegerAttr type to be an IntegerType.
+    return IntegerAttr::get(GetType(context), ap_int).template cast<EnumAttr>();
+  }
+  T getValue() const {
+    auto ap_int = IntegerAttr(impl).getValue();
+    return kIsSigned ? FromOpaqueValue(ap_int.getSExtValue())
+                     : FromOpaqueValue(ap_int.getZExtValue());
+  }
+  static bool classof(mlir::Attribute attr) {
+    IntegerAttr int_attr = attr.dyn_cast<IntegerAttr>();
+    return int_attr && int_attr.getType() == GetType(attr.getContext());
   }
 };
 
 using PlatformAttr = EnumAttr<wrapper::Platform>;
 using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
 using DnnConvolutionModeAttr = EnumAttr<wrapper::DnnConvolutionMode>;
+using DnnActivationModeAttr = EnumAttr<wrapper::DnnActivationMode>;
+using DnnMathTypeAttr = EnumAttr<wrapper::DnnMathType>;
+using DnnConvFwdAlgoAttr = EnumAttr<wrapper::DnnConvFwdAlgo>;
+using DnnConvBwdDataAlgoAttr = EnumAttr<wrapper::DnnConvBwdDataAlgo>;
+using DnnConvBwdFilterAlgoAttr = EnumAttr<wrapper::DnnConvBwdFilterAlgo>;
 using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
 using BlasDiagTypeAttr = EnumAttr<wrapper::BlasDiagType>;
 using BlasComputeTypeAttr = EnumAttr<wrapper::BlasComputeType>;

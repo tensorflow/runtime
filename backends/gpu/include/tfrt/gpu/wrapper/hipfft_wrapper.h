@@ -25,48 +25,56 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipfftResult_t result);
+raw_ostream& Print(raw_ostream& os, hipfftResult_t result);
+raw_ostream& Print(raw_ostream& os, hipfftType value);
+raw_ostream& Print(raw_ostream& os, hipfftDirection value);
+
+Expected<hipfftType> Parse(llvm::StringRef name, hipfftType);
+Expected<hipfftDirection> Parse(llvm::StringRef name, hipfftDirection);
+
+namespace internal {
+template <>
+struct EnumPlatform<FftType, hipfftType> : RocmPlatformType {};
+template <>
+struct EnumPlatform<FftDirection, hipfftDirection> : RocmPlatformType {};
+
+template <>
+struct EnumStream<FftType, Platform::ROCm>
+    : EnumStreamPtrs<hipfftType, Parse, Print> {};
+template <>
+struct EnumStream<FftDirection, Platform::ROCm>
+    : EnumStreamPtrs<hipfftDirection, Parse, Print> {};
+}  // namespace internal
 
 llvm::Expected<LibraryVersion> HipfftGetVersion();
 
-// Frees all GPU resources associated with the plan and destroys internal data
+// Creates an opaque handle and allocates small data for the plan. Use
+// HipfftMakePlanMany to do the plan generation.
+llvm::Expected<OwningFftHandle> HipfftCreate(CurrentContext current);
+
+// Frees all GPU resources associated with the handle and destroys internal data
 // structures.
-llvm::Error HipfftDestroy(hipfftHandle plan);
+llvm::Error HipfftDestroy(hipfftHandle handle);
 
 // Sets the stream for execution of hipFFT functions. Note that these functions
 // may consist of many kernel invocations.
-llvm::Error HipfftSetStream(hipfftHandle plan, hipStream_t stream);
+llvm::Error HipfftSetStream(hipfftHandle handle, hipStream_t stream);
 
-// Creates FFT plans for the specific dimension, window dimensions, transform
-// type.
-llvm::Expected<OwningFftHandle> HipfftPlan1d(int nx, hipfftType type,
-                                             int batch);
-llvm::Expected<OwningFftHandle> HipfftPlan2d(int nx, int ny, hipfftType type);
-llvm::Expected<OwningFftHandle> HipfftPlan3d(int nx, int ny, int nz,
-                                             hipfftType type);
+llvm::Expected<size_t> HipfftMakePlanMany(
+    hipfftHandle handle, hipfftType type, int64_t batch, ArrayRef<int64_t> dims,
+    ArrayRef<int64_t> input_embed, int64_t input_stride, int64_t input_dist,
+    ArrayRef<int64_t> output_embed, int64_t output_stride, int64_t output_dist);
 
-llvm::Expected<size_t> HipfftGetSize(hipfftHandle plan);
+llvm::Expected<size_t> HipfftGetSize(hipfftHandle handle);
 
-llvm::Error HipfftSetWorkArea(hipfftHandle plan, Pointer<void> work_area);
+llvm::Error HipfftDisableAutoAllocation(hipfftHandle handle);
+llvm::Error HipfftEnableAutoAllocation(hipfftHandle handle);
 
-llvm::Error HipfftExecC2C(hipfftHandle plan, hipfftComplex* input_data,
-                          hipfftComplex* output_data, FftDirection direction);
+llvm::Error HipfftSetWorkArea(hipfftHandle handle, Pointer<void> work_area);
 
-llvm::Error HipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex* input_data,
-                          hipfftDoubleComplex* output_data,
-                          FftDirection direction);
-
-llvm::Error HipfftExecR2C(hipfftHandle plan, hipfftReal* input_data,
-                          hipfftComplex* output_data);
-
-llvm::Error HipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal* input_data,
-                          hipfftDoubleComplex* output_data);
-
-llvm::Error HipfftExecC2R(hipfftHandle plan, hipfftComplex* input_data,
-                          hipfftReal* output_data);
-
-llvm::Error HipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* input_data,
-                          hipfftDoubleReal* output_data);
+llvm::Error HipfftExec(CurrentContext current, hipfftHandle handle,
+                       Pointer<const void> raw_input, Pointer<void> raw_output,
+                       hipfftType type, hipfftDirection direction);
 
 }  // namespace wrapper
 }  // namespace gpu

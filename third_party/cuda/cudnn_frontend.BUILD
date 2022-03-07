@@ -10,5 +10,6 @@ cc_library(
         "include/*.h",
         "include/contrib/nlohmann/json/json.hpp",
     ]),
+    defines = ["NV_CUDNN_DISABLE_EXCEPTION"],
     includes = ["include"],
 )

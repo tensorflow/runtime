@@ -25,7 +25,7 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error) {
+llvm::raw_ostream& Print(llvm::raw_ostream& os, hipError_t error) {
   const char* msg = hipGetErrorName(error);
   if (msg != nullptr) {
     os << msg;
@@ -203,7 +203,7 @@ llvm::Expected<ContextState> HipDevicePrimaryCtxGetState(Device device) {
   unsigned flags;
   int active;
   RETURN_IF_ERROR(hipDevicePrimaryCtxGetState(ToRocm(device), &flags, &active));
-  return ContextState{static_cast<CtxFlags>(flags), active};
+  return ContextState{static_cast<hipDeviceFlags_t>(flags), active};
 }
 
 llvm::Error HipDevicePrimaryCtxSetFlags(Device device, hipDeviceFlags_t flags) {

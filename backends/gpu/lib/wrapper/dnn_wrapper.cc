@@ -377,6 +377,24 @@ llvm::Expected<OwningDnnActivationDescriptor> DnnCreateActivationDescriptor(
   }
 }
 
+llvm::Error DnnSetActivationDescriptor(DnnActivationDescriptor descriptor,
+                                       DnnActivationMode mode,
+                                       bool nan_progapation,
+                                       double coefficient) {
+  auto platform = descriptor.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnSetActivationDescriptor(
+          descriptor, mode,
+          nan_progapation ? CUDNN_PROPAGATE_NAN : CUDNN_NOT_PROPAGATE_NAN,
+          coefficient);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Error DnnSetTensor(CurrentContext current, DnnHandle handle,
                          DnnTensorDescriptor y_desc, Pointer<void> y,
                          Pointer<const void> value_ptr) {
@@ -557,7 +575,7 @@ DnnGetConvolutionForwardOutputDim(DnnConvolutionDescriptor conv_desc,
 }
 
 llvm::Error DnnConvolutionForward(
-    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnTensorDescriptor x_desc, Pointer<const void> x,
     DnnFilterDescriptor w_desc, Pointer<const void> w,
     DnnConvolutionDescriptor conv_desc, DnnConvFwdAlgo algo,
@@ -566,7 +584,7 @@ llvm::Error DnnConvolutionForward(
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA: {
-      if (GetDnnDataTypeId(compute_type) == mlir::TypeID::get<double>()) {
+      if (GetDnnDataTypeId(scale_type) == mlir::TypeID::get<double>()) {
         double alpha = 1.0;
         double beta = 0.0;
         return CudnnConvolutionForward(
@@ -590,7 +608,7 @@ llvm::Error DnnConvolutionForward(
 }
 
 llvm::Error DnnConvolutionBackwardData(
-    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnFilterDescriptor w_desc, Pointer<const void> w,
     DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdDataAlgo algo,
@@ -599,7 +617,7 @@ llvm::Error DnnConvolutionBackwardData(
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA: {
-      if (GetDnnDataTypeId(compute_type) == mlir::TypeID::get<double>()) {
+      if (GetDnnDataTypeId(scale_type) == mlir::TypeID::get<double>()) {
         double alpha = 1.0;
         double beta = 0.0;
         return CudnnConvolutionBackwardData(
@@ -623,16 +641,16 @@ llvm::Error DnnConvolutionBackwardData(
 }
 
 llvm::Error DnnConvolutionBackwardFilter(
-    CurrentContext current, DnnHandle handle, DnnDataType compute_type,
+    CurrentContext current, DnnHandle handle, DnnDataType scale_type,
     DnnTensorDescriptor x_desc, Pointer<const void> x,
     DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
+    DnnConvolutionDescriptor conv_desc, DnnConvBwdFilterAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
     DnnFilterDescriptor dw_desc, Pointer<void> dw) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA: {
-      if (GetDnnDataTypeId(compute_type) == mlir::TypeID::get<double>()) {
+      if (GetDnnDataTypeId(scale_type) == mlir::TypeID::get<double>()) {
         double alpha = 1.0;
         double beta = 0.0;
         return CudnnConvolutionBackwardFilter(
@@ -719,29 +737,6 @@ llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
       return MiopenPoolingForward(current, handle, pooling_desc, alpha, x_desc,
                                   x, beta, y_desc, y, /*do_backward=*/false,
                                   /*workspace=*/{}, /*workspace_size_bytes=*/0);
-    default:
-      return InvalidPlatform(platform);
-  }
-}
-
-llvm::Error DnnPoolingBackward(
-    CurrentContext current, DnnHandle handle,
-    const DnnPoolingDescriptor pooling_desc, Pointer<const void> alpha,
-    const DnnTensorDescriptor y_desc, Pointer<const void> y,
-    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    const DnnTensorDescriptor x_desc, Pointer<const void> x,
-    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
-    Pointer<void> dx) {
-  auto platform = current.platform();
-  switch (platform) {
-    case Platform::CUDA:
-      return CudnnPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
-                                  y, dy_desc, dy, x_desc, x, beta, dx_desc, dx);
-    case Platform::ROCm:
-      // This assumes no workspace is required, which is probably incorrect.
-      return MiopenPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
-                                   y, dy_desc, dy, x_desc, x, beta, dx_desc, dx,
-                                   /*workspace=*/{});
     default:
       return InvalidPlatform(platform);
   }

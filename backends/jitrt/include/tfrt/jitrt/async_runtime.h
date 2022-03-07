@@ -198,8 +198,8 @@ void AsyncRuntime::AwaitGroup(Group* group, F&& f) {
 // Runs async tasks by enqueing them into the host context work queue.
 class HostContextAsyncTaskRunner : public AsyncTaskRunner {
  public:
-  explicit HostContextAsyncTaskRunner(HostContext* host);
-  void Schedule(Task task) override;
+  explicit HostContextAsyncTaskRunner(HostContext* host) : host_(host) {}
+  void Schedule(Task task) override { EnqueueWork(host_, std::move(task)); }
 
  private:
   HostContext* host_;
@@ -209,8 +209,9 @@ class HostContextAsyncTaskRunner : public AsyncTaskRunner {
 class EigenThreadPoolAsyncTaskRunner : public AsyncTaskRunner {
  public:
   explicit EigenThreadPoolAsyncTaskRunner(
-      Eigen::ThreadPoolInterface* thread_pool);
-  void Schedule(Task task) override;
+      Eigen::ThreadPoolInterface* thread_pool)
+      : thread_pool_(thread_pool) {}
+  void Schedule(Task task) override { thread_pool_->Schedule(std::move(task)); }
 
  private:
   Eigen::ThreadPoolInterface* thread_pool_;

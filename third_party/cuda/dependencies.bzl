@@ -67,13 +67,13 @@ def _cudnn_headers_impl(repository_ctx):
 def _cudnn_frontend_impl(repository_ctx):
     build_file = Label("//third_party/cuda:cudnn_frontend.BUILD")
 
-    version = "0.4.1"
+    version = "0.5.1"
     url = "{repo}/archive/refs/tags/v{version}.tar.gz".format(
         repo = "github.com/NVIDIA/cudnn-frontend",
         version = version,
     )
     strip_prefix = "cudnn-frontend-{version}".format(version = version)
-    sha256 = "e0cef5e4440d24115c770160ba4a08821ae24c357a1623a7e9ca736ed685131c"
+    sha256 = "380d4dac147fd472e1bcdf4f1917c2f166da6bd7acc15050962b95e9c4386681"
     _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")

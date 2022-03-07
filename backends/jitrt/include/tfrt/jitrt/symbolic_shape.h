@@ -18,6 +18,7 @@
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_SYMBOLIC_SHAPE_H_
 
 #include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/types.h"
@@ -58,7 +59,10 @@ namespace jitrt {
 // statically known `1` in the symbolic shape.
 class SymbolicShapesResolver {
  public:
+  // Dimension size can be symbolic (<= -2) or static.
   using SymbolicShape = llvm::SmallVector<int64_t>;
+  // Dimension size can be dynamic (ShapedType::kDynamicSize) or static.
+  using StaticShape = llvm::SmallVector<int64_t>;
 
   explicit SymbolicShapesResolver(const FunctionType& signature,
                                   ArrayRef<OperandConstraint> constraints);
@@ -66,23 +70,44 @@ class SymbolicShapesResolver {
   // Resolves symbolic shapes from the runtime operands. Returns failure if
   // runtime dimensions do not match the statically known dimensions.
   mlir::FailureOr<llvm::SmallVector<SymbolicShape>> Resolve(
-      ArrayRef<MemrefDesc> operands);
+      ArrayRef<MemrefDesc> operands) const;
+
+  // Resolves symbolic shapes and computes the hash value from the runtime
+  // operands. Returns failure if runtime dimensions do not match the statically
+  // known dimensions.
+  //
+  // This function might not return the same hash value as calling `Resolve` and
+  // then `Hash`, because it might use more efficient hashing algorithm.
+  mlir::FailureOr<llvm::hash_code> ResolveHash(
+      ArrayRef<MemrefDesc> operands) const;
 
   // Replaces all symbolic dimensions with dynamic dimension.
   static llvm::SmallVector<int64_t> Normalize(const SymbolicShape& shape);
+
+  // Computes a hash value of the symbolic shapes.
+  static llvm::hash_code Hash(ArrayRef<SymbolicShape> symbolic_shapes);
+
+  OperandConstraint constraint(size_t index) const;
+  size_t num_operands() const;
+  bool has_operand_sizes(size_t index) const;
+  const StaticShape& operand_sizes(size_t index) const;
+  bool seen_static_size(size_t dim) const;
 
  private:
   // Constraints on the function operands.
   llvm::SmallVector<OperandConstraint> constraints_;
 
   // Statically known sizes of operands from the function signature.
-  llvm::SmallVector<Optional<llvm::SmallVector<Index>>> operands_sizes_;
+  llvm::SmallVector<Optional<StaticShape>> operands_sizes_;
 
   // Values of statically known dimensions sizes in the function signature.
   llvm::DenseSet<int64_t> seen_static_sizes_;
 
   // The iteration order for the operands when resolving symbolic shapes.
   llvm::SmallVector<size_t> iteration_order_;
+
+  // The iteration order for the operands when resolving symbolic shapes hash.
+  llvm::SmallVector<size_t> hash_iteration_order_;
 };
 
 }  // namespace jitrt

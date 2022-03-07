@@ -23,9 +23,9 @@
 #include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -461,6 +461,11 @@ struct ConvertAsyncToChainAndEventPass
  private:
   void runOnOperation() override;
   StringRef getArgument() const override { return "async-tfrt-streamify"; }
+
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<tfrt::gpu::GpuDialect, func::FuncDialect,
+                    tfrt::compiler::TFRTDialect>();
+  }
 };
 
 // A pass which converts from gpu dialect to tfrt_gpu dialect.

@@ -1,8 +1,8 @@
 {
-   "header":"/opt/rocm-4.5.2/include/miopen/miopen.h",
+   "header":"/opt/rocm-5.0.0/include/miopen/miopen.h",
    "extra_args":[
       "-I.",
-      "-I/opt/rocm-4.5.2/include/"
+      "-I/opt/rocm-5.0.0/include/"
    ],
    "enums":[
       "miopenStatus_t",
@@ -192,7 +192,4 @@
       "miopenDropoutForward",
       "miopenDropoutBackward"
    ],
-   "macros":[
-      "MIOPEN_EXPORT"
-   ]
 }

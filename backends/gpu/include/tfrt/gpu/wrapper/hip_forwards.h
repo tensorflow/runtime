@@ -59,5 +59,11 @@ using ncclComm_t = struct ncclComm *;
 
 // Forward declaration of hipFFT types.
 using hipfftHandle = struct hipfftHandle_t *;
+// Enums for corresponding #defines in the hipFFT headers.
+enum hipfftDirection_t : int {
+  HIPFFT_FORWARD = -1,
+  HIPFFT_INVERSE = 1,
+};
+using hipfftDirection = hipfftDirection_t;
 
 #endif  // TFRT_GPU_WRAPPER_HIP_FORWARDS_H_

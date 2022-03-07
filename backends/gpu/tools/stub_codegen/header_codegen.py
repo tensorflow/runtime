@@ -84,21 +84,10 @@ def main():
     HandleEnum(cursor.underlying_typedef_type.get_canonical().get_declaration(),
                cursor.spelling)
 
-  def HandleMacro(cursor):
-    if cursor.kind != clang.cindex.CursorKind.MACRO_DEFINITION:
-      return
-
-    macro_name = cursor.spelling
-    if macro_name not in config.get('macros', []):
-      return
-
-    args.output.write('#define %s\n\n' % getSource(cursor))
-
   for cursor in translation_unit.cursor.get_children():
     HandleFunction(cursor)
     HandleEnum(cursor)
     HandleTypedef(cursor)
-    HandleMacro(cursor)
 
 
 if __name__ == '__main__':

@@ -18,6 +18,8 @@
 #ifndef TFRT_GPU_WRAPPER_MIOPEN_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_MIOPEN_WRAPPER_H_
 
+#include <cstdint>
+
 #include "miopen_stub.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 
@@ -25,32 +27,63 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status);
+raw_ostream& Print(raw_ostream& os, miopenStatus_t status);
+raw_ostream& Print(raw_ostream& os, miopenDataType_t value);
+raw_ostream& Print(raw_ostream& os, miopenConvolutionMode_t value);
+raw_ostream& Print(raw_ostream& os, miopenActivationMode_t value);
+raw_ostream& PrintInt(raw_ostream& os, uint64_t value);
+
+Expected<miopenDataType_t> Parse(llvm::StringRef name, miopenDataType_t);
+Expected<miopenConvolutionMode_t> Parse(llvm::StringRef name,
+                                        miopenConvolutionMode_t);
+Expected<miopenActivationMode_t> Parse(llvm::StringRef name,
+                                       miopenActivationMode_t);
+Expected<uint64_t> ParseInt(llvm::StringRef name, uint64_t);
+
+// Placeholder value (0) for DnnMathType, which is only supported by cuDNN.
+extern const DnnMathType kRocmDefaultMath;
+
+namespace internal {
+template <>
+struct EnumPlatform<DnnDataType, miopenDataType_t> : RocmPlatformType {};
+template <>
+struct EnumPlatform<DnnConvolutionMode, miopenConvolutionMode_t>
+    : RocmPlatformType {};
+template <>
+struct EnumPlatform<DnnActivationMode, miopenActivationMode_t>
+    : RocmPlatformType {};
+template <>
+struct EnumPlatform<DnnConvFwdAlgo, uint64_t> : RocmPlatformType {};
+template <>
+struct EnumPlatform<DnnConvBwdDataAlgo, uint64_t> : RocmPlatformType {};
+template <>
+struct EnumPlatform<DnnConvBwdFilterAlgo, uint64_t> : RocmPlatformType {};
 
 template <>
-Expected<miopenDataType_t> Parse<miopenDataType_t>(llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t value);
+struct EnumStream<DnnDataType, Platform::ROCm>
+    : EnumStreamPtrs<miopenDataType_t, Parse, Print> {};
 template <>
-Expected<miopenConvolutionMode_t> Parse<miopenConvolutionMode_t>(
-    llvm::StringRef name);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              miopenConvolutionMode_t value);
-
+struct EnumStream<DnnConvolutionMode, Platform::ROCm>
+    : EnumStreamPtrs<miopenConvolutionMode_t, Parse, Print> {};
 template <>
-struct PlatformTypeTraits<DnnDataTypeTag, miopenDataType_t>
-    : public RocmPlatformType {};
+struct EnumStream<DnnActivationMode, Platform::ROCm>
+    : EnumStreamPtrs<miopenActivationMode_t, Parse, Print> {};
 template <>
-struct PlatformTypeTraits<DnnConvolutionModeTag, miopenConvolutionMode_t>
-    : public RocmPlatformType {};
+struct EnumStream<DnnMathType, Platform::ROCm> {
+  // Placeholder parsing/printing ('ROCM_DEFAULT_MATH').
+  static Expected<DnnMathType> Parse(llvm::StringRef name);
+  static raw_ostream& Print(raw_ostream& os, DnnMathType value);
+};
 template <>
-struct PlatformTypeTraits<DnnConvFwdAlgoTag, uint64_t>
-    : public RocmPlatformType {};
+struct EnumStream<DnnConvFwdAlgo, Platform::ROCm>
+    : EnumStreamPtrs<uint64_t, ParseInt, PrintInt> {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, uint64_t>
-    : public RocmPlatformType {};
+struct EnumStream<DnnConvBwdDataAlgo, Platform::ROCm>
+    : EnumStreamPtrs<uint64_t, ParseInt, PrintInt> {};
 template <>
-struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag, uint64_t>
-    : public RocmPlatformType {};
+struct EnumStream<DnnConvBwdFilterAlgo, Platform::ROCm>
+    : EnumStreamPtrs<uint64_t, ParseInt, PrintInt> {};
+}  // namespace internal
 
 mlir::TypeID GetMiopenDataTypeId(miopenDataType_t data_type);
 std::pair<int, int> GetMiopenVectorizedSizeAndDim(miopenDataType_t data_type);
@@ -181,6 +214,9 @@ llvm::Error MiopenPoolingForward(
     Pointer<const void> beta, const miopenTensorDescriptor_t y_desc,
     Pointer<void> y, bool do_backward, Pointer<void> workspace,
     size_t workspace_size_bytes);
+llvm::Expected<size_t> MiopenPoolingGetWorkSpaceSize(
+    const miopenPoolingDescriptor_t pooling_desc,
+    const miopenTensorDescriptor_t y_desc);
 llvm::Error MiopenPoolingBackward(
     CurrentContext current, miopenHandle_t handle,
     const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,

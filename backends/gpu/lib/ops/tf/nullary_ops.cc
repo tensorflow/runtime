@@ -59,9 +59,8 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
     return std::move(error);
   }
 
-  TFRT_ASSIGN_OR_RETURN(
-      auto event, wrapper::EventCreate(dctx->current_context(),
-                                       wrapper::EventFlags::DISABLE_TIMING));
+  TFRT_ASSIGN_OR_RETURN(auto event,
+                        wrapper::EventCreateNoTiming(dctx->current_context()));
 
   if (auto error = wrapper::EventRecord(event.get(), dctx->stream()))
     return std::move(error);

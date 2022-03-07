@@ -29,6 +29,7 @@ namespace gpu {
 namespace wrapper {
 
 raw_ostream& Print(raw_ostream& os, hipError_t error);
+raw_ostream& Print(raw_ostream& os, hiprtcResult result);
 
 namespace internal {
 template <>
@@ -162,6 +163,8 @@ llvm::Error HipMemsetD32Async(CurrentContext current, Pointer<void> dst,
 
 llvm::Expected<OwningModule> HipModuleLoadData(CurrentContext current,
                                                const void* image);
+llvm::Expected<OwningModule> HipRTCModuleLoadData(CurrentContext current,
+                                                  const void* image);
 llvm::Expected<OwningModule> HipModuleLoadDataEx(
     CurrentContext current, const void* image,
     llvm::ArrayRef<hipJitOption> options, llvm::ArrayRef<void*> option_values);

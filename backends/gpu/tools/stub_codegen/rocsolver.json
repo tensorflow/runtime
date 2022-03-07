@@ -9,5 +9,5 @@
       "rocsolver_dpotrf",
       "rocsolver_cpotrf",
       "rocsolver_zpotrf"
-   ],
+   ]
 }

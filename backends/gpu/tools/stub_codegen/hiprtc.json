@@ -1,0 +1,16 @@
+{
+   "header":"/opt/rocm-5.0.0/include/hip/hiprtc.h",
+   "extra_args":[
+      "-D__HIP_PLATFORM_AMD__",
+      "-I.",
+      "-I/opt/rocm-5.0.0/include/",
+      "-Ithird_party/llvm/llvm-project/clang/lib/Headers",
+      "-Ibazel-genfiles",
+      "-ferror-limit=0"
+   ],
+   "enums":[
+      "hiprtcResult"
+   ],
+   "functions":[
+   ]
+}

@@ -21,7 +21,7 @@
 set -eux
 
 # Build the tools and generate the HIP header.
-bazel build --nocheck_visibility \
+bazel build --nocheck_visibility --config=gcc\
   //backends/gpu/tools/stub_codegen:header_codegen \
   //backends/gpu/tools/stub_codegen:impl_codegen
 
@@ -34,3 +34,10 @@ for API in "hip" "rocblas" "rocsolver" "miopen" "hipfft"; do
    ./bazel-bin/backends/gpu/tools/stub_codegen/impl_codegen \
        $(dirname $0)/$API.json | clang-format > $(printf $SRC_PATH $API)
 done
+
+# Hiprtc is currently rolled up in hip shared library. 
+# It is subject to change in future releases.
+./bazel-bin/backends/gpu/tools/stub_codegen/header_codegen \
+    $(dirname $0)/hiprtc.json | clang-format >> third_party/hip/hip_stub.h.inc
+./bazel-bin/backends/gpu/tools/stub_codegen/impl_codegen \
+    $(dirname $0)/hiprtc.json | clang-format >> third_party/hip/hip_stub.cc.inc

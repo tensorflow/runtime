@@ -29,6 +29,7 @@ include "tfrt/gpu/kernels/gpu_blas_ops.td"
 include "tfrt/gpu/kernels/gpu_ccl_ops.td"
 include "tfrt/gpu/kernels/gpu_dnn_ops.td"
 include "tfrt/gpu/kernels/gpu_driver_ops.td"
+include "tfrt/gpu/kernels/gpu_fft_ops.td"
 include "tfrt/gpu/kernels/gpu_solver_ops.td"
 
 #endif  // GPU_OPS

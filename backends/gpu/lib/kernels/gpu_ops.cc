@@ -30,6 +30,8 @@
 #include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
+#include "tfrt/gpu/wrapper/cufft_wrapper.h"
+#include "tfrt/gpu/wrapper/hipfft_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
@@ -261,6 +263,16 @@ static LogicalResult VerifyBlasGemmOp(OpTy op) {
 
 LogicalResult BlasGemmOp::verify() { return VerifyBlasGemmOp(*this); }
 LogicalResult BlasGemmBatchExOp::verify() { return VerifyBlasGemmOp(*this); }
+
+LogicalResult FftCreateOp::verify() {
+  if (dims().empty() || dims().size() > 3)
+    return emitOpError("dims should have rank 1, 2, or 3.");
+  if (in_strides().size() != dims().size() + 1)
+    return emitOpError("in_strides should be one larger than dims.");
+  if (out_strides().size() != dims().size() + 1)
+    return emitOpError("out_strides should be one larger than dims.");
+  return mlir::success();
+}
 
 namespace conversion {
 

@@ -32,6 +32,7 @@
 #include "tfrt/gpu/wrapper/ccl_types.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
+#include "tfrt/gpu/wrapper/fft_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/forward_decls.h"
@@ -416,6 +417,27 @@ class GpuSolverHandle {
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningSolverHandle handle_;
+};
+
+class GpuFftHandle {
+ public:
+  explicit GpuFftHandle(AsyncValueRef<GpuContext> context,
+                        wrapper::OwningFftHandle handle, wrapper::FftType type);
+  ~GpuFftHandle();
+
+  GpuFftHandle(GpuFftHandle&&) = default;
+  GpuFftHandle& operator=(GpuFftHandle&&) = default;
+
+  const wrapper::OwningFftHandle& operator->() const { return handle_; }
+  wrapper::FftHandle get() const { return handle_.get(); }
+
+  wrapper::FftType type() const { return type_; }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
+
+ private:
+  AsyncValueRef<GpuContext> context_;
+  wrapper::OwningFftHandle handle_;
+  wrapper::FftType type_;
 };
 
 template <typename T>

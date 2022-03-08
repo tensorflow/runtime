@@ -380,3 +380,29 @@ func @ccl_ops() {
 
   tfrt.return
 }
+
+func @fft_ops() {
+  // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
+  %ordinal = tfrt.constant.i32 0
+  // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  // CHECK: %[[context:.*]] = tfrt_gpu.context.create %[[device]]
+  %context = tfrt_gpu.context.create %device
+  // CHECK: %[[allocator:.*]] = tfrt_gpu.allocator.create %[[context]]
+  %allocator = tfrt_gpu.allocator.create %context
+  // CHECK: %[[stream:.*]] = tfrt_gpu.stream.create %[[context]]
+  %stream = tfrt_gpu.stream.create %context
+
+  // CHECK: %[[fft:.*]] = tfrt_gpu.fft.create %[[context]], CUFFT_R2C, 5, [3, 3], [9, 3, 1], [9, 3, 1]
+  %fft = tfrt_gpu.fft.create %context, CUFFT_R2C, 5, [3, 3], [9, 3, 1], [9, 3, 1]
+  // CHECK: %[[size:.*]] = tfrt_gpu.fft.get_workspace_size %[[fft]]
+  %size = tfrt_gpu.fft.get_workspace_size %fft
+
+  %ch0 = tfrt.new.chain
+  // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate %[[allocator]], %[[stream]], %[[size]], %{{.*}}
+  %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
+  // CHECK: tfrt_gpu.fft.execute %[[stream]], %[[fft]], %[[buffer]], %[[buffer]], %[[buffer]], CUFFT_FORWARD, %{{.*}}
+  %ch1 = tfrt_gpu.fft.execute %stream, %fft, %buffer, %buffer, %buffer, CUFFT_FORWARD, %ch0
+
+  tfrt.return
+}

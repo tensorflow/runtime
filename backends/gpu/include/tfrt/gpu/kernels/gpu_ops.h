@@ -34,6 +34,7 @@
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/ccl_types.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/gpu/wrapper/fft_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/tensor/opdefs/host_tensor.h"
 #include "tfrt/tensor/opdefs/tensor.h"
@@ -131,6 +132,8 @@ using BlasFillModeAttr = EnumAttr<wrapper::BlasFillMode>;
 using BlasSideModeAttr = EnumAttr<wrapper::BlasSideMode>;
 using CclDataTypeAttr = EnumAttr<wrapper::CclDataType>;
 using CclReductionOpAttr = EnumAttr<wrapper::CclReductionOp>;
+using FftTypeAttr = EnumAttr<wrapper::FftType>;
+using FftDirectionAttr = EnumAttr<wrapper::FftDirection>;
 
 namespace conversion {
 

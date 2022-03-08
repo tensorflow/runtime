@@ -25,6 +25,7 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg);
 void RegisterGpuBlasKernels(KernelRegistry* kernel_reg);
 void RegisterGpuCclKernels(KernelRegistry* kernel_reg);
 void RegisterGpuDnnKernels(KernelRegistry* kernel_reg);
+void RegisterGpuFftKernels(KernelRegistry* kernel_reg);
 void RegisterGpuSolverKernels(KernelRegistry* kernel_reg);
 
 namespace kernels {
@@ -33,6 +34,7 @@ TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuDriverKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuBlasKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuCclKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuDnnKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuFftKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuSolverKernels);
 
 }  // namespace kernels

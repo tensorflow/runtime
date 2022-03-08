@@ -381,5 +381,12 @@ GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuContext> context,
 
 GpuSolverHandle::~GpuSolverHandle() = default;
 
+GpuFftHandle::GpuFftHandle(AsyncValueRef<GpuContext> context,
+                           wrapper::OwningFftHandle handle,
+                           wrapper::FftType type)
+    : context_(std::move(context)), handle_(std::move(handle)), type_(type) {}
+
+GpuFftHandle::~GpuFftHandle() = default;
+
 }  // namespace gpu
 }  // namespace tfrt

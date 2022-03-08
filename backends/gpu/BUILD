@@ -772,6 +772,7 @@ gentbl_cc_library(
         "include/tfrt/gpu/kernels/gpu_ccl_ops.td",
         "include/tfrt/gpu/kernels/gpu_dnn_ops.td",
         "include/tfrt/gpu/kernels/gpu_driver_ops.td",
+        "include/tfrt/gpu/kernels/gpu_fft_ops.td",
         "include/tfrt/gpu/kernels/gpu_solver_ops.td",
     ],
     deps = [
@@ -880,6 +881,7 @@ tfrt_cc_library(
         "lib/kernels/ccl_kernels.cc",
         "lib/kernels/dnn_kernels.cc",
         "lib/kernels/driver_kernels.cc",
+        "lib/kernels/fft_kernels.cc",
         "lib/kernels/solver_kernels.cc",
     ],
     alwayslink_static_registration_src = "lib/kernels/static_registration.cc",

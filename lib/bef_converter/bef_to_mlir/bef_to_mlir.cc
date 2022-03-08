@@ -617,7 +617,7 @@ mlir::LogicalResult BEFToMLIRConverter::AddCompilationUnits(
 
     // Parse a compilation unit source code into the MLIR Module.
     mlir::OwningOpRef<mlir::ModuleOp> compilation_unit_module(
-        mlir::parseSourceFile(source_mgr, &context_));
+        mlir::parseSourceFile<mlir::ModuleOp>(source_mgr, &context_));
     if (!compilation_unit_module) {
       EmitError(loc, "Failed to parse compilation unit.");
       return mlir::failure();

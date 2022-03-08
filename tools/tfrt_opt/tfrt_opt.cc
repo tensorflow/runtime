@@ -16,7 +16,7 @@
 //
 // Load MLIR and apply required passes on it.
 
-#include "mlir/Support/MlirOptMain.h"
+#include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/init_tfrt_dialects.h"
 

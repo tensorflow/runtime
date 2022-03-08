@@ -24,7 +24,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/Parser.h"
+#include "mlir/Parser/Parser.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/host_context/concurrent_work_queue.h"

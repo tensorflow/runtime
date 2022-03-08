@@ -27,7 +27,7 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/Translation.h"
+#include "mlir/Tools/mlir-translate/Translation.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/dtype/dtype.h"

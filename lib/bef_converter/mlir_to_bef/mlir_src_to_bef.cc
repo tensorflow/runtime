@@ -23,7 +23,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/Parser.h"
+#include "mlir/Parser/Parser.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/init_tfrt_dialects.h"
 

@@ -38,7 +38,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/Parser.h"
+#include "mlir/Parser/Parser.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/bef/bef_reader.h"

@@ -31,7 +31,7 @@
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
-#include "mlir/Support/MlirOptMain.h"
+#include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"

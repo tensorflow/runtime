@@ -18,7 +18,7 @@
 // Translate infrastructure.  It opens up an mlir file specified on the command
 // line and converts it to a bef file at specified location.
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/Translation.h"
+#include "mlir/Tools/mlir-translate/Translation.h"
 #include "tfrt/bef_converter/mlir_to_bef_translate.h"
 #include "tfrt/init_tfrt_dialects.h"
 

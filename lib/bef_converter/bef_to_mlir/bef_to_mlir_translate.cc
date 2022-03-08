@@ -22,7 +22,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/Translation.h"
+#include "mlir/Tools/mlir-translate/Translation.h"
 #include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_converter/bef_to_mlir.h"
 #include "tfrt/init_tfrt_dialects.h"

@@ -117,10 +117,13 @@ void RegisterFloatKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt.print.complex64", TFRT_KERNEL(TFRTPrintC64));
   registry->AddKernel("tfrt.print.complex128", TFRT_KERNEL(TFRTPrintC128));
 
-  // Partial support for fp16
+  // Partial support for fp16 and bf16
   registry->AddKernel("tfrt.constant.f16", TFRT_KERNEL(TFRTConstant<fp16>));
   registry->AddSyncKernel("tfrt.constant_s.f16",
                           TFRT_SYNC_KERNEL(TFRTConstant<fp16>));
+  registry->AddKernel("tfrt.constant.bf16", TFRT_KERNEL(TFRTConstant<bf16>));
+  registry->AddSyncKernel("tfrt.constant_s.bf16",
+                          TFRT_SYNC_KERNEL(TFRTConstant<bf16>));
 
   // Partial support for complex types
   registry->AddKernel("tfrt.constant.complex64",

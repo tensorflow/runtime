@@ -73,12 +73,20 @@ class ConstantOp<string suffix, Type baseType, Attr attr>
   let hasVerifier = 0;
 }
 
-// MLIR's OpBase.td defines F32Attr and F64Attr, but no F16Attr
+// MLIR's OpBase.td defines F32Attr and F64Attr, but no F16Attr or BF16Attr
 def F16Attr : FloatAttrBase<F16, "16-bit float attribute">;
+def BF16Attr : TypedAttrBase<
+  BF16, "FloatAttr",
+  And<[CPred<"$_self.isa<::mlir::FloatAttr>()">,
+       CPred<"$_self.cast<::mlir::FloatAttr>().getType().isBF16()">]>,
+  "bfloat16 attribute"> {
+  let returnType = [{ ::llvm::APFloat }];
+}
 
 def ConstantI1Op  : ConstantOp<"i1", I1, I1Attr>;
 def ConstantI32Op : ConstantOp<"i32", I32, I32Attr>;
 def ConstantI64Op : ConstantOp<"i64", I64, I64Attr>;
+def ConstantBF16Op : ConstantOp<"bf16", BF16, BF16Attr>;
 def ConstantF16Op : ConstantOp<"f16", F16, F16Attr>;
 def ConstantF32Op : ConstantOp<"f32", F32, F32Attr>;
 def ConstantF64Op : ConstantOp<"f64", F64, F64Attr>;

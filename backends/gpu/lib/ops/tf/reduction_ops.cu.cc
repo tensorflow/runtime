@@ -318,9 +318,14 @@ static llvm::Error MiddleDimReduction(GpuDispatchContext* dctx, const T* input,
 // reduction indices.
 //===----------------------------------------------------------------------===//
 
-using ReductionDims2 = struct { Index outer_dim_size, inner_dim_size; };
+using ReductionDims2 = struct {
+  Index outer_dim_size;
+  Index inner_dim_size;
+};
 using ReductionDims3 = struct {
-  Index outer_dim_size, middle_dim_size, inner_dim_size;
+  Index outer_dim_size;
+  Index middle_dim_size;
+  Index inner_dim_size;
 };
 
 static llvm::Optional<ReductionDims2> IsOuterReduction(

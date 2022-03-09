@@ -52,6 +52,29 @@ extern "C" {
 
 const char* hipGetErrorName(hipError_t hip_error);
 const char* hipGetErrorString(hipError_t hip_error);
+const char *hiprtcGetErrorString(hiprtcResult result);
+hiprtcResult hiprtcVersion(int* major, int* minor);
+hiprtcResult hiprtcAddNameExpression(hiprtcProgram prog, const char* name_expression);
+hiprtcResult hiprtcCompileProgram(
+                                   hiprtcProgram prog,
+                                   int numOptions,
+                                   const char** options);
+hiprtcResult hiprtcCreateProgram(
+                                  hiprtcProgram* prog,
+                                  const char* src,
+                                  const char* name,
+                                  int numberHeaders,
+                                  char** headers,
+                                  const char** includeNames);
+hiprtcResult hiprtcDestroyProgram(hiprtcProgram* prog);
+hiprtcResult hiprtcGetLoweredName(
+                                  hiprtcProgram prog,
+                                  const char* name_expression,
+                                  const char** lowered_name);
+hiprtcResult hiprtcGetProgramLog(hiprtcProgram prog, char* log);
+hiprtcResult hiprtcGetProgramLogSize(hiprtcProgram prog, size_t* logSizeRet);
+hiprtcResult hiprtcGetCode(hiprtcProgram prog, char* code);
+hiprtcResult hiprtcGetCodeSize(hiprtcProgram prog, size_t* codeSizeRet);
 
 // Enums for corresponding #defines in the HIP headers.
 enum hipDeviceFlags_t {

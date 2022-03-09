@@ -852,7 +852,7 @@ llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
     case Platform::CUDA:
       return CuModuleLoadData(current, image);
     case Platform::ROCm:
-      return HipModuleLoadData(current, image);
+      return HipRTCModuleLoadData(current, image);
     default:
       return InvalidPlatform(platform);
   }

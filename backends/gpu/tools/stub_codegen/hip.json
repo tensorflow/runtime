@@ -13,6 +13,7 @@
       "hipDeviceAttribute_t",
       "hipJitOption",
       "hipLimit_t",
+      "hipDataType",
       "hipMemoryType",
       "hipMemcpyKind",
       "hipFunction_attribute",

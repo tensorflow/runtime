@@ -37,6 +37,12 @@ llvm::raw_ostream& Print(llvm::raw_ostream& os, hipError_t error) {
   return os;
 }
 
+llvm::raw_ostream& Print(llvm::raw_ostream& os, hiprtcResult result) {
+  const char* msg = hiprtcGetErrorString(result);
+  if (msg != nullptr) os << "hiprtc Error: (" << msg << ")";
+  return os;
+}
+
 // Convert wrapper types to HIP types.
 static hipDevice_t ToRocm(Device device) { return device.id(Platform::ROCm); }
 
@@ -536,6 +542,45 @@ llvm::Expected<OwningModule> HipModuleLoadData(CurrentContext current,
   CheckHipContext(current);
   hipModule_t module;
   RETURN_IF_ERROR(hipModuleLoadData(&module, image));
+  NotifyResourceCreated(ResourceType::kModule, module);
+  return OwningModule(module);
+}
+
+llvm::Expected<OwningModule> HipRTCModuleLoadData(CurrentContext current,
+                                                  const void* image) {
+  CheckHipContext(current);
+  hiprtcProgram prog;
+  //auto img = reinterpret_cast<const char*>(const_cast<void*>(image));
+  auto kernel = static_cast<const char*>(image);
+  std::string kname(kernel);
+  kname += ".cu";
+  RETURN_IF_ERROR(hiprtcCreateProgram(&prog,
+                                      kernel,
+                                      kname.c_str(),
+                                      0,
+                                      nullptr,
+                                      nullptr
+                                     ));
+  hiprtcResult compileResult = hiprtcCompileProgram(prog, 0, nullptr);
+  if (compileResult != HIPRTC_SUCCESS) {
+    size_t logSize;
+    hiprtcGetProgramLogSize(prog, &logSize);
+    if (logSize) {
+      std::string log(logSize, '\0');
+      hiprtcGetProgramLog(prog, &log[0]);
+      MakeStringError(log.c_str());
+    }
+  }
+
+  size_t code_size;
+  RETURN_IF_ERROR(hiprtcGetCodeSize(prog, &code_size));
+  std::vector<char> code(code_size);
+  RETURN_IF_ERROR(hiprtcGetCode(prog, code.data()));
+  RETURN_IF_ERROR(hiprtcDestroyProgram(&prog));
+
+  hipModule_t module;
+  RETURN_IF_ERROR(hipModuleLoadData(&module, code.data()));
+
   NotifyResourceCreated(ResourceType::kModule, module);
   return OwningModule(module);
 }

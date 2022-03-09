@@ -320,7 +320,6 @@ static Expected<GpuModule> GpuModuleLoad(Argument<GpuContext> context,
                             MakeStringError("GPU JIT error log: ", error_log));
   }
 #endif
-
   return GpuModule(context.ValueRef(), std::move(*module));
 }
 

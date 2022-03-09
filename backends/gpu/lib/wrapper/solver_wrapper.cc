@@ -78,6 +78,41 @@ llvm::Expected<Stream> SolverGetStream(SolverHandle handle) {
   }
 }
 
+llvm::Error SolverPotrf(CurrentContext current, SolverHandle handle,
+                        BlasDataType dataType, BlasFillMode fillMode, int n,
+                        Pointer<void> buffer, int stride,
+                        Pointer<void> workspace, int workspaceSize,
+                        Pointer<int> devInfo) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CusolverDnPotrf(current, handle, dataType, fillMode, n, buffer,
+                             stride, workspace, workspaceSize, devInfo);
+    case Platform::ROCm:
+      return RocsolverPotrf(current, handle, dataType, fillMode, n, buffer,
+                            stride, devInfo);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error SolverPotrfBatched(CurrentContext current, SolverHandle handle,
+                               BlasDataType dataType, BlasFillMode fillMode,
+                               int n, Pointer<void*> Aarray, int heightA,
+                               Pointer<int> devInfoArray, int batchSize) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CusolverDnPotrfBatched(current, handle, dataType, fillMode, n,
+                                    Aarray, heightA, devInfoArray, batchSize);
+    case Platform::ROCm:
+      return RocsolverPotrfBatched(current, handle, dataType, fillMode, n,
+                                   Aarray, heightA, devInfoArray, batchSize);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

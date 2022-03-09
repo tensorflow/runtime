@@ -18,6 +18,7 @@
 #ifndef TFRT_GPU_WRAPPER_ROCSOLVER_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_ROCSOLVER_WRAPPER_H_
 
+#include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/gpu/wrapper/rocsolver_stub.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 
@@ -30,19 +31,14 @@ llvm::Error RocsolverDestroy(rocblas_handle handle);
 llvm::Error RocsolverSetStream(rocblas_handle handle, hipStream_t stream);
 llvm::Expected<Stream> RocsolverGetStream(rocblas_handle handle);
 llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n, Pointer<float> A,
-                           int heightA, Pointer<int> devInfo);
-llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n, Pointer<double> A,
-                           int heightA, Pointer<int> devInfo);
-llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n,
-                           Pointer<rocblas_float_complex> A, int heightA,
+                           rocblas_datatype dataType, rocblas_fill fillMode,
+                           int n, Pointer<void> A, int heightA,
                            Pointer<int> devInfo);
-llvm::Error RocsolverPotrf(CurrentContext current, rocblas_handle handle,
-                           rocblas_fill fillMode, int n,
-                           Pointer<rocblas_double_complex> A, int heightA,
-                           Pointer<int> devInfo);
+llvm::Error RocsolverPotrfBatched(CurrentContext current, rocblas_handle handle,
+                                  rocblas_datatype dataType,
+                                  rocblas_fill fillMode, int n,
+                                  Pointer<void *> Aarray, int heightA,
+                                  Pointer<int> devInfo, int batchSize);
 
 }  // namespace wrapper
 }  // namespace gpu

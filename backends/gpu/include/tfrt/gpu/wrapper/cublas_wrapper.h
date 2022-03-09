@@ -18,7 +18,7 @@
 #ifndef TFRT_GPU_WRAPPER_CUBLAS_WRAPPER_H_
 #define TFRT_GPU_WRAPPER_CUBLAS_WRAPPER_H_
 
-#include "cublas.h"  // from @cuda_headers
+#include "cublas_v2.h"  // from @cuda_headers
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cuda_type_traits.h"
 

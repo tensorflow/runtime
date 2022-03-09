@@ -17,7 +17,7 @@
 
 #include <type_traits>
 
-#include "cublas.h"  // from @cuda_headers
+#include "cublas_v2.h"  // from @cuda_headers
 #include "symbol_loader.h"
 
 // Memoizes load of the .so for this CUDA library.

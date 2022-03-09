@@ -15,7 +15,7 @@
 // Thin abstraction layer for cuBLAS and MIOpen.
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 
-#include "cublas.h"  // from @cuda_headers
+#include "cublas_v2.h"  // from @cuda_headers
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"

@@ -15,3 +15,5 @@ filegroup(
         "@tf_runtime//tools:code_size_test_driver",
     ],
 )
+
+exports_files(["fib.mlir"])

@@ -312,6 +312,7 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
 void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDenseHostTensorKernelsForType<uint8_t>(registry, "ui8");
   RegisterDenseHostTensorKernelsForType<uint32_t>(registry, "ui32");
+  RegisterDenseHostTensorKernelsForType<uint64_t>(registry, "ui64");
   RegisterDenseHostTensorKernelsForType<float>(registry, "f32");
   RegisterDenseHostTensorKernelsForType<double>(registry, "f64");
   RegisterDenseHostTensorKernelsForType<int8_t>(registry, "i8");
@@ -326,6 +327,7 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   // tfrt/common/compat/eigen/eigen_dtype.h for comparison kernels makes TFRT
   // depend on TF due to b/161569340.
   RegisterDhtCreationKernelsForType<fp16>(registry, "f16");
+  RegisterDhtCreationKernelsForType<bf16>(registry, "bf16");
 
   registry->AddKernel("tfrt_dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
   registry->AddSyncKernel("tfrt_dht_sync.allocate_buffer",

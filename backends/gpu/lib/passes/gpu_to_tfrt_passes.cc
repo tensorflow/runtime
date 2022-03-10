@@ -652,7 +652,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   // %t0 = unrealized_conversion_cast %arg0, %arg1 -> !gpu.async.token
   // %t1 = gpu.wait async [%t0]
   Location loc = func_op.getLoc();
-  rewriter.setInsertionPointToStart(&func_op.body().front());
+  rewriter.setInsertionPointToStart(&func_op.getBody().front());
   Value token =
       CastToToken(rewriter, loc, func_op.getArguments().take_front(2));
   auto first_wait_op =
@@ -664,7 +664,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
 
   // Make `gpu.wait [...]` async, cast result and add chain to returned
   // values.
-  Operation *terminator = func_op.body().back().getTerminator();
+  Operation *terminator = func_op.getBody().back().getTerminator();
   rewriter.setInsertionPoint(terminator);
   auto last_wait_op = rewriter.create<mlir::gpu::WaitOp>(
       wait_ops.back().getLoc(), token.getType(),
@@ -1283,7 +1283,7 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
     }
     rewriter.setInsertionPoint(op);
     rewriter.replaceOpWithNewOp<tfrt::compiler::OnceOp>(
-        op, handle_type, context, pair.first->second.sym_name());
+        op, handle_type, context, pair.first->second.getSymName());
   }
 
   return success();

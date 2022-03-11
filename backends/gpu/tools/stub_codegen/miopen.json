@@ -191,5 +191,5 @@
       "miopenSetDropoutDescriptor",
       "miopenDropoutForward",
       "miopenDropoutBackward"
-   ],
+   ]
 }

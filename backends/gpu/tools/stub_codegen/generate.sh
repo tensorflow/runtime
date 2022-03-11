@@ -20,8 +20,11 @@
 
 set -eux
 
+if [ "$#" -ne 1 ]; then
+  echo "Usage: root-tfrt/path/to/generate.sh <gcc|clang|msvc>"
+fi
 # Build the tools and generate the HIP header.
-bazel build --nocheck_visibility \
+bazel build --nocheck_visibility --config=$1\
   //backends/gpu/tools/stub_codegen:header_codegen \
   //backends/gpu/tools/stub_codegen:impl_codegen
 

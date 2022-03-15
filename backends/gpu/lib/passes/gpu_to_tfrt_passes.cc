@@ -623,6 +623,17 @@ SmallVector<Value, 4> OneToAnyConversion::CastToTargetTypes(
 
 LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
     FuncOp func_op, PatternRewriter &rewriter) const {
+  auto update_func_signature = [&]() {
+    // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
+    rewriter.updateRootInPlace(func_op, [&] {
+      auto types = GetTypes<compiler::ChainType, StreamType>(rewriter);
+      func_op.insertArguments(
+          {0, 0}, types, /*argAttrs=*/{},
+          SmallVector<Location, 2>(types.size(), func_op.getLoc()));
+      func_op.insertResult(0, types.front(), /*resultAttrs=*/nullptr);
+    });
+  };
+
   // Collect `gpu.wait [...]` and `gpu.wait async []` ops.
   SmallVector<mlir::gpu::WaitOp, 4> wait_ops;
   func_op.walk([&](mlir::gpu::WaitOp op) {
@@ -630,8 +641,23 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
       wait_ops.push_back(op);
   });
 
-  if (wait_ops.size() < 2)
+  if (wait_ops.size() < 2) {
+    Operation *terminator = func_op.getBody().back().getTerminator();
+    if (++func_op.getBody().op_begin() == func_op.getBody().op_end() &&
+        terminator->getOperands().empty()) {
+      // Handle the special case of the empty function that has nothing but the
+      // terminator op returning nothing. In this case, there are no wait ops
+      // (and no async regions).
+      update_func_signature();
+      rewriter.setInsertionPoint(terminator);
+      Value chain = func_op.getArgument(0);
+      rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator, chain);
+      return success();
+    }
+
     return rewriter.notifyMatchFailure(func_op, "expected at least 2 gpu.wait");
+  }
+
   if (llvm::find_if(wait_ops, [](mlir::gpu::WaitOp op) {
         return !op.asyncToken();
       }) != wait_ops.end() - 1) {
@@ -639,14 +665,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
         func_op, "expected all but the last gpu.wait to be async");
   }
 
-  // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
-  rewriter.updateRootInPlace(func_op, [&] {
-    auto types = GetTypes<compiler::ChainType, StreamType>(rewriter);
-    func_op.insertArguments(
-        {0, 0}, types, /*argAttrs=*/{},
-        SmallVector<Location, 2>(types.size(), func_op.getLoc()));
-    func_op.insertResult(0, types.front(), /*resultAttrs=*/nullptr);
-  });
+  update_func_signature();
 
   // Cast new arguments to token and insert wait async op.
   // %t0 = unrealized_conversion_cast %arg0, %arg1 -> !gpu.async.token

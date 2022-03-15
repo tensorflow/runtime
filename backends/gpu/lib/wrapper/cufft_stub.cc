@@ -15,8 +15,7 @@
 // Implementation of the cuFFT API forwarding calls to symbols dynamically
 // loaded from the real library.
 
-#include "cufft.h"    // from @cuda_headers
-#include "cufftXt.h"  // from @cuda_headers
+#include "cufft.h"  // from @cuda_headers
 #include "symbol_loader.h"
 
 // Memoizes load of the .so for this CUDA library.
@@ -40,7 +39,5 @@ static cufftResult_t DynamicCall(const char *symbol_name, Args &&...args) {
 }
 
 extern "C" {
-
 #include "cufft_stub.cc.inc"
-#include "cufftxt_stub.cc.inc"
 }  // extern "C"

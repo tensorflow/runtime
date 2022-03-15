@@ -23,7 +23,6 @@ licenses(["notice"])
         "cudart",
         "cudnn",
         "cufft",
-        "cufftxt",
         "cusolverdn",
         "nccl",
     ]
@@ -37,7 +36,6 @@ tfrt_cc_library(
         ":cudart_stub_inc",
         ":cudnn_stub_inc",
         ":cufft_stub_inc",
-        ":cufftxt_stub_inc",
         ":cusolverdn_stub_inc",
         ":nccl_stub_inc",
     ],

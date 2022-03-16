@@ -43,7 +43,7 @@ static BefBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,
   context->allowUnregisteredDialects();
   context->appendDialectRegistry(registry);
 
-  auto module = mlir::parseSourceString(mlir_src, context);
+  auto module = mlir::parseSourceString<mlir::ModuleOp>(mlir_src, context);
 
   if (!module) return {};
 

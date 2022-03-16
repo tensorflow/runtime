@@ -247,7 +247,7 @@ class FakeCompilerPass : public CompilerPass {
 
     TFRT_DLOG(INFO) << "Parsing: " << program;
 
-    return mlir::parseSourceString(program, context);
+    return mlir::parseSourceString<mlir::ModuleOp>(program, context);
   }
 
   llvm::Expected<CompilationOutput> Compile(
@@ -258,7 +258,8 @@ class FakeCompilerPass : public CompilerPass {
     context->allowUnregisteredDialects();
 
     CompilationOutput output;
-    output.module = mlir::parseSourceString(compiled_program_, context);
+    output.module =
+        mlir::parseSourceString<mlir::ModuleOp>(compiled_program_, context);
     output.output_devices = output_devices_;
 
     return std::move(output);

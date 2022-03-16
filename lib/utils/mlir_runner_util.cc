@@ -67,7 +67,7 @@ TfrtMlirRunner TfrtMlirRunner::Builder::Compile() {
   assert(mlir_context_ && "MLIR context must be set before calling Compile.");
 
   mlir::OwningOpRef<mlir::ModuleOp> module =
-      mlir::parseSourceString(mlir_input_, mlir_context_);
+      mlir::parseSourceString<mlir::ModuleOp>(mlir_input_, mlir_context_);
 
   tfrt::BefBuffer bef_buffer =
       tfrt::ConvertMLIRToBEF(module.get(), /*disable_optional_sections=*/true);

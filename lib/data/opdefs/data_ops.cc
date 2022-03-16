@@ -90,8 +90,8 @@ static Type GetChainType(Builder *builder) {
 // IteratorGetNextOp
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseIteratorGetNextOp(OpAsmParser &parser,
-                                          OperationState &result) {
+ParseResult IteratorGetNextOp::parse(OpAsmParser &parser,
+                                     OperationState &result) {
   auto &builder = parser.getBuilder();
   auto iterator_type = GetIteratorType(&builder);
   auto chain_type = GetChainType(&builder);
@@ -120,8 +120,8 @@ static ParseResult parseIteratorGetNextOp(OpAsmParser &parser,
 // EnumerateIteratorOp
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseEnumerateIteratorOp(OpAsmParser &parser,
-                                            OperationState &result) {
+ParseResult EnumerateIteratorOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   if (parser.parseOperandList(operands) ||
       parser.parseOptionalAttrDict(result.attributes))

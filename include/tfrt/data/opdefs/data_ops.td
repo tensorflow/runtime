@@ -52,9 +52,6 @@ def Data_IteratorType :
 // Base class for Data dialect ops.
 class Data_Op<string mnemonic, list<Trait> traits = []> :
     Op<Data_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
-
-  // Each registered op in the Data namespace needs to provide a parser.
-  let parser = [{ return tfrt::data::parse$cppClass(parser, result); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -88,6 +85,9 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
 
   let arguments = (ins Data_IteratorType:$iterator, TFRT_ChainType:$chain_in);
   let results = (outs Variadic<AnyType>:$results);
+  let extraClassDeclaration = [{
+    static ParseResult parse(OpAsmParser &parser, OperationState &result);
+  }];
 }
 
 def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
@@ -113,6 +113,9 @@ def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
 
   let results = (outs Variadic<AnyType>:$results);
   let hasVerifier = 1;
+  let extraClassDeclaration = [{
+    static ParseResult parse(OpAsmParser &parser, OperationState &result);
+  }];
 }
 
 //===----------------------------------------------------------------------===//

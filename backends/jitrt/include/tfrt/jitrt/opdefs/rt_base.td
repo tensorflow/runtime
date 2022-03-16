@@ -22,6 +22,7 @@
 #else
 #define RT_BASE
 
+include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
 def RuntimeDialect : Dialect {

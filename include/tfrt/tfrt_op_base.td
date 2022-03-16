@@ -23,6 +23,7 @@
 #define TFRT_OP_BASE
 
 include "mlir/IR/OpBase.td"
+include "mlir/IR/AttrTypeBase.td"
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
 include "tfrt/tensor/opdefs/host_tensor.td"
 include "tfrt/tensor/opdefs/tensor.td"

@@ -128,6 +128,20 @@ LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewriteBlock(
   return result;
 }
 
+static unsigned GetSizeBytes(const Type &type) {
+  if (auto shaped_type = type.dyn_cast<ShapedType>()) {
+    return GetSizeBytes(shaped_type.getElementType()) *
+           shaped_type.getNumElements();
+  }
+
+  if (type.isIntOrFloat()) return (type.getIntOrFloatBitWidth() + 7) / 8;
+
+  if (auto complex_type = type.dyn_cast<mlir::ComplexType>())
+    return GetSizeBytes(complex_type.getElementType()) * 2;
+
+  llvm_unreachable("unsupported type");
+}
+
 LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     memref::ViewOp view_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
@@ -135,20 +149,20 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
   if (!adaptor.sizes().empty())
     return rewriter.notifyMatchFailure(view_op, "expected no sizes");
+
   auto const_offset =
       adaptor.byte_shift().getDefiningOp<arith::ConstantIndexOp>();
-  auto size_bits = view_op.getType().cast<ShapedType>().getSizeInBits();
-  auto source_type = view_op.source().getType().cast<ShapedType>();
+  auto dst_size_bytes = GetSizeBytes(view_op.getType());
+  auto src_size_bytes = GetSizeBytes(view_op.source().getType());
   if (const_offset && const_offset.value() == 0 &&
-      source_type.getSizeInBits() == size_bits) {
+      src_size_bytes == dst_size_bytes) {
     rewriter.replaceOp(view_op, {adaptor.source()});
     return success();
   }
   auto loc = view_op->getLoc();
   auto offset = rewriter.create<UnrealizedConversionCastOp>(
       loc, rewriter.getIntegerType(64, false), adaptor.byte_shift());
-  auto size_bytes = (size_bits + 7) / 8;
-  auto size = rewriter.create<compiler::ConstantUI64Op>(loc, size_bytes);
+  auto size = rewriter.create<compiler::ConstantUI64Op>(loc, dst_size_bytes);
   rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.source(),
                                          offset.getResult(0), size);
   return success();

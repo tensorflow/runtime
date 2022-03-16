@@ -329,10 +329,11 @@ Expected<GpuBuffer> GpuBuffer::Allocate(AsyncValueRef<GpuAllocator> allocator,
 
 Error GpuBuffer::Deallocate(wrapper::Stream stream) {
   size_ = 0;
+  auto allocator = std::move(allocator_);
   if (!pointer_) return Error::success();  // Skip virtual function call.
   auto pointer = pointer_;
   pointer_ = GpuPointer();
-  return allocator_->Deallocate(pointer, stream);
+  return allocator->Deallocate(pointer, stream);
 }
 
 GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuContext> context,

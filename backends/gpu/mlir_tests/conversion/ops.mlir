@@ -46,6 +46,8 @@ func @driver_ops() {
   %size = tfrt.constant.i64 1024
   // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate %[[allocator]], %[[stream]], %[[size]], %{{.*}}
   %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch4
+  // CHECK: tfrt_gpu.mem.deallocate %[[buffer]], %[[stream]], %{{.*}}
+  %ch5 = tfrt_gpu.mem.deallocate %buffer, %stream, %ch4
 
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [256 : i64]
   // CHECK: %[[host_buffer:.*]]:2 = tfrt_dht.get_buffer
@@ -59,11 +61,11 @@ func @driver_ops() {
   // CHECK: tfrt_gpu.mem.view %[[buffer]], %[[offset]], %[[size]]
   %view = tfrt_gpu.mem.view %buffer, %offset, %size_1
   // CHECK: tfrt_gpu.mem.copy %[[host_buffer]]#0, %[[buffer]], %[[stream]], %{{.*}} : !ht.host_buffer, !tfrt_gpu.buffer
-  %ch5 = tfrt_gpu.mem.copy %host_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch6 = tfrt_gpu.mem.copy %host_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: %[[value:.*]] = tfrt.constant.i32 13
   %value = tfrt.constant.i32 13
   // CHECK: tfrt_gpu.mem.set %[[buffer]], %[[value]], %[[stream]], %{{.*}}
-  %ch6 = tfrt_gpu.mem.set %buffer, %value, %stream, %ch5 : !tfrt_gpu.buffer, i32
+  %ch7 = tfrt_gpu.mem.set %buffer, %value, %stream, %ch6 : !tfrt_gpu.buffer, i32
 
   // CHECK: %[[module:.*]] = tfrt_gpu.module.load %[[context]] {data = "foobar\00"}
   %module = tfrt_gpu.module.load %context {data = "foobar\00"}
@@ -81,13 +83,13 @@ func @driver_ops() {
   // CHECK-SAME: threads in (%[[dim]], %[[dim]], %[[dim]]),
   // CHECK-SAME: %[[shmem]], %{{.*}},
   // CHECK-SAME: args(%[[buffer]]) : (!tfrt_gpu.buffer)
-  %ch7 = tfrt_gpu.function.launch %stream, %function,
+  %ch8 = tfrt_gpu.function.launch %stream, %function,
              blocks in (%dim, %dim, %dim),
              threads in (%dim, %dim, %dim),
-             %shmem, %ch6,
+             %shmem, %ch7,
              args(%buffer) : (!tfrt_gpu.buffer)
 
-  %alias = tfrt_gpu.alias %function, %ch7 : !tfrt_gpu.function
+  %alias = tfrt_gpu.alias %function, %ch8 : !tfrt_gpu.function
 
   tfrt.return
 }

@@ -208,6 +208,20 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
   let results = (outs GPU_BufferType);
 }
 
+def GPU_MemDeallocateOp : GPU_Op<"mem.deallocate"> {
+  let description = [{
+    tfrt_gpu.mem.deallocate frees a buffer of device memory.
+
+    Any use of the 'buffer' must be synchronized with 'stream' beforehand.
+
+    Example:
+      %ch0 = tfrt.new.chain
+      %ch1 = tfrt_gpu.mem.deallocate %buffer, %stream, %ch0
+  }];
+  let arguments = (ins GPU_BufferType, GPU_StreamType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
+}
+
 def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
   let description = [{
     tfrt_gpu.mem.copy copies memory between host or device.

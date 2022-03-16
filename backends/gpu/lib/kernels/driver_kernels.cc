@@ -151,6 +151,12 @@ static Expected<GpuBuffer> GpuMemAllocate(Argument<GpuAllocator> allocator,
   return GpuBuffer::Allocate(allocator.ValueRef(), size, stream.get());
 }
 
+// tfrt_gpu.mem.deallocate frees a gpu buffer.
+static Error GpuMemDeallocate(Argument<GpuBuffer> buffer,
+                              const GpuStream& stream) {
+  return buffer->Deallocate(stream.get());
+}
+
 // tfrt_gpu.mem.set fills memory with a 32bit scalar value.
 static Error GpuMemset(const GpuBuffer& buffer, AsyncValue* untyped_value,
                        const GpuStream& stream) {
@@ -418,6 +424,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(GpuAllocatorCreate));
 
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(GpuMemAllocate));
+  kernel_reg->AddKernel("tfrt_gpu.mem.deallocate",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemDeallocate));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemCopy));
   kernel_reg->AddKernel("tfrt_gpu.mem.set",

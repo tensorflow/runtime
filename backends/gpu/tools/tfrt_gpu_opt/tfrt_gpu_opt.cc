@@ -17,6 +17,8 @@
 // Load MLIR and apply required passes on it.
 
 #include <cstdint>
+#include <string>
+#include <utility>
 
 #include "llvm/Support/CommandLine.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
@@ -69,6 +71,12 @@ struct TestGpuAsyncConversionPass
       return builder.create<mlir::UnrealizedConversionCastOp>(loc, type, inputs)
           .getResult(0);
     });
+    converter.addSourceMaterialization([](OpBuilder &builder, Type type,
+                                          ValueRange inputs,
+                                          Location loc) -> Value {
+      return builder.create<mlir::UnrealizedConversionCastOp>(loc, type, inputs)
+          .getResult(0);
+    });
 
     ConversionTarget wrap(getContext());
     wrap.addLegalDialect("wrap");
@@ -77,7 +85,7 @@ struct TestGpuAsyncConversionPass
     tfrt::gpu::populateGpuAsyncConversionPatterns(patterns, converter, wrap);
 
     ConversionTarget target(getContext());
-    target.addLegalDialect("other", "tfrt", "tfrt_gpu_conversion");
+    target.addLegalDialect("gpu", "other", "tfrt", "tfrt_gpu_conversion");
     target.addLegalOp<mlir::UnrealizedConversionCastOp>();
     target.addDynamicallyLegalOp<FuncOp>([&](FuncOp op) {
       return none_of(op.getBody().getOps(),

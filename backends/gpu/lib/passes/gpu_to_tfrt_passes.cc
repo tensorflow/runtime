@@ -206,6 +206,26 @@ struct ConvertMemcpyPattern : OpConversionPattern<mlir::gpu::MemcpyOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
+// Converts `gpu.alloc` op to `tfrt_gpu.mem.allocate` op.
+struct ConvertAllocPattern : OpConversionPattern<mlir::gpu::AllocOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::AllocOp alloc_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts `gpu.dealloc` op to `tfrt_gpu.mem.deallocate` op.
+struct ConvertDeallocPattern : OpConversionPattern<mlir::gpu::DeallocOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::DeallocOp dealloc_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
 // Converts `memref.get_global` to a `tfrt.once` call of the corresponding
 // function.
 //
@@ -823,6 +843,46 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   return success();
 }
 
+LogicalResult ConvertAllocPattern::matchAndRewrite(
+    mlir::gpu::AllocOp alloc_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (adaptor.asyncDependencies().empty() || !alloc_op.asyncToken())
+    return rewriter.notifyMatchFailure(alloc_op, "no async deps or no result");
+  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  if (!IsCastFromChainAndStream(cast_op))
+    return rewriter.notifyMatchFailure(alloc_op, "operand not def by cast");
+
+  Location loc = alloc_op->getLoc();
+  Value stream = cast_op.getOperand(1);
+  Value context = rewriter.create<StreamGetContextOp>(loc, stream);
+  Value allocator = rewriter.create<AllocatorCreateOp>(loc, context);
+  Value size_bytes = rewriter.create<compiler::ConstantI64Op>(
+      loc, GetTypeSizeBytes(alloc_op.getType()));
+  Value buffer = rewriter.create<MemAllocateOp>(
+      loc, allocator, stream, size_bytes, cast_op.getOperand(0));
+  rewriter.replaceOp(alloc_op, {buffer, cast_op.getResult(0)});
+  return success();
+}
+
+LogicalResult ConvertDeallocPattern::matchAndRewrite(
+    mlir::gpu::DeallocOp dealloc_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (adaptor.asyncDependencies().empty() || !dealloc_op.asyncToken())
+    return rewriter.notifyMatchFailure(dealloc_op,
+                                       "no async deps or no result");
+  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  if (!IsCastFromChainAndStream(cast_op))
+    return rewriter.notifyMatchFailure(dealloc_op, "operand not def by cast");
+
+  Location loc = dealloc_op->getLoc();
+  Value stream = cast_op.getOperand(1);
+  Value chain = rewriter.create<MemDeallocateOp>(loc, adaptor.memref(), stream,
+                                                 cast_op.getOperand(0));
+  auto token = CastToToken(rewriter, loc, {chain, stream});
+  rewriter.replaceOp(dealloc_op, token);
+  return success();
+}
+
 // Returns !tfrt_gpu.context of the parent function's stream argument.
 // Inserts tfrt_gpu.stream.get_context if it doesn't already exist.
 Value GetContextFromParentFunc(ConversionPatternRewriter &rewriter,
@@ -1372,9 +1432,9 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
 
   RewritePatternSet patterns(&getContext());
   auto converter = createMemrefToTfrtGpuConverter();
-  patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern,
-               ConvertMemrefGlobalPattern, ConvertLaunchFuncPattern>(
-      converter, &getContext());
+  patterns.add<ConvertAllocPattern, ConvertDeallocPattern, ConvertMemsetPattern,
+               ConvertMemcpyPattern, ConvertMemrefGlobalPattern,
+               ConvertLaunchFuncPattern>(converter, &getContext());
   patterns.add<ConvertGetGlobalPattern, InlineConversionAsyncExecPattern,
                ConvertGpuWaitToChainAndStreamPattern>(&getContext());
   ConversionTarget target(getContext());

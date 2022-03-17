@@ -45,10 +45,34 @@ func @test_wrap_async_execute() {
   return
 }
 
-func @test_fold_memref_view(%arg0 : memref<64xi8>) {
+func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
   %zero = arith.constant 0 : index
   // CHECK-NOT: memref.view
-  %view = "memref.view"(%arg0, %zero) : (memref<64xi8>, index) -> (memref<4x4xf32>)
+  // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
+  // CHECK: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<4x4xf32>
+  %view = memref.view %arg0[%zero][] : memref<64xi8> to memref<4x4xf32>
+  // CHECK: return %[[memref]]
+  return %view : memref<4x4xf32>
+}
+
+func @test_fold_memref_cast(%arg0 : memref<64xi8>) -> memref<8x8xi8> {
+  // CHECK-NOT: memref.reinterpret_cast
+  // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
+  // CHECK: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<8x8xi8>
+  %cast = memref.reinterpret_cast %arg0
+    to offset: [0], sizes: [8, 8], strides: [8, 1]
+    : memref<64xi8> to memref<8x8xi8>
+  // CHECK: return %[[memref]]
+  return %cast : memref<8x8xi8>
+}
+
+func @test_rewrite_alloc() {
+  // CHECK: %[[memref:.*]] = gpu.alloc  () : memref<64xi8>
+  %memref = memref.alloc() : memref<64xi8>
+  // CHECK: gpu.dealloc  %[[memref]] : memref<64xi8>
+  memref.dealloc %memref : memref<64xi8>
+  // CHECK: %[[tmp:.*]] = gpu.alloc  () : memref<64xi8>
+  %temp = memref.alloca() : memref<64xi8>
   // CHECK: return
   return
 }

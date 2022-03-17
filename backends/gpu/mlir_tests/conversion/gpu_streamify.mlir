@@ -14,6 +14,26 @@
 
 // RUN: tfrt_gpu_opt %s -gpu-tfrt-streamify | FileCheck %s
 
+// CHECK-LABEL: @alloc
+func @alloc(
+  %arg0 : !tfrt.chain,
+  %arg1 : !tfrt_gpu.stream
+) {
+  %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
+    : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
+  // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
+  // CHECK: %[[allocator:.*]] = tfrt_gpu.allocator.create %[[ctx]]
+  // CHECK: %[[size:.*]] = tfrt.constant.i64 128
+  // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate
+  // CHECK-SAME: %[[allocator]], %arg1, %[[size]], %arg0
+  %memref, %t1 = gpu.alloc async [%t0] () : memref<32xi32>
+  // CHECK: %[[ch:.*]] = tfrt_gpu.mem.deallocate %[[buffer]], %arg1, %arg0
+  %t2 = gpu.dealloc async [%t1] %memref : memref<32xi32>
+  // CHECK: builtin.unrealized_conversion_cast %[[ch]], %arg1
+  // CHECK-SAME: : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
+  tfrt.return
+}
+
 // CHECK-LABEL: @memset
 func @memset(
   %arg0 : !tfrt.chain,

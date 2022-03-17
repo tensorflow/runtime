@@ -68,6 +68,10 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
       mlir::ConversionPatternRewriter& rewriter) const = 0;
 };
 
+// Returns the size in bytes of a Integer/Float/Complex/ShapedType.
+// Element sizes are rounded up to full bytes (e.g. 'memref<8xi1>' is 8 bytes).
+unsigned GetTypeSizeBytes(const mlir::Type& type);
+
 // Returns the name of the device code attribute of gpu.module ops.
 mlir::StringRef getGpuBinaryAttrName();
 // Returns the name of the device constants attribute of gpu.module ops.

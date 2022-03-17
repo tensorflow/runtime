@@ -82,6 +82,26 @@ struct FoldMemrefReinterpretCastPattern
       ConversionPatternRewriter &rewriter) const override;
 };
 
+template <typename OpTy>
+struct RewriteMemrefAllocPattern : public OpConversionPattern<OpTy> {
+  using OpAdaptor = typename OpConversionPattern<OpTy>::OpAdaptor;
+  using OpConversionPattern<OpTy>::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      OpTy alloc_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+struct RewriteMemrefDeallocPattern
+    : public OpRewritePattern<memref::DeallocOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+ private:
+  LogicalResult matchAndRewrite(memref::DeallocOp dealloc_op,
+                                PatternRewriter &rewriter) const override;
+};
+
 }  // namespace
 
 LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewrite(
@@ -128,16 +148,16 @@ LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewriteBlock(
   return result;
 }
 
-static unsigned GetSizeBytes(const Type &type) {
+unsigned GetTypeSizeBytes(const Type &type) {
   if (auto shaped_type = type.dyn_cast<ShapedType>()) {
-    return GetSizeBytes(shaped_type.getElementType()) *
+    return GetTypeSizeBytes(shaped_type.getElementType()) *
            shaped_type.getNumElements();
   }
 
   if (type.isIntOrFloat()) return (type.getIntOrFloatBitWidth() + 7) / 8;
 
   if (auto complex_type = type.dyn_cast<mlir::ComplexType>())
-    return GetSizeBytes(complex_type.getElementType()) * 2;
+    return GetTypeSizeBytes(complex_type.getElementType()) * 2;
 
   llvm_unreachable("unsupported type");
 }
@@ -152,8 +172,8 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
 
   auto const_offset =
       adaptor.byte_shift().getDefiningOp<arith::ConstantIndexOp>();
-  auto dst_size_bytes = GetSizeBytes(view_op.getType());
-  auto src_size_bytes = GetSizeBytes(view_op.source().getType());
+  auto dst_size_bytes = GetTypeSizeBytes(view_op.getType());
+  auto src_size_bytes = GetTypeSizeBytes(view_op.source().getType());
   if (const_offset && const_offset.value() == 0 &&
       src_size_bytes == dst_size_bytes) {
     rewriter.replaceOp(view_op, {adaptor.source()});
@@ -182,13 +202,35 @@ LogicalResult FoldMemrefReinterpretCastPattern::matchAndRewrite(
   return success();
 }
 
+template <typename OpTy>
+LogicalResult RewriteMemrefAllocPattern<OpTy>::matchAndRewrite(
+    OpTy alloc_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  rewriter.replaceOpWithNewOp<mlir::gpu::AllocOp>(
+      alloc_op, alloc_op.getType(),
+      /*asyncDependencies=*/ValueRange(), /*dynamicSizes=*/ValueRange(),
+      /*symbolOperands=*/ValueRange());
+  return success();
+}
+
+LogicalResult RewriteMemrefDeallocPattern::matchAndRewrite(
+    memref::DeallocOp dealloc_op, PatternRewriter &rewriter) const {
+  rewriter.replaceOpWithNewOp<mlir::gpu::DeallocOp>(
+      dealloc_op, /*asyncToken=*/Type(),
+      /*asyncDependencies=*/ValueRange(), dealloc_op.memref());
+  return success();
+}
+
 void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
                                         TypeConverter &converter,
                                         ConversionTarget &target) {
   patterns.add<NestLegalOpsInConversionAsyncExecPattern>(patterns.getContext(),
                                                          target);
-  patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern>(
+  patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern,
+               RewriteMemrefAllocPattern<memref::AllocOp>,
+               RewriteMemrefAllocPattern<memref::AllocaOp>>(
       converter, patterns.getContext());
+  patterns.add<RewriteMemrefDeallocPattern>(patterns.getContext());
 }
 
 }  // namespace gpu

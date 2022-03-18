@@ -405,6 +405,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "chrome_tracing_sink",
+    srcs = ["lib/tracing/chrome_tracing_sink.cc"],
+    visibility = [":friends"],
+    deps = [
+        ":support",
+        ":tracing",
+        "@llvm-project//llvm:Support",
+    ],
+    alwayslink = True,
+)
+
+tfrt_cc_library(
     name = "nvtx_tracing_sink",
     srcs = ["lib/tracing/nvtx_tracing_sink.cc"],
     hdrs = ["include/tfrt/tracing/nvtx_tracing_sink.h"],

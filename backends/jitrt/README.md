@@ -55,45 +55,48 @@ recompilation.
 (a) Rank constraint:
 
 ```
-`%arg : tensor<*xf32> { jitrt.constraint = "rank" }`
+%arg : tensor<*xf32> { jitrt.constraint = "rank" }
+```
 
 Before compiling the function, unranked input type will be updated to the
 corresponding ranked input type (e.g. unranked tensor -> ranked tensor).
-```
 
 (b) Shape constraint:
 
 ```
-`%arg : tensor<?x?xf32> { jitrt.constraint = "shape" }`
-
-Shape of the runtime argument will be used to specialize the compiled
-function, if this shape seen the first time, it will trigger function
-recompilation.
+%arg : tensor<?x?xf32> { jitrt.constraint = "shape" }
 ```
+
+Shape of the runtime argument will be used to specialize the compiled function,
+if this shape seen the first time, it will trigger function recompilation.
 
 (c) Value constraint:
 
 ```
-`%reduction_dimension : tensor<i32> { jitrt.constraint = "value" }`
-
-Runtime value will be sunk into the body of a function as a constant,
-and the function will be recompiled. For example this can be used to sink
-reduction dimensions to generate more efficient code.
-
-Value constraint is only supported for the integer data type, in practice
-it should be reduction dimension, dimension permutation, or any similar
-value that does not change often, and is required for generating
-efficient code.
+%reduction_dimension : tensor<i32> { jitrt.constraint = "value" }
 ```
 
-\#### Shape and value specialization example: ``// Computes `%arg0` mean value
-over the axis specified by the `%arg1`. // See:
-https:www.tensorflow.org/api_docs/python/tf/math/reduce_mean func @mean(%arg0:
-tensor<?x?xf32>, %arg1: tensor<i32>) -> tensor<?xf32> { %0 = "tf.Mean(%arg0,
-%arg1) : (tensor<?x?xf32>, tensor<i32>) -> tensor<?xf32> return %0:
-tensor<?xf32> }``
+Runtime value will be sunk into the body of a function as a constant, and the
+function will be recompiled. For example this can be used to sink reduction
+dimensions to generate more efficient code.
 
-\#### Shape specialization to input shapes: [tensor<4x8xf32>, tensor<f32>]
+Value constraint is only supported for the integer data type, in practice it
+should be reduction dimension, dimension permutation, or any similar value that
+does not change often, and is required for generating efficient code.
+
+#### Shape and value specialization example:
+
+```
+// Computes %arg0 mean value over the axis specified by the %arg1.
+// See: https://www.tensorflow.org/api_docs/python/tf/math/reduce_mean
+func @mean(%arg0: tensor<?x?xf32>, %arg1: tensor<i32>) -> tensor<?xf32> {
+  %0 = "tf.Mean(%arg0, %arg1)
+         : (tensor<?x?xf32>, tensor<i32>) -> tensor<?xf32>
+  return %0: tensor<?xf32>
+}
+```
+
+#### Shape specialization to input shapes: [tensor<4x8xf32>, tensor<f32>]
 
 ```
    func @mean(%arg0: tensor<4x8xf32>, %arg1: tensor<i32>) -> tensor<?xf32> {
@@ -107,7 +110,7 @@ Shape specialization in this particular case doesn't bring much improvement,
 because without knowing the reduction axis we can't infer any new information
 from the input shape alone.
 
-\#### Value specialization to input values: [<no-specialize>, dense<1 : i32>]
+#### Value specialization to input values: [<no-specialize>, dense<1 : i32>]
 
 ```
    func @mean(%arg0: tensor<4x8xf32>) -> tensor<4xf32> {

@@ -41,7 +41,7 @@ def SolverCreateOp : GPU_Op<"solver.create"> {
   let results = (outs GPU_SolverHandleType);
 }
 
-def SolverPotrfBufferSizeOp : GPU_Op<"solver.potrf.buffer_size"> {
+def SolverPotrfBufferSizeOp : GPU_Op<"solver.potrf.buffer_size", [NoSideEffect]> {
   let description = [{
     Calculates the work buffer size for tfrt_gpu.solver.portf.
   }];

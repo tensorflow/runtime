@@ -30,7 +30,7 @@ def GPU_CclIdType : GPU_Type<"CclId"> { let mnemonic = "ccl.id"; }
 
 def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp">;
 
-def GPU_CclUniqueIdOp : GPU_Op<"ccl.unique_id"> {
+def GPU_CclUniqueIdOp : GPU_Op<"ccl.unique_id", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.ccl.unique_id returns a !tfrt_gpu.ccl.id to be passed to
     tfrt_gpu.ccl.create. It encodes the machine's network address.

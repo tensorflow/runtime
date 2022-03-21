@@ -34,7 +34,7 @@ def GPU_FftHandleType : GPU_Type<"OwningFftHandle"> { let mnemonic = "fft.handle
 def GPU_FftTypeAttr : GPU_WrapperAttr<"FftType">;
 def GPU_FftDirectionAttr : GPU_WrapperAttr<"FftDirection">;
 
-def GPU_FftCreateOp : GPU_Op<"fft.create", []> {
+def GPU_FftCreateOp : GPU_Op<"fft.create"> {
   let description = [{
     tfrt_gpu.fft.create returns a tfrt_gpu.fft.handle for the FFT operation
     that is described by the supplied parameters.
@@ -58,7 +58,7 @@ def GPU_FftCreateOp : GPU_Op<"fft.create", []> {
   let hasVerifier = 1;
 }
 
-def GPU_FftGetWorkspaceSizeOp : GPU_Op<"fft.get_workspace_size", []> {
+def GPU_FftGetWorkspaceSizeOp : GPU_Op<"fft.get_workspace_size", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.fft.create returns workspace size in bytes required to execute
     the FFT operation.
@@ -68,7 +68,7 @@ def GPU_FftGetWorkspaceSizeOp : GPU_Op<"fft.get_workspace_size", []> {
   let assemblyFormat = [{$handle attr-dict}];
 }
 
-def GPU_FftExecuteOp : GPU_Op<"fft.execute", []> {
+def GPU_FftExecuteOp : GPU_Op<"fft.execute"> {
   let description = [{
     tfrt_gpu.fft.execute runs the FFT according to the supplied parameters.
   }];

@@ -30,7 +30,7 @@ def GPU_DeviceType : GPU_Type<"Device"> { let mnemonic = "device"; }
 def GPU_EventType : GPU_Type<"Event"> { let mnemonic = "event"; }
 def GPU_FunctionType : GPU_Type<"Function"> { let mnemonic = "function"; }
 
-def GPU_DeviceGetOp : GPU_Op<"device.get"> {
+def GPU_DeviceGetOp : GPU_Op<"device.get", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.device.get returns the gpu device at the given index.
 
@@ -43,7 +43,7 @@ def GPU_DeviceGetOp : GPU_Op<"device.get"> {
   let assemblyFormat = "custom<Enum>($platform)`,` operands attr-dict";
 }
 
-def GPU_ContextPrimaryOp : GPU_Op<"context.primary"> {
+def GPU_ContextPrimaryOp : GPU_Op<"context.primary", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.context.primary returns the primary gpu context of the device.
 
@@ -83,7 +83,7 @@ def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
   let results = (outs GPU_StreamType);
 }
 
-def GPU_StreamGetContextOp : GPU_Op<"stream.get_context"> {
+def GPU_StreamGetContextOp : GPU_Op<"stream.get_context", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.stream.get_context returns the context the stream was created with.
 
@@ -158,7 +158,7 @@ def GPU_EventSynchronizeOp : GPU_Op<"event.synchronize"> {
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
+def GPU_AllocatorCreateOp : GPU_Op<"allocator.create", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.allocator.create creates an allocator for the given context.
 
@@ -370,7 +370,7 @@ def GPU_ModuleGetGlobalOp : GPU_Op<"module.get_global"> {
   let results = (outs GPU_BufferType);
 }
 
-def GPU_ModuleGetFunctionOp : GPU_Op<"module.get_function"> {
+def GPU_ModuleGetFunctionOp : GPU_Op<"module.get_function", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.module.get_function retrieves a GPU device function from a module.
 
@@ -416,7 +416,8 @@ def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
 }
 
 def GPU_AliasOp : GPU_Op<"alias", [
-     TypesMatchWith<"value type matches result type", "res", "value", "$_self">
+      NoSideEffect,
+      TypesMatchWith<"value type matches result type", "res", "value", "$_self">
 ]>{
 
   let description = [{

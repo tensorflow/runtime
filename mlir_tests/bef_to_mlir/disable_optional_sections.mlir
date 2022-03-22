@@ -16,7 +16,7 @@
 
 // CHECK: warning: Missing AttributeTypes, AttributeNames or RegisterTypes sections.
 
-// CHECK-LABEL: "builtin.func"
+// CHECK-LABEL: "func.func"
 func @basic.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"() {{{.*}} = {{.*}}}
   // CHECK-NEXT: "tfrt.return"([[REG]]) : ({{.*}}) -> ()

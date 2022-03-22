@@ -49,6 +49,7 @@
 #ifndef TFRT_COMPILER_STREAM_ANALYSIS_H_
 #define TFRT_COMPILER_STREAM_ANALYSIS_H_
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Operation.h"
@@ -91,7 +92,7 @@ class Stream {
 // function.
 class StreamAnalysis {
  public:
-  explicit StreamAnalysis(mlir::FuncOp op) : StreamAnalysis(op.front()) {}
+  explicit StreamAnalysis(mlir::func::FuncOp op) : StreamAnalysis(op.front()) {}
   explicit StreamAnalysis(mlir::Block& block) { AnalyzeBlock(block); }
 
   // Return the stream that contains `op`. An operation can only belong to one

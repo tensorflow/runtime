@@ -217,7 +217,7 @@ unsigned EntityTable::GetTypeIndex(mlir::Type type) const {
 }
 
 void EntityTable::AddNativeFunction(mlir::FuncOp op) {
-  auto function_type = op.getType();
+  auto function_type = op.getFunctionType();
 
   for (auto type : function_type.getInputs()) AddType(type);
   for (auto type : function_type.getResults()) AddType(type);

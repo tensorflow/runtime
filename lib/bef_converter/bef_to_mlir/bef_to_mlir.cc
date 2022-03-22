@@ -32,6 +32,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/SourceMgr.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -79,10 +80,10 @@ struct BEFFunction {
   llvm::SmallVector<mlir::Type, 4> argument_types;
   llvm::SmallVector<mlir::Type, 4> result_types;
 
-  // Named functions are actual MLIR functions (eg. a mlir::FuncOp) in the MLIR
-  // program. It may be a concrete function with region bodies and may also be
-  // an external function with no function body (eg. a NativeFunction). Unnamed
-  // functions are inlined regions in the MLIR program.
+  // Named functions are actual MLIR functions (eg. a mlir::func::FuncOp) in the
+  // MLIR program. It may be a concrete function with region bodies and may also
+  // be an external function with no function body (eg. a NativeFunction).
+  // Unnamed functions are inlined regions in the MLIR program.
   bool IsNamedFunction() const { return !name.empty(); }
   bool IsNativeFunction() const {
     return kind == FunctionKind::kNativeFunction;
@@ -222,12 +223,12 @@ class BEFToMLIRConverter {
       llvm::function_ref<void(string_view)> action);
 
   // Create a BEF function.
-  mlir::FuncOp CreateBEFFuncOp(const mlir::Location& location,
-                               const BEFFunction& bef_function,
-                               std::unique_ptr<mlir::Region> region);
+  mlir::func::FuncOp CreateBEFFuncOp(const mlir::Location& location,
+                                     const BEFFunction& bef_function,
+                                     std::unique_ptr<mlir::Region> region);
   // Create a native function which is an external MLIR function.
-  mlir::FuncOp CreateNativeFuncOp(const mlir::Location& loc,
-                                  const BEFFunction& bef_function);
+  mlir::func::FuncOp CreateNativeFuncOp(const mlir::Location& loc,
+                                        const BEFFunction& bef_function);
 
   BEFReader file_reader_;
   BEFFile bef_file_;
@@ -528,7 +529,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctions(
   return mlir::success();
 }
 
-mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
+mlir::func::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
     const mlir::Location& location, const BEFFunction& bef_function,
     std::unique_ptr<mlir::Region> region) {
   // Use return_op's operand types as function result types.
@@ -540,7 +541,7 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
   auto function_type = mlir::FunctionType::get(
       &context_, bef_function.argument_types, result_types);
   auto func_op =
-      mlir::FuncOp::create(location, bef_function.name, function_type);
+      mlir::func::FuncOp::create(location, bef_function.name, function_type);
   func_op.getBody().takeBody(*region);
 
   if (bef_function.IsSyncFunction()) {
@@ -549,12 +550,12 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
   return func_op;
 }
 
-mlir::FuncOp BEFToMLIRConverter::CreateNativeFuncOp(
+mlir::func::FuncOp BEFToMLIRConverter::CreateNativeFuncOp(
     const mlir::Location& location, const BEFFunction& bef_function) {
   assert(bef_function.kind == FunctionKind::kNativeFunction);
   auto type = mlir::FunctionType::get(&context_, bef_function.argument_types,
                                       bef_function.result_types);
-  auto func_op = mlir::FuncOp::create(location, bef_function.name, type);
+  auto func_op = mlir::func::FuncOp::create(location, bef_function.name, type);
   func_op->setAttr("tfrt.native", mlir::UnitAttr::get(&context_));
   func_op.setPrivate();
   return func_op;

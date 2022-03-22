@@ -100,7 +100,7 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
   return mlir::DenseElementsAttr::get(ranked_tensor, attributes);
 }
 
-Error SpecializeFunction(mlir::FuncOp func, ArrayRef<MemrefDesc> operands,
+Error SpecializeFunction(mlir::func::FuncOp func, ArrayRef<MemrefDesc> operands,
                          ArrayRef<SymbolicShape> symbolic_shapes,
                          ArrayRef<OperandConstraint> constraints,
                          const SpecializationListener* listener) {
@@ -111,15 +111,15 @@ Error SpecializeFunction(mlir::FuncOp func, ArrayRef<MemrefDesc> operands,
   // Specialize all function inputs to the given operands.
   llvm::SmallVector<mlir::Type> specialized_inputs(num_inputs);
   for (unsigned i = 0; i < num_inputs; ++i) {
-    auto specialized = SpecializeOperandType(i, func.getType().getInput(i),
-                                             operands[i], symbolic_shapes[i]);
+    auto specialized = SpecializeOperandType(
+        i, func.getFunctionType().getInput(i), operands[i], symbolic_shapes[i]);
     if (auto err = specialized.takeError()) return err;
     specialized_inputs[i] = *specialized;
   }
 
   // Update function type to a new specialized one.
-  auto specialized = mlir::FunctionType::get(ctx, specialized_inputs,
-                                             func.getType().getResults());
+  auto specialized = mlir::FunctionType::get(
+      ctx, specialized_inputs, func.getFunctionType().getResults());
   func.setType(specialized);
 
   // Update function entry block arguments.
@@ -174,7 +174,7 @@ Error SpecializeFunction(mlir::FuncOp func, ArrayRef<MemrefDesc> operands,
     if (constraints[i] != OperandConstraint::kValue) continue;
 
     // We only support sinking of Tensor operands into the function body.
-    mlir::Type input_ty = func.getType().getInput(i);
+    mlir::Type input_ty = func.getFunctionType().getInput(i);
     mlir::TensorType tensor_ty = input_ty.dyn_cast<mlir::TensorType>();
     if (!tensor_ty || !SupportsValueSpecialization(tensor_ty)) {
       return MakeStringError("non-sinkable operand was marked for sinking: ",

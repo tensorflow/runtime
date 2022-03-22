@@ -17,6 +17,7 @@
 #include "tfrt/utils/mlir_runner_util.h"
 
 #include "gtest/gtest.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/cpp_tests/error_util.h"
 
@@ -44,9 +45,10 @@ TEST(MlirRunnerUtilTest, CompileAndRunSanity) {
   mlir::MLIRContext context;
   mlir::DialectRegistry registry;
   registry.insert<compiler::TFRTDialect>();
+  registry.insert<mlir::func::FuncDialect>();
   context.appendDialectRegistry(registry);
   EXPECT_EQ(&builder.set_mlir_fn_name("main")
-                 .set_mlir_input(R"mlir(func @main(%arg0: i32) -> i32 {
+                 .set_mlir_input(R"mlir(func.func @main(%arg0: i32) -> i32 {
                      %x = tfrt.add.i32 %arg0, %arg0
                      tfrt.return %x : i32
                  })mlir")

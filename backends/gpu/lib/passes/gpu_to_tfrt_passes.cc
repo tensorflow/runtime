@@ -114,7 +114,7 @@ struct AddChainAndStreamToFuncPattern : public OpRewritePattern<FuncOp> {
   using OpRewritePattern::OpRewritePattern;
 
  private:
-  LogicalResult matchAndRewrite(FuncOp func_op,
+  LogicalResult matchAndRewrite(func::FuncOp func_op,
                                 PatternRewriter &rewriter) const override;
 };
 
@@ -457,7 +457,7 @@ struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
   using OpRewritePattern::OpRewritePattern;
 
  private:
-  LogicalResult matchAndRewrite(FuncOp func_op,
+  LogicalResult matchAndRewrite(func::FuncOp func_op,
                                 PatternRewriter &rewriter) const override;
 };
 
@@ -642,7 +642,7 @@ SmallVector<Value, 4> OneToAnyConversion::CastToTargetTypes(
 }
 
 LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
-    FuncOp func_op, PatternRewriter &rewriter) const {
+    func::FuncOp func_op, PatternRewriter &rewriter) const {
   auto update_func_signature = [&]() {
     // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
     rewriter.updateRootInPlace(func_op, [&] {
@@ -979,7 +979,7 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
       module_op->getAttrOfType<ArrayAttr>(getGpuConstantsAttrName());
   mlir::FunctionType func_type = rewriter.getFunctionType(
       rewriter.getType<ContextType>(), rewriter.getType<ModuleType>());
-  FuncOp func_op = rewriter.replaceOpWithNewOp<FuncOp>(
+  func::FuncOp func_op = rewriter.replaceOpWithNewOp<FuncOp>(
       module_op, module_op.getName(), func_type);
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
   Value context = func_op.getArgument(0);
@@ -1059,7 +1059,7 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   auto func_op = SymbolTable::lookupNearestSymbolFrom<FuncOp>(
       launch_op, adaptor.kernel().getRootReference());
   auto once_op = rewriter.create<compiler::OnceOp>(
-      loc, func_op.getType().getResults(), context, func_op.getName());
+      loc, func_op.getFunctionType().getResults(), context, func_op.getName());
   auto kernel_name = adaptor.kernel().getLeafReference().getValue();
   auto get_func_op = rewriter.create<ModuleGetFunctionOp>(
       loc, once_op->getResult(0), kernel_name);
@@ -1320,13 +1320,13 @@ LogicalResult FoldAsyncAwaitPattern::matchAndRewrite(
 }
 
 LogicalResult HoistCreateHandlePattern::matchAndRewrite(
-    FuncOp func_op, PatternRewriter &rewriter) const {
+    func::FuncOp func_op, PatternRewriter &rewriter) const {
   // Check for argument type to prevent infinite recursion. This assumes that
   // no other function that just takes a context needs to hoist those ops.
   // At some point, we likely want to tag the hoisted functions to later
   // collect them and call them as part of program initialization. At that
   // point, we can use that tag to detect recursion.
-  if (IsTypes<ContextType>(func_op.getType().getInputs()))
+  if (IsTypes<ContextType>(func_op.getFunctionType().getInputs()))
     return rewriter.notifyMatchFailure(func_op, "already hoisted");
 
   SmallVector<Operation *, 4> create_handle_ops;

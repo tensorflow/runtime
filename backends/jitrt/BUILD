@@ -276,6 +276,7 @@ tfrt_cc_library(
     deps = [
         ":support",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@tf_runtime//:support",
     ],
@@ -543,6 +544,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:AsyncTransforms",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:MathTransforms",

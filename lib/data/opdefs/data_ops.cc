@@ -17,6 +17,7 @@
 #include "tfrt/data/opdefs/data_ops.h"
 
 #include "llvm/Support/FormatVariadic.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -145,13 +146,13 @@ ParseResult EnumerateIteratorOp::parse(OpAsmParser &parser,
 LogicalResult EnumerateIteratorOp::verify() {
   EnumerateIteratorOp op = *this;
   auto module = op->getParentOfType<ModuleOp>();
-  auto function = module.lookupSymbol<FuncOp>(op.function());
+  auto function = module.lookupSymbol<func::FuncOp>(op.function());
   if (!function) {
     return op.emitOpError("function refers to an undefined function: ")
            << op.function();
   }
 
-  auto function_type = function.getType();
+  auto function_type = function.getFunctionType();
   auto results_size = op.getResultTypes().size();
 
   if (function_type.getNumResults() != results_size) {

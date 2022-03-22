@@ -16,6 +16,7 @@
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -357,14 +358,14 @@ static LogicalResult VerifyFunctionAttribute(Operation *op, StringRef name,
            << "requires a '" << name << "' symbol reference attribute";
   }
 
-  auto function = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto function = op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
       attribute.getValue());
   if (!function) {
     return op->emitOpError() << "'" << attribute.getValue()
                              << "' does not reference a valid function";
   }
 
-  auto type = function.getType();
+  auto type = function.getFunctionType();
   if (inputTypes != type.getInputs()) {
     return op->emitOpError()
            << "'" << attribute.getValue() << "' has mismatching operand types";

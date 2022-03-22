@@ -16,6 +16,7 @@
 
 #include "tfrt/test_kernels/opdefs/test_kernels.h"
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -384,14 +385,14 @@ LogicalResult SyncBenchmarkOp::verify() {
   if (!fnAttr)
     return op.emitOpError("requires a 'target_fn' symbol reference attribute");
 
-  auto fn =
-      op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+  auto fn = op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
+      fnAttr.getValue());
   if (!fn)
     return op.emitOpError() << "'" << fnAttr.getValue()
                             << "' does not reference a valid function";
 
   // Verify that the operand and result types match the callee.
-  auto fnType = fn.getType();
+  auto fnType = fn.getFunctionType();
   if (fnType.getNumInputs() != op.getNumOperands())
     return op.emitOpError("incorrect number of operands for callee");
 

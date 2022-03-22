@@ -19,6 +19,7 @@ cc_test(
     srcs = ["mlir_runner_util_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//mlir:FuncDialect",
         "@tf_runtime//:basic_kernels_alwayslink",
         "@tf_runtime//:basic_kernels_opdefs",
         "@tf_runtime//:mlir_runner_util",

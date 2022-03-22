@@ -59,6 +59,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<dist::DistributedDialect>();
   registry.insert<t::TensorDialect>();
   registry.insert<ht::HostTensorDialect>();
+  registry.insert<mlir::func::FuncDialect>();
 }
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {

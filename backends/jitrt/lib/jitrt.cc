@@ -743,7 +743,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto compilation_start = std::chrono::steady_clock::now();
 
   // Get the signature of the entrypoint function.
-  auto signature = FunctionType::Convert(entry_func.getType());
+  auto signature = FunctionType::Convert(entry_func.getFunctionType());
   if (auto err = signature.takeError()) return std::move(err);
 
   // Get the calling convention for the entrypoint function.
@@ -751,7 +751,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
     return ctx->Error("calling convention is not defined");
 
   // Calling convention conversion can fail if some types are not supported.
-  auto runtime_type = ctx->options().calling_convention(entry_func.getType());
+  auto runtime_type =
+      ctx->options().calling_convention(entry_func.getFunctionType());
   if (!runtime_type)
     return ctx->Error("calling convention failed to convert entrypoint type");
 
@@ -954,7 +955,8 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
   // Get the entrypoint function signature, it will be later required to
   // compute the specialized function signature from the operands at runtime.
-  auto signature = FunctionType::Convert((*ctx)->entrypoint().getType());
+  auto signature =
+      FunctionType::Convert((*ctx)->entrypoint().getFunctionType());
   if (auto err = signature.takeError()) return std::move(err);
 
   // If all of the operands have static shape, then we can always use default

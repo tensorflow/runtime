@@ -253,8 +253,9 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   target.addLegalOp<ConstantOp, UnrealizedConversionCastOp, CallOp>();
 
   // Add dynamic legality constraints to apply conversions defined above.
-  target.addDynamicallyLegalOp<FuncOp>(
-      [&](FuncOp op) { return converter.isSignatureLegal(op.getType()); });
+  target.addDynamicallyLegalOp<FuncOp>([&](FuncOp op) {
+    return converter.isSignatureLegal(op.getFunctionType());
+  });
 
   if (failed(applyPartialConversion(module, target, std::move(patterns))))
     signalPassFailure();

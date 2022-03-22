@@ -65,7 +65,7 @@ Expected<OperandConstraint> ParseOperandConstraint(string_view str) {
 }
 
 Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
-    mlir::FuncOp func) {
+    mlir::func::FuncOp func) {
   llvm::SmallVector<OperandConstraint> constraints;
   constraints.reserve(func.getNumArguments());
 
@@ -82,7 +82,7 @@ Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
   };
 
   for (int i = 0; i < func.getNumArguments(); ++i) {
-    auto operand_type = func.getType().getInput(i);
+    auto operand_type = func.getFunctionType().getInput(i);
 
     auto constraint = parse(func.getArgAttr(i, kOperandConstraintAttrName));
     if (auto err = constraint.takeError()) return std::move(err);

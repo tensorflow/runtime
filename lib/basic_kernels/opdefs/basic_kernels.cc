@@ -17,6 +17,7 @@
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -66,14 +67,14 @@ LogicalResult CallOp::verify() {
   auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
     return op.emitOpError("requires a 'callee' symbol reference attribute");
-  auto fn =
-      op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+  auto fn = op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
+      fnAttr.getValue());
   if (!fn)
     return op.emitOpError() << "'" << fnAttr.getValue()
                             << "' does not reference a valid function";
 
   // Verify that the operand and result types match the callee.
-  auto fnType = fn.getType();
+  auto fnType = fn.getFunctionType();
   if (fnType.getNumInputs() != op.getNumOperands())
     return op.emitOpError("incorrect number of operands for callee");
 
@@ -253,11 +254,11 @@ LogicalResult CondOp::verify() {
                             << "' does not reference a valid function";
 
   // Verify that the operand and result types match the true/false function.
-  auto trueFnType = trueFn.getType();
+  auto trueFnType = trueFn.getFunctionType();
   if (trueFnType.getNumInputs() != op.getNumOperands() - 1)
     return op.emitOpError("incorrect number of operands for true function");
 
-  auto falseFnType = falseFn.getType();
+  auto falseFnType = falseFn.getFunctionType();
   if (falseFnType.getNumInputs() != op.getNumOperands() - 1)
     return op.emitOpError("incorrect number of operands for false function");
 
@@ -548,7 +549,7 @@ LogicalResult ParallelCallI32Op::verify() {
                             << "' does not reference a valid function";
 
   // Verify that the operand and result types match the callee.
-  auto fnType = fn.getType();
+  auto fnType = fn.getFunctionType();
 
   // Callee must take start and end indices followed by parallel call operands.
   if (fnType.getNumInputs() != op.getNumOperands() - 1)
@@ -611,7 +612,7 @@ LogicalResult ReturnOp::verify() {
   if (!function) return success();
 
   // The operand number and types must match the function signature.
-  auto results = function.getType().getResults();
+  auto results = function.getFunctionType().getResults();
   if (op.getNumOperands() != results.size())
     return op.emitOpError("has ")
            << op.getNumOperands()

@@ -18,7 +18,7 @@
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_CONSTRAINTS_H_
 
 #include "llvm/Support/Error.h"
-#include "mlir/IR/BuiltinOps.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Types.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -65,7 +65,7 @@ Expected<OperandConstraint> ParseOperandConstraint(string_view str);
 
 // Returns operands constraints inferred from the entrypoint signature.
 Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
-    mlir::FuncOp func);
+    mlir::func::FuncOp func);
 
 // Resolves operand constraint based on the operand type, if constraint is fully
 // satisfied by the type, returns `kResolved`.

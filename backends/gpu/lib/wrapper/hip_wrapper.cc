@@ -37,6 +37,12 @@ llvm::raw_ostream& Print(llvm::raw_ostream& os, hipError_t error) {
   return os;
 }
 
+llvm::raw_ostream& Print(llvm::raw_ostream& os, hiprtcResult result) {
+  const char* msg = hiprtcGetErrorString(result);
+  if (msg != nullptr) os << "hiprtc Error: (" << msg << ")";
+  return os;
+}
+
 // Convert wrapper types to HIP types.
 static hipDevice_t ToRocm(Device device) { return device.id(Platform::ROCm); }
 

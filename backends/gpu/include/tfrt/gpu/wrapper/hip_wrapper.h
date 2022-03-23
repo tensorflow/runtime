@@ -29,6 +29,7 @@ namespace gpu {
 namespace wrapper {
 
 raw_ostream& Print(raw_ostream& os, hipError_t error);
+raw_ostream& Print(raw_ostream& os, hiprtcResult result);
 
 namespace internal {
 template <>

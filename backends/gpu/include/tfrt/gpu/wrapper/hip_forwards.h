@@ -59,6 +59,8 @@ using ncclComm_t = struct ncclComm *;
 
 // Forward declaration of hipFFT types.
 using hipfftHandle = struct hipfftHandle_t *;
+// Forward declaration of  hiprtcProgram
+using hiprtcProgram = struct _hiprtcProgram *;
 // Enums for corresponding #defines in the hipFFT headers.
 enum hipfftDirection_t : int {
   HIPFFT_FORWARD = -1,

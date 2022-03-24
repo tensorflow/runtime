@@ -97,7 +97,7 @@ ParseResult IteratorGetNextOp::parse(OpAsmParser &parser,
   auto iterator_type = GetIteratorType(&builder);
   auto chain_type = GetChainType(&builder);
 
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
@@ -123,7 +123,7 @@ ParseResult IteratorGetNextOp::parse(OpAsmParser &parser,
 
 ParseResult EnumerateIteratorOp::parse(OpAsmParser &parser,
                                        OperationState &result) {
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();

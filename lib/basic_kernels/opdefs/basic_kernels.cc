@@ -38,7 +38,7 @@ namespace compiler {
 ParseResult CallOp::parse(OpAsmParser &parser, OperationState &result) {
   SymbolRefAttr calleeAttr;
   FunctionType calleeType;
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   auto calleeLoc = parser.getNameLoc();
   if (parser.parseAttribute(calleeAttr, "callee", result.attributes) ||
       parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren) ||
@@ -146,7 +146,7 @@ LogicalResult IfOp::verify() {
 }
 
 ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
   if (succeeded(parser.parseOptionalKeyword("attributes"))) {
@@ -292,7 +292,7 @@ LogicalResult CondOp::verify() {
 //===----------------------------------------------------------------------===//
 
 ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
   if (succeeded(parser.parseOptionalKeyword("attributes"))) {
@@ -369,9 +369,9 @@ LogicalResult RepeatI32Op::verify() {
 //   }
 ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
                                     OperationState &result) {
-  OpAsmParser::OperandType start;
-  OpAsmParser::OperandType end;
-  OpAsmParser::OperandType block_size;
+  OpAsmParser::UnresolvedOperand start;
+  OpAsmParser::UnresolvedOperand end;
+  OpAsmParser::UnresolvedOperand block_size;
 
   // Parse parallel for bounds: %start to %end fixed %block_size
   if (parser.parseOperand(start) || parser.parseKeyword("to") ||
@@ -381,7 +381,7 @@ ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
   }
 
   // Parse additional parallel for operands.
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (succeeded(parser.parseOptionalComma())) {
     if (parser.parseOperandList(operands)) return failure();
   }
@@ -407,7 +407,7 @@ ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
   parser.addTypesToList(chain_type, result.types);
 
   // Parallel for body operands and types.
-  SmallVector<OpAsmParser::OperandType, 6> body_operands = {start, end};
+  SmallVector<OpAsmParser::UnresolvedOperand, 6> body_operands = {start, end};
   for (auto &operand : operands) body_operands.push_back(operand);
   SmallVector<Type, 6> body_operands_types = {i32_type, i32_type};
   for (auto &type : types) body_operands_types.push_back(type);
@@ -471,9 +471,9 @@ LogicalResult ParallelForI32Op::verify() {
 //         @callee(%loop_arg0) : !my.type
 ParseResult ParallelCallI32Op::parse(OpAsmParser &parser,
                                      OperationState &result) {
-  OpAsmParser::OperandType start;
-  OpAsmParser::OperandType end;
-  OpAsmParser::OperandType block_size;
+  OpAsmParser::UnresolvedOperand start;
+  OpAsmParser::UnresolvedOperand end;
+  OpAsmParser::UnresolvedOperand block_size;
 
   // Parse parallel for bounds: %start to %end fixed %block_size
   if (parser.parseOperand(start) || parser.parseKeyword("to") ||
@@ -488,7 +488,7 @@ ParseResult ParallelCallI32Op::parse(OpAsmParser &parser,
     return failure();
 
   // Parse additional parallel call operands.
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren))
     return failure();
 
@@ -586,7 +586,7 @@ LogicalResult ParallelCallI32Op::verify() {
 //===----------------------------------------------------------------------===//
 
 ParseResult ReturnOp::parse(OpAsmParser &parser, OperationState &result) {
-  SmallVector<OpAsmParser::OperandType, 2> opInfo;
+  SmallVector<OpAsmParser::UnresolvedOperand, 2> opInfo;
   SmallVector<Type, 2> types;
   llvm::SMLoc loc = parser.getCurrentLocation();
   return failure(parser.parseOperandList(opInfo) ||

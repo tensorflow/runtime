@@ -43,8 +43,8 @@ ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
   auto tensorhandle_type = GetTensorHandleType(&builder);
 
   StringAttr op_name;
-  SmallVector<OpAsmParser::OperandType, 4> op_handler_and_in_chains;
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> op_handler_and_in_chains;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   NamedAttrList op_attrs;
   NamedAttrList op_func_attrs;
   auto loc = parser.getNameLoc();

@@ -71,7 +71,7 @@ static LogicalResult checkTFRTReturn(Operation *op, Region *region,
 //===----------------------------------------------------------------------===//
 
 ParseResult DoAsyncOp::parse(OpAsmParser &parser, OperationState &result) {
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
   if (succeeded(parser.parseOptionalKeyword("attributes"))) {
@@ -136,7 +136,7 @@ ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
   // Parse the operands, e.g. (%c : i32, %d : f32)
   if (parser.parseLParen()) return failure();
 
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   SmallVector<Type, 4> types;
   llvm::SMLoc type_loc = parser.getCurrentLocation();
 
@@ -144,7 +144,7 @@ ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
     // Parse non-empty operands
     do {
       // Parse %c : i32,
-      OpAsmParser::OperandType operand;
+      OpAsmParser::UnresolvedOperand operand;
       Type type;
 
       if (parser.parseOperand(operand) || parser.parseColonType(type))
@@ -283,7 +283,7 @@ ParseResult SyncBenchmarkOp::parse(OpAsmParser &parser,
   // Parse the operands, e.g. (%c : i32, %d : f32)
   if (parser.parseLParen()) return failure();
 
-  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   SmallVector<Type, 4> types;
   llvm::SMLoc type_loc = parser.getCurrentLocation();
 
@@ -291,7 +291,7 @@ ParseResult SyncBenchmarkOp::parse(OpAsmParser &parser,
     // Parse non-empty operands
     do {
       // Parse %c : i32,
-      OpAsmParser::OperandType operand;
+      OpAsmParser::UnresolvedOperand operand;
       Type type;
 
       if (parser.parseOperand(operand) || parser.parseColonType(type))

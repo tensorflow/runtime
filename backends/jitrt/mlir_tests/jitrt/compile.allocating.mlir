@@ -39,7 +39,7 @@ module @kernels attributes { tfrt.compiled } {
       async.yield %output : memref<?x?xf32>
     }
 
-    return %token, %value : !async.token, !async.value<memref<?x?xf32>>
+    func.return %token, %value : !async.token, !async.value<memref<?x?xf32>>
   }
 }
 

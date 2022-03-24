@@ -33,7 +33,7 @@ module @kernels attributes { tfrt.compiled } {
       }
       async.yield
     }
-    return %token : !async.token
+    func.return %token : !async.token
   }
 }
 

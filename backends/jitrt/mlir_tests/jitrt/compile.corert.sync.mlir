@@ -40,7 +40,7 @@ module @kernels attributes { tfrt.compiled } {
         linalg.yield %2 : f32
     }
 
-    return %output : memref<?x?xf32>
+    func.return %output : memref<?x?xf32>
   }
 }
 

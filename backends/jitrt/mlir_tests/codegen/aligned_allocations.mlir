@@ -24,7 +24,7 @@ func @aligned_alloc(%arg0: index) -> memref<?xf32> {
   // ALIGN16: %[[ALLOC:.*]] = memref.alloc(%arg0) {alignment = 32 : i64} : memref<?xf32>
   // ALIGN16: return %[[ALLOC]]
   %0 = memref.alloc(%arg0) { alignment = 32 : i64 } : memref<?xf32>
-  return %0 : memref<?xf32>
+  func.return %0 : memref<?xf32>
 }
 
 // CHECK-LABEL: @unaligned_alloc
@@ -35,6 +35,6 @@ func @unaligned_alloc(%arg0: index) -> memref<?xf32> {
   // ALIGN16: %[[ALLOC:.*]] = memref.alloc(%arg0) {alignment = 16 : i64} : memref<?xf32>
   // ALIGN16: return %[[ALLOC]]
   %0 = memref.alloc(%arg0) : memref<?xf32>
-  return %0 : memref<?xf32>
+  func.return %0 : memref<?xf32>
 }
 

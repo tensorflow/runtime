@@ -40,7 +40,7 @@ module @kernels attributes { tfrt.compiled } {
       async.yield %output : memref<?x?xf32>
     }
 
-    return %value : !async.value<memref<?x?xf32>>
+    func.return %value : !async.value<memref<?x?xf32>>
   }
 }
 

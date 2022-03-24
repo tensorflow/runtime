@@ -26,7 +26,7 @@ module @kernels attributes { tfrt.compiled } {
 
     // We should never reach the memory allocation at run time.
     %output = memref.alloc(%0) : memref<?xf32>
-    return %output : memref<?xf32>
+    func.return %output : memref<?xf32>
   }
 }
 

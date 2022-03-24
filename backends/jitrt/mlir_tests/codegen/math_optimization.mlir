@@ -21,7 +21,7 @@ func @pow_noop(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
   %v = arith.constant dense <1.0> : vector<4xf32>
   %0 = math.powf %arg0, %c : f32
   %1 = math.powf %arg1, %v : vector<4xf32>
-  return %0, %1 : f32, vector<4xf32>
+  func.return %0, %1 : f32, vector<4xf32>
 }
 // CHECK-LABEL: @pow_square
 func @pow_square(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
@@ -32,7 +32,7 @@ func @pow_square(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
   %v = arith.constant dense <2.0> : vector<4xf32>
   %0 = math.powf %arg0, %c : f32
   %1 = math.powf %arg1, %v : vector<4xf32>
-  return %0, %1 : f32, vector<4xf32>
+  func.return %0, %1 : f32, vector<4xf32>
 }
 // CHECK-LABEL: @pow_cube
 func @pow_cube(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
@@ -45,7 +45,7 @@ func @pow_cube(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
   %v = arith.constant dense <3.0> : vector<4xf32>
   %0 = math.powf %arg0, %c : f32
   %1 = math.powf %arg1, %v : vector<4xf32>
-  return %0, %1 : f32, vector<4xf32>
+  func.return %0, %1 : f32, vector<4xf32>
 }
 // CHECK-LABEL: @pow_recip
 func @pow_recip(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
@@ -58,7 +58,7 @@ func @pow_recip(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
   %v = arith.constant dense <-1.0> : vector<4xf32>
   %0 = math.powf %arg0, %c : f32
   %1 = math.powf %arg1, %v : vector<4xf32>
-  return %0, %1 : f32, vector<4xf32>
+  func.return %0, %1 : f32, vector<4xf32>
 }
 // CHECK-LABEL: @pow_sqrt
 func @pow_sqrt(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
@@ -69,7 +69,7 @@ func @pow_sqrt(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
   %v = arith.constant dense <0.5> : vector<4xf32>
   %0 = math.powf %arg0, %c : f32
   %1 = math.powf %arg1, %v : vector<4xf32>
-  return %0, %1 : f32, vector<4xf32>
+  func.return %0, %1 : f32, vector<4xf32>
 }
 // CHECK-LABEL: @pow_rsqrt
 func @pow_rsqrt(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
@@ -80,7 +80,7 @@ func @pow_rsqrt(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
   %v = arith.constant dense <-0.5> : vector<4xf32>
   %0 = math.powf %arg0, %c : f32
   %1 = math.powf %arg1, %v : vector<4xf32>
-  return %0, %1 : f32, vector<4xf32>
+  func.return %0, %1 : f32, vector<4xf32>
 }
 // Check that all math functions lowered to approximations built from
 // standard operations (add, mul, fma, shift, etc...).
@@ -157,7 +157,7 @@ func @pow_rsqrt(%arg0: f32, %arg1 : vector<4xf32>) -> (f32, vector<4xf32>) {
 // CHECK:       }
 func @erf_scalar(%arg0: f32) -> f32 {
   %0 = math.erf %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @erf_vector(
 // CHECK-SAME:                     %[[arg0:.*]]: vector<8xf32>) -> vector<8xf32> {
@@ -169,7 +169,7 @@ func @erf_scalar(%arg0: f32) -> f32 {
 // CHECK:         }
 func @erf_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.erf %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // CHECK-LABEL:   func @exp_scalar(
 // CHECK-SAME:                     %[[VAL_0:.*]]: f32) -> f32 {
@@ -218,7 +218,7 @@ func @erf_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
 // CHECK:           return %[[VAL_41]] : f32
 func @exp_scalar(%arg0: f32) -> f32 {
   %0 = math.exp %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @exp_vector(
 // CHECK-SAME:                     %[[VAL_0:.*]]: vector<8xf32>) -> vector<8xf32> {
@@ -229,7 +229,7 @@ func @exp_scalar(%arg0: f32) -> f32 {
 // CHECK:           return %[[VAL_40]] : vector<8xf32>
 func @exp_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.exp %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // CHECK-LABEL:   func @expm1_scalar(
 // CHECK-SAME:                       %[[X:.*]]: f32) -> f32 {
@@ -256,7 +256,7 @@ func @exp_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
 // CHECK:         }
 func @expm1_scalar(%arg0: f32) -> f32 {
   %0 = math.expm1 %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @expm1_vector(
 // CHECK-SAME:                       %[[VAL_0:.*]]: vector<8x8xf32>) -> vector<8x8xf32> {
@@ -272,7 +272,7 @@ func @expm1_scalar(%arg0: f32) -> f32 {
 // CHECK:         }
 func @expm1_vector(%arg0: vector<8x8xf32>) -> vector<8x8xf32> {
   %0 = math.expm1 %arg0 : vector<8x8xf32>
-  return %0 : vector<8x8xf32>
+  func.return %0 : vector<8x8xf32>
 }
 // CHECK-LABEL:   func @log_scalar(
 // CHECK-SAME:                             %[[X:.*]]: f32) -> f32 {
@@ -339,7 +339,7 @@ func @expm1_vector(%arg0: vector<8x8xf32>) -> vector<8x8xf32> {
 // CHECK:         }
 func @log_scalar(%arg0: f32) -> f32 {
   %0 = math.log %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @log_vector(
 // CHECK-SAME:                     %[[VAL_0:.*]]: vector<8xf32>) -> vector<8xf32> {
@@ -350,7 +350,7 @@ func @log_scalar(%arg0: f32) -> f32 {
 // CHECK:         }
 func @log_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.log %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // CHECK-LABEL:   func @log2_scalar(
 // CHECK-SAME:                      %[[VAL_0:.*]]: f32) -> f32 {
@@ -361,7 +361,7 @@ func @log_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
 // CHECK:         }
 func @log2_scalar(%arg0: f32) -> f32 {
   %0 = math.log2 %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @log2_vector(
 // CHECK-SAME:                      %[[VAL_0:.*]]: vector<8xf32>) -> vector<8xf32> {
@@ -372,7 +372,7 @@ func @log2_scalar(%arg0: f32) -> f32 {
 // CHECK:         }
 func @log2_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.log2 %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // CHECK-LABEL:   func @log1p_scalar(
 // CHECK-SAME:                       %[[X:.*]]: f32) -> f32 {
@@ -392,7 +392,7 @@ func @log2_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
 // CHECK:         }
 func @log1p_scalar(%arg0: f32) -> f32 {
   %0 = math.log1p %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @log1p_vector(
 // CHECK-SAME:                       %[[VAL_0:.*]]: vector<8xf32>) -> vector<8xf32> {
@@ -403,7 +403,7 @@ func @log1p_scalar(%arg0: f32) -> f32 {
 // CHECK:         }
 func @log1p_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.log1p %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // CHECK-LABEL:   func @tanh_scalar(
 // CHECK-SAME:                      %[[VAL_0:.*]]: f32) -> f32 {
@@ -444,7 +444,7 @@ func @log1p_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
 // CHECK:         }
 func @tanh_scalar(%arg0: f32) -> f32 {
   %0 = math.tanh %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @tanh_vector(
 // CHECK-SAME:                      %[[VAL_0:.*]]: vector<8xf32>) -> vector<8xf32> {
@@ -456,7 +456,7 @@ func @tanh_scalar(%arg0: f32) -> f32 {
 // CHECK:         }
 func @tanh_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.tanh %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // We only approximate rsqrt for vectors and when the AVX2 option is enabled.
 // CHECK-LABEL:   func @rsqrt_scalar
@@ -465,7 +465,7 @@ func @tanh_vector(%arg0: vector<8xf32>) -> vector<8xf32> {
 // AVX2:            math.rsqrt
 func @rsqrt_scalar(%arg0: f32) -> f32 {
   %0 = math.rsqrt %arg0 : f32
-  return %0 : f32
+  func.return %0 : f32
 }
 // CHECK-LABEL:   func @rsqrt_vector_8xf32
 // CHECK:           math.rsqrt
@@ -488,7 +488,7 @@ func @rsqrt_scalar(%arg0: f32) -> f32 {
 // AVX2: }
 func @rsqrt_vector_8xf32(%arg0: vector<8xf32>) -> vector<8xf32> {
   %0 = math.rsqrt %arg0 : vector<8xf32>
-  return %0 : vector<8xf32>
+  func.return %0 : vector<8xf32>
 }
 // Virtual vector width is not a multiple of an AVX2 vector width.
 //
@@ -498,7 +498,7 @@ func @rsqrt_vector_8xf32(%arg0: vector<8xf32>) -> vector<8xf32> {
 // AVX2:           math.rsqrt
 func @rsqrt_vector_5xf32(%arg0: vector<5xf32>) -> vector<5xf32> {
   %0 = math.rsqrt %arg0 : vector<5xf32>
-  return %0 : vector<5xf32>
+  func.return %0 : vector<5xf32>
 }
 // One dimensional virtual vector expanded and unrolled into multiple AVX2-sized
 // vectors.
@@ -519,7 +519,7 @@ func @rsqrt_vector_5xf32(%arg0: vector<5xf32>) -> vector<5xf32> {
 // AVX2:          %[[RSQRT:.*]] = vector.shape_cast %[[RESULT1]] : vector<2x8xf32> to vector<16xf32>
 func @rsqrt_vector_16xf32(%arg0: vector<16xf32>) -> vector<16xf32> {
   %0 = math.rsqrt %arg0 : vector<16xf32>
-  return %0 : vector<16xf32>
+  func.return %0 : vector<16xf32>
 }
 // Two dimensional virtual vector unrolled into multiple AVX2-sized vectors.
 //
@@ -539,7 +539,7 @@ func @rsqrt_vector_16xf32(%arg0: vector<16xf32>) -> vector<16xf32> {
 // AVX2-NOT:      vector.shape_cast
 func @rsqrt_vector_2x8xf32(%arg0: vector<2x8xf32>) -> vector<2x8xf32> {
   %0 = math.rsqrt %arg0 : vector<2x8xf32>
-  return %0 : vector<2x8xf32>
+  func.return %0 : vector<2x8xf32>
 }
 // Two dimensional virtual vector expanded and unrolled into multiple AVX2-sized
 // vectors.
@@ -566,5 +566,5 @@ func @rsqrt_vector_2x8xf32(%arg0: vector<2x8xf32>) -> vector<2x8xf32> {
 // AVX2:          %[[RSQRT:.*]] = vector.shape_cast %[[RESULT3]] : vector<2x2x8xf32> to vector<2x16xf32>
 func @rsqrt_vector_2x16xf32(%arg0: vector<2x16xf32>) -> vector<2x16xf32> {
   %0 = math.rsqrt %arg0 : vector<2x16xf32>
-  return %0 : vector<2x16xf32>
+  func.return %0 : vector<2x16xf32>
 }

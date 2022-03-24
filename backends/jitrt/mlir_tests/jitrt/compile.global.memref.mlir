@@ -22,7 +22,7 @@ module @kernels attributes { tfrt.compiled } {
 
   func.func @main() -> memref<2x2xf32> {
     %0 = memref.get_global @const : memref<2x2xf32>
-    return %0 : memref<2x2xf32>
+    func.return %0 : memref<2x2xf32>
   }
 }
 

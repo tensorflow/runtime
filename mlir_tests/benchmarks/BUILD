@@ -8,6 +8,7 @@ cc_test(
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@tf_runtime//:basic_kernels_alwayslink",
         "@tf_runtime//:basic_kernels_opdefs",

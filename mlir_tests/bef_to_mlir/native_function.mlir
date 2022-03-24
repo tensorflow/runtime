@@ -18,10 +18,10 @@
 
 // CHECK-LABEL: func private @some_func
 // CHECK-SAME: tfrt.native
-func private @some_func(%x: i32) -> i32 attributes {tfrt.native}
+func.func private @some_func(%x: i32) -> i32 attributes {tfrt.native}
 
 // CHECK-LABEL: func @call_native
-func @call_native(%x : i32) -> i32 {
+func.func @call_native(%x : i32) -> i32 {
 
   // CHECK: "native_call"({{.*}}) {callee = @some_func}
   %r = "native_call"(%x) {callee = @some_func} : (i32) -> i32

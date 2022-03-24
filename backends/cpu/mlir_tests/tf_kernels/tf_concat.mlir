@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'concat_f32_axis_1'
-func @concat_f32_axis_1() attributes {tfrt.sync} {
+func.func @concat_f32_axis_1() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 3], values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32, 6.0 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -43,7 +43,7 @@ func @concat_f32_axis_1() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'concat_f32_axis_neg_1'
-func @concat_f32_axis_neg_1() attributes {tfrt.sync} {
+func.func @concat_f32_axis_neg_1() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 3], values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32, 6.0 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -64,7 +64,7 @@ func @concat_f32_axis_neg_1() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'concat_f32_scalars'
-func @concat_f32_scalars() attributes {tfrt.sync} {
+func.func @concat_f32_scalars() attributes {tfrt.sync} {
   %s0 = "tfrt_dht_sync.create_dense_tensor.f32"()
   {shape = [], value = [0.125 : f32]} : () -> !t.tensor
   %s1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -84,7 +84,7 @@ func @concat_f32_scalars() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'concat_zero_dim'
-func @concat_zero_dim() attributes {tfrt.sync} {
+func.func @concat_zero_dim() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 0], values = [] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()

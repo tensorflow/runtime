@@ -20,7 +20,7 @@
 module @kernels attributes { tfrt.compiled } {
   // Bufferized kernel that takes input and output buffers, and returns a token
   // that signals when output is ready.
-  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>)
+  func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>)
                    -> !async.token {
     %token = async.execute {
       linalg.generic { indexing_maps = [affine_map<(d0, d1) -> (d0, d1)>,
@@ -38,7 +38,7 @@ module @kernels attributes { tfrt.compiled } {
 }
 
 // CHECK: --- Running 'compiled_add_f32_buffers'
-func @compiled_add_f32_buffers() -> !tfrt.chain {
+func.func @compiled_add_f32_buffers() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   // Allocate and initialize input tensor.

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK: --- Running 'const_kernel'
-func @const_kernel() attributes {tfrt.sync} {
+func.func @const_kernel() attributes {tfrt.sync} {
   %a = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [5 : i64]
   "tf_sync.Const"(%a) {value = dense<[1.0, 2.5, 3.0, 4.5, 5.0]> : tensor<5xf32>} : (!t.tensor) -> ()
 

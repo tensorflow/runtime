@@ -16,20 +16,20 @@
 
 // CHECK-DAG: @kernel0 attributes {tfrt.compiled}
 module @kernel0 attributes {tfrt.compiled} {
-  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
+  func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
     return
   }
 }
 
 // CHECK-DAG: @kernel1 attributes {tfrt.compiled}
 module @kernel1 attributes {tfrt.compiled} {
-  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
+  func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
     return
   }
 }
 
 // CHECK-LABEL: func @trivial
-func @trivial() {
+func.func @trivial() {
   // CHECK: simple.kernel
   // CHECK-SAME: func = @kernel0::@main
   "simple.kernel"() { func = @kernel0::@main } : () -> ()

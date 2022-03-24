@@ -19,7 +19,7 @@
 
 module @kernels attributes { tfrt.compiled } {
   // Kernel computes result into the allocated memref with dynamic shape.
-  func @main(%input: memref<?x?xf32>)
+  func.func @main(%input: memref<?x?xf32>)
              -> (!async.token, !async.value<memref<?x?xf32>>) {
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
@@ -44,7 +44,7 @@ module @kernels attributes { tfrt.compiled } {
 }
 
 // CHECK: --- Running 'compiled_add_f32_tensors'
-func @compiled_add_f32_tensors() -> !tfrt.chain {
+func.func @compiled_add_f32_tensors() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   // Allocate and initialize input tensor.

@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: func @sync_func_foo
 // CHECK-SAME: tfrt.sync
-func @sync_func_foo(%x: i32, %y: i32) -> i32 attributes {tfrt.sync} {
+func.func @sync_func_foo(%x: i32, %y: i32) -> i32 attributes {tfrt.sync} {
   %z = "foo_kernel"(%x) : (i32) -> i32
   tfrt.return %z : i32
 }

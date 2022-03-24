@@ -15,7 +15,7 @@
 // RUN: tfrt_translate -bef-to-mlir %s.bef | tfrt_opt -allow-unregistered-dialect | FileCheck %s
 
 // CHECK-LABEL: func @many_users
-func @many_users() -> i32 {
+func.func @many_users() -> i32 {
   %a = tfrt.constant.i32 1
 
   "simple.op"(%a) : (i32) -> ()

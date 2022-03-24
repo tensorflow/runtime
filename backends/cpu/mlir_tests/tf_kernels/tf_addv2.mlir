@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'addV2_dense_dense_f32'
-func @addV2_dense_dense_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_dense_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -39,7 +39,7 @@ func @addV2_dense_dense_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_dense_dense_scalar_f32'
-func @addV2_dense_dense_scalar_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_dense_scalar_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -56,7 +56,7 @@ func @addV2_dense_dense_scalar_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_dense_scalar_dense_f32'
-func @addV2_dense_scalar_dense_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_scalar_dense_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [1], values = [1.0 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -73,7 +73,7 @@ func @addV2_dense_scalar_dense_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_rank_0_dense_scalar_dense_f32'
-func @addV2_rank_0_dense_scalar_dense_f32() attributes {tfrt.sync} {
+func.func @addV2_rank_0_dense_scalar_dense_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [], values = [1.0 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -90,7 +90,7 @@ func @addV2_rank_0_dense_scalar_dense_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_dense_dense_bcast_f32'
-func @addV2_dense_dense_bcast_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_dense_bcast_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -107,7 +107,7 @@ func @addV2_dense_dense_bcast_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_dense_bcast_dense_f32'
-func @addV2_dense_bcast_dense_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_bcast_dense_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [3], values = [1.0 : f32, 2.0 : f32, 3.0 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -124,7 +124,7 @@ func @addV2_dense_bcast_dense_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_dense_bcast_dense_bcast_f32'
-func @addV2_dense_bcast_dense_bcast_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_bcast_dense_bcast_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [1, 3], values = [1.0 : f32, 2.0 : f32, 3.0 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -141,7 +141,7 @@ func @addV2_dense_bcast_dense_bcast_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_dense_scalar_f32'
-func @addV2_dense_scalar_f32() attributes {tfrt.sync} {
+func.func @addV2_dense_scalar_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
     { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_from_scalar.f32"()
@@ -158,7 +158,7 @@ func @addV2_dense_scalar_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_scalar_dense_f32'
-func @addV2_scalar_dense_f32() attributes {tfrt.sync} {
+func.func @addV2_scalar_dense_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_from_scalar.f32"()
     { shape = [2, 3], value = 1.0: f32 } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
@@ -173,7 +173,7 @@ func @addV2_scalar_dense_f32() attributes {tfrt.sync} {
 }
 
 // CHECK: --- Running 'addV2_scalar_scalar_f32'
-func @addV2_scalar_scalar_f32() attributes {tfrt.sync} {
+func.func @addV2_scalar_scalar_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_from_scalar.f32"()
     { shape = [2, 3], value = 1.0: f32 } : () -> !t.tensor
   %operand_1 = "tfrt_dht_sync.create_from_scalar.f32"()

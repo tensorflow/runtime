@@ -15,13 +15,13 @@
 // RUN: tfrt_translate --bef-to-mlir %s.bef | tfrt_opt | FileCheck %s
 
 // CHECK-LABEL: func @basic.argument
-func @basic.argument(%a : i32) -> i32 {
+func.func @basic.argument(%a : i32) -> i32 {
   // CHECK: tfrt.return {{%.*}} : i32
   tfrt.return %a : i32
 }
 
 // CHECK-LABEL: func @basic.add() -> i32
-func @basic.add() -> i32 {
+func.func @basic.add() -> i32 {
   // CHECK-NEXT: [[REG0:%.*]] = tfrt.constant.i32 42
   // CHECK-NEXT: [[REG1:%.*]] = tfrt.constant.i32 17
   // CHECK-NEXT: [[REG2:%.*]] = tfrt.add.i32 [[REG0]], [[REG1]]
@@ -34,7 +34,7 @@ func @basic.add() -> i32 {
 }
 
 // CHECK-LABEL: func @basic.addarg
-func @basic.addarg(%a : i32, %b : i32) -> i32 {
+func.func @basic.addarg(%a : i32, %b : i32) -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = tfrt.add.i32 {{%.*}}, {{%.*}}
   // CHECK-NEXT: tfrt.return [[REG]] : i32
   %c = tfrt.add.i32 %a, %b
@@ -42,7 +42,7 @@ func @basic.addarg(%a : i32, %b : i32) -> i32 {
 }
 
 // CHECK-LABEL: func @basic.call() -> i32
-func @basic.call() -> i32 {
+func.func @basic.call() -> i32 {
   // CHECK-NEXT: [[REG0:%.*]] = tfrt.constant.i32 42
   // CHECK-NEXT: [[REG1:%.*]] = tfrt.constant.i32 17
   // CHECK-NEXT: [[REG2:%.*]] = tfrt.call @basic.addarg([[REG0]], [[REG1]])  : (i32, i32) -> i32
@@ -55,7 +55,7 @@ func @basic.call() -> i32 {
 }
 
 // CHECK-LABEL: func @controlflow_if({{%.*}}: i1, {{%.*}}: i32, {{%.*}}: i32) -> i32 {
-func @controlflow_if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
+func.func @controlflow_if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
   // CHECK-NEXT: [[RES:%.*]] = tfrt.if {{%.*}}, [[REG1:%.*]], [[REG2:%.*]] : (i32, i32) -> (i32) {
   %res = tfrt.if %cond, %v1, %v2 : (i32, i32) -> (i32) {
   // CHECK-NEXT:    tfrt.return [[REG1]] : i32
@@ -71,7 +71,7 @@ func @controlflow_if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
 }
 
 // CHECK-LABEL: func @basic.print
-func @basic.print(%x: i32, %y: i32, %z: i32) {
+func.func @basic.print(%x: i32, %y: i32, %z: i32) {
   // CHECK-NEXT: [[REG:%.*]] = tfrt.new.chain
   %ch0 = tfrt.new.chain
 
@@ -87,7 +87,7 @@ func @basic.print(%x: i32, %y: i32, %z: i32) {
 }
 
 // CHECK-LABEL: func @call.non_strict()
-func @call.non_strict() {
+func.func @call.non_strict() {
   %c1 = tfrt.constant.i32 1
   %v2 = "tfrt.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
   %v3 = "tfrt.async_add.i32"(%c1, %v2) : (i32, i32) -> i32

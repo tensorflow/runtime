@@ -16,7 +16,7 @@
 // RUN: bef_executor %s.bef --work_queue_type=mstd:8 | FileCheck %s
 
 module @kernels attributes { tfrt.compiled } {
-  func @main(%input: memref<?xf32>) -> memref<?xf32> {
+  func.func @main(%input: memref<?xf32>) -> memref<?xf32> {
     %c0 = arith.constant 0 : index
     %0 = memref.dim %input, %c0 : memref<?xf32>
 
@@ -31,7 +31,7 @@ module @kernels attributes { tfrt.compiled } {
 }
 
 // CHECK: --- Running 'runtime_error'
-func @runtime_error() -> !tfrt.chain {
+func.func @runtime_error() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   // Allocate and initialize input tensor.

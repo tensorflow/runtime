@@ -20,14 +20,14 @@ module @kernels attributes { tfrt.compiled } {
   memref.global "private" @const : memref<2x2xf32> =
     dense<[[0.0, 1.0], [2.0, 3.0]]>
 
-  func @main() -> memref<2x2xf32> {
+  func.func @main() -> memref<2x2xf32> {
     %0 = memref.get_global @const : memref<2x2xf32>
     return %0 : memref<2x2xf32>
   }
 }
 
 // CHECK: --- Running 'global_memref_to_tensor'
-func @global_memref_to_tensor() -> !tfrt.chain {
+func.func @global_memref_to_tensor() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %executable = jitrt.compile { kernel = @kernels::@main }

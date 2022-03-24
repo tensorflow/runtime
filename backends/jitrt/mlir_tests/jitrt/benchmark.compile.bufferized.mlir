@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 module @kernels attributes { tfrt.compiled } {
-  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>)
+  func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>)
                    -> !async.token {
     %token = async.execute {
       linalg.generic { indexing_maps = [affine_map<(d0, d1) -> (d0, d1)>,
@@ -33,7 +33,7 @@ module @kernels attributes { tfrt.compiled } {
 }
 
 // CHECK: --- Running 'BM_compiled_add_f32'
-func @BM_compiled_add_f32() {
+func.func @BM_compiled_add_f32() {
   %ch0 = tfrt.new.chain
 
   // Allocate and initialize input tensor.

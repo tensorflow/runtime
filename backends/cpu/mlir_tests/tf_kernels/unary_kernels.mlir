@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK: --- Running 'unary_ops'
-func @unary_ops() attributes {tfrt.sync} {
+func.func @unary_ops() attributes {tfrt.sync} {
   %a = "tfrt_test.sync.const_dense_attr"() {value = dense<[1.0, 2.5, 3.0, 4.5, 5.0]> : tensor<5xf32>} : () -> !t.tensor
 
   %b = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [5 : i64]

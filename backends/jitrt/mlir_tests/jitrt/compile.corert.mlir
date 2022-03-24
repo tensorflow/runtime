@@ -21,7 +21,7 @@
 // _UN:   %s.bef | FileCheck %s
 
 module @kernels attributes { tfrt.compiled } {
-  func @main(%input: memref<?x?xf32>) -> !async.value<memref<?x?xf32>> {
+  func.func @main(%input: memref<?x?xf32>) -> !async.value<memref<?x?xf32>> {
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %0 = memref.dim %input, %c0 : memref<?x?xf32>
@@ -50,7 +50,7 @@ module @kernels attributes { tfrt.compiled } {
   }
 }
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null)
          : (!corert.ophandler) -> !corert.ophandler
@@ -59,7 +59,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'compiled_add_f32_corert'
-func @compiled_add_f32_corert() -> !tfrt.chain {
+func.func @compiled_add_f32_corert() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 

@@ -15,7 +15,7 @@
 // RUN: tfrt_translate -bef-to-mlir %s.bef | tfrt_opt -allow-unregistered-dialect | FileCheck %s
 
 // CHECK-LABEL: func @integer1.constant() -> i1
-func @integer1.constant() -> i1 {
+func.func @integer1.constant() -> i1 {
   // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i1 true
   // CHECK-NEXT: tfrt.return [[REG]] : i1
 
@@ -24,7 +24,7 @@ func @integer1.constant() -> i1 {
 }
 
 // CHECK-LABEL: func @integer32.constant() -> i32
-func @integer32.constant() -> i32 {
+func.func @integer32.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i32 42
   // CHECK-NEXT: tfrt.return [[REG]] : i32
 
@@ -33,7 +33,7 @@ func @integer32.constant() -> i32 {
 }
 
 // CHECK-LABEL: func @integer64.constant() -> i64
-func @integer64.constant() -> i64 {
+func.func @integer64.constant() -> i64 {
   // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i64 42
   // CHECK-NEXT: tfrt.return [[REG]] : i64
 
@@ -42,7 +42,7 @@ func @integer64.constant() -> i64 {
 }
 
 // CHECK-LABEL: func @float32.constant() -> f32
-func @float32.constant() -> f32 {
+func.func @float32.constant() -> f32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"() {value = {{.*}} : f32} : () -> f32
   // CHECK-NEXT: tfrt.return [[REG]] : f32
 
@@ -51,7 +51,7 @@ func @float32.constant() -> f32 {
 }
 
 // CHECK-LABEL: func @string.constant() -> f32
-func @string.constant() -> f32 {
+func.func @string.constant() -> f32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"()
   // CHECK-SAME: {value = "string constant"} : () -> f32
   // CHECK-NEXT: tfrt.return [[REG]] : f32
@@ -61,7 +61,7 @@ func @string.constant() -> f32 {
 }
 
 // CHECK-LABEL: func @array.constant() -> i32
-func @array.constant() -> i32 {
+func.func @array.constant() -> i32 {
   // CHECK: [true]
   // CHECK: [1 : i8]
   // CHECK: [1 : i16]
@@ -95,7 +95,7 @@ func @array.constant() -> i32 {
 }
 
 // CHECK-LABEL: func @aggregate.constant() -> i32
-func @aggregate.constant() -> i32 {
+func.func @aggregate.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"()
   // CHECK-SAME: {value = [1 : i32, [2 : i32, "string"]]} : () -> i32
   // CHECK-NEXT: tfrt.return [[REG]] : i32
@@ -105,7 +105,7 @@ func @aggregate.constant() -> i32 {
 }
 
 // CHECK-LABEL: func @type.attribute() -> (i32, i32, i32)
-func @type.attribute() -> (i32, i32, i32) {
+func.func @type.attribute() -> (i32, i32, i32) {
   // CHECK-NEXT: [[REG0:%.*]] = "get_width"() {value = i32} : () -> i32
   // CHECK-NEXT: [[REG1:%.*]] = "get_width"() {value = f64} : () -> i32
   // CHECK-NEXT: [[REG2:%.*]] = "get_widths"() {value = [f64, f32]} : () -> i32
@@ -119,7 +119,7 @@ func @type.attribute() -> (i32, i32, i32) {
 
 
 // CHECK-LABEL: func @dense_elements.constant()
-func @dense_elements.constant() {
+func.func @dense_elements.constant() {
   // CHECK: dense<true> : tensor<1xi1>
   // CHECK: dense<1> : tensor<1xi8>
   // CHECK: dense<1> : tensor<1xi16>
@@ -155,7 +155,7 @@ func @dense_elements.constant() {
 }
 
 // CHECK-LABEL: @shape_attr
-func @shape_attr() {
+func.func @shape_attr() {
   // CHECK: #corert.shape<2x?x3>
   "simple.op"() {shape = #corert.shape<2x?x3>} : () -> ()
   // CHECK: #corert.shape<*>
@@ -164,7 +164,7 @@ func @shape_attr() {
 }
 
 // CHECK-LABEL: @data_type_attr
-func @data_type_attr() {
+func.func @data_type_attr() {
   // CHECK: i1
   // CHECK: i8
   // CHECK: i16

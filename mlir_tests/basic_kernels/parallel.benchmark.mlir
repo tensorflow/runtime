@@ -21,11 +21,11 @@
 
 // RUN: bef_executor --work_queue_type=mstd:8 %s.bef | FileCheck %s
 
-func private @native_sink(%a: i32, %b: i32) -> () attributes {tfrt.native}
-func private @native_async_sink(%a: i32, %b: i32) -> !tfrt.chain attributes {tfrt.native}
+func.func private @native_sink(%a: i32, %b: i32) -> () attributes {tfrt.native}
+func.func private @native_async_sink(%a: i32, %b: i32) -> !tfrt.chain attributes {tfrt.native}
 
 // CHECK-LABEL: --- Running 'parallel_for.async_body.benchmark'
-func @parallel_for.async_body.benchmark() {
+func.func @parallel_for.async_body.benchmark() {
   %start      = tfrt.constant.i32    0
   %end        = tfrt.constant.i32 1000
   %block_size = tfrt.constant.i32    1
@@ -47,7 +47,7 @@ func @parallel_for.async_body.benchmark() {
 }
 
 // CHECK-LABEL: --- Running 'parallel_for.sync_body.benchmark'
-func @parallel_for.sync_body.benchmark() {
+func.func @parallel_for.sync_body.benchmark() {
   %start      = tfrt.constant.i32    0
   %end        = tfrt.constant.i32 1000
   %block_size = tfrt.constant.i32    1
@@ -68,7 +68,7 @@ func @parallel_for.sync_body.benchmark() {
 }
 
 // CHECK-LABEL: --- Running 'parallel_call.async_fn.benchmark'
-func @parallel_call.async_fn.benchmark() {
+func.func @parallel_call.async_fn.benchmark() {
   %start      = tfrt.constant.i32    0
   %end        = tfrt.constant.i32 1000
   %block_size = tfrt.constant.i32    1
@@ -87,7 +87,7 @@ func @parallel_call.async_fn.benchmark() {
 }
 
 // CHECK-LABEL: --- Running 'parallel_call.sync_fn.benchmark'
-func @parallel_call.sync_fn.benchmark() {
+func.func @parallel_call.sync_fn.benchmark() {
   %start      = tfrt.constant.i32    0
   %end        = tfrt.constant.i32 1000
   %block_size = tfrt.constant.i32    1

@@ -393,7 +393,7 @@
 // Non-trainable params: 53,120
 // __________________________________________________________________________________________________
 
-func @resnet50() {
+func.func @resnet50() {
     %path = "tfrt_test.get_string"() { value = "integrationtest/resnet/test_data/resnet50_graph_inference_tensors.btf" } : () -> !tfrt.string
     %c0 = tfrt.new.chain
     %constant_0 = tfrt.constant.i32 0

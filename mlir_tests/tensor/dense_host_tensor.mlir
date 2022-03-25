@@ -16,7 +16,7 @@
 // RUN: tfrt_opt %s | tfrt_opt
 
 // CHECK-LABEL: --- Running 'basic_tensor'
-func @basic_tensor() {
+func.func @basic_tensor() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
@@ -52,7 +52,7 @@ func @basic_tensor() {
 
 // Testing tensor_equal.
 // CHECK-LABEL: --- Running 'tensor_equal'
-func @tensor_equal() {
+func.func @tensor_equal() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
@@ -75,7 +75,7 @@ func @tensor_equal() {
 }
 
 // CHECK-LABEL: --- Running 'basic_f32_tensor'
-func @basic_f32_tensor() {
+func.func @basic_f32_tensor() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
@@ -88,7 +88,7 @@ func @basic_f32_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'tensor_from_buffer'
-func @tensor_from_buffer() {
+func.func @tensor_from_buffer() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
@@ -108,7 +108,7 @@ func @tensor_from_buffer() {
 }
 
 // CHECK-LABEL: --- Running 'tensor_from_slices'
-func @tensor_from_slices() {
+func.func @tensor_from_slices() {
   %c0 = tfrt.new.chain
 
   %buf_size = tfrt.constant.i64 16
@@ -152,7 +152,7 @@ func @tensor_from_slices() {
 }
 
 // CHECK-LABEL: --- Running 'slice_tensor'
-func @slice_tensor() {
+func.func @slice_tensor() {
   %ch0 = tfrt.new.chain
   %zero = tfrt.constant.i64 0
   %one = tfrt.constant.i64 1
@@ -174,7 +174,7 @@ func @slice_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'bool_tensor'
-func @bool_tensor() {
+func.func @bool_tensor() {
   %ch0 = tfrt.new.chain
 
   %value = tfrt_dht.create_uninitialized_tensor.bool.1 [2 : i64]
@@ -187,7 +187,7 @@ func @bool_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'dense_attr'
-func @dense_attr() {
+func.func @dense_attr() {
   %c0 = tfrt.new.chain
 
   %a = "tfrt_test.const_dense_attr"() {value = dense<[[1, 1], [2, 2]]> : tensor<2x2xi32>} : () -> !t.tensor
@@ -199,7 +199,7 @@ func @dense_attr() {
 }
 
 // CHECK-LABEL: --- Running 'sync_basic_tensor'
-func @sync_basic_tensor() attributes {tfrt.sync} {
+func.func @sync_basic_tensor() attributes {tfrt.sync} {
   %a = tfrt_dht_sync.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   tfrt_dht_sync.set_tensor_with_constant_values.i32 %a
     [1 : i32, -1 : i32, 1 : i32, -1 : i32, 1 : i32, -1 : i32]
@@ -216,7 +216,7 @@ func @sync_basic_tensor() attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'get_tensor_shape'
-func @get_tensor_shape() {
+func.func @get_tensor_shape() {
   %ch = tfrt.new.chain
 
   %a = "tfrt_test.const_dense_attr"() {value = dense<[[1, 1], [2, 2]]> : tensor<2x2xi32>} : () -> !t.tensor
@@ -229,7 +229,7 @@ func @get_tensor_shape() {
 }
 
 // CHECK-LABEL: --- Running 'test_type_parsing'
-func @test_type_parsing() {
+func.func @test_type_parsing() {
   %c0 = tfrt.new.chain
 
   %buf_size = tfrt.constant.i64 16

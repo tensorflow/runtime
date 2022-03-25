@@ -17,7 +17,7 @@
 
 // This function is just a select: "cond ? v1 : v2", exercising tfrt.if with
 // result values.
-func @controlflow_if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
+func.func @controlflow_if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
   %res = tfrt.if %cond, %v1, %v2 : (i32, i32) -> (i32) {
     tfrt.return %v1 : i32
   } else {
@@ -28,7 +28,7 @@ func @controlflow_if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'if_test_0'
-func @if_test_0() {
+func.func @if_test_0() {
   %ch0 = tfrt.new.chain
 
   %a = tfrt.constant.i32 45
@@ -50,7 +50,7 @@ func @if_test_0() {
 }
 
 // CHECK-LABEL: --- Running 'controlflow_repeat2'
-func @controlflow_repeat2() {
+func.func @controlflow_repeat2() {
   %count = tfrt.constant.i32 4
   %ch0 = tfrt.new.chain
 
@@ -84,7 +84,7 @@ func @controlflow_repeat2() {
 }
 
 // CHECK-LABEL: --- Running 'controlflow_repeat5'
-func @controlflow_repeat5() {
+func.func @controlflow_repeat5() {
   %ch0 = tfrt.new.chain
   %count = tfrt.constant.i32 5
   %ch1 = tfrt.repeat.i32 %count, %ch0 : !tfrt.chain {
@@ -116,7 +116,7 @@ func @controlflow_repeat5() {
 }
 
 // CHECK-LABEL: --- Running 'controlflow_repeat_large'
-func @controlflow_repeat_large() {
+func.func @controlflow_repeat_large() {
   %count = tfrt.constant.i32 1000
   %v0 = tfrt.constant.i32 42
 
@@ -135,7 +135,7 @@ func @controlflow_repeat_large() {
 }
 
 // CHECK-LABEL: --- Running 'controlflow_repeat_cancel'
-func @controlflow_repeat_cancel() -> i32 {
+func.func @controlflow_repeat_cancel() -> i32 {
   %ch0 = tfrt.new.chain
   %count = tfrt.constant.i32 5
   %index = tfrt.constant.i32 0
@@ -171,7 +171,7 @@ func @controlflow_repeat_cancel() -> i32 {
 
 // BEFExecutor will allocate an IndirectAsyncValue for this function's return
 // value.
-func @indirect_async_return(%c1: i32) -> i32 {
+func.func @indirect_async_return(%c1: i32) -> i32 {
   %v2 = "tfrt_test.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
   %v3 = "tfrt_test.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
   // We can't return %v2 because it's an unavailable ConcreteAsyncValue (not an
@@ -181,7 +181,7 @@ func @indirect_async_return(%c1: i32) -> i32 {
 
 // Test an unused IndirectAsync return value.
 // CHECK-LABEL: --- Running 'unused_indirect_async_return'
-func @unused_indirect_async_return() {
+func.func @unused_indirect_async_return() {
   %c1 = tfrt.constant.i32 1
   // The returned IndirectAsyncValue is unused, but it has not yet been
   // forwarded. Setting this IndirectAsyncValue must count as a use, otherwise
@@ -193,17 +193,17 @@ func @unused_indirect_async_return() {
 
 // tfrt.cond tests.
 
-func @identity(%x: i32) -> i32 {
+func.func @identity(%x: i32) -> i32 {
   tfrt.return %x : i32
 }
 
-func @double(%x: i32) -> i32 {
+func.func @double(%x: i32) -> i32 {
   %y = tfrt.add.i32 %x, %x
   tfrt.return %y : i32
 }
 
 // CHECK-LABEL: --- Running 'if_test_with_func'
-func @if_test_with_func() {
+func.func @if_test_with_func() {
   %ch0 = tfrt.new.chain
 
   %a = tfrt.constant.i32 41
@@ -223,13 +223,13 @@ func @if_test_with_func() {
   tfrt.return
 }
 
-func @branch0(%ch: !tfrt.chain, %arg: i32) -> (!tfrt.chain, i32) {
+func.func @branch0(%ch: !tfrt.chain, %arg: i32) -> (!tfrt.chain, i32) {
   %one = tfrt.constant.i32 2
   %res = tfrt.add.i32 %arg, %one
   tfrt.return %ch, %res : !tfrt.chain, i32
 }
 
-func @branch1(%ch: !tfrt.chain, %arg: i32) -> (!tfrt.chain, i32) {
+func.func @branch1(%ch: !tfrt.chain, %arg: i32) -> (!tfrt.chain, i32) {
   %two = tfrt.constant.i32 3
   %res = tfrt.add.i32 %arg, %two
   tfrt.return %ch, %res : !tfrt.chain, i32
@@ -237,7 +237,7 @@ func @branch1(%ch: !tfrt.chain, %arg: i32) -> (!tfrt.chain, i32) {
 
 // tfrt.case tests.
 // CHECK-LABEL: --- Running 'tfrt_case_test'
-func @tfrt_case_test() {
+func.func @tfrt_case_test() {
   %ch0 = tfrt.new.chain
 
   %branch_index = tfrt.constant.i32 0
@@ -259,7 +259,7 @@ func @tfrt_case_test() {
   tfrt.return
 }
 
-func @tfrt_while_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.chain, i32, i32, i1) {
+func.func @tfrt_while_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.chain, i32, i32, i1) {
   %one = tfrt.constant.i32 1
   %five = tfrt.constant.i32 5
   %next_iteration = tfrt.add.i32 %iteration, %one
@@ -270,7 +270,7 @@ func @tfrt_while_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.ch
 }
 
 // CHECK-LABEL: --- Running 'tfrt_inline_while_test'
-func @tfrt_inline_while_test() -> !tfrt.chain {
+func.func @tfrt_inline_while_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %cond = tfrt.constant.i1 true
@@ -288,7 +288,7 @@ func @tfrt_inline_while_test() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'tfrt_parallel_while_test'
-func @tfrt_parallel_while_test() -> !tfrt.chain {
+func.func @tfrt_parallel_while_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %cond = tfrt.constant.i1 true
@@ -305,7 +305,7 @@ func @tfrt_parallel_while_test() -> !tfrt.chain {
   tfrt.return %ch3 : !tfrt.chain
 }
 
-func @tfrt_while_error_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.chain, i32, i32, i1) {
+func.func @tfrt_while_error_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.chain, i32, i32, i1) {
   %one = tfrt.constant.i32 1
   %five = tfrt.constant.i32 5
   %next_iteration = tfrt.add.i32 %iteration, %one
@@ -317,7 +317,7 @@ func @tfrt_while_error_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!t
 }
 
 // CHECK-LABEL: --- Running 'tfrt_while_error_test'
-func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
+func.func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
   %ch0 = tfrt.new.chain
 
   %cond = tfrt.constant.i1 true
@@ -331,7 +331,7 @@ func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
 }
 
 // CHECK-LABEL: --- Running 'tfrt_parallel_while_error_test'
-func @tfrt_parallel_while_error_test() -> (!tfrt.chain, i32, i32) {
+func.func @tfrt_parallel_while_error_test() -> (!tfrt.chain, i32, i32) {
   %ch0 = tfrt.new.chain
 
   %cond = tfrt.constant.i1 true
@@ -344,14 +344,14 @@ func @tfrt_parallel_while_error_test() -> (!tfrt.chain, i32, i32) {
   tfrt.return %ch1, %final_iteration, %final_arg : !tfrt.chain, i32, i32
 }
 
-func @tfrt_once_function(%arg : i32) -> i32 {
+func.func @tfrt_once_function(%arg : i32) -> i32 {
   %one = tfrt.constant.i32 1
   %result = tfrt.add.i32 %arg, %one
   tfrt.return %result : i32
 }
 
 // CHECK-LABEL: --- Running 'tfrt_once_test'
-func @tfrt_once_test() {
+func.func @tfrt_once_test() {
   %0 = tfrt.constant.i32 0
   %1 = tfrt.once @tfrt_once_function(%0) : (i32) -> (i32)
   %2 = tfrt.once @tfrt_once_function(%1) : (i32) -> (i32)
@@ -366,7 +366,7 @@ func @tfrt_once_test() {
 }
 
 // CHECK-LABEL: --- Running 'tfrt_merge_chain_test'
-func @tfrt_merge_chain_test() -> !tfrt.chain {
+func.func @tfrt_merge_chain_test() -> !tfrt.chain {
   %v = tfrt.constant.i32 0
   %ch0 = tfrt.new.chain
   %ch1 = tfrt.merge.chains %v, %ch0 : i32, !tfrt.chain

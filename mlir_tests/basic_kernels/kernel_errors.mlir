@@ -14,7 +14,7 @@
 
 // RUN: tfrt_opt %s -split-input-file --verify-diagnostics
 
-func @bad_return(%x: i32) {
+func.func @bad_return(%x: i32) {
 
   // expected-error @+1 {{'tfrt.return' op has 1 operands, but enclosing function returns 0}}
   tfrt.return %x : i32
@@ -22,7 +22,7 @@ func @bad_return(%x: i32) {
 
 // -----
 
-func @return_mismatch(%x: i32) -> !tfrt.chain {
+func.func @return_mismatch(%x: i32) -> !tfrt.chain {
 
   // expected-error @+1 {{type of return operand 0 ('i32') doesn't match function result type ('!tfrt.chain')}}
   tfrt.return %x : i32
@@ -30,7 +30,7 @@ func @return_mismatch(%x: i32) -> !tfrt.chain {
 
 // -----
 
-func @if_mismatch(%cond: i1, %v1: i32, %v2: i32) -> i32 {
+func.func @if_mismatch(%cond: i1, %v1: i32, %v2: i32) -> i32 {
 
   tfrt.if %cond, %v1 : (i32) -> () {
 

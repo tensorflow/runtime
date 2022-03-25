@@ -14,12 +14,12 @@
 
 // RUN: cat %s.bef > /dev/null
 
-func @trivial() {
+func.func @trivial() {
   "simple.kernel"() : () -> ()
   tfrt.return
 }
 
-func @args_results(%a: i32, %b: f32) -> (i8, i32) {
+func.func @args_results(%a: i32, %b: f32) -> (i8, i32) {
   %c = "simple.kernel"(%a, %b) : (i32, f32) -> i8
   tfrt.return %c, %a : i8, i32
 }

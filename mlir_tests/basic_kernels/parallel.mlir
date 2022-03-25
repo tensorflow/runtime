@@ -16,7 +16,7 @@
 // RUN: bef_executor -work_queue_type=mstd %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'parallel_for.fixed_block_size.async'
-func @parallel_for.fixed_block_size.async() -> !tfrt.chain {
+func.func @parallel_for.fixed_block_size.async() -> !tfrt.chain {
   %start      = tfrt.constant.i32 0
   %end        = tfrt.constant.i32 10
   %block_size = tfrt.constant.i32 1
@@ -51,7 +51,7 @@ func @parallel_for.fixed_block_size.async() -> !tfrt.chain {
 }
 
 // Asynchronous function signals its completion using result chain.
-func @async_fn(%start : i32, %end : i32,
+func.func @async_fn(%start : i32, %end : i32,
                %cnt0 : !test.atomic.i32,
                %cnt1 : !test.atomic.i32) -> !tfrt.chain {
     %ch0 = tfrt.new.chain
@@ -66,7 +66,7 @@ func @async_fn(%start : i32, %end : i32,
 }
 
 // CHECK-LABEL: --- Running 'parallel_call.fixed_block_size.async'
-func @parallel_call.fixed_block_size.async() -> !tfrt.chain {
+func.func @parallel_call.fixed_block_size.async() -> !tfrt.chain {
   %start      = tfrt.constant.i32 0
   %end        = tfrt.constant.i32 10
   %block_size = tfrt.constant.i32 1

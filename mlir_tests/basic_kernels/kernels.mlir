@@ -14,7 +14,7 @@
 
 // RUN: tfrt_opt -allow-unregistered-dialect %s | tfrt_opt -allow-unregistered-dialect | tfrt_opt -allow-unregistered-dialect | FileCheck %s
 
-func @if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
+func.func @if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
   // CHECK: [[RES:%[0-9]+]] = tfrt.if %arg0, %arg1, %arg2 : (i32, i32) -> (i32) {
   %res = tfrt.if %cond, %v1, %v2 : (i32, i32) -> i32 {
     // CHECK-NEXT: tfrt.return %arg1
@@ -35,7 +35,7 @@ func @if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
 }
 
 // CHECK-LABEL: func @repeat(%arg0: i32, %arg1: f32) -> i32 {
-func @repeat(%arg0: i32, %arg1: f32) -> i32 {
+func.func @repeat(%arg0: i32, %arg1: f32) -> i32 {
   // CHECK: [[RES:%[0-9]+]]:2 = tfrt.repeat.i32 %arg0, %arg0, %arg1 : i32, f32 {
   %res1, %res2 = tfrt.repeat.i32 %arg0, %arg0, %arg1 : i32, f32 {
 
@@ -57,13 +57,13 @@ func @repeat(%arg0: i32, %arg1: f32) -> i32 {
 }
 
 // CHECK-LABEL: func @return(
-func @return(%arg: i32) -> i32 {
+func.func @return(%arg: i32) -> i32 {
   // CHECK: tfrt.return %{{.*}} : i32
   tfrt.return %arg : i32
 }
 
 // CHECK-LABEL: func @constant(
-func @constant() {
+func.func @constant() {
   // CHECK-NEXT: %0 = tfrt.constant.i1 false
   %a = tfrt.constant.i1 false
   // CHECK-NEXT: %1 = tfrt.constant.i32 41

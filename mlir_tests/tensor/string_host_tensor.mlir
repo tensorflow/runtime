@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'basic'
-func @basic() {
+func.func @basic() {
   %c0 = tfrt.new.chain
 
   %a = "tfrt_sht.create_tensor"()
@@ -27,7 +27,7 @@ func @basic() {
   tfrt.return
 }
 
-func @sync_basic() attributes {tfrt.sync} {
+func.func @sync_basic() attributes {tfrt.sync} {
   %a = "tfrt_sht_sync.create_tensor"()
     {shape = [2], values = ["string", "tensor"]} : () -> !t.tensor
 

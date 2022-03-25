@@ -16,7 +16,7 @@
 // RUN: tfrt_opt %s | tfrt_opt
 
 // CHECK-LABEL: --- Running 'basic_shape'
-func @basic_shape() {
+func.func @basic_shape() {
   %ch = tfrt.new.chain
 
   // Normal shape.
@@ -49,7 +49,7 @@ func @basic_shape() {
 }
 
 // CHECK-LABEL: --- Running 'tensor_shape_equal'
-func @tensor_shape_equal() {
+func.func @tensor_shape_equal() {
   %ch0 = tfrt.new.chain
 
   // Normal shape.
@@ -113,7 +113,7 @@ func @tensor_shape_equal() {
 }
 
 // CHECK-LABEL: --- Running 'representation_edge_cases'
-func @representation_edge_cases() {
+func.func @representation_edge_cases() {
   %ch = tfrt.new.chain
 
   // Largest shape that fits in rep16.
@@ -168,7 +168,7 @@ func @representation_edge_cases() {
 }
 
 // CHECK-LABEL: --- Running 'fixed_rank_shape'
-func @fixed_rank_shape() {
+func.func @fixed_rank_shape() {
   %ch0 = tfrt.new.chain
 
   %a = ts.build_shape [1 : i64, 57 : i64, 92 : i64]
@@ -181,7 +181,7 @@ func @fixed_rank_shape() {
 }
 
 // CHECK-LABEL: --- Running 'ts_get_num_elements'
-func @ts_get_num_elements() {
+func.func @ts_get_num_elements() {
   %ch0 = tfrt.new.chain
 
   %a = ts.build_shape [1 : i64, 10 : i64, 10 : i64]
@@ -193,7 +193,7 @@ func @ts_get_num_elements() {
 }
 
 // CHECK-LABEL: --- Running 'partial_tensor_shape'
-func @partial_tensor_shape() {
+func.func @partial_tensor_shape() {
   %ch = tfrt.new.chain
 
   %a = ts.build_partial_shape [1 : i64, 57 : i64, 92 : i64]
@@ -210,7 +210,7 @@ func @partial_tensor_shape() {
 }
 
 // CHECK-LABEL: --- Running 'partial_tensor_shape_with_unknown_dim'
-func @partial_tensor_shape_with_unknown_dim() {
+func.func @partial_tensor_shape_with_unknown_dim() {
   %ch = tfrt.new.chain
 
   %a = ts.build_partial_shape [-1 : i64, 57 : i64, 92 : i64]
@@ -222,7 +222,7 @@ func @partial_tensor_shape_with_unknown_dim() {
 }
 
 // CHECK-LABEL: --- Running 'partial_tensor_shape_to_tensor_shape_error'
-func @partial_tensor_shape_to_tensor_shape_error() {
+func.func @partial_tensor_shape_to_tensor_shape_error() {
   %ch = tfrt.new.chain
 
   %a = ts.build_partial_shape [-1 : i64, 57 : i64, -1 : i64]
@@ -239,7 +239,7 @@ func @partial_tensor_shape_to_tensor_shape_error() {
 }
 
 // CHECK-LABEL: --- Running 'partial_tensor_shape_unranked'
-func @partial_tensor_shape_unranked() {
+func.func @partial_tensor_shape_unranked() {
   %ch = tfrt.new.chain
 
   %a = ts.build_unranked_partial_shape
@@ -251,7 +251,7 @@ func @partial_tensor_shape_unranked() {
 }
 
 // CHECK-LABEL: --- Running 'ts_to_partial_shape'
-func @ts_to_partial_shape() {
+func.func @ts_to_partial_shape() {
   %ch = tfrt.new.chain
 
   %a = ts.build_shape [1 : i64, 57 : i64, 92 : i64]
@@ -268,7 +268,7 @@ func @ts_to_partial_shape() {
 }
 
 // CHECK-LABEL: --- Running 'tensor_shape_type_check'
-func @tensor_shape_type_check() {
+func.func @tensor_shape_type_check() {
   %ch = tfrt.new.chain
 
   %a = "ts.build_shape"() { value = [1 : i64, 57 : i64, 92 : i64] } : () -> !ts.shape

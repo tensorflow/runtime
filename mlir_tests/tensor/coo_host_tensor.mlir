@@ -16,7 +16,7 @@
 // RUN: tfrt_opt %s | tfrt_opt
 
 // CHECK-LABEL: --- Running 'basic_tensor'
-func @basic_tensor() {
+func.func @basic_tensor() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
@@ -37,7 +37,7 @@ func @basic_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'tensor_roundtrip'
-func @tensor_roundtrip() {
+func.func @tensor_roundtrip() {
   %c1 = tfrt.new.chain
 
   // Keep tensor uninitialized. This means we'll be getting random values in
@@ -61,7 +61,7 @@ func @tensor_roundtrip() {
 
 // Testing tensor_equal.
 // CHECK-LABEL: --- Running 'tensor_equal'
-func @tensor_equal() {
+func.func @tensor_equal() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
@@ -86,7 +86,7 @@ func @tensor_equal() {
 }
 
 // CHECK-LABEL: --- Running 'basic_f32_tensor'
-func @basic_f32_tensor() {
+func.func @basic_f32_tensor() {
   %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]

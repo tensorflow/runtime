@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef 2>&1 | FileCheck %s
 
 // CHECK: --- Running 'basic_f64'
-func @basic_f64() {
+func.func @basic_f64() {
   %ch0 = tfrt.new.chain
   %value_1 = tfrt.constant.f64 156.0
   %value_2 = tfrt.constant.f64 100.0
@@ -39,7 +39,7 @@ func @basic_f64() {
 }
 
 // CHECK: --- Running 'basic_f32'
-func @basic_f32() {
+func.func @basic_f32() {
   %ch0 = tfrt.new.chain
   %value_1 = tfrt.constant.f32 156.0
   %value_2 = tfrt.constant.f32 100.0
@@ -63,7 +63,7 @@ func @basic_f32() {
 }
 
 // CHECK: --- Running 'cast_between_i64_f32'
-func @cast_between_i64_f32() {
+func.func @cast_between_i64_f32() {
   %ch0 = tfrt.new.chain
   %resize_min = tfrt.constant.f32 256.0
   %height = tfrt.constant.i64 737
@@ -99,7 +99,7 @@ func @cast_between_i64_f32() {
 }
 
 // CHECK: --- Running 'cast_between_i64_f64'
-func @cast_between_i64_f64() {
+func.func @cast_between_i64_f64() {
   %ch0 = tfrt.new.chain
   %height = tfrt.constant.i64 737
   %width = tfrt.constant.i64 899

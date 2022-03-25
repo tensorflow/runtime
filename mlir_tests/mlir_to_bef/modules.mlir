@@ -15,12 +15,12 @@
 // RUN: cat %s.bef > /dev/null
 
 module @kernel attributes { tfrt.compiled } {
-  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
+  func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
     return
   }
 }
 
-func @trivial() {
+func.func @trivial() {
   "simple.kernel"() { func = @kernel::@main } : () -> ()
   tfrt.return
 }

@@ -14,7 +14,7 @@
 
 // RUN: tfrt_translate -mlir-to-bef -split-input-file -verify-diagnostics %s
 
-func @function_arg() -> i32 {
+func.func @function_arg() -> i32 {
   // expected-error @+1 {{all functions need to have a tfrt.return}}
   %x = "someop"() : () -> i32
 }
@@ -22,11 +22,11 @@ func @function_arg() -> i32 {
 // -----
 
 // expected-error @+1 {{external functions are not allowed}}
-func private @external_func() -> i32
+func.func private @external_func() -> i32
 
 // -----
 
-func @caller() {
+func.func @caller() {
   %c1 = tfrt.constant.i32 1
   // expected-error @+1 {{function @missing_callee not defined}}
   "unregistered.call"(%c1) { name = @missing_callee } : (i32) -> ()
@@ -35,7 +35,7 @@ func @caller() {
 
 // -----
 
-func @caller() {
+func.func @caller() {
   %c1 = tfrt.constant.i32 1
   // expected-error @+1 {{'missing_callee' does not reference a valid function}}
   tfrt.call @missing_callee(%c1) : (i32) -> ()
@@ -44,7 +44,7 @@ func @caller() {
 
 // -----
 
-func @caller() {
+func.func @caller() {
   // expected-error @+1 {{BEF files cannot encode the 'type' attribute}}
   "someop"() { type = tensor<1xf32>} : () -> i32
   tfrt.return
@@ -52,14 +52,14 @@ func @caller() {
 
 // -----
 
-func @sync_fn_return_argument(%1: i32) -> i32 attributes {tfrt.sync} {
+func.func @sync_fn_return_argument(%1: i32) -> i32 attributes {tfrt.sync} {
   // expected-error @+1 {{return value 0 is an argument in a sync function}}
   tfrt.return %1 : i32
 }
 
 // -----
 
-func @sync_fn_return_duplicated(%1: i32) -> (i32, i32) attributes {tfrt.sync} {
+func.func @sync_fn_return_duplicated(%1: i32) -> (i32, i32) attributes {tfrt.sync} {
   %c1 = tfrt.constant.i32 1
   // expected-error @+1 {{return value 1 is duplicated in a sync function}}
   tfrt.return %c1, %c1 : i32, i32

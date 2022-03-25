@@ -15,14 +15,14 @@
 // RUN: tfrt_opt -inline %s | FileCheck %s -dump-input=fail
 
 // CHECK-NOT: @callee
-func private @callee(%ch: !tfrt.chain) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func private @callee(%ch: !tfrt.chain) -> (!tfrt.chain, !corert.tensorhandle) {
   %0 = corert.const_dense_tensor dense<1> : tensor<i32>
   tfrt.return %ch, %0 : !tfrt.chain, !corert.tensorhandle
 }
 
 // CHECK-LABEL: @caller
 // CHECK-SAME: ([[ch:%.*]]: !tfrt.chain)
-func @caller(%ch: !tfrt.chain) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @caller(%ch: !tfrt.chain) -> (!tfrt.chain, !corert.tensorhandle) {
   // CHECK-NOT: tfrt.call
   // CHECK: [[const:%.*]] = corert.const_dense_tensor dense<1> : tensor<i32>
   // CHECK-NEXT: tfrt.return [[ch]], [[const]]

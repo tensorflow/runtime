@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s --dump-input=always
 
-func @register_op_handlers_gpu() {
+func.func @register_op_handlers_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %gpu_ordinal = tfrt.constant.i32 0
   %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
@@ -23,7 +23,7 @@ func @register_op_handlers_gpu() {
 }
 
 // CHECK: --- Running 'BM_Tf_Mean_InnerReduce_1x2056x7x7_f32'
-func @BM_Tf_Mean_InnerReduce_1x2056x7x7_f32() {
+func.func @BM_Tf_Mean_InnerReduce_1x2056x7x7_f32() {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -51,7 +51,7 @@ func @BM_Tf_Mean_InnerReduce_1x2056x7x7_f32() {
 }
 
 // CHECK: --- Running 'BM_Tf_Mean_InnerReduce_1x1024x7x7_f32'
-func @BM_Tf_Mean_InnerReduce_1x1024x7x7_f32() {
+func.func @BM_Tf_Mean_InnerReduce_1x1024x7x7_f32() {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -79,7 +79,7 @@ func @BM_Tf_Mean_InnerReduce_1x1024x7x7_f32() {
 }
 
 // CHECK: --- Running 'BM_Tf_Mean_InnerReduce_1x32x64x64_f32'
-func @BM_Tf_Mean_InnerReduce_1x32x64x64_f32() {
+func.func @BM_Tf_Mean_InnerReduce_1x32x64x64_f32() {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -107,7 +107,7 @@ func @BM_Tf_Mean_InnerReduce_1x32x64x64_f32() {
 }
 
 // CHECK: --- Running 'BM_Tf_Mean_InnerReduce_1x256x64x64_f32'
-func @BM_Tf_Mean_InnerReduce_1x256x64x64_f32() {
+func.func @BM_Tf_Mean_InnerReduce_1x256x64x64_f32() {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 

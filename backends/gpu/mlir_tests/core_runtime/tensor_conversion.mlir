@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu_gpu() {
+func.func @register_op_handlers_cpu_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
@@ -27,7 +27,7 @@ func @register_op_handlers_cpu_gpu() {
 }
 
 // CHECK: --- Running 'round_trip_transfer'
-func @round_trip_transfer() -> !tfrt.chain {
+func.func @round_trip_transfer() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %gpu_handler = corert.get_op_handler %ch0 "gpu"
   %cpu_handler = corert.get_op_handler %ch0 "cpu"
@@ -57,7 +57,7 @@ func @round_trip_transfer() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'invalid_transfer'
-func @invalid_transfer() -> !tfrt.chain {
+func.func @invalid_transfer() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %gpu_handler = corert.get_op_handler %ch0 "gpu"
   %cpu_handler = corert.get_op_handler %ch0 "cpu"
@@ -81,7 +81,7 @@ func @invalid_transfer() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_get_dst_tensor_type'
-func @test_get_dst_tensor_type() -> !tfrt.chain {
+func.func @test_get_dst_tensor_type() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
   %cpu_handle = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()

@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers  %s.bef 2>&1 | FileCheck %s
 
-func @register_op_handlers() {
+func.func @register_op_handlers() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
@@ -32,7 +32,7 @@ func @register_op_handlers() {
 // TODO(jingdong): Merge this file into logging.mlir after we fix the device creation process to allow more than one instances of a device type in a process.
 
 // CHECK-LABEL: --- Running 'test_logger_cpu_log_results'
-func @test_logger_cpu_log_results() -> !tfrt.chain {
+func.func @test_logger_cpu_log_results() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -61,7 +61,7 @@ func @test_logger_cpu_log_results() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_logger_gpu_log_results'
-func @test_logger_gpu_log_results() -> !tfrt.chain {
+func.func @test_logger_gpu_log_results() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %gpu = corert.get_op_handler %ch0 "gpu"
 

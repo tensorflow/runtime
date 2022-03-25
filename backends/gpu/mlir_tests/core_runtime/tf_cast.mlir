@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_gpu() {
+func.func @register_op_handlers_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %gpu_ordinal = tfrt.constant.i32 0
   %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
@@ -23,7 +23,7 @@ func @register_op_handlers_gpu() {
 }
 
 // CHECK: --- Running 'cast_f64_to_f32_no_truncate'
-func @cast_f64_to_f32_no_truncate() -> !tfrt.chain{
+func.func @cast_f64_to_f32_no_truncate() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -40,7 +40,7 @@ func @cast_f64_to_f32_no_truncate() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'cast_f64_to_f32_with_truncate'
-func @cast_f64_to_f32_with_truncate() -> !tfrt.chain{
+func.func @cast_f64_to_f32_with_truncate() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -55,7 +55,7 @@ func @cast_f64_to_f32_with_truncate() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'cast_f32_to_f64_no_truncate'
-func @cast_f32_to_f64_no_truncate() -> !tfrt.chain{
+func.func @cast_f32_to_f64_no_truncate() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 

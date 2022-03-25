@@ -45,7 +45,7 @@
 // copy would then try to CtxSetCurrent while the gpu::wrapper::CurrentContext
 // from the left H2D copy was still alive.
 
-func @register_op_handlers_gpu() {
+func.func @register_op_handlers_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %gpu_ordinal = tfrt.constant.i32 0
   %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
@@ -54,7 +54,7 @@ func @register_op_handlers_gpu() {
 }
 
 // CHECK: --- Running 'current_context_lifetime'
-func @current_context_lifetime() -> !tfrt.chain {
+func.func @current_context_lifetime() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 

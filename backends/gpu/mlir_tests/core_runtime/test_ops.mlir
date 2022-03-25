@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu_gpu() {
+func.func @register_op_handlers_cpu_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
@@ -27,7 +27,7 @@ func @register_op_handlers_cpu_gpu() {
 }
 
 // CHECK: --- Running 'basic_test_create_dense_gpu_tensor'
-func @basic_test_create_dense_gpu_tensor() -> !tfrt.chain {
+func.func @basic_test_create_dense_gpu_tensor() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -44,7 +44,7 @@ func @basic_test_create_dense_gpu_tensor() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'basic_add_dense_gpu_tensors_f32'
-func @basic_add_dense_gpu_tensors_f32() -> !tfrt.chain {
+func.func @basic_add_dense_gpu_tensors_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -63,7 +63,7 @@ func @basic_add_dense_gpu_tensors_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'basic_add_dense_gpu_tensors_int32'
-func @basic_add_dense_gpu_tensors_int32() -> !tfrt.chain {
+func.func @basic_add_dense_gpu_tensors_int32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -82,7 +82,7 @@ func @basic_add_dense_gpu_tensors_int32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'basic_move_gpu_tensors_int32'
-func @basic_move_gpu_tensors_int32() -> !tfrt.chain {
+func.func @basic_move_gpu_tensors_int32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
   %gpu = corert.get_op_handler %ch_epoch "gpu"
@@ -103,7 +103,7 @@ func @basic_move_gpu_tensors_int32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'basic_add_dense_gpu_tensors_f16'
-func @basic_add_dense_gpu_tensors_f16() -> !tfrt.chain {
+func.func @basic_add_dense_gpu_tensors_f16() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
   %gpu = corert.get_op_handler %ch_epoch "gpu"
@@ -129,7 +129,7 @@ func @basic_add_dense_gpu_tensors_f16() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'return_multiple_results'
-func @return_multiple_results() -> !tfrt.chain {
+func.func @return_multiple_results() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -139,7 +139,7 @@ func @return_multiple_results() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'return_multiple_results_with_error'
-func @return_multiple_results_with_error() -> !tfrt.chain {
+func.func @return_multiple_results_with_error() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -150,7 +150,7 @@ func @return_multiple_results_with_error() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'test_optional_args'
-func @test_optional_args() -> !tfrt.chain {
+func.func @test_optional_args() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -174,7 +174,7 @@ func @test_optional_args() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'test_variadic_args'
-func @test_variadic_args() -> !tfrt.chain {
+func.func @test_variadic_args() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 

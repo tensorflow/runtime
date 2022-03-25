@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers %s.bef | FileCheck %s --dump-input=always
 
-func @register_op_handlers() {
+func.func @register_op_handlers() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -31,7 +31,7 @@ func @register_op_handlers() {
 
 
 // CHECK: --- Running 'relu'
-func @relu() -> !tfrt.chain {
+func.func @relu() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %gpu0 = corert.get_op_handler %ch0 "gpu0"
   %gpu1 = corert.get_op_handler %ch0 "gpu1"
@@ -61,7 +61,7 @@ func @relu() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'BM_Tf_Conv2d_1x256x56x56_3x3_256_f32'
-func @BM_Tf_Conv2d_1x256x56x56_3x3_256_f32() {
+func.func @BM_Tf_Conv2d_1x256x56x56_3x3_256_f32() {
   %ch_epoch = tfrt.new.chain
   %gpu0 = corert.get_op_handler %ch_epoch "gpu0"
   %gpu1 = corert.get_op_handler %ch_epoch "gpu1"

@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu_gpu() {
+func.func @register_op_handlers_cpu_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
@@ -27,7 +27,7 @@ func @register_op_handlers_cpu_gpu() {
 }
 
 // CHECK: --- Running 'addv2'
-func @addv2() -> !tfrt.chain {
+func.func @addv2() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -44,7 +44,7 @@ func @addv2() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_f16'
-func @addV2_f16() -> !tfrt.chain{
+func.func @addV2_f16() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
   %gpu = corert.get_op_handler %ch_epoch "gpu"
@@ -70,7 +70,7 @@ func @addV2_f16() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'addV2_f32'
-func @addV2_f32() -> !tfrt.chain{
+func.func @addV2_f32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -87,7 +87,7 @@ func @addV2_f32() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'addV2_broadcast0_f32'
-func @addV2_broadcast0_f32() -> !tfrt.chain {
+func.func @addV2_broadcast0_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -104,7 +104,7 @@ func @addV2_broadcast0_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_broadcast1_f32'
-func @addV2_broadcast1_f32() -> !tfrt.chain {
+func.func @addV2_broadcast1_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -122,7 +122,7 @@ func @addV2_broadcast1_f32() -> !tfrt.chain {
 
 
 // CHECK: --- Running 'addV2_broadcast2_f32'
-func @addV2_broadcast2_f32() -> !tfrt.chain {
+func.func @addV2_broadcast2_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -139,7 +139,7 @@ func @addV2_broadcast2_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_broadcast3_f32'
-func @addV2_broadcast3_f32() -> !tfrt.chain {
+func.func @addV2_broadcast3_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -156,7 +156,7 @@ func @addV2_broadcast3_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_broadcast4_f32'
-func @addV2_broadcast4_f32() -> !tfrt.chain {
+func.func @addV2_broadcast4_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -174,7 +174,7 @@ func @addV2_broadcast4_f32() -> !tfrt.chain {
 
 
 // CHECK: --- Running 'addV2_broadcast5_f32'
-func @addV2_broadcast5_f32() -> !tfrt.chain {
+func.func @addV2_broadcast5_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -191,7 +191,7 @@ func @addV2_broadcast5_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_broadcast6_f32'
-func @addV2_broadcast6_f32() -> !tfrt.chain {
+func.func @addV2_broadcast6_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 

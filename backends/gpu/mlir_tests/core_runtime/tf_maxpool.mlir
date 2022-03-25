@@ -14,7 +14,7 @@
 
 // RUN: env CUDNN_LOGINFO_DBG=1 bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_gpu() {
+func.func @register_op_handlers_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %gpu_ordinal = tfrt.constant.i32 0
   %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
@@ -23,7 +23,7 @@ func @register_op_handlers_gpu() {
 }
 
 // CHECK: --- Running 'maxpool_f32'
-func @maxpool_f32() -> !tfrt.chain {
+func.func @maxpool_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -39,7 +39,7 @@ func @maxpool_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'maxpool'
-func @maxpool() -> !tfrt.chain {
+func.func @maxpool() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 

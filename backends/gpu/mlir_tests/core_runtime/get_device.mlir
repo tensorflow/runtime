@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu_gpu() {
+func.func @register_op_handlers_cpu_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
@@ -27,7 +27,7 @@ func @register_op_handlers_cpu_gpu() {
 }
 
 // CHECK-LABEL: --- Running 'get_cpu_device'
-func @get_cpu_device() -> !tfrt.chain {
+func.func @get_cpu_device() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -41,7 +41,7 @@ func @get_cpu_device() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'get_gpu_device'
-func @get_gpu_device() -> !tfrt.chain {
+func.func @get_gpu_device() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %gpu = corert.get_op_handler %ch0 "gpu"
 

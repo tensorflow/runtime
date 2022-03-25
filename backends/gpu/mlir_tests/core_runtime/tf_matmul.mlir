@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu_gpu() {
+func.func @register_op_handlers_cpu_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
@@ -27,7 +27,7 @@ func @register_op_handlers_cpu_gpu() {
 }
 
 // CHECK: --- Running 'matmul_2x2_by_2x2_f32'
-func @matmul_2x2_by_2x2_f32() -> !tfrt.chain {
+func.func @matmul_2x2_by_2x2_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -50,7 +50,7 @@ func @matmul_2x2_by_2x2_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'matmul_2x2_trans_by_2x2_f32'
-func @matmul_2x2_trans_by_2x2_f32() -> !tfrt.chain {
+func.func @matmul_2x2_trans_by_2x2_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -73,7 +73,7 @@ func @matmul_2x2_trans_by_2x2_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'matmul_2x2_by_2x2_trans_f32'
-func @matmul_2x2_by_2x2_trans_f32() -> !tfrt.chain {
+func.func @matmul_2x2_by_2x2_trans_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -96,7 +96,7 @@ func @matmul_2x2_by_2x2_trans_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'matmul_2x2_trans_by_2x2_trans_f32'
-func @matmul_2x2_trans_by_2x2_trans_f32() -> !tfrt.chain {
+func.func @matmul_2x2_trans_by_2x2_trans_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -119,7 +119,7 @@ func @matmul_2x2_trans_by_2x2_trans_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'matmul_2x2_by_2x2_f64'
-func @matmul_2x2_by_2x2_f64() -> !tfrt.chain {
+func.func @matmul_2x2_by_2x2_f64() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %gpu = corert.get_op_handler %ch_epoch "gpu"
 
@@ -142,7 +142,7 @@ func @matmul_2x2_by_2x2_f64() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'matmul_2x2_by_2x2_f16'
-func @matmul_2x2_by_2x2_f16() -> !tfrt.chain {
+func.func @matmul_2x2_by_2x2_f16() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
   %gpu = corert.get_op_handler %ch_epoch "gpu"

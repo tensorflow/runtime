@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME'
-func @BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME() {
+func.func @BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -58,7 +58,7 @@ func @BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME'
-func @BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME() {
+func.func @BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -101,7 +101,7 @@ func @BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradFilter_in_8x28x28x256_f_2x2x256_s2x2_SAME'
-func @BM_Conv2DGradFilter_in_8x28x28x256_f_2x2x256_s2x2_SAME() {
+func.func @BM_Conv2DGradFilter_in_8x28x28x256_f_2x2x256_s2x2_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0

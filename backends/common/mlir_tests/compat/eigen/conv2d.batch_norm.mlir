@@ -21,7 +21,7 @@
 // RUN: bef_executor %s.bef --work_queue_type=mstd:8 | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -79,7 +79,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -137,7 +137,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -195,7 +195,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -253,7 +253,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -311,7 +311,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -369,7 +369,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -427,7 +427,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -485,7 +485,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -543,7 +543,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -601,7 +601,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -659,7 +659,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -717,7 +717,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -775,7 +775,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -833,7 +833,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -891,7 +891,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -949,7 +949,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1007,7 +1007,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1065,7 +1065,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1123,7 +1123,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1181,7 +1181,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1239,7 +1239,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1297,7 +1297,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1355,7 +1355,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1413,7 +1413,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1471,7 +1471,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1529,7 +1529,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1587,7 +1587,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1645,7 +1645,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1703,7 +1703,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1761,7 +1761,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1819,7 +1819,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1877,7 +1877,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1935,7 +1935,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -1993,7 +1993,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2051,7 +2051,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2109,7 +2109,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2167,7 +2167,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2225,7 +2225,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2283,7 +2283,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2341,7 +2341,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2399,7 +2399,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2457,7 +2457,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2515,7 +2515,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2573,7 +2573,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2631,7 +2631,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2689,7 +2689,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2747,7 +2747,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2805,7 +2805,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2863,7 +2863,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2921,7 +2921,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -2979,7 +2979,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3037,7 +3037,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3095,7 +3095,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3153,7 +3153,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3211,7 +3211,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3269,7 +3269,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3327,7 +3327,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3385,7 +3385,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3443,7 +3443,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3501,7 +3501,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3559,7 +3559,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3617,7 +3617,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3675,7 +3675,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3733,7 +3733,7 @@ func @test_conv2d_batch_norm_in_1x9x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3791,7 +3791,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3849,7 +3849,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3907,7 +3907,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -3965,7 +3965,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4023,7 +4023,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4081,7 +4081,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4139,7 +4139,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4197,7 +4197,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4255,7 +4255,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4313,7 +4313,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4371,7 +4371,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4429,7 +4429,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4487,7 +4487,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4545,7 +4545,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4603,7 +4603,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4661,7 +4661,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_1x1_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4719,7 +4719,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4777,7 +4777,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4835,7 +4835,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4893,7 +4893,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -4951,7 +4951,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5009,7 +5009,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5067,7 +5067,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5125,7 +5125,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5183,7 +5183,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5241,7 +5241,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5299,7 +5299,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5357,7 +5357,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5415,7 +5415,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5473,7 +5473,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5531,7 +5531,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5589,7 +5589,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x3_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5647,7 +5647,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5705,7 +5705,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5763,7 +5763,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5821,7 +5821,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5879,7 +5879,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5937,7 +5937,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -5995,7 +5995,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6053,7 +6053,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6111,7 +6111,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6169,7 +6169,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6227,7 +6227,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6285,7 +6285,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6343,7 +6343,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6401,7 +6401,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6459,7 +6459,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6517,7 +6517,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_2x3_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6575,7 +6575,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6633,7 +6633,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6691,7 +6691,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6749,7 +6749,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6807,7 +6807,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6865,7 +6865,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6923,7 +6923,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -6981,7 +6981,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7039,7 +7039,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7097,7 +7097,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7155,7 +7155,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7213,7 +7213,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7271,7 +7271,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7329,7 +7329,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7387,7 +7387,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7445,7 +7445,7 @@ func @test_conv2d_batch_norm_in_1x9x7x8_f_3x2_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7503,7 +7503,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7561,7 +7561,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7619,7 +7619,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7677,7 +7677,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7735,7 +7735,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7793,7 +7793,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7851,7 +7851,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7909,7 +7909,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -7967,7 +7967,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8025,7 +8025,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8083,7 +8083,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8141,7 +8141,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8199,7 +8199,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8257,7 +8257,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8315,7 +8315,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8373,7 +8373,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_1x1_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8431,7 +8431,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8489,7 +8489,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8547,7 +8547,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8605,7 +8605,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8663,7 +8663,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8721,7 +8721,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8779,7 +8779,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8837,7 +8837,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8895,7 +8895,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -8953,7 +8953,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9011,7 +9011,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9069,7 +9069,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9127,7 +9127,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9185,7 +9185,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9243,7 +9243,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9301,7 +9301,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x3_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9359,7 +9359,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9417,7 +9417,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9475,7 +9475,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9533,7 +9533,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9591,7 +9591,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9649,7 +9649,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9707,7 +9707,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9765,7 +9765,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9823,7 +9823,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9881,7 +9881,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9939,7 +9939,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -9997,7 +9997,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10055,7 +10055,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10113,7 +10113,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10171,7 +10171,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10229,7 +10229,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_2x3_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10287,7 +10287,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10345,7 +10345,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10403,7 +10403,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10461,7 +10461,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10519,7 +10519,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10577,7 +10577,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10635,7 +10635,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10693,7 +10693,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_valid_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10751,7 +10751,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10809,7 +10809,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10867,7 +10867,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10925,7 +10925,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_1x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -10983,7 +10983,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11041,7 +11041,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x1_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11099,7 +11099,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.01() {
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11157,7 +11157,7 @@ func @test_conv2d_batch_norm_in_1x7x9x8_f_3x2_c16_padding_same_s_2x2_eps0.001() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11215,7 +11215,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11273,7 +11273,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11331,7 +11331,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11389,7 +11389,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11447,7 +11447,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11505,7 +11505,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11563,7 +11563,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11621,7 +11621,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11679,7 +11679,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11737,7 +11737,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11795,7 +11795,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11853,7 +11853,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11911,7 +11911,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -11969,7 +11969,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12027,7 +12027,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12085,7 +12085,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12143,7 +12143,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12201,7 +12201,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12259,7 +12259,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12317,7 +12317,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12375,7 +12375,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12433,7 +12433,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12491,7 +12491,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12549,7 +12549,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12607,7 +12607,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12665,7 +12665,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12723,7 +12723,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12781,7 +12781,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12839,7 +12839,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12897,7 +12897,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -12955,7 +12955,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13013,7 +13013,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13071,7 +13071,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13129,7 +13129,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13187,7 +13187,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13245,7 +13245,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13303,7 +13303,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13361,7 +13361,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13419,7 +13419,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13477,7 +13477,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13535,7 +13535,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13593,7 +13593,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13651,7 +13651,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13709,7 +13709,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13767,7 +13767,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13825,7 +13825,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13883,7 +13883,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13941,7 +13941,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -13999,7 +13999,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14057,7 +14057,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14115,7 +14115,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14173,7 +14173,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14231,7 +14231,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14289,7 +14289,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14347,7 +14347,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14405,7 +14405,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14463,7 +14463,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14521,7 +14521,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14579,7 +14579,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14637,7 +14637,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14695,7 +14695,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14753,7 +14753,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14811,7 +14811,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14869,7 +14869,7 @@ func @test_conv2d_batch_norm_in_1x9x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14927,7 +14927,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -14985,7 +14985,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15043,7 +15043,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15101,7 +15101,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15159,7 +15159,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15217,7 +15217,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15275,7 +15275,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15333,7 +15333,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15391,7 +15391,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15449,7 +15449,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15507,7 +15507,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15565,7 +15565,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15623,7 +15623,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15681,7 +15681,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15739,7 +15739,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15797,7 +15797,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_1x1_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15855,7 +15855,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15913,7 +15913,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -15971,7 +15971,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16029,7 +16029,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16087,7 +16087,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16145,7 +16145,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16203,7 +16203,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16261,7 +16261,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16319,7 +16319,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16377,7 +16377,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16435,7 +16435,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16493,7 +16493,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16551,7 +16551,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16609,7 +16609,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16667,7 +16667,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16725,7 +16725,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x3_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16783,7 +16783,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16841,7 +16841,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16899,7 +16899,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -16957,7 +16957,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17015,7 +17015,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17073,7 +17073,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17131,7 +17131,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17189,7 +17189,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17247,7 +17247,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17305,7 +17305,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17363,7 +17363,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17421,7 +17421,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17479,7 +17479,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17537,7 +17537,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17595,7 +17595,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17653,7 +17653,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_2x3_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17711,7 +17711,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17769,7 +17769,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17827,7 +17827,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17885,7 +17885,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -17943,7 +17943,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18001,7 +18001,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18059,7 +18059,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18117,7 +18117,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18175,7 +18175,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18233,7 +18233,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18291,7 +18291,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18349,7 +18349,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18407,7 +18407,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18465,7 +18465,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18523,7 +18523,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18581,7 +18581,7 @@ func @test_conv2d_batch_norm_in_1x9x7x10_f_3x2_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18639,7 +18639,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18697,7 +18697,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18755,7 +18755,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18813,7 +18813,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18871,7 +18871,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18929,7 +18929,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -18987,7 +18987,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19045,7 +19045,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19103,7 +19103,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19161,7 +19161,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19219,7 +19219,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19277,7 +19277,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19335,7 +19335,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19393,7 +19393,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19451,7 +19451,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19509,7 +19509,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_1x1_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19567,7 +19567,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19625,7 +19625,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19683,7 +19683,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19741,7 +19741,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19799,7 +19799,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19857,7 +19857,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19915,7 +19915,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -19973,7 +19973,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20031,7 +20031,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20089,7 +20089,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20147,7 +20147,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20205,7 +20205,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20263,7 +20263,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20321,7 +20321,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20379,7 +20379,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20437,7 +20437,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x3_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20495,7 +20495,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20553,7 +20553,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20611,7 +20611,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20669,7 +20669,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20727,7 +20727,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20785,7 +20785,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20843,7 +20843,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20901,7 +20901,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -20959,7 +20959,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21017,7 +21017,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21075,7 +21075,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21133,7 +21133,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21191,7 +21191,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21249,7 +21249,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21307,7 +21307,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21365,7 +21365,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_2x3_c16_padding_same_s_2x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21423,7 +21423,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21481,7 +21481,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21539,7 +21539,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21597,7 +21597,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_1x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21655,7 +21655,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21713,7 +21713,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x1_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21771,7 +21771,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.01()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21829,7 +21829,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_valid_s_2x2_eps0.001(
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21887,7 +21887,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -21945,7 +21945,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -22003,7 +22003,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -22061,7 +22061,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_1x2_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -22119,7 +22119,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -22177,7 +22177,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x1_eps0.001()
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -22235,7 +22235,7 @@ func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.01() 
 }
 
 // CHECK-LABEL: --- Running 'test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001'
-func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001() {
+func.func @test_conv2d_batch_norm_in_1x7x9x10_f_3x2_c16_padding_same_s_2x2_eps0.001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {

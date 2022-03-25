@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2'
-func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {
+func.func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_MatMul_512x512x512_f32'
-func @BM_MatMul_512x512x512_f32() {
+func.func @BM_MatMul_512x512x512_f32() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -53,7 +53,7 @@ func @BM_MatMul_512x512x512_f32() {
 }
 
 // CHECK-LABEL: --- Running 'BM_MatMul_1024x1024x1024_f32'
-func @BM_MatMul_1024x1024x1024_f32() {
+func.func @BM_MatMul_1024x1024x1024_f32() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0

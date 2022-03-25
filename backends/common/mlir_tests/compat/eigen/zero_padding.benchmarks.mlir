@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_ZeroPadding_in_1x224x224x3_p_3x3'
-func @BM_ZeroPadding_in_1x224x224x3_p_3x3() {
+func.func @BM_ZeroPadding_in_1x224x224x3_p_3x3() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_matmul_i32'
-func @test_matmul_i32() {
+func.func @test_matmul_i32() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -55,7 +55,7 @@ func @test_matmul_i32() {
 }
 
 // CHECK-LABEL: --- Running 'test_matmul_f32'
-func @test_matmul_f32() {
+func.func @test_matmul_f32() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {

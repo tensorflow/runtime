@@ -21,7 +21,7 @@
 // RUN: bef_executor --work_queue_type=mstd:8 %s.bef | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001'
-func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() -> !tfrt.chain {
+func.func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -111,7 +111,7 @@ func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_2x2x2x4_epsilon_0.001'
-func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() -> !tfrt.chain {
+func.func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -201,7 +201,7 @@ func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_4x4x4x32_epsilon_0.01'
-func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() -> !tfrt.chain {
+func.func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -291,7 +291,7 @@ func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001'
-func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() -> !tfrt.chain {
+func.func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {

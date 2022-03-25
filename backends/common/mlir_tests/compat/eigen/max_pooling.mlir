@@ -21,7 +21,7 @@
 // RUN: bef_executor %s.bef --work_queue_type=mstd:8 | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -57,7 +57,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_valid_p_2x3_s_2x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_2x3_s_2x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_2x3_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -93,7 +93,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_2x3_s_2x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x2_s_2x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x2_s_2x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x2_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -129,7 +129,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x2_s_2x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_3x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_3x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_3x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -165,7 +165,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_3x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x3'
-func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x3() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x3() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -201,7 +201,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x3() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -237,7 +237,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_same_p_2x3_s_2x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_same_p_2x3_s_2x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_same_p_2x3_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -273,7 +273,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_2x3_s_2x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_same_p_3x2_s_2x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x2_s_2x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x2_s_2x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -309,7 +309,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x2_s_2x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_3x2'
-func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_3x2() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_3x2() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -345,7 +345,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_3x2() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x3'
-func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x3() {
+func.func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x3() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {

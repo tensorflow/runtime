@@ -17,7 +17,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_batch_norm_in_1x1x1x8_epsilon_0.0001'
-func @test_batch_norm_in_1x1x1x8_epsilon_0.0001() {
+func.func @test_batch_norm_in_1x1x1x8_epsilon_0.0001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -64,7 +64,7 @@ func @test_batch_norm_in_1x1x1x8_epsilon_0.0001() {
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_in_1x1x2x4_epsilon_0.0001'
-func @test_batch_norm_in_1x1x2x4_epsilon_0.0001() {
+func.func @test_batch_norm_in_1x1x2x4_epsilon_0.0001() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_BatchNormGrad_8x32x32x128'
-func @BM_BatchNormGrad_8x32x32x128() {
+func.func @BM_BatchNormGrad_8x32x32x128() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME'
-func @BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME() {
+func.func @BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -58,7 +58,7 @@ func @BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x56x56x256_f1x1x64_s1x1_SAME'
-func @BM_Conv2DGradInput_in_8x56x56x256_f1x1x64_s1x1_SAME() {
+func.func @BM_Conv2DGradInput_in_8x56x56x256_f1x1x64_s1x1_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -101,7 +101,7 @@ func @BM_Conv2DGradInput_in_8x56x56x256_f1x1x64_s1x1_SAME() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_SAME'
-func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_SAME() {
+func.func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -144,7 +144,7 @@ func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_SAME() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_SAME'
-func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_SAME() {
+func.func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_SAME() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -187,7 +187,7 @@ func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_SAME() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_VALID'
-func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_VALID() {
+func.func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_VALID() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -230,7 +230,7 @@ func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_VALID() {
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_VALID'
-func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_VALID() {
+func.func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_VALID() {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0

@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s
 
 // CHECK: --- Running 'hello'
-func @hello() {
+func.func @hello() {
   %chain = tfrt.new.chain
 
   // Create a string containing "hello world" and store it in %hello.
@@ -29,7 +29,7 @@ func @hello() {
 }
 
 // CHECK: --- Running 'hello_integers'
-func @hello_integers() {
+func.func @hello_integers() {
   %chain = tfrt.new.chain
 
   // Create an integer containing 42.
@@ -43,7 +43,7 @@ func @hello_integers() {
 }
 
 // CHECK: --- Running 'print_coordinate'
-func @print_coordinate() {
+func.func @print_coordinate() {
   %chain = tfrt.new.chain
 
   %two = tfrt.constant.i32 2

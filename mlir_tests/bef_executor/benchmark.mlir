@@ -18,7 +18,7 @@
 // A function to demonstrate the use of benchmark kernels.
 
 // CHECK-LABEL: --- Running 'benchmark'
-func @benchmark() {
+func.func @benchmark() {
   // CHECK: BM:add.i32:Duration(ns):
   // CHECK: BM:add.i32:Count: 100
   // CHECK: BM:add.i32:Time Min(ns):
@@ -44,7 +44,7 @@ func @benchmark() {
 
 // A function to demonstrate the use of benchmark kernels with the input compute
 // as an external arguments.
-func @benchmark2() {
+func.func @benchmark2() {
   // CHECK: BM:add.i32:Duration(ns):
   // CHECK: BM:add.i32:Count: 100
   // CHECK: BM:add.i32:Time Min(ns):

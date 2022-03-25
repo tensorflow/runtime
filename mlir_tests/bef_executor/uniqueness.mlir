@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 // RUN: bef_executor_lite -work_queue_type=mstd %s.bef | FileCheck %s
 
-func @callee(%ch: !tfrt.chain, %a: i32, %b: i32) -> (!tfrt.chain, i32, i32) attributes {tfrt.cost_threshold = 1 : i64} {
+func.func @callee(%ch: !tfrt.chain, %a: i32, %b: i32) -> (!tfrt.chain, i32, i32) attributes {tfrt.cost_threshold = 1 : i64} {
   %ua = "tfrt_test.get_uniqueness"(%a) : (i32) -> (i1)
   %ub = "tfrt_test.get_uniqueness"(%b) : (i32) -> (i1)
 
@@ -26,7 +26,7 @@ func @callee(%ch: !tfrt.chain, %a: i32, %b: i32) -> (!tfrt.chain, i32, i32) attr
 }
 
 // CHECK-LABEL: test_uniqueness
-func @test_uniqueness() -> (!tfrt.chain) {
+func.func @test_uniqueness() -> (!tfrt.chain) {
   %ch = tfrt.new.chain
   %a = tfrt.constant.i32 0
   %b = tfrt.constant.i32 1
@@ -45,7 +45,7 @@ func @test_uniqueness() -> (!tfrt.chain) {
 }
 
 // CHECK-LABEL: test_indirect_uniqueness
-func @test_indirect_uniqueness() -> (!tfrt.chain) {
+func.func @test_indirect_uniqueness() -> (!tfrt.chain) {
   %ch = tfrt.new.chain
   %a = tfrt.constant.i32 100
 

@@ -14,7 +14,7 @@
 
 // RUN: bef_executor_lite %s.bef
 
-func @unsupported_kernel_function() {
+func.func @unsupported_kernel_function() {
   // expected-error @+1 {{unknown kernel name 'unsupported_kernel'}}
   "unsupported_kernel"() : () -> ()
   tfrt.return

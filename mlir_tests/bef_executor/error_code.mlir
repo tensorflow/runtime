@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite --print_error_code %s.bef 2>&1 | FileCheck %s
 
 // CHECK-LABEL: --- Running 'test_error_result'
-func @test_error_result() -> i32 {
+func.func @test_error_result() -> i32 {
   %x = "tfrt_test.fail"() : () -> i32 // expected-error {{something bad happened}}
   tfrt.return %x : i32
 }

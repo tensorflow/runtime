@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s
 
 // CHECK: --- Running 'unique_loc_test'
-func @unique_loc_test() -> !tfrt.chain {
+func.func @unique_loc_test() -> !tfrt.chain {
   %ch0 = "tfrt_test.unique_loc"() {name = "a"} : () -> !tfrt.chain loc(unknown)
   %ch1 = "tfrt_test.unique_loc"() {name = "b"} : () -> !tfrt.chain loc(unknown)
   %ch2 = "tfrt_test.unique_loc"() {name = "c"} : () -> !tfrt.chain loc(unknown)

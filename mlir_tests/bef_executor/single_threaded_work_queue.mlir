@@ -17,13 +17,13 @@
 // The following tests should be executed with single-threaded work queue.
 
 // CHECK-LABEL: --- Not running 'call_add.i32' because it has arguments
-func @call_add.i32(%x: i32, %y: i32) -> i32 {
+func.func @call_add.i32(%x: i32, %y: i32) -> i32 {
   %z = tfrt.add.i32 %x, %y
   tfrt.return %z : i32
 }
 
 // CHECK-LABEL: --- Running 'nonstrict_kernel_with_error_input'
-func @nonstrict_kernel_with_error_input() -> i32 {
+func.func @nonstrict_kernel_with_error_input() -> i32 {
   %ch0 = tfrt.new.chain
 
   %one = tfrt.constant.i32 1
@@ -42,7 +42,7 @@ func @nonstrict_kernel_with_error_input() -> i32 {
 // CHECK-NEXT: 'nonstrict_kernel_with_error_input' returned <<error: something bad happened>>
 
 // CHECK-LABEL: --- Running 'strict_kernel_with_error_input'
-func @strict_kernel_with_error_input() -> (i32, !tfrt.chain) {
+func.func @strict_kernel_with_error_input() -> (i32, !tfrt.chain) {
   %ch0 = tfrt.new.chain
 
   %one = tfrt.constant.i32 1

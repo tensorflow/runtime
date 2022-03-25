@@ -15,7 +15,7 @@
 // RUN: cat %s.bef | not bef_executor_lite | FileCheck %s
 
 // CHECK: --- Running 'test_leak_one_int32'
-func @test_leak_one_int32() -> () {
+func.func @test_leak_one_int32() -> () {
   "tfrt_test.memory_leak_one_int32"() : () -> ()
   tfrt.return
 }

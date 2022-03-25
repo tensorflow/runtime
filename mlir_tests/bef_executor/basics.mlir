@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s
 
 // CHECK: --- Running 'print_test'
-func @print_test() {
+func.func @print_test() {
   // CHECK: hello host executor!
   %ch0 = tfrt.new.chain
   %ch1 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
@@ -23,7 +23,7 @@ func @print_test() {
 }
 
 // CHECK-LABEL: --- Running 'three_print_error'
-func @three_print_error() {
+func.func @three_print_error() {
   %ch0 = tfrt.new.chain
 
   // CHECK: hello host executor!
@@ -39,7 +39,7 @@ func @three_print_error() {
 }
 
 // CHECK-LABEL: --- Running 'basic.i1'
-func @basic.i1() -> !tfrt.chain {
+func.func @basic.i1() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.i1 0
@@ -54,7 +54,7 @@ func @basic.i1() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic.i32'
-func @basic.i32() -> !tfrt.chain {
+func.func @basic.i32() -> !tfrt.chain {
   %x = tfrt.constant.i32 42
 
   %ch0 = tfrt.new.chain
@@ -94,7 +94,7 @@ func @basic.i32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'divide_by_zero.i32'
-func @divide_by_zero.i32() -> i32 {
+func.func @divide_by_zero.i32() -> i32 {
   %zero = tfrt.constant.i32 0
   %x = tfrt.constant.i32 42
 
@@ -105,7 +105,7 @@ func @divide_by_zero.i32() -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'basic.i64'
-func @basic.i64() -> !tfrt.chain {
+func.func @basic.i64() -> !tfrt.chain {
   %x = tfrt.constant.i64 42
 
   %ch0 = tfrt.new.chain
@@ -129,7 +129,7 @@ func @basic.i64() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic.f32'
-func @basic.f32() -> !tfrt.chain {
+func.func @basic.f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -149,7 +149,7 @@ func @basic.f32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic.f64'
-func @basic.f64() -> !tfrt.chain {
+func.func @basic.f64() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f64 0.0
@@ -169,7 +169,7 @@ func @basic.f64() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic_strings'
-func @basic_strings() {
+func.func @basic_strings() {
   %x = "tfrt_test.get_string"() { value = "bark" } : () -> !tfrt.string
   %y = "tfrt_test.get_string"() { value = "rarf" } : () -> !tfrt.string
   %ch0 = tfrt.new.chain
@@ -186,21 +186,21 @@ func @basic_strings() {
 }
 
 // CHECK-LABEL: --- Not running 'call_print.i32' because it has arguments
-func @call_print.i32(%x: i32) -> !tfrt.chain {
+func.func @call_print.i32(%x: i32) -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %ch1 = tfrt.print.i32 %x, %ch0
   tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Not running 'add_one' because it has arguments
-func @add_one(%x: i32) -> i32 {
+func.func @add_one(%x: i32) -> i32 {
   %c1 = tfrt.constant.i32 1
   %y = tfrt.add.i32 %x, %c1
   tfrt.return %y : i32
 }
 
 // CHECK-LABEL: --- Running 'caller'
-func @caller() -> !tfrt.chain {
+func.func @caller() -> !tfrt.chain {
   %c1 = tfrt.constant.i32 1
 
   // CHECK-NEXT: int32 = 1
@@ -215,14 +215,14 @@ func @caller() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_error_result'
-func @test_error_result() -> i32 {
+func.func @test_error_result() -> i32 {
   %x = "tfrt_test.fail"() : () -> i32 // expected-error {{something bad happened}}
   tfrt.return %x : i32
 }
 // CHECK-NEXT: 'test_error_result' returned <<error: something bad happened>>
 
 // CHECK-LABEL: --- Running 'test_error_result_concrete_async_success'
-func @test_error_result_concrete_async_success() -> i32 {
+func.func @test_error_result_concrete_async_success() -> i32 {
   %in = tfrt.constant.i32 0
   %x = "tfrt_test.report_error_concrete_async"(%in) : (i32) -> i32
   tfrt.return %x : i32
@@ -230,7 +230,7 @@ func @test_error_result_concrete_async_success() -> i32 {
 // CHECK-NEXT: 'test_error_result_concrete_async_success' returned 0
 
 // CHECK-LABEL: --- Running 'test_error_result_concrete_async_fail'
-func @test_error_result_concrete_async_fail() -> i32 {
+func.func @test_error_result_concrete_async_fail() -> i32 {
   %in = tfrt.constant.i32 1
   %x = "tfrt_test.report_error_concrete_async"(%in) : (i32) -> i32 // expected-error {{something bad happened asynchronously}}
 
@@ -239,7 +239,7 @@ func @test_error_result_concrete_async_fail() -> i32 {
 // CHECK-NEXT: 'test_error_result_concrete_async_fail' returned <<error: something bad happened asynchronously>>
 
 // CHECK-LABEL: --- Running 'test_error_result_indirect_async_success'
-func @test_error_result_indirect_async_success() -> i32 {
+func.func @test_error_result_indirect_async_success() -> i32 {
   %in = tfrt.constant.i32 0
   %x = "tfrt_test.report_error_indirect_async"(%in) : (i32) -> i32
   tfrt.return %x : i32
@@ -247,7 +247,7 @@ func @test_error_result_indirect_async_success() -> i32 {
 // CHECK-NEXT: 'test_error_result_indirect_async_success' returned 0
 
 // CHECK-LABEL: --- Running 'test_error_result_indirect_async_fail'
-func @test_error_result_indirect_async_fail() -> i32 {
+func.func @test_error_result_indirect_async_fail() -> i32 {
   %in = tfrt.constant.i32 1
   %x = "tfrt_test.report_error_indirect_async"(%in) : (i32) -> i32 // expected-error {{something bad happened asynchronously}}
 
@@ -256,7 +256,7 @@ func @test_error_result_indirect_async_fail() -> i32 {
 // CHECK-NEXT: 'test_error_result_indirect_async_fail' returned <<error: something bad happened asynchronously>>
 
 // CHECK-LABEL: --- Running 'test_ignore_error'
-func @test_ignore_error() -> i32 {
+func.func @test_ignore_error() -> i32 {
   "tfrt_test.fail"() : () -> i32 // expected-error {{something bad happened}}
   %x = tfrt.constant.i32 1
   tfrt.return %x : i32
@@ -264,7 +264,7 @@ func @test_ignore_error() -> i32 {
 // CHECK: 'test_ignore_error' returned 1
 
 // CHECK-LABEL: --- Running 'test_partial_fail'
-func @test_partial_fail() -> !tfrt.chain {
+func.func @test_partial_fail() -> !tfrt.chain {
   // Sets %x to 1 and %y to an error.
   %x, %y = "tfrt_test.partial_fail"() : () -> (i32, i32) // expected-error {{something bad happened}}
 
@@ -280,7 +280,7 @@ func @test_partial_fail() -> !tfrt.chain {
 // CHECK-NEXT: 'test_partial_fail' returned <<error: something bad happened>>
 
 // CHECK-LABEL: --- Running 'test_cancel'
-func @test_cancel() -> !tfrt.chain {
+func.func @test_cancel() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %x, %ch1 = "tfrt_test.cancel"(%ch0) : (!tfrt.chain) -> (i32, !tfrt.chain)
 
@@ -294,7 +294,7 @@ func @test_cancel() -> !tfrt.chain {
 // CHECK-NEXT: 'test_cancel' returned <<error: Cancelled>>
 
 // CHECK-LABEL: --- Running 'test_async_value_get'
-func @test_async_value_get() -> () {
+func.func @test_async_value_get() -> () {
   %x = "tfrt_test.async_value_get"() : () -> !tfrt.string
 
   %ch0 = tfrt.new.chain
@@ -305,7 +305,7 @@ func @test_async_value_get() -> () {
 }
 
 // CHECK-LABEL: --- Running 'test_async_value_ref'
-func @test_async_value_ref() -> () {
+func.func @test_async_value_ref() -> () {
   %x = "tfrt_test.async_value_ref"() : () -> !tfrt.string
 
   %ch0 = tfrt.new.chain
@@ -316,7 +316,7 @@ func @test_async_value_ref() -> () {
 }
 
 // CHECK-LABEL: --- Running 'test_logging'
-func @test_logging() {
+func.func @test_logging() {
   %x = "tfrt_test.get_string"() { value = "hello world" } : () -> !tfrt.string
   %c1 = tfrt.new.chain
   // CHECK: from TFRT_LOG(INFO): hello world
@@ -330,7 +330,7 @@ func @test_logging() {
 }
 
 // CHECK-LABEL: --- Running 'test_explicit_resource_management'
-func @test_explicit_resource_management() -> !tfrt.chain {
+func.func @test_explicit_resource_management() -> !tfrt.chain {
   %c0 = tfrt.new.chain
 
   // CHECK-NEXT: Allocated TestResource
@@ -346,7 +346,7 @@ func @test_explicit_resource_management() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_explicit_resource_management_with_cancellation'
-func @test_explicit_resource_management_with_cancellation() -> !tfrt.chain {
+func.func @test_explicit_resource_management_with_cancellation() -> !tfrt.chain {
   %c0 = tfrt.new.chain
   // CHECK-NEXT: Allocated TestResource
   %res, %c1 = "tfrt_test.allocate_resource" (%c0) : (!tfrt.chain) -> (!tfrt.test.resource, !tfrt.chain)
@@ -363,7 +363,7 @@ func @test_explicit_resource_management_with_cancellation() -> !tfrt.chain {
 // CHECK-NEXT: 'test_explicit_resource_management_with_cancellation' returned <<error: Cancelled>>
 
 // CHECK-LABEL: --- Running 'test_shared_context'
-func @test_shared_context() {
+func.func @test_shared_context() {
   %ch0 = tfrt.new.chain
 
   // use the sample shared context twice to verify only one instance is created.
@@ -380,7 +380,7 @@ func @test_shared_context() {
 }
 
 // CHECK-LABEL: --- Running 'return_multi'
-func @return_multi() -> (i32, i32, i32, i32) {
+func.func @return_multi() -> (i32, i32, i32, i32) {
   %a = tfrt.constant.i32 1
   %b = tfrt.constant.i32 2
 
@@ -388,7 +388,7 @@ func @return_multi() -> (i32, i32, i32, i32) {
   tfrt.return %a, %a, %a, %b : i32, i32, i32, i32
 }
 
-func @nested_array() {
+func.func @nested_array() {
   %ch0 = tfrt.new.chain
 
   %a, %b, %c, %d = "tfrt_test.flat"() { value = [["string", [1 : i32, 0 : i32]], [1.0 : f32]]} : () -> (!tfrt.string, i32, i32, f32)
@@ -406,14 +406,14 @@ func @nested_array() {
 }
 
 // CHECK-LABEL: --- Running 'test_error_result_async'
-func @test_error_result_async() -> i32 {
+func.func @test_error_result_async() -> i32 {
   %x = "tfrt_test.report_error_async"() : () -> i32 // expected-error {{something bad happened asynchronously}}
   tfrt.return %x : i32
 }
 // CHECK-NEXT: 'test_error_result_async' returned <<error: something bad happened asynchronously>>
 
 // CHECK-LABEL: --- Running 'test_error_result_async_unused'
-func @test_error_result_async_unused() -> i32 {
+func.func @test_error_result_async_unused() -> i32 {
   %x = tfrt.constant.i32 123
   %y = "tfrt_test.report_error_async"() : () -> i32  // expected-error {{something bad happened asynchronously}}
   // CHECK: 'test_error_result_async_unused' returned 123
@@ -421,7 +421,7 @@ func @test_error_result_async_unused() -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'test_identity'
-func @test_identity() {
+func.func @test_identity() {
   %ch = tfrt.new.chain
   %x = tfrt.constant.i32 123
   %y = "tfrt_test.identity"(%ch, %x) : (!tfrt.chain, i32) -> (i32)
@@ -431,7 +431,7 @@ func @test_identity() {
 }
 
 // CHECK-LABEL: --- Running 'test_multi_arg_result'
-func @test_multi_arg_result() -> !tfrt.chain {
+func.func @test_multi_arg_result() -> !tfrt.chain {
   %x = tfrt.constant.i32 1
   %y = tfrt.constant.i32 2
   %z = tfrt.constant.i32 3

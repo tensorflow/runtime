@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s --dump-input-filter=all
 
 // CHECK-LABEL: --- Running 'test_linear'
-func @test_linear() {
+func.func @test_linear() {
   %ch0 = tfrt.new.chain
 
   // Enqueuing 1, 5, 4. Since we are using single-threaded work queue, they are
@@ -50,12 +50,12 @@ func @test_linear() {
 }
 
 // CHECK-LABEL: --- Not running 'no_op' because it has arguments
-func @no_op(%x: !vt.value) -> !vt.value {
+func.func @no_op(%x: !vt.value) -> !vt.value {
   tfrt.return %x : !vt.value
 }
 
 // CHECK-LABEL: --- Running 'call_no_op'
-func @call_no_op() {
+func.func @call_no_op() {
   // This test uses one vt.value(2) that is all of these:
   // - Function argument: passed to no_op.
   // - Function result: returned by no_op.
@@ -78,7 +78,7 @@ func @call_no_op() {
 }
 
 // CHECK-LABEL: --- Not running 'add_one' because it has arguments
-func @add_one(%x: !vt.value) -> !vt.value {
+func.func @add_one(%x: !vt.value) -> !vt.value {
   %v1 = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
   %r = "vt.add"(%v1, %x) : (!vt.value,  !vt.value) -> !vt.value
   tfrt.return %r : !vt.value
@@ -86,7 +86,7 @@ func @add_one(%x: !vt.value) -> !vt.value {
 
 // CHECK-LABEL: --- Running 'caller'
 
-func @caller() {
+func.func @caller() {
   // CHECK-NEXT: constructed vt.value(3)
   // CHECK-NEXT: move constructed vt.value(3)
   %c1 = "vt.constant"() { value = 3 : i32 } : () -> !vt.value
@@ -113,7 +113,7 @@ func @caller() {
 }
 
 // CHECK-NEXT: --- Running 'test_hello'
-func @test_hello() {
+func.func @test_hello() {
  // CHECK: hello host executor!
   %ch0 = tfrt.new.chain
   %ch1 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
@@ -121,7 +121,7 @@ func @test_hello() {
 }
 
 // CHECK-LABEL: --- Running 'share_to_two'
-func @share_to_two() {
+func.func @share_to_two() {
   // CHECK-NEXT: constructed vt.value(1)
   // CHECK-NEXT: move constructed vt.value(1)
   %c1 = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
@@ -143,13 +143,13 @@ func @share_to_two() {
 // Testing calling a bef function that forwards its argument into two results.
 
 // CHECK-LABEL: --- Not running 'call_share_to_two' because it has arguments
-func @call_share_to_two(%x: !vt.value) -> (!vt.value, !vt.value) {
+func.func @call_share_to_two(%x: !vt.value) -> (!vt.value, !vt.value) {
   %x1, %x2 = "tfrt_test.share_to_two"(%x) : (!vt.value) -> (!vt.value, !vt.value)
   tfrt.return %x1, %x2 : !vt.value, !vt.value
 }
 
 // CHECK-LABEL: --- Running 'share_to_two_caller'
-func @share_to_two_caller() {
+func.func @share_to_two_caller() {
   // CHECK-NEXT: constructed vt.value(1)
   // CHECK-NEXT: move constructed vt.value(1)
   %c1 = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
@@ -169,7 +169,7 @@ func @share_to_two_caller() {
 }
 
 // CHECK-LABEL: --- Not running 'repeat_n_inc' because it has arguments
-func @repeat_n_inc(%n: i32) -> () {
+func.func @repeat_n_inc(%n: i32) -> () {
   // Returns 1 + %n by initializing %x to 1 and incrementing in a loop.
   %ch0 = tfrt.new.chain
   %x = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
@@ -185,7 +185,7 @@ func @repeat_n_inc(%n: i32) -> () {
 }
 
 // CHECK-LABEL: --- Running 'repeat_0_inc'
-func @repeat_0_inc() {
+func.func @repeat_0_inc() {
   %count = tfrt.constant.i32 0
 
   // CHECK: print vt_value(1)
@@ -196,7 +196,7 @@ func @repeat_0_inc() {
 }
 
 // CHECK-LABEL: --- Running 'repeat_1_inc'
-func @repeat_1_inc() {
+func.func @repeat_1_inc() {
   %count = tfrt.constant.i32 1
 
   // CHECK: print vt_value(2)
@@ -206,7 +206,7 @@ func @repeat_1_inc() {
 }
 
 // CHECK-LABEL: --- Running 'repeat_2_inc'
-func @repeat_2_inc() {
+func.func @repeat_2_inc() {
   %count = tfrt.constant.i32 2
 
   // CHECK: print vt_value(3)

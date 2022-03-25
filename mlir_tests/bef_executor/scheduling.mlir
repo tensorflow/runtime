@@ -17,7 +17,7 @@
 module attributes {tfrt.cost_threshold = 10 : i64} {
 
 // CHECK-LABEL: --- Running 'print_thread_id'
-func @print_thread_id() -> !tfrt.chain {
+func.func @print_thread_id() -> !tfrt.chain {
   %ch = tfrt.new.chain
   %t = "tfrt_test.get_thread_id"(%ch) : (!tfrt.chain) -> (i32)
 
@@ -38,7 +38,7 @@ func @print_thread_id() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'lifo_scheduling'
-func @lifo_scheduling() -> !tfrt.chain {
+func.func @lifo_scheduling() -> !tfrt.chain {
   %c0 = tfrt.constant.i32 1
 
   // kernel 0 and kernel 2 are always executed consecutively due to lifo scheduling.

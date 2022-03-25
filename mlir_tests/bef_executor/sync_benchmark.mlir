@@ -17,7 +17,7 @@
 
 // A function to demonstrate the use of benchmark kernels.
 
-func @fibonacci.i32(%0: i32, %1: i32) -> () attributes {tfrt.sync} {
+func.func @fibonacci.i32(%0: i32, %1: i32) -> () attributes {tfrt.sync} {
   %2 = "tfrt.add_s.i32"(%0, %1) : (i32, i32) -> i32
   %3 = "tfrt.add_s.i32"(%1, %2) : (i32, i32) -> i32
   %4 = "tfrt.add_s.i32"(%2, %3) : (i32, i32) -> i32
@@ -33,7 +33,7 @@ func @fibonacci.i32(%0: i32, %1: i32) -> () attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'sync_benchmark'
-func @sync_benchmark() attributes {tfrt.sync} {
+func.func @sync_benchmark() attributes {tfrt.sync} {
   // CHECK: BM:fibonacci.i32:Duration(ns):
   // CHECK: BM:fibonacci.i32:Count:
   // CHECK: BM:fibonacci.i32:Time Min(ns):

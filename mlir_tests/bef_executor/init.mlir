@@ -18,7 +18,7 @@
 // CHECK: string = initializing!
 
 // CHECK: --- Running 'print_hello'
-func @print_hello() {
+func.func @print_hello() {
   // CHECK: hello host executor!
   %ch0 = tfrt.new.chain
   %ch1 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
@@ -26,7 +26,7 @@ func @print_hello() {
 }
 
 // CHECK: --- Running 'print_bye'
-func @print_bye() {
+func.func @print_bye() {
   %ch0 = tfrt.new.chain
   %bye = "tfrt_test.get_string"() { value = "bye host executor!" } : () -> !tfrt.string
 
@@ -35,7 +35,7 @@ func @print_bye() {
   tfrt.return
 }
 
-func @__init__() {
+func.func @__init__() {
   %ch0 = tfrt.new.chain
   %bye = "tfrt_test.get_string"() { value = "initializing!" } : () -> !tfrt.string
   %ch1 = "tfrt_test.print_string"(%bye, %ch0) : (!tfrt.string, !tfrt.chain) -> (!tfrt.chain)

@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite --host_allocator_type test_fixed_size_1k %s.bef 2>&1 | FileCheck %s
 
 // CHECK: --- Running 'dense_array'
-func @dense_array() {
+func.func @dense_array() {
   // CHECK: Allocating 192 bytes
   // CHECK: Attempted to allocate 4160 bytes.
   // CHECK: Allocating 192 bytes

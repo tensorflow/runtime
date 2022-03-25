@@ -20,7 +20,7 @@
 // details. Note that this test requires the use of single-threaded work queue.
 
 // CHECK-LABEL: --- Running 'async_add'
-func @async_add() {
+func.func @async_add() {
   %ch0 = tfrt.new.chain
 
   %x = tfrt.constant.i32 42
@@ -43,7 +43,7 @@ func @async_add() {
 }
 
 // CHECK-LABEL: -- Running 'async_repeat2'
-func @async_repeat2() {
+func.func @async_repeat2() {
   %count = tfrt.constant.i32 2
   %ch = tfrt.new.chain
 
@@ -70,14 +70,14 @@ func @async_repeat2() {
 }
 
 // CHECK-LABEL: --- Not running 'call_async_add.i32' because it has arguments
-func @call_async_add.i32(%x: i32, %y: i32) -> i32 {
+func.func @call_async_add.i32(%x: i32, %y: i32) -> i32 {
   %a = "tfrt_test.async_add.i32"(%x, %y) : (i32, i32) -> i32
   %b = "tfrt_test.async_add.i32"(%a, %y) : (i32, i32) -> i32
   tfrt.return %b : i32
 }
 
 // CHECK-LABEL: --- Running 'async_add.i32_caller'
-func @async_add.i32_caller() {
+func.func @async_add.i32_caller() {
   %ch = tfrt.new.chain
   %x = tfrt.constant.i32 42
   %c1 = tfrt.constant.i32 1
@@ -97,7 +97,7 @@ func @async_add.i32_caller() {
 }
 
 // CHECK-LABEL: --- Running 'test_async_print_result'
-func @test_async_print_result() -> i32 {
+func.func @test_async_print_result() -> i32 {
   %c1 = tfrt.constant.i32 1
   %c42 = tfrt.constant.i32 42
   %a = "tfrt_test.async_add.i32"(%c1, %c42) : (i32, i32) -> i32
@@ -107,7 +107,7 @@ func @test_async_print_result() -> i32 {
 // CHECK: 'test_async_print_result' returned 43
 
 // CHECK-LABEL: --- Running 'test_async_copy'
-func @test_async_copy() -> i32 {
+func.func @test_async_copy() -> i32 {
   %c42 = tfrt.constant.i32 42
   %copy = "tfrt_test.async_copy.i32"(%c42) : (i32) -> i32
 
@@ -116,7 +116,7 @@ func @test_async_copy() -> i32 {
 // CHECK: 'test_async_copy' returned 42
 
 // CHECK-LABEL: --- Running 'test_async_copy.with_delay'
-func @test_async_copy.with_delay() -> i32 {
+func.func @test_async_copy.with_delay() -> i32 {
   %c42 = tfrt.constant.i32 42
   %copy = "tfrt_test.async_copy.with_delay.i32"(%c42) : (i32) -> i32
 
@@ -125,7 +125,7 @@ func @test_async_copy.with_delay() -> i32 {
 // CHECK: 'test_async_copy.with_delay' returned 42
 
 // CHECK-LABEL: --- Running 'test_async_copy_2'
-func @test_async_copy_2() -> i32 {
+func.func @test_async_copy_2() -> i32 {
   %c43 = tfrt.constant.i32 43
   %copy = "tfrt_test.async_copy_2.i32"(%c43) : (i32) -> i32
 
@@ -134,7 +134,7 @@ func @test_async_copy_2() -> i32 {
 // CHECK: 'test_async_copy_2' returned 43
 
 // CHECK-LABEL: --- Running 'test_as_chain'
-func @test_as_chain() -> !tfrt.chain {
+func.func @test_as_chain() -> !tfrt.chain {
   %c43 = tfrt.constant.i32 43
   %ch = "tfrt_test.as_chain"(%c43) : (i32) -> !tfrt.chain
 

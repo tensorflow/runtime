@@ -14,11 +14,11 @@
 
 // RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s
 
-func private @native_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
-func private @native_async_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
+func.func private @native_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
+func.func private @native_async_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
 
 // CHECK-LABEL: --- Running 'call_native_add'
-func @call_native_add() {
+func.func @call_native_add() {
   %a = tfrt.constant.i32 1
   %b = tfrt.constant.i32 2
 
@@ -32,7 +32,7 @@ func @call_native_add() {
 }
 
 // CHECK-LABEL: --- Running 'call_native_async_add'
-func @call_native_async_add() {
+func.func @call_native_async_add() {
   %a = tfrt.constant.i32 1
   %b = tfrt.constant.i32 2
 
@@ -46,7 +46,7 @@ func @call_native_async_add() {
 }
 
 // CHECK-LABEL: --- Running 'call_native_add_with_unavailable_input'
-func @call_native_add_with_unavailable_input() {
+func.func @call_native_add_with_unavailable_input() {
   %a = tfrt.constant.i32 1
   %b = tfrt.constant.i32 1
   %c = tfrt_test.do.async %a, %b : (i32, i32) -> (i32) {
@@ -65,4 +65,4 @@ func @call_native_add_with_unavailable_input() {
 
 // CHECK-LABEL: --- Running 'native_error'
 // CHECK: something bad happened
-func private @native_error() -> i32 attributes {tfrt.native}
+func.func private @native_error() -> i32 attributes {tfrt.native}

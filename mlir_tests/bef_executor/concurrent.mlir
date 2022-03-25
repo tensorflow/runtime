@@ -19,7 +19,7 @@
 
 // Asynchronously increment %counter once.
 // CHECK-LABEL: async_incs
-func @async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt.chain {
+func.func @async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt.chain {
   %ch_ret = tfrt_test.do.async %counter, %ch : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain) {
     %ch2 = "tfrt_test.atomic.inc.i32"(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> !tfrt.chain
     tfrt.return %ch2 : !tfrt.chain
@@ -28,7 +28,7 @@ func @async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt.chain 
 }
 
 // Increment %counter once in a nested async call.
-func @nested_async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt.chain {
+func.func @nested_async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt.chain {
   %ch_ret = tfrt_test.do.async %counter, %ch : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain) {
     %ch1 = tfrt_test.do.async %counter, %ch : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain) {
       %ch2 = "tfrt_test.atomic.inc.i32"(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> !tfrt.chain
@@ -41,7 +41,7 @@ func @nested_async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt
 
 // This test that all atomic increments scheduled to run asynchronously complete.
 // CHECK-LABEL: async_incs_complete
-func @async_incs_complete() {
+func.func @async_incs_complete() {
   %loop_count = tfrt.constant.i32 1024
   %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
   %merged_chain = tfrt.new.chain
@@ -65,7 +65,7 @@ func @async_incs_complete() {
 
 // This test that all atomic increments scheduled to run asynchronously complete.
 // CHECK-LABEL: nested_async_incs_complete
-func @nested_async_incs_complete() {
+func.func @nested_async_incs_complete() {
   %loop_count = tfrt.constant.i32 1024
   %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
   %merged_chain = tfrt.new.chain
@@ -89,7 +89,7 @@ func @nested_async_incs_complete() {
 
 // These test blocking work queue.
 // CHECK-LABEL: --- Running 'simple_blocking_sleep'
-func @simple_blocking_sleep() {
+func.func @simple_blocking_sleep() {
   %a = tfrt.constant.i32 1000
   "tfrt_test.usleep"(%a) : (i32) -> ()
   // CHECK: Slept for 1000 microseconds
@@ -97,7 +97,7 @@ func @simple_blocking_sleep() {
 }
 
 // CHECK-LABEL: --- Running 'simple_blocking_sleep_with_chain'
-func @simple_blocking_sleep_with_chain() -> !tfrt.chain {
+func.func @simple_blocking_sleep_with_chain() -> !tfrt.chain {
   %a = tfrt.constant.i32 999
   // CHECK: Slept for 999 microseconds
   %ch = "tfrt_test.blocking.usleep"(%a) : (i32) -> (!tfrt.chain)
@@ -106,7 +106,7 @@ func @simple_blocking_sleep_with_chain() -> !tfrt.chain {
 
 // This tests blocking work queue by adding multiple blocking tasks.
 // CHECK-LABEL: --- Running 'repeated_blocking_sleep1'
-func @repeated_blocking_sleep1() -> i32 {
+func.func @repeated_blocking_sleep1() -> i32 {
   %count = tfrt.constant.i32 3
   %a0 = tfrt.constant.i32 100000
   %inc0 = tfrt.constant.i32 1
@@ -127,7 +127,7 @@ func @repeated_blocking_sleep1() -> i32 {
 // This tests blocking work queue by adding more blocking tasks more than
 // max_num_blocking_threads (4) configured for BlockingWorkQueue.
 // CHECK-LABEL: --- Running 'repeated_blocking_sleep2'
-func @repeated_blocking_sleep2() -> i32 {
+func.func @repeated_blocking_sleep2() -> i32 {
   %count = tfrt.constant.i32 300
   %a0 = tfrt.constant.i32 1000
   %inc0 = tfrt.constant.i32 1

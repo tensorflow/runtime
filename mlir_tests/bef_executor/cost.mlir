@@ -18,7 +18,7 @@
 // This test checks that _tfrt_cost attribute, which is omitted in BEF, does
 // not interfere with normal attributes used in the execution.
 // CHECK: --- Running 'test_cost'
-func @test_cost() -> i32 {
+func.func @test_cost() -> i32 {
   %c0 = tfrt.constant.i32 1
   // CHECK: id: 0
   %c1 = tfrt_test.test_cost %c0 {id = 0 : i64, _tfrt_cost = 100 : i64} : i32

@@ -16,7 +16,7 @@
 
 
 // CHECK-LABEL: --- Running 'basic.i32'
-func @basic.i32() -> i32 attributes {tfrt.sync} {
+func.func @basic.i32() -> i32 attributes {tfrt.sync} {
   %x = "tfrt.constant_s.i32"() {value = 42 : i32} : () -> i32
   %y = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
 
@@ -27,7 +27,7 @@ func @basic.i32() -> i32 attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'fibonacci.i32'
-func @fibonacci.i32() -> i32 attributes {tfrt.sync} {
+func.func @fibonacci.i32() -> i32 attributes {tfrt.sync} {
   %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
   %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
 
@@ -43,21 +43,21 @@ func @fibonacci.i32() -> i32 attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'test_fail'
-func @test_fail() -> i32 attributes {tfrt.sync} {
+func.func @test_fail() -> i32 attributes {tfrt.sync} {
   %x = "tfrt_test.fail_s"() : () -> i32 // expected-error {{something bad happened}}
   tfrt.return %x : i32
 }
 // CHECK-NEXT: 'test_fail' returned <<error: something bad happened>>
 
 // CHECK-LABEL: --- Running 'test_error_result'
-func @test_error_result() -> i32 attributes {tfrt.sync} {
+func.func @test_error_result() -> i32 attributes {tfrt.sync} {
   %x = "tfrt_test.error_s"() : () -> i32 // expected-error {{something bad happened}}
   tfrt.return %x : i32
 }
 // CHECK-NEXT: 'test_error_result' returned <<error: something bad happened>>
 
 // CHECK-LABEL: --- Running 'test_remaining_sync_args'
-func @test_remaining_sync_args() -> i32 attributes {tfrt.sync} {
+func.func @test_remaining_sync_args() -> i32 attributes {tfrt.sync} {
   %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
   %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
   %2 = "tfrt.constant_s.i32"() {value = 2 : i32} : () -> i32
@@ -69,7 +69,7 @@ func @test_remaining_sync_args() -> i32 attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'test_repeated_sync_args'
-func @test_repeated_sync_args() -> i32 attributes {tfrt.sync} {
+func.func @test_repeated_sync_args() -> i32 attributes {tfrt.sync} {
   %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
   %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
   %2 = "tfrt.constant_s.i32"() {value = 2 : i32} : () -> i32
@@ -81,7 +81,7 @@ func @test_repeated_sync_args() -> i32 attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'test_many_attributes'
-func @test_many_attributes() -> i32 attributes {tfrt.sync} {
+func.func @test_many_attributes() -> i32 attributes {tfrt.sync} {
   %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
   %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
   %2 = "tfrt.constant_s.i32"() {value = 2 : i32} : () -> i32
@@ -124,18 +124,18 @@ func @test_many_attributes() -> i32 attributes {tfrt.sync} {
   tfrt.return %x : i32
 }
 
-func @test_sync_add(%a: i32, %b: i32) -> i32 attributes {tfrt.sync} {
+func.func @test_sync_add(%a: i32, %b: i32) -> i32 attributes {tfrt.sync} {
   %c = "tfrt.add_s.i32"(%a, %b) : (i32, i32) -> i32
   tfrt.return %c : i32
 }
 
-func @test_sync_add_mul(%a: i32, %b: i32) -> (i32, i32) attributes {tfrt.sync} {
+func.func @test_sync_add_mul(%a: i32, %b: i32) -> (i32, i32) attributes {tfrt.sync} {
   %c = "tfrt.add_s.i32"(%a, %b) : (i32, i32) -> i32
   %d = "tfrt.mul_s.i32"(%a, %b) : (i32, i32) -> i32
   tfrt.return %c, %d : i32, i32
 }
 
-func @test_invoke_sync_function() -> !tfrt.chain {
+func.func @test_invoke_sync_function() -> !tfrt.chain {
   %a = tfrt.constant.i32 2
   %b = tfrt.constant.i32 3
 

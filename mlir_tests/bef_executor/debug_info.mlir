@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s --dump-input-filter=all
 
 // CHECK: --- Running 'debug_info':
-func @debug_info() -> !tfrt.chain {
+func.func @debug_info() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   // CHECK: myNameScope0/MySimpleKernel0

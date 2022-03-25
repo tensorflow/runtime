@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'tile_f32'
-func @tile_f32() -> !tfrt.chain{
+func.func @tile_f32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -42,7 +42,7 @@ func @tile_f32() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'tile_string'
-func @tile_string() -> !tfrt.chain{
+func.func @tile_string() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -62,7 +62,7 @@ func @tile_string() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'tile_i1'
-func @tile_i1() -> !tfrt.chain{
+func.func @tile_i1() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 

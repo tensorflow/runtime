@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'biasadd_2d'
-func @biasadd_2d() -> !tfrt.chain {
+func.func @biasadd_2d() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
@@ -38,7 +38,7 @@ func @biasadd_2d() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'biasadd_3d'
-func @biasadd_3d() -> !tfrt.chain {
+func.func @biasadd_3d() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
@@ -54,7 +54,7 @@ func @biasadd_3d() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'biasadd_4d'
-func @biasadd_4d() -> !tfrt.chain {
+func.func @biasadd_4d() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
@@ -70,7 +70,7 @@ func @biasadd_4d() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'biasadd_4d_invalid_data_format'
-func @biasadd_4d_invalid_data_format() -> !tfrt.chain {
+func.func @biasadd_4d_invalid_data_format() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
@@ -86,7 +86,7 @@ func @biasadd_4d_invalid_data_format() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'biasadd_5d'
-func @biasadd_5d() -> !tfrt.chain {
+func.func @biasadd_5d() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 

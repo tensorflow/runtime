@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'log_f32'
-func @log_f32() -> !tfrt.chain {
+func.func @log_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -38,7 +38,7 @@ func @log_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'log1p_f32'
-func @log1p_f32() -> !tfrt.chain {
+func.func @log1p_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -54,7 +54,7 @@ func @log1p_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'rsqrt_f32'
-func @rsqrt_f32() -> !tfrt.chain {
+func.func @rsqrt_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -70,7 +70,7 @@ func @rsqrt_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'sigmoid_f32'
-func @sigmoid_f32() -> !tfrt.chain {
+func.func @sigmoid_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 

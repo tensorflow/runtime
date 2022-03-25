@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK-LABEL: --- Running 'test_softmax_f32'
-func @test_softmax_f32() -> !tfrt.chain {
+func.func @test_softmax_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -39,7 +39,7 @@ func @test_softmax_f32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_softmax_higher_rank_f32'
-func @test_softmax_higher_rank_f32() -> !tfrt.chain {
+func.func @test_softmax_higher_rank_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -56,7 +56,7 @@ func @test_softmax_higher_rank_f32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_log_softmax_f32'
-func @test_log_softmax_f32() -> !tfrt.chain {
+func.func @test_log_softmax_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -73,7 +73,7 @@ func @test_log_softmax_f32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_log_softmax_higher_rank_f32'
-func @test_log_softmax_higher_rank_f32() -> !tfrt.chain {
+func.func @test_log_softmax_higher_rank_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 

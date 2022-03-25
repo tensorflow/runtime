@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'expand_dims_i32'
-func @expand_dims_i32() -> !tfrt.chain{
+func.func @expand_dims_i32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -51,7 +51,7 @@ func @expand_dims_i32() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'expand_dims_string'
-func @expand_dims_string() -> !tfrt.chain{
+func.func @expand_dims_string() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 

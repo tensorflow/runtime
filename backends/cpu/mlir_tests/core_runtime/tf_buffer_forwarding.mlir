@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'forward_unary_op_argument'
-func @forward_unary_op_argument() {
+func.func @forward_unary_op_argument() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -39,7 +39,7 @@ func @forward_unary_op_argument() {
 }
 
 // CHECK: --- Running 'do_not_forward_unary_op_argument'
-func @do_not_forward_unary_op_argument() {
+func.func @do_not_forward_unary_op_argument() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -57,7 +57,7 @@ func @do_not_forward_unary_op_argument() {
 }
 
 // CHECK: --- Running 'forward_binary_op_lhs_argument'
-func @forward_binary_op_lhs_argument() {
+func.func @forward_binary_op_lhs_argument() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -76,7 +76,7 @@ func @forward_binary_op_lhs_argument() {
 }
 
 // CHECK: --- Running 'forward_binary_op_rhs_argument'
-func @forward_binary_op_rhs_argument() {
+func.func @forward_binary_op_rhs_argument() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -96,7 +96,7 @@ func @forward_binary_op_rhs_argument() {
 }
 
 // CHECK: --- Running 'do_not_forward_binary_op_arguments'
-func @do_not_forward_binary_op_arguments() {
+func.func @do_not_forward_binary_op_arguments() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 

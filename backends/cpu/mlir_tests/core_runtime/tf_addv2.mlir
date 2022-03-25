@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'addV2_dense_dense_f32'
-func @addV2_dense_dense_f32() -> !tfrt.chain{
+func.func @addV2_dense_dense_f32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -39,7 +39,7 @@ func @addV2_dense_dense_f32() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'addV2_dense_dense_scalar_f32'
-func @addV2_dense_dense_scalar_f32() -> !tfrt.chain {
+func.func @addV2_dense_dense_scalar_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -58,7 +58,7 @@ func @addV2_dense_dense_scalar_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_dense_scalar_dense_f32'
-func @addV2_dense_scalar_dense_f32() -> !tfrt.chain {
+func.func @addV2_dense_scalar_dense_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -77,7 +77,7 @@ func @addV2_dense_scalar_dense_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_dense_dense_bcast_f32'
-func @addV2_dense_dense_bcast_f32() -> !tfrt.chain {
+func.func @addV2_dense_dense_bcast_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -96,7 +96,7 @@ func @addV2_dense_dense_bcast_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_dense_bcast_dense_f32'
-func @addV2_dense_bcast_dense_f32() -> !tfrt.chain {
+func.func @addV2_dense_bcast_dense_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -115,7 +115,7 @@ func @addV2_dense_bcast_dense_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_dense_bcast_dense_bcast_f32'
-func @addV2_dense_bcast_dense_bcast_f32() -> !tfrt.chain {
+func.func @addV2_dense_bcast_dense_bcast_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -134,7 +134,7 @@ func @addV2_dense_bcast_dense_bcast_f32() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'addV2_dense_scalar_f32'
-func @addV2_dense_scalar_f32() -> !tfrt.chain{
+func.func @addV2_dense_scalar_f32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -151,7 +151,7 @@ func @addV2_dense_scalar_f32() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'addV2_scalar_dense_f32'
-func @addV2_scalar_dense_f32() -> !tfrt.chain{
+func.func @addV2_scalar_dense_f32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -168,7 +168,7 @@ func @addV2_scalar_dense_f32() -> !tfrt.chain{
 }
 
 // CHECK: --- Running 'addV2_scalar_scalar_f32'
-func @addV2_scalar_scalar_f32() -> !tfrt.chain{
+func.func @addV2_scalar_scalar_f32() -> !tfrt.chain{
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 

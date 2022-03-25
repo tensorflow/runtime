@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK-LABEL: --- Running 'test_tensor_policy'
-func @test_tensor_policy() -> !tfrt.chain {
+func.func @test_tensor_policy() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -38,7 +38,7 @@ func @test_tensor_policy() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'create_from_scalar_error'
-func @create_from_scalar_error() -> !tfrt.chain {
+func.func @create_from_scalar_error() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -50,7 +50,7 @@ func @create_from_scalar_error() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_scalar_tensor_ops'
-func @test_scalar_tensor_ops() -> !tfrt.chain {
+func.func @test_scalar_tensor_ops() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -70,7 +70,7 @@ func @test_scalar_tensor_ops() -> !tfrt.chain {
 
 
 // CHECK-LABEL: --- Running 'test_scalar_dense_mixed'
-func @test_scalar_dense_mixed() -> !tfrt.chain {
+func.func @test_scalar_dense_mixed() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -95,7 +95,7 @@ func @test_scalar_dense_mixed() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_scalar_denseonly_mixed'
-func @test_scalar_denseonly_mixed() -> !tfrt.chain {
+func.func @test_scalar_denseonly_mixed() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -114,7 +114,7 @@ func @test_scalar_denseonly_mixed() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_scalar_denseonly2_mixed'
-func @test_scalar_denseonly2_mixed() -> !tfrt.chain {
+func.func @test_scalar_denseonly2_mixed() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -133,7 +133,7 @@ func @test_scalar_denseonly2_mixed() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_scalar_denseonly3_mixed'
-func @test_scalar_denseonly3_mixed() -> !tfrt.chain {
+func.func @test_scalar_denseonly3_mixed() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -155,7 +155,7 @@ func @test_scalar_denseonly3_mixed() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_coo_tensor'
-func @test_coo_tensor() -> !tfrt.chain {
+func.func @test_coo_tensor() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -183,7 +183,7 @@ func @test_coo_tensor() -> !tfrt.chain {
 
 
 // CHECK-LABEL: --- Running 'test_coo_scalar_mixed'
-func @test_coo_scalar_mixed() -> !tfrt.chain {
+func.func @test_coo_scalar_mixed() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -214,7 +214,7 @@ func @test_coo_scalar_mixed() -> !tfrt.chain {
 
 
 // CHECK-LABEL: --- Running 'test_coo_dense_transfer'
-func @test_coo_dense_transfer() -> !tfrt.chain {
+func.func @test_coo_dense_transfer() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu_op_handler = corert.get_op_handler %ch0 "cpu"
   %cpu_device = "tfrt.get_device"(%ch0) {device_name="CPU:0"} : (!tfrt.chain) -> !tfrt.device
@@ -251,7 +251,7 @@ func @test_coo_dense_transfer() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_tensor_conversion_error'
-func @test_tensor_conversion_error() -> !corert.tensorhandle {
+func.func @test_tensor_conversion_error() -> !corert.tensorhandle {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 

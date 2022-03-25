@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'concat_f32_axis_1'
-func @concat_f32_axis_1() -> !tfrt.chain {
+func.func @concat_f32_axis_1() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -46,7 +46,7 @@ func @concat_f32_axis_1() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'concat_f32_axis_neg_1'
-func @concat_f32_axis_neg_1() -> !tfrt.chain {
+func.func @concat_f32_axis_neg_1() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -70,7 +70,7 @@ func @concat_f32_axis_neg_1() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'concat_f32_scalars'
-func @concat_f32_scalars() -> !tfrt.chain {
+func.func @concat_f32_scalars() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -89,7 +89,7 @@ func @concat_f32_scalars() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'concat_i1'
-func @concat_i1() -> !tfrt.chain {
+func.func @concat_i1() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
@@ -108,7 +108,7 @@ func @concat_i1() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'concat_string'
-func @concat_string() -> !tfrt.chain {
+func.func @concat_string() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 

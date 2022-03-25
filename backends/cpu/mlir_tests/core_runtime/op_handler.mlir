@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'register_cpu_op_handler_chain' because it has arguments.
-func @register_cpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @register_cpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   %ch = corert.register_op_handler %cpu "cpu0"
@@ -23,7 +23,7 @@ func @register_cpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Not running 'get_cpu_op_handler' because it has arguments.
-func @get_cpu_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @get_cpu_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
   %cpu0 = corert.get_op_handler %ch0 "cpu0"
   %cpu_handle_result = corert.executeop(%cpu0)
     "tf.Const"() {value = dense<[42, 314]> : tensor<2xi32>, dtype = i32} : 1
@@ -33,7 +33,7 @@ func @get_cpu_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Not running 'failed_cpu_get_op_handler' because it has arguments.
-func @failed_cpu_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @failed_cpu_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
   // expected-error @+1 {{runtime error: op_handler not found}}
   %cpu0 = corert.get_op_handler %ch0 "cpu0"
   %ch1 = tfrt.new.chain
@@ -41,7 +41,7 @@ func @failed_cpu_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_cpu_op_handler_chain_kernels'
-func @test_cpu_op_handler_chain_kernels()  -> !tfrt.chain {
+func.func @test_cpu_op_handler_chain_kernels()  -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %ch1 = tfrt.call @failed_cpu_get_op_handler(%ch0) : (!tfrt.chain) -> !tfrt.chain
   %ch2 = tfrt.call @register_cpu_op_handler_chain(%ch1) : (!tfrt.chain) -> !tfrt.chain

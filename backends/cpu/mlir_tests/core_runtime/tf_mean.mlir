@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK: --- Running 'mean'
-func @mean() -> !tfrt.chain {
+func.func @mean() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
@@ -39,7 +39,7 @@ func @mean() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'mean_keep_dims'
-func @mean_keep_dims() -> !tfrt.chain {
+func.func @mean_keep_dims() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
@@ -54,7 +54,7 @@ func @mean_keep_dims() -> !tfrt.chain {
 }
 
 // CHECK: --- Running 'mean_i32'
-func @mean_i32() -> !tfrt.chain {
+func.func @mean_i32() -> !tfrt.chain {
   %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 

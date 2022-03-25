@@ -18,7 +18,7 @@
 // RUN: | tfrt_gpu_executor \
 // RUN: | FileCheck %s
 
-func @main(
+func.func @main(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream,
   %arg2 : !tfrt_gpu.buffer

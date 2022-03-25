@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'memset_test'
-func @memset_test() {
+func.func @memset_test() {
   %ch1 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

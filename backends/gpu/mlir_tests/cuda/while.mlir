@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'cond' because it has arguments
-func @cond(
+func.func @cond(
   %ch0    : !tfrt.chain,
   %stream : !tfrt_gpu.stream,
   %value  : !tfrt_gpu.buffer,
@@ -54,7 +54,7 @@ func @cond(
 // Runs a kernel updating %value and %cond. Returns all arguments plus the value
 // of %cond on the host.
 // CHECK-LABEL: --- Not running 'body' because it has arguments
-func @body(
+func.func @body(
   %ch0    : !tfrt.chain,
   %stream : !tfrt_gpu.stream,
   %value  : !tfrt_gpu.buffer,
@@ -86,7 +86,7 @@ func @body(
 //
 // It's a potential lowering of an lmhlo.while running on GPU.
 // CHECK-LABEL: --- Not running 'while' because it has arguments
-func @while(
+func.func @while(
   %ch0    : !tfrt.chain,
   %stream : !tfrt_gpu.stream,
   %value  : !tfrt_gpu.buffer,
@@ -104,7 +104,7 @@ func @while(
 }
 
 // CHECK-LABEL: --- Running 'main'
-func @main() {
+func.func @main() {
   %ch0 = tfrt.new.chain
 
   %ordinal = tfrt.constant.i32 0

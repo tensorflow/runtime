@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'dnn_convolution_test'
-func @dnn_convolution_test() {
+func.func @dnn_convolution_test() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -94,7 +94,7 @@ func @dnn_convolution_test() {
 }
 
 // CHECK-LABEL: --- Running 'dnn_legacy_convolution_test'
-func @dnn_legacy_convolution_test() {
+func.func @dnn_legacy_convolution_test() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -182,7 +182,7 @@ func @dnn_legacy_convolution_test() {
 }
 
 // CHECK-LABEL: --- Running 'dnn_pooling_test'
-func @dnn_pooling_test() {
+func.func @dnn_pooling_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

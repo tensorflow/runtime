@@ -14,7 +14,7 @@
 
 // RUN: bef_executor_lite %s.bef -work_queue_type=mstd | FileCheck %s
 
-func @all_reduce(
+func.func @all_reduce(
   %rank : i32, %count : i32, %id : !tfrt_gpu.ccl.id
 ) -> (!tfrt.chain, !t.tensor) {
   %ch0 = tfrt.new.chain
@@ -37,7 +37,7 @@ func @all_reduce(
 }
 
 // CHECK-LABEL: --- Running 'all_reduce_test'
-func @all_reduce_test() {
+func.func @all_reduce_test() {
   %count = tfrt.constant.i32 2
   %id = tfrt_gpu.ccl.unique_id CUDA
 

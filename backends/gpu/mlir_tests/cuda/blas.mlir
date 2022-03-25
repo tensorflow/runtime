@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'blas_axpy'
-func @blas_axpy() {
+func.func @blas_axpy() {
   %ch1 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -54,7 +54,7 @@ func @blas_axpy() {
 }
 
 // CHECK-LABEL: --- Running 'blas_gemm'
-func @blas_gemm() {
+func.func @blas_gemm() {
   %ch1 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -102,7 +102,7 @@ func @blas_gemm() {
 }
 
 // CHECK-LABEL: --- Running 'blas_gemm_batched'
-func @blas_gemm_batched() {
+func.func @blas_gemm_batched() {
   %ch1 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -153,7 +153,7 @@ func @blas_gemm_batched() {
 }
 
 // CHECK-LABEL: --- Running 'blas_trsm_batched'
-func @blas_trsm_batched() {
+func.func @blas_trsm_batched() {
   %ch0 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

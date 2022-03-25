@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'function_test'
-func @function_test() {
+func.func @function_test() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -31,7 +31,7 @@ func @function_test() {
   tfrt.return
 }
 
-func @global_test() {
+func.func @global_test() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -47,7 +47,7 @@ func @global_test() {
 }
 
 // CHECK-LABEL: --- Running 'module_bad_data_test'
-func @module_bad_data_test() {
+func.func @module_bad_data_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -62,7 +62,7 @@ func @module_bad_data_test() {
 }
 
 // CHECK-LABEL: --- Running 'function_bad_name_test'
-func @function_bad_name_test() {
+func.func @function_bad_name_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -79,7 +79,7 @@ func @function_bad_name_test() {
 }
 
 // CHECK-LABEL: --- Running 'module_not_null_terminated_test'
-func @module_not_null_terminated_test() {
+func.func @module_not_null_terminated_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

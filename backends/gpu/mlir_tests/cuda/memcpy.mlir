@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'memcpy_host_to_device_and_back_test'
-func @memcpy_host_to_device_and_back_test() {
+func.func @memcpy_host_to_device_and_back_test() {
   %ch0 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

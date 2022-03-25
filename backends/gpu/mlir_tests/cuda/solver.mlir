@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'solver_potrf'
-func @solver_potrf() {
+func.func @solver_potrf() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -56,7 +56,7 @@ func @solver_potrf() {
 }
 
 // CHECK-LABEL: --- Running 'solver_potrf_batched'
-func @solver_potrf_batched() {
+func.func @solver_potrf_batched() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device

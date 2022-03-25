@@ -19,7 +19,7 @@
 
 // RUN: bef_executor_lite %s.bef
 
-func @error(
+func.func @error(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) -> !tfrt.chain {
@@ -29,7 +29,7 @@ func @error(
   tfrt.return %arg0 : !tfrt.chain
 }
 
-func @main() {
+func.func @main() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device

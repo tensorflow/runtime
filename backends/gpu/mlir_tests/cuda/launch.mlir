@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'noop_kernel'
-func @noop_kernel() {
+func.func @noop_kernel() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -42,7 +42,7 @@ func @noop_kernel() {
 }
 
 // CHECK-LABEL: --- Running 'vector_add_kernel'
-func @vector_add_kernel() {
+func.func @vector_add_kernel() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -107,7 +107,7 @@ func @vector_add_kernel() {
 }
 
 // CHECK-LABEL: --- Running 'float_arg_kernel'
-func @float_arg_kernel() {
+func.func @float_arg_kernel() {
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device

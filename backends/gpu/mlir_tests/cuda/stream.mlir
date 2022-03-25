@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'stream_create_test'
-func @stream_create_test() {
+func.func @stream_create_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -37,7 +37,7 @@ func @stream_create_test() {
 }
 
 // CHECK-LABEL: --- Running 'stream_create_synchronize'
-func @stream_create_synchronize() {
+func.func @stream_create_synchronize() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -50,7 +50,7 @@ func @stream_create_synchronize() {
 }
 
 // CHECK-LABEL: --- Running 'stream_wait_event'
-func @stream_wait_event() {
+func.func @stream_wait_event() {
   %ch0 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -66,7 +66,7 @@ func @stream_wait_event() {
 }
 
 // CHECK-LABEL: --- Running 'make_tensor_from_smaller_buffer_should_fail'
-func @make_tensor_from_smaller_buffer_should_fail() {
+func.func @make_tensor_from_smaller_buffer_should_fail() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

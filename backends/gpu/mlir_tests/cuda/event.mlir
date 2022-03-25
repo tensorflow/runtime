@@ -15,7 +15,7 @@
 // RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'event_create_test'
-func @event_create_test() {
+func.func @event_create_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
@@ -26,7 +26,7 @@ func @event_create_test() {
 }
 
 // CHECK-LABEL: --- Running 'event_record_and_poll_test'
-func @event_record_and_poll_test() {
+func.func @event_record_and_poll_test() {
   %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal

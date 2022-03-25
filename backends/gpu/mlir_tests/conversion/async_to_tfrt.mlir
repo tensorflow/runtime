@@ -15,7 +15,7 @@
 // RUN: tfrt_gpu_opt %s -async-to-tfrt | FileCheck %s
 
 // CHECK-LABEL: @async_execute
-func @async_execute(%arg0 : i32) -> i32 {
+func.func @async_execute(%arg0 : i32) -> i32 {
   // CHECK: %[[i0:.*]] = tfrt_test.do.async %arg0 : (i32) -> (i32)
   // %a0 has type !async.token, used as dependency in the second async.execute.
   %a0, %f0 = async.execute -> !async.value<i32> {

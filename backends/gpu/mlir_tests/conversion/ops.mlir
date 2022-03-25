@@ -14,7 +14,7 @@
 
 // RUN: tfrt_gpu_opt %s | FileCheck %s
 
-func @driver_ops() {
+func.func @driver_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -94,7 +94,7 @@ func @driver_ops() {
   tfrt.return
 }
 
-func @blas_ops() {
+func.func @blas_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -160,7 +160,7 @@ func @blas_ops() {
   tfrt.return
 }
 
-func @dnn_ops() {
+func.func @dnn_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -217,7 +217,7 @@ func @dnn_ops() {
   tfrt.return
 }
 
-func @dnn_legacy_ops() {
+func.func @dnn_legacy_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -305,7 +305,7 @@ func @dnn_legacy_ops() {
   tfrt.return
 }
 
-func @solver_ops() {
+func.func @solver_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -345,7 +345,7 @@ func @solver_ops() {
   tfrt.return
 }
 
-func @ccl_ops() {
+func.func @ccl_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -383,7 +383,7 @@ func @ccl_ops() {
   tfrt.return
 }
 
-func @fft_ops() {
+func.func @fft_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]

@@ -15,7 +15,7 @@
 // RUN: tfrt_gpu_opt %s -gpu-tfrt-streamify | FileCheck %s
 
 // CHECK-LABEL: @alloc
-func @alloc(
+func.func @alloc(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) {
@@ -35,7 +35,7 @@ func @alloc(
 }
 
 // CHECK-LABEL: @memset
-func @memset(
+func.func @memset(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream,
   %arg2 : !tfrt_gpu.buffer,
@@ -54,7 +54,7 @@ func @memset(
 }
 
 // CHECK-LABEL: @memcopy
-func @memcopy(
+func.func @memcopy(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream,
   %arg2 : !tfrt_gpu.buffer,
@@ -130,7 +130,7 @@ module @gpu_container_module attributes {gpu.container_module} {
   }
 
   // CHECK-LABEL: @get_global
-  func @get_global(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
+  func.func @get_global(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
     // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
     // CHECK: %[[zero:.*]] = tfrt.once @zero(%[[ctx]])
     // CHECK: builtin.unrealized_conversion_cast %[[zero]]
@@ -144,7 +144,7 @@ module @gpu_container_module attributes {gpu.container_module} {
   }
 
   // CHECK-LABEL: @launch
-  func @launch(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
+  func.func @launch(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
     %one = arith.constant 1 : index
     %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
         : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
@@ -161,7 +161,7 @@ module @gpu_container_module attributes {gpu.container_module} {
 }
 
 // CHECK-LABEL: @unwrap_async
-func @unwrap_async(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
+func.func @unwrap_async(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
   %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
       : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
   %t1 = "tfrt_gpu_conversion.async.execute"(%t0) ({
@@ -176,7 +176,7 @@ func @unwrap_async(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
 }
 
 // CHECK-LABEL: @gpu_wait_remove
-func @gpu_wait_remove(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
+func.func @gpu_wait_remove(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
   %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
       : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
   // CHECK-NOT: gpu.wait
@@ -185,7 +185,7 @@ func @gpu_wait_remove(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
 }
 
 // CHECK-LABEL: @gpu_wait_new_stream
-func @gpu_wait_new_stream(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.event) {
+func.func @gpu_wait_new_stream(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.event) {
   // CHECK: %[[s0:.*]] = builtin.unrealized_conversion_cast to !tfrt_gpu.stream
   %stream = builtin.unrealized_conversion_cast to !tfrt_gpu.stream
   // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %[[s0]]
@@ -201,7 +201,7 @@ func @gpu_wait_new_stream(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.event) {
 }
 
 // CHECK-LABEL: @gpu_wait_synchronize
-func @gpu_wait_synchronize(
+func.func @gpu_wait_synchronize(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream,
   %arg2 : !tfrt.chain,
@@ -220,7 +220,7 @@ func @gpu_wait_synchronize(
 }
 
 // CHECK-LABEL: @gpu_wait_new_event
-func @gpu_wait_new_event(
+func.func @gpu_wait_new_event(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) -> !gpu.async.token {

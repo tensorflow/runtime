@@ -25,6 +25,6 @@
 // CHECK-SAME: } : () -> !tfrt_gpu.entry_point
 // CHECK: tfrt.return %[[result]] : !tfrt_gpu.entry_point
 
-func @main() {
+func.func @main() {
   return
 }

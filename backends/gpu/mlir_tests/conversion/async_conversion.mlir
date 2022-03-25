@@ -17,7 +17,7 @@
 // RUN:   -allow-unregistered-dialect \
 // RUN: | FileCheck %s
 
-func @test_wrap_async_execute() {
+func.func @test_wrap_async_execute() {
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
@@ -45,7 +45,7 @@ func @test_wrap_async_execute() {
   return
 }
 
-func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
+func.func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
   %zero = arith.constant 0 : index
   // CHECK-NOT: memref.view
   // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
@@ -55,7 +55,7 @@ func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
   func.return %view : memref<4x4xf32>
 }
 
-func @test_fold_memref_cast(%arg0 : memref<64xi8>) -> memref<8x8xi8> {
+func.func @test_fold_memref_cast(%arg0 : memref<64xi8>) -> memref<8x8xi8> {
   // CHECK-NOT: memref.reinterpret_cast
   // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
   // CHECK: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<8x8xi8>
@@ -66,7 +66,7 @@ func @test_fold_memref_cast(%arg0 : memref<64xi8>) -> memref<8x8xi8> {
   func.return %cast : memref<8x8xi8>
 }
 
-func @test_rewrite_alloc() {
+func.func @test_rewrite_alloc() {
   // CHECK: %[[memref:.*]] = gpu.alloc  () : memref<64xi8>
   %memref = memref.alloc() : memref<64xi8>
   // CHECK: gpu.dealloc  %[[memref]] : memref<64xi8>

@@ -15,7 +15,7 @@
 // RUN: tfrt_gpu_opt %s -cast-tfrt-streamify | FileCheck %s
 
 // CHECK-LABEL: @cast_to_event
-func @cast_to_event(
+func.func @cast_to_event(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) -> (!tfrt.chain, !tfrt_gpu.event) {
@@ -31,7 +31,7 @@ func @cast_to_event(
 }
 
 // CHECK-LABEL: @const_cast
-func @const_cast() -> (i32, i64, ui32, ui64) {
+func.func @const_cast() -> (i32, i64, ui32, ui64) {
   %0 = arith.constant 42 : index
   // CHECK: %[[c1:.*]] = tfrt.constant.i32 42
   %1 = builtin.unrealized_conversion_cast %0 : index to i32

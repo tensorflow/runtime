@@ -15,7 +15,7 @@
 // RUN: tfrt_gpu_opt %s -async-tfrt-streamify | FileCheck %s
 
 // CHECK-LABEL: @to_chain_and_event
-func @to_chain_and_event(
+func.func @to_chain_and_event(
   %arg0 : !async.token,
   %arg1 : !async.value<!gpu.async.token>
 ) {

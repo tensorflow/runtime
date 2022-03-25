@@ -21,7 +21,7 @@
 // CHECK: }
 
 // CHECK-LABEL: @gpu_hoist_create_blas_handle
-func @gpu_hoist_create_blas_handle(
+func.func @gpu_hoist_create_blas_handle(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) -> !tfrt.chain {
@@ -40,7 +40,7 @@ func @gpu_hoist_create_blas_handle(
 // CHECK: }
 
 // CHECK-LABEL: @gpu_hoist_create_dnn_handle
-func @gpu_hoist_create_dnn_handle(
+func.func @gpu_hoist_create_dnn_handle(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) -> !tfrt.chain {
@@ -59,7 +59,7 @@ func @gpu_hoist_create_dnn_handle(
 // CHECK: }
 
 // CHECK-LABEL: @gpu_hoist_create_solver_handle
-func @gpu_hoist_create_solver_handle(
+func.func @gpu_hoist_create_solver_handle(
   %arg0 : !tfrt.chain,
   %arg1 : !tfrt_gpu.stream
 ) -> !tfrt.chain {

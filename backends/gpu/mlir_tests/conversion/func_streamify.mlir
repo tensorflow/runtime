@@ -19,7 +19,7 @@
 // CHECK-SAME:    %arg1: !tfrt_gpu.stream,
 // CHECK-SAME:    %arg2: f32 {tfrt_gpu.attr = 42 : i32}
 // CHECK-SAME:  ) -> !tfrt.chain {
-func @add_chain_and_stream(%arg0 : f32 {tfrt_gpu.attr = 42 : i32}) {
+func.func @add_chain_and_stream(%arg0 : f32 {tfrt_gpu.attr = 42 : i32}) {
   // CHECK: %[[t0:.*]] = builtin.unrealized_conversion_cast %arg0, %arg1
   // CHECK-SAME: : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
   // CHECK: %[[t1:.*]] = gpu.wait async [%[[t0]]]

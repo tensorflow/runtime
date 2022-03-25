@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'const_dense_tensor'
-func @const_dense_tensor() {
+func.func @const_dense_tensor() {
   %ch0 = tfrt.new.chain
 
   %a = corert.const_dense_tensor dense<[0, 1, 2]>: tensor<3xi32>
@@ -27,7 +27,7 @@ func @const_dense_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'const_string_tensor'
-func @const_string_tensor() {
+func.func @const_string_tensor() {
   %ch0 = tfrt.new.chain
 
   %a = corert.const_string_tensor {shape = [2], value = ["string", "tensor"]}
@@ -39,7 +39,7 @@ func @const_string_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'scalar_string_tensor'
-func @scalar_string_tensor() {
+func.func @scalar_string_tensor() {
   %ch0 = tfrt.new.chain
 
   %a = corert.const_string_tensor {shape = [], value = ["string"]}
@@ -51,7 +51,7 @@ func @scalar_string_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'const_string_tensor_same_value'
-func @const_string_tensor_same_value() {
+func.func @const_string_tensor_same_value() {
   %ch0 = tfrt.new.chain
 
   %a = corert.const_string_tensor {shape = [2], value = ["string"]}
@@ -63,7 +63,7 @@ func @const_string_tensor_same_value() {
 }
 
 // CHECK-LABEL: --- Running 'splat_string_tensor'
-func @splat_string_tensor() {
+func.func @splat_string_tensor() {
   %ch0 = tfrt.new.chain
 
   %a = corert.const_string_tensor {shape = [2], value = ["string"]}
@@ -75,7 +75,7 @@ func @splat_string_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'create_dense_tensor'
-func @create_dense_tensor() {
+func.func @create_dense_tensor() {
   %ch0 = tfrt.new.chain
 
   %a = corert.create_dense_tensor.ui64 {shape = [1], value = [2 : ui64]}
@@ -90,7 +90,7 @@ func @create_dense_tensor() {
 }
 
 // CHECK-LABEL: --- Running 'create_dense_tensor_bf16'
-func @create_dense_tensor_bf16() {
+func.func @create_dense_tensor_bf16() {
   %ch0 = tfrt.new.chain
 
   %a = corert.create_dense_tensor.bf16 {shape = [1], value = [2.5 : bf16]}

@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: func @basic
 // CHECK-SAME: ([[arg:%.*]]: !corert.tensorhandle) -> !corert.tensorhandle
-func @basic(%arg : !corert.tensorhandle) -> !corert.tensorhandle {
+func.func @basic(%arg : !corert.tensorhandle) -> !corert.tensorhandle {
   // CHECK: [[chain:%.*]] = tfrt.new.chain
   %ch = tfrt.new.chain
 
@@ -41,28 +41,28 @@ func @basic(%arg : !corert.tensorhandle) -> !corert.tensorhandle {
 }
 
 // CHECK-LABEL: func @const_string_tensor
-func @const_string_tensor() -> !corert.tensorhandle {
+func.func @const_string_tensor() -> !corert.tensorhandle {
   // CHECK: corert.const_string_tensor {shape = [1, 2], value = ["const", "string"]}
   %res = corert.const_string_tensor {shape = [1, 2], value = ["const", "string"]}
   tfrt.return %res : !corert.tensorhandle
 }
 
 // CHECK-LABEL: func @corert_shape_attr
-func @corert_shape_attr() {
+func.func @corert_shape_attr() {
   // CHECK: #corert.shape<1x?x3>
   "corert.test"() {shape = #corert.shape<1x?x3>} : () -> ()
   tfrt.return
 }
 
 // CHECK-LABEL: func @corert_string_type_attr
-func @corert_string_type_attr() {
+func.func @corert_string_type_attr() {
   // CHECK: !corert.string
   "corert.test"() {type = !corert.string} : () -> ()
   tfrt.return
 }
 
 // CHECK-LABEL: func @corert_create_dense_tensor
-func @corert_create_dense_tensor() {
+func.func @corert_create_dense_tensor() {
   // CHECK: corert.create_dense_tensor.ui64 {shape = [1, 1], value = [1 : ui64]}
   %0 = corert.create_dense_tensor.ui64 {shape = [1, 1], value = [1 : ui64]}
   tfrt.return

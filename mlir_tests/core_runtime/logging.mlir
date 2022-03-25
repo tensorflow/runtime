@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef 2>&1 | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'register_op_handlers' because it has arguments.
-func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   %op_handler = "corert.create_logging_op_handler"(%cpu) {sync_log_results=1} : (!corert.ophandler) -> !corert.ophandler
@@ -24,7 +24,7 @@ func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_logger'
-func @test_logger() -> !tfrt.chain {
+func.func @test_logger() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %ch1 = tfrt.call @register_op_handlers(%ch0) : (!tfrt.chain) -> !tfrt.chain
   %log = corert.get_op_handler %ch1 "sync_logging"

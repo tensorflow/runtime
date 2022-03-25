@@ -15,21 +15,21 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'register_op_handlers' because it has arguments.
-func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %ch1 = corert.register_op_handler %null "custom0"
   tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Not running 'get_op_handler' because it has arguments.
-func @get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = corert.get_op_handler %ch0 "custom0"
   %ch1 = tfrt.new.chain
   tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Not running 'failed_get_op_handler' because it has arguments.
-func @failed_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
+func.func @failed_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
   // expected-error @+1 {{runtime error: op_handler not found}}
   %null = corert.get_op_handler %ch0 "custom0"
   %ch1 = tfrt.new.chain
@@ -37,7 +37,7 @@ func @failed_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_op_handler_chain_registration'
-func @test_op_handler_chain_registration()  -> !tfrt.chain {
+func.func @test_op_handler_chain_registration()  -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %ch1 = tfrt.call @failed_get_op_handler(%ch0) : (!tfrt.chain) -> !tfrt.chain
   %ch2 = tfrt.call @register_op_handlers(%ch1) : (!tfrt.chain) -> !tfrt.chain

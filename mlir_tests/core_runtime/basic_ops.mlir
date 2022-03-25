@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK-LABEL: --- Running 'basic_test_matmul_f32'
-func @basic_test_matmul_f32() -> !tfrt.chain {
+func.func @basic_test_matmul_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -57,7 +57,7 @@ func @basic_test_matmul_f32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic_test_matmul_f32_sync'
-func @basic_test_matmul_f32_sync() attributes {tfrt.sync} {
+func.func @basic_test_matmul_f32_sync() attributes {tfrt.sync} {
   %cpu = corert_sync.get_op_handler "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
@@ -91,7 +91,7 @@ func @basic_test_matmul_f32_sync() attributes {tfrt.sync} {
 }
 
 // CHECK-LABEL: --- Running 'basic_test_matmul_transpose_f32'
-func @basic_test_matmul_transpose_f32() -> !tfrt.chain {
+func.func @basic_test_matmul_transpose_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -129,7 +129,7 @@ func @basic_test_matmul_transpose_f32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic_test_matmul_i32'
-func @basic_test_matmul_i32() -> !tfrt.chain {
+func.func @basic_test_matmul_i32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -164,7 +164,7 @@ func @basic_test_matmul_i32() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'basic_test_ops'
-func @basic_test_ops() -> !tfrt.chain {
+func.func @basic_test_ops() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -202,7 +202,7 @@ func @basic_test_ops() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'tensorhandle_to_shape_test'
-func @tensorhandle_to_shape_test() {
+func.func @tensorhandle_to_shape_test() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -220,7 +220,7 @@ func @tensorhandle_to_shape_test() {
 }
 
 // CHECK-LABEL: --- Running 'tensorhandle_error_test'
-func @tensorhandle_error_test() -> i32 {
+func.func @tensorhandle_error_test() -> i32 {
   %ch0 = tfrt.new.chain
   %one = tfrt.constant.i32 1
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -240,7 +240,7 @@ func @tensorhandle_error_test() -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'badop_error'
-func @badop_error() {
+func.func @badop_error() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -251,7 +251,7 @@ func @badop_error() {
 }
 
 // CHECK-LABEL: --- Running 'shape_error'
-func @shape_error() {
+func.func @shape_error() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -269,7 +269,7 @@ func @shape_error() {
 }
 
 // CHECK-LABEL: --- Running 'basic_executeop'
-func @basic_executeop() -> !tfrt.chain {
+func.func @basic_executeop() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -289,7 +289,7 @@ func @basic_executeop() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_async'
-func @test_async() -> !tfrt.chain {
+func.func @test_async() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -308,7 +308,7 @@ func @test_async() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_async_no_md'
-func @test_async_no_md() -> !tfrt.chain {
+func.func @test_async_no_md() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -324,7 +324,7 @@ func @test_async_no_md() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_cancel'
-func @test_cancel() -> !t.tensor{
+func.func @test_cancel() -> !t.tensor{
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -344,7 +344,7 @@ func @test_cancel() -> !t.tensor{
 // CHECK-NEXT: returned <<error: Cancelled>>
 
 // CHECK-LABEL: --- Running 'test_side_effect'
-func @test_side_effect() -> !tfrt.chain {
+func.func @test_side_effect() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -372,7 +372,7 @@ func @test_side_effect() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'test_error_propagation'
-func @test_error_propagation() -> !tfrt.chain {
+func.func @test_error_propagation() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -393,16 +393,16 @@ func @test_error_propagation() -> !tfrt.chain {
   tfrt.return %ch4 : !tfrt.chain
 }
 
-func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   tfrt.return %in, %x : !tfrt.chain, !corert.tensorhandle
 }
 
-func @return_second(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @return_second(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   tfrt.return %in, %y : !tfrt.chain, !corert.tensorhandle
 }
 
 // CHECK-LABEL: --- Running 'control_flow_conditional'
-func @control_flow_conditional() {
+func.func @control_flow_conditional() {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -434,7 +434,7 @@ func @control_flow_conditional() {
 }
 
 // CHECK-LABEL: --- Running 'control_flow_conditional_error'
-func @control_flow_conditional_error() {
+func.func @control_flow_conditional_error() {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -456,7 +456,7 @@ func @control_flow_conditional_error() {
 }
 
 // CHECK-LABEL: --- Running 'test_string_tensor'
-func @test_string_tensor() -> !tfrt.chain {
+func.func @test_string_tensor() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
@@ -469,7 +469,7 @@ func @test_string_tensor() -> !tfrt.chain {
 }
 
 // While loop condition: Returns false iff %x is a dense tensor of { shape = [1, 1], values = [-1 : i32] }.
-func @while_cond_add1(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @while_cond_add1(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -483,7 +483,7 @@ func @while_cond_add1(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chai
 }
 
 // While loop body: Returns %x + { shape = [1, 1], values = [2 : i32] }.
-func @while_body_add2(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @while_body_add2(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -500,7 +500,7 @@ func @while_body_add2(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chai
 
 // While loop test
 // CHECK-LABEL: --- Running 'control_flow_while_loop'
-func @control_flow_while_loop() {
+func.func @control_flow_while_loop() {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -519,7 +519,7 @@ func @control_flow_while_loop() {
 
 // While loop error test
 // CHECK-LABEL: --- Running 'control_flow_while_loop_error'
-func @control_flow_while_loop_error() {
+func.func @control_flow_while_loop_error() {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -533,7 +533,7 @@ func @control_flow_while_loop_error() {
   tfrt.return
 }
 
-func @while_cond_error(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @while_cond_error(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -549,7 +549,7 @@ func @while_cond_error(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.cha
 
 
 // CHECK-LABEL: --- Running 'control_flow_while_loop_error_in_cond'
-func @control_flow_while_loop_error_in_cond() {
+func.func @control_flow_while_loop_error_in_cond() {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -563,13 +563,13 @@ func @control_flow_while_loop_error_in_cond() {
   tfrt.return
 }
 
-func @branch0(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @branch0(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch0 "cpu"
   %res = corert.executeop(%cpu) "tfrt_test.add"(%arg0, %arg1) : 1
   tfrt.return %ch0, %res : !tfrt.chain, !corert.tensorhandle
 }
 
-func @branch1(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @branch1(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch0 "cpu"
   %th = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1], values = [4 : i32] } : 1
@@ -579,7 +579,7 @@ func @branch1(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.ten
 }
 
 // CHECK-LABEL: --- Running 'test_control_flow_case'
-func @test_control_flow_case() {
+func.func @test_control_flow_case() {
   %ch0 = tfrt.new.chain
 
   %cpu = corert.get_op_handler %ch0 "cpu"

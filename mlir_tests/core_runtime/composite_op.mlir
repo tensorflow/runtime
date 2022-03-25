@@ -14,14 +14,14 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
 
-func @matmul_fn(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @matmul_fn(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch "cpu"
   %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%arg, %arg)
     {transpose_a = false, transpose_b = false}: 1
@@ -29,7 +29,7 @@ func @matmul_fn(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, 
 }
 
 // CHECK-LABEL: --- Running 'corert.simple_composite_op'
-func @corert.simple_composite_op() -> !tfrt.chain {
+func.func @corert.simple_composite_op() -> !tfrt.chain {
   // Prepare input.
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -52,7 +52,7 @@ func @corert.simple_composite_op() -> !tfrt.chain {
   tfrt.return %ch2 : !tfrt.chain
 }
 
-func @matmul_fn_two_results(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle, !corert.tensorhandle) {
+func.func @matmul_fn_two_results(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch "cpu"
   %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%arg, %arg)
     {transpose_a = false, transpose_b = false}: 1
@@ -60,7 +60,7 @@ func @matmul_fn_two_results(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!
 }
 
 // CHECK-LABEL: --- Running 'corert.composite_op_result_multi_fanout'
-func @corert.composite_op_result_multi_fanout() -> !tfrt.chain {
+func.func @corert.composite_op_result_multi_fanout() -> !tfrt.chain {
   // Prepare input.
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
@@ -81,15 +81,15 @@ func @corert.composite_op_result_multi_fanout() -> !tfrt.chain {
 }
 
 
-func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   tfrt.return %in, %x : !tfrt.chain, !corert.tensorhandle
 }
 
-func @return_second(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @return_second(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   tfrt.return %in, %y : !tfrt.chain, !corert.tensorhandle
 }
 
-func @func_with_control_flow(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+func.func @func_with_control_flow(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch "cpu"
 
   %a_handle = corert.executeop(%cpu)
@@ -106,7 +106,7 @@ func @func_with_control_flow(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (
 
 
 // CHECK-LABEL: --- Running 'corert.composite_op_async_output'
-func @corert.composite_op_async_output() -> !tfrt.chain {
+func.func @corert.composite_op_async_output() -> !tfrt.chain {
   // Prepare input.
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'simple_test'
-func @simple_test() -> !tfrt.chain {
+func.func @simple_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs_a = "corert.create_op_attrs"() : () -> !corert.opattrs
@@ -53,7 +53,7 @@ func @simple_test() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'bool_test'
-func @bool_test() -> !tfrt.chain {
+func.func @bool_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs_a = "corert.create_op_attrs"() : () -> !corert.opattrs
@@ -70,7 +70,7 @@ func @bool_test() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'lots_of_attrs'
-func @lots_of_attrs() -> !tfrt.chain {
+func.func @lots_of_attrs() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs_a = "corert.create_op_attrs"() : () -> !corert.opattrs
@@ -122,7 +122,7 @@ func @lots_of_attrs() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'freezing'
-func @freezing() -> !tfrt.chain {
+func.func @freezing() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs_a = "corert.create_op_attrs"() : () -> !corert.opattrs
@@ -204,7 +204,7 @@ func @freezing() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'aggregate_attr_test'
-func @aggregate_attr_test() -> !tfrt.chain {
+func.func @aggregate_attr_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs
@@ -222,7 +222,7 @@ func @aggregate_attr_test() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'shape_attr_test'
-func @shape_attr_test() -> !tfrt.chain {
+func.func @shape_attr_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs
@@ -240,7 +240,7 @@ func @shape_attr_test() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'type_attr_test'
-func @type_attr_test() -> !tfrt.chain {
+func.func @type_attr_test() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs

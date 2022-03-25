@@ -14,7 +14,7 @@
 
 // RUN: tfrt_opt -split-input-file -verify-diagnostics %s
 
-func @invalid_input(%arg : i32) { // expected-note {{prior use here}}
+func.func @invalid_input(%arg : i32) { // expected-note {{prior use here}}
   %ch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch "cpu"
 
@@ -26,7 +26,7 @@ func @invalid_input(%arg : i32) { // expected-note {{prior use here}}
 
 // -----
 
-func @invalid_opattrs() {
+func.func @invalid_opattrs() {
   %ch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch "cpu"
 

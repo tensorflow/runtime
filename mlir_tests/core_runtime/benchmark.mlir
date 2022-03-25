@@ -14,7 +14,7 @@
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
@@ -22,7 +22,7 @@ func @register_op_handlers_cpu() {
 }
 
 // CHECK-LABEL: --- Running 'BM_corert.matmul'
-func @BM_corert.matmul() {
+func.func @BM_corert.matmul() {
   // CHECK: BM:BM_corert.matmul:Duration(ns):
   // CHECK: BM:BM_corert.matmul:Count: 1000
   // CHECK: BM:BM_corert.matmul:Time Min(ns):
@@ -52,14 +52,14 @@ func @BM_corert.matmul() {
   tfrt.return
 }
 
-func @matmul_sync(%cpu : !corert.ophandler, %a_handle : !corert.tensorhandle) -> () attributes {tfrt.sync} {
+func.func @matmul_sync(%cpu : !corert.ophandler, %a_handle : !corert.tensorhandle) -> () attributes {tfrt.sync} {
   %result = corert_sync.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %a_handle)
     {transpose_a = false, transpose_b = false}: 1
   tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'BM_corert.matmul_sync'
-func @BM_corert.matmul_sync() attributes {tfrt.sync} {
+func.func @BM_corert.matmul_sync() attributes {tfrt.sync} {
   // CHECK: BM:matmul_sync:Duration(ns):
   // CHECK: BM:matmul_sync:Count: 1000
   // CHECK: BM:matmul_sync:Time Min(ns):

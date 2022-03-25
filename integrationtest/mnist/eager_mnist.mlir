@@ -14,14 +14,14 @@
 
 // RUN: bef_executor %s.bef --test_init_function=register_op_handlers_cpu | FileCheck %s
 
-func @register_op_handlers_cpu() {
+func.func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
 
-func @mnist_compute(%cpu: !corert.ophandler,
+func.func @mnist_compute(%cpu: !corert.ophandler,
                     %w1 : !corert.tensorhandle,
                     %b1 : !corert.tensorhandle,
                     %w2 : !corert.tensorhandle,
@@ -76,7 +76,7 @@ func @mnist_compute(%cpu: !corert.ophandler,
 }
 
 // CHECK-LABEL: --- Running 'bm_mnist'
-func @bm_mnist() {
+func.func @bm_mnist() {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 

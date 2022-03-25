@@ -18,7 +18,7 @@
 // operations made in similar benchmarks. So the divisions and equality tests
 // should not be changed.
 
-func @fizzbuzz_compute(%n : i32) -> (i32, i32, i32)
+func.func @fizzbuzz_compute(%n : i32) -> (i32, i32, i32)
 {
   %zero = tfrt.constant.i32 0
   %one = tfrt.constant.i32 1
@@ -90,7 +90,7 @@ func @fizzbuzz_compute(%n : i32) -> (i32, i32, i32)
 
 
 // CHECK-LABEL: --- Running 'fizzbuzz'
-func @fizzbuzz() -> !tfrt.chain {
+func.func @fizzbuzz() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %n = tfrt.constant.i32 1000
@@ -112,7 +112,7 @@ func @fizzbuzz() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'bm_fizzbuzz'
-func @bm_fizzbuzz() {
+func.func @bm_fizzbuzz() {
   %n = tfrt.constant.i32 1000
 
   tfrt_test.benchmark "bm_fizzbuzz"(%n : i32)

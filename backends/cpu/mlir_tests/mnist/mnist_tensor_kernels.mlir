@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'test_tensor_kernels'
-func @test_tensor_kernels() {
+func.func @test_tensor_kernels() {
   %ch0 = tfrt.new.chain
 
   %zero = "tfrt.constant.i32"() { value = 0 : i32 } : () -> i32

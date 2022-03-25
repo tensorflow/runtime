@@ -20,7 +20,7 @@
 //             btf/generate_fixtures.py.
 
 // CHECK-LABEL: --- Running 'test_i32'
-func @test_i32() {
+func.func @test_i32() {
   %ch0 = tfrt.new.chain
   %path = "tfrt_test.get_string"() {
     value = "backends/cpu/mlir_tests/mnist/test_data/matmul_test_i32.btf"
@@ -52,7 +52,7 @@ func @test_i32() {
   tfrt.return
 }
 
-func @test_f32() {
+func.func @test_f32() {
   %ch0 = tfrt.new.chain
   %path = "tfrt_test.get_string"() {
     value = "backends/cpu/mlir_tests/mnist/test_data/matmul_test_f32.btf"
@@ -86,7 +86,7 @@ func @test_f32() {
 }
 
 // CHECK-LABEL: --- Running 'BM_test_matmul_f32'
-func @BM_test_matmul_f32() {
+func.func @BM_test_matmul_f32() {
   %ch0 = tfrt.new.chain
   %zero = tfrt.constant.f32 0.0
   %one = tfrt.constant.f32 1.0

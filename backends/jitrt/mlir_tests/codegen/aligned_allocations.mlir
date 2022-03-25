@@ -18,7 +18,7 @@
 
 // CHECK-LABEL: @aligned_alloc
 // ALIGN16-LABEL: @aligned_alloc
-func @aligned_alloc(%arg0: index) -> memref<?xf32> {
+func.func @aligned_alloc(%arg0: index) -> memref<?xf32> {
   // CHECK: %[[ALLOC:.*]] = memref.alloc(%arg0) {alignment = 64 : i64} : memref<?xf32>
   // CHECK: return %[[ALLOC]]
   // ALIGN16: %[[ALLOC:.*]] = memref.alloc(%arg0) {alignment = 32 : i64} : memref<?xf32>
@@ -29,7 +29,7 @@ func @aligned_alloc(%arg0: index) -> memref<?xf32> {
 
 // CHECK-LABEL: @unaligned_alloc
 // ALIGN16-LABEL: @unaligned_alloc
-func @unaligned_alloc(%arg0: index) -> memref<?xf32> {
+func.func @unaligned_alloc(%arg0: index) -> memref<?xf32> {
   // CHECK: %[[ALLOC:.*]] = memref.alloc(%arg0) {alignment = 64 : i64} : memref<?xf32>
   // CHECK: return %[[ALLOC]]
   // ALIGN16: %[[ALLOC:.*]] = memref.alloc(%arg0) {alignment = 16 : i64} : memref<?xf32>

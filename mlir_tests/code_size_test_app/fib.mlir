@@ -15,7 +15,7 @@
 // RUN: cat %s.bef | code_size_test_driver | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'fib' because it has arguments
-func @fib(%arg: i32) -> i32 {
+func.func @fib(%arg: i32) -> i32 {
   %one = tfrt.constant.i32 1
   %cond = "tfrt.lessequal.i32"(%arg, %one) : (i32, i32) -> (i1)
   %res = tfrt.if %cond, %arg : (i32) -> i32 {
@@ -34,7 +34,7 @@ func @fib(%arg: i32) -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'fib_driver'
-func @fib_driver() {
+func.func @fib_driver() {
   %zero = tfrt.constant.i32 0
   %fib0 = tfrt.call @fib(%zero) : (i32) -> (i32)
 

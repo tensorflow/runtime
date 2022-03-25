@@ -17,7 +17,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_max_pool_2d_f32_0'
-func @test_max_pool_2d_f32_0() {
+func.func @test_max_pool_2d_f32_0() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -48,7 +48,7 @@ func @test_max_pool_2d_f32_0() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pool_2d_f32_1'
-func @test_max_pool_2d_f32_1() {
+func.func @test_max_pool_2d_f32_1() {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {

@@ -15,7 +15,7 @@
 // RUN: jitrt_opt %s -split-input-file -cost-driven-async-parallel-for="legacy-behavior=false" -verify-diagnostics | FileCheck %s
 
 // CHECK-LABEL: func @loop1d
-func @loop1d(%arg: memref<?xf32>) {
+func.func @loop1d(%arg: memref<?xf32>) {
   %cst = arith.constant 42.0 : f32
   %c0 = arith.constant 0 : index
   %c1 = arith.constant 1 : index
@@ -35,7 +35,7 @@ func @loop1d(%arg: memref<?xf32>) {
 // -----
 
 // CHECK-LABEL: func @loop2d
-func @loop2d(%arg: memref<?x?xf32>) {
+func.func @loop2d(%arg: memref<?x?xf32>) {
   %cst = arith.constant 42.0 : f32
   %c0 = arith.constant 0 : index
   %c1 = arith.constant 1 : index

@@ -14,7 +14,7 @@
 
 // RUN: bef_executor %s.bef | FileCheck %s
 
-func @mnist_compute(%w1 : !t.tensor,
+func.func @mnist_compute(%w1 : !t.tensor,
                     %b1 : !t.tensor,
                     %w2 : !t.tensor,
                     %b2 : !t.tensor,
@@ -52,7 +52,7 @@ func @mnist_compute(%w1 : !t.tensor,
 
 
 // CHECK-LABEL: --- Running 'mnist'
-func @mnist() -> !tfrt.chain {
+func.func @mnist() -> !tfrt.chain {
   %path = "tfrt_test.get_string"() { value = "integrationtest/mnist/test_data/mnist_tensors.btf" } : () -> !tfrt.string
   %w1_index = tfrt.constant.i32 0
   %b1_index = tfrt.constant.i32 1
@@ -86,7 +86,7 @@ func @mnist() -> !tfrt.chain {
 }
 
 // CHECK-LABEL: --- Running 'bm_mnist'
-func @bm_mnist() {
+func.func @bm_mnist() {
   %ch0 = tfrt.new.chain
   %w1 = tfrt_dht.create_uninitialized_tensor.f32.2 [784 : i64, 512 : i64]
   %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %w1, %ch0 1.0 : f32
@@ -124,7 +124,7 @@ func @bm_mnist() {
 }
 
 // CHECK-LABEL: --- Running 'test_broadcast'
-func @test_broadcast() {
+func.func @test_broadcast() {
   %ch0 = tfrt.new.chain
   %tensor_1 = "tfrt_dht.create_uninitialized_tensor.f32.2"()
     { shape = [2 : i64] } : () -> !t.tensor

@@ -17,7 +17,7 @@
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )
-func @pass_context(%arg0: !rt.kernel_context) {
+func.func @pass_context(%arg0: !rt.kernel_context) {
   return
 }
 
@@ -26,7 +26,7 @@ func @pass_context(%arg0: !rt.kernel_context) {
 // CHECK: func @set_output(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )
-func @set_output(%arg0: !rt.kernel_context) {
+func.func @set_output(%arg0: !rt.kernel_context) {
   // CHECK: %[[MEMREF:.*]] = memref.alloc
   // CHECK: %[[LLVM_MEMREF:.*]] = builtin.unrealized_conversion_cast %[[MEMREF]]
   %0 = memref.alloc() : memref<f32>
@@ -46,7 +46,7 @@ func @set_output(%arg0: !rt.kernel_context) {
 // CHECK: func @set_error(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )
-func @set_error(%arg0: !rt.kernel_context) {
+func.func @set_error(%arg0: !rt.kernel_context) {
   // CHECK: %[[ADDR0:.*]] = llvm.mlir.addressof @[[ERR0]]
   // CHECK: %[[PTR0:.*]] = llvm.bitcast %[[ADDR0]] {{.*}} to !llvm.ptr<i8>
   // CHECK: call @runtimeSetError(%[[CTX]], %[[PTR0]])

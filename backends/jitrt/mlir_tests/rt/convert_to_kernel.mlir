@@ -18,7 +18,7 @@
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
 // CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: ) {
-func @single_result(%arg0: memref<?xf32>) -> memref<?xf32>
+func.func @single_result(%arg0: memref<?xf32>) -> memref<?xf32>
   attributes { jitrt.entrypoint } {
   // CHECK: rt.set_output %[[CTX]], 0, %[[ARG]] : memref<?xf32>
   // CHECK: return
@@ -29,7 +29,7 @@ func @single_result(%arg0: memref<?xf32>) -> memref<?xf32>
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
 // CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: ) {
-func @two_results(%arg0: memref<?xf32>) -> (memref<?xf32>, memref<?xf32>)
+func.func @two_results(%arg0: memref<?xf32>) -> (memref<?xf32>, memref<?xf32>)
   attributes { jitrt.entrypoint } {
   // CHECK: rt.set_output %[[CTX]], 0, %[[ARG]] : memref<?xf32>
   // CHECK: rt.set_output %[[CTX]], 1, %[[ARG]] : memref<?xf32>
@@ -40,7 +40,7 @@ func @two_results(%arg0: memref<?xf32>) -> (memref<?xf32>, memref<?xf32>)
 // CHECK: func @not_an_entrypoint(
 // CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: ) -> memref<?xf32> {
-func @not_an_entrypoint(%arg0: memref<?xf32>) -> memref<?xf32> {
+func.func @not_an_entrypoint(%arg0: memref<?xf32>) -> memref<?xf32> {
   // CHECK-NOT: rt.set_output
   // CHECK: return %[[ARG]]
   func.return %arg0 : memref<?xf32>
@@ -50,7 +50,7 @@ func @not_an_entrypoint(%arg0: memref<?xf32>) -> memref<?xf32> {
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
 // CHECK:   %[[ASSERT:.*]]: i1
 // CHECK: ) {
-func @assert_to_error(%arg0: i1) attributes { jitrt.entrypoint } {
+func.func @assert_to_error(%arg0: i1) attributes { jitrt.entrypoint } {
   // CHECK: cond_br %[[ASSERT]], ^[[OK:.*]], ^[[ERR:.*]]
   // CHECK: ^[[OK]]:
   // CHECK:   return

@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'tensor_io'
-func @tensor_io() {
+func.func @tensor_io() {
   // test_tensor.btf contains three tensors:
   // tensor 0: [[1, 2], [3, 4]], dtype=float32
   // tensor 1: [1, 2, 3, 4, 5], dtype=float32
@@ -44,7 +44,7 @@ func @tensor_io() {
 }
 
 // CHECK-LABEL: --- Running 'tensor_io_invalid_path'
-func @tensor_io_invalid_path() {
+func.func @tensor_io_invalid_path() {
   %c0 = tfrt.new.chain
   %path = "tfrt_test.get_string"() { value = "/tmp/invalid_path" } : () -> !tfrt.string
   %zero = tfrt.constant.i32 0

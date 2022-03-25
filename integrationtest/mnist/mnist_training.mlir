@@ -27,7 +27,7 @@
 // Non-trainable params: 0
 
 // CHECK-LABEL: --- Running 'mnist_training'
-func @mnist_training() {
+func.func @mnist_training() {
   %path = "tfrt_test.get_string"() { value = "integrationtest/mnist/test_data/mnist_metadata.btf" } : () -> !tfrt.string
   %c0 = tfrt.new.chain
 

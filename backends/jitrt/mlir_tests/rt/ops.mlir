@@ -16,13 +16,13 @@
 
 // CHECK-LABEL: func @pass_context(
 // CHECK:  %[[CTX:.*]]: !rt.kernel_context
-func @pass_context(%arg0: !rt.kernel_context) {
+func.func @pass_context(%arg0: !rt.kernel_context) {
   return
 }
 
 // CHECK-LABEL: func @set_output(
 // CHECK:  %[[CTX:.*]]: !rt.kernel_context
-func @set_output(%arg0: !rt.kernel_context) {
+func.func @set_output(%arg0: !rt.kernel_context) {
   // CHECK: %[[MEMREF:.*]] = memref.alloc
   %0 = memref.alloc() : memref<f32>
   // CHECK: rt.set_output %[[CTX]], 0, %[[MEMREF]]
@@ -32,7 +32,7 @@ func @set_output(%arg0: !rt.kernel_context) {
 
 // CHECK-LABEL: func @set_error(
 // CHECK:  %[[CTX:.*]]: !rt.kernel_context
-func @set_error(%arg0: !rt.kernel_context) {
+func.func @set_error(%arg0: !rt.kernel_context) {
   // CHECK: rt.set_error %[[CTX]], "Failed precondition"
   rt.set_error %arg0, "Failed precondition"
   return

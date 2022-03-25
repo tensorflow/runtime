@@ -15,7 +15,7 @@
 // RUN: bef_executor_debug_tracing --enable_tracing --tracing_level=debug %s.bef 2>&1 | FileCheck %s
 
 // CHECK: --- Running 'print_test'
-func @print_test() {
+func.func @print_test() {
 // CHECK: Scope:Bef Executor
 // CHECK: Scope:Function: print_test
 

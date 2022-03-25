@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'test_flatten_f32'
-func @test_flatten_f32() {
+func.func @test_flatten_f32() {
   %ch0 = tfrt.new.chain
 
   %t1 = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -38,7 +38,7 @@ func @test_flatten_f32() {
 
 
 // CHECK-LABEL: --- Running 'test_max_pool_2d_f32_padding_error'
-func @test_max_pool_2d_f32_padding_error() {
+func.func @test_max_pool_2d_f32_padding_error() {
   %ch0 = tfrt.new.chain
 
   %input = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -57,7 +57,7 @@ func @test_max_pool_2d_f32_padding_error() {
 }
 
 // CHECK-LABEL: --- Running 'test_max_pool_2d_f32_shape_error'
-func @test_max_pool_2d_f32_shape_error() {
+func.func @test_max_pool_2d_f32_shape_error() {
   %ch0 = tfrt.new.chain
 
   %input = "tfrt_dht.create_uninitialized_tensor.f32.4"()

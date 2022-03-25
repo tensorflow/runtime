@@ -933,7 +933,7 @@ static Value CreateMakeTensor(ConversionPatternRewriter &rewriter, Location loc,
   OperationState state(loc, name);
   state.addTypes(rewriter.getType<t::TensorType>());
   state.addAttribute("shape", rewriter.getI64ArrayAttr(type.getShape()));
-  return rewriter.createOperation(state)->getResult(0);
+  return rewriter.create(state)->getResult(0);
 }
 
 static Value CreateSetTensor(ConversionPatternRewriter &rewriter, Location loc,
@@ -949,7 +949,7 @@ static Value CreateSetTensor(ConversionPatternRewriter &rewriter, Location loc,
   values.reserve(init_values.getNumElements());
   llvm::copy(init_values.getValues<Attribute>(), std::back_inserter(values));
   state.addAttribute("values", rewriter.getArrayAttr(values));
-  return rewriter.createOperation(state)->getResult(0);
+  return rewriter.create(state)->getResult(0);
 }
 
 // Initializes 'buffer' with constant values from 'global_op'. Returns chain.

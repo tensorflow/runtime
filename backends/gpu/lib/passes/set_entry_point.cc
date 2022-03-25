@@ -59,7 +59,7 @@ void setEntryPoint(ModuleOp module, wrapper::Platform platform,
   };
   OperationState state(loc, GetEntryPointOpName(), {}, entry_point_type,
                        attributes);
-  Operation *get_entry_point_op = builder.createOperation(state);
+  Operation *get_entry_point_op = builder.create(state);
 
   // Return entry point.
   builder.create<compiler::ReturnOp>(loc, get_entry_point_op->getResult(0));

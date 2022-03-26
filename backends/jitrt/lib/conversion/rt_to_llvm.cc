@@ -38,7 +38,6 @@ namespace {
 
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
-using mlir::FuncOp;
 using mlir::FunctionType;
 using mlir::ImplicitLocOpBuilder;
 using mlir::IntegerType;
@@ -60,6 +59,7 @@ using mlir::UnrealizedConversionCastOp;
 using mlir::ValueRange;
 using mlir::arith::ConstantOp;
 using mlir::func::CallOp;
+using mlir::func::FuncOp;
 
 namespace LLVM = mlir::LLVM;
 

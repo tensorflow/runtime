@@ -603,6 +603,7 @@ tfrt_cc_library(
         ":stream_analysis",
         ":support",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
     ],
 )
@@ -1665,6 +1666,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":stream_analysis",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:Pass",
     ],
     alwayslink = 1,

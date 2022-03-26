@@ -33,7 +33,7 @@ mlir::Attribute GetOptionAttribute(mlir::Block& block,
   auto* parent = block.getParentOp();
 
   // Try to use function-level option first.
-  if (auto func = llvm::dyn_cast<mlir::FuncOp>(parent)) {
+  if (auto func = llvm::dyn_cast<mlir::func::FuncOp>(parent)) {
     if (auto attr = func->getAttr(attr_name)) {
       return attr;
     }

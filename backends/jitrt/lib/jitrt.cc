@@ -39,6 +39,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -647,7 +648,7 @@ class JitCompilationContext {
     return *module_;
   }
 
-  mlir::FuncOp entrypoint() const {
+  mlir::func::FuncOp entrypoint() const {
     assert(entrypoint_ && "failed to resolve entrypoint function");
     return entrypoint_;
   }
@@ -682,8 +683,8 @@ class JitCompilationContext {
   llvm::SourceMgr source_mgr_;
   mlir::SourceMgrDiagnosticHandler handler_;
   mlir::OwningOpRef<mlir::ModuleOp>
-      module_;               // can be null if failed to parse the module
-  mlir::FuncOp entrypoint_;  // can be null if failed to parse the module
+      module_;                     // can be null if failed to parse the module
+  mlir::func::FuncOp entrypoint_;  // can be null if failed to parse the module
   bool specialized_;
 };
 }  // namespace
@@ -717,7 +718,8 @@ JitCompilationContext::JitCompilationContext(CompilationOptions opts,
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "jitrt.kernel"),
       llvm::SMLoc());
   module_ = mlir::parseSourceFile<mlir::ModuleOp>(source_mgr_, context_.get());
-  if (module_) entrypoint_ = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (module_)
+    entrypoint_ = module_->lookupSymbol<mlir::func::FuncOp>(entrypoint);
 }
 
 /*static*/ Expected<std::unique_ptr<JitCompilationContext>>
@@ -736,7 +738,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
     std::unique_ptr<JitCompilationContext> ctx, string_view memory_region_name,
     Optional<size_t> specialization) {
-  mlir::FuncOp entry_func = ctx->entrypoint();
+  mlir::func::FuncOp entry_func = ctx->entrypoint();
   std::string entrypoint = entry_func.getName().str();
 
   // We track end-to-end time to compile the final executable.
@@ -852,7 +854,7 @@ llvm::Error JitCompilationContext::Specialize(
   assert(!specialized_ && "can specialize executable only once");
   specialized_ = true;
 
-  mlir::FuncOp func = entrypoint();
+  mlir::func::FuncOp func = entrypoint();
 
   // Update function signature and sink constant operands into the body.
   if (auto err = SpecializeFunction(func, operands, symbolic_shapes,

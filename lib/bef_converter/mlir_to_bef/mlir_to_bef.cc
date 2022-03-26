@@ -38,6 +38,7 @@
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -76,11 +77,13 @@ static bool IsReturn(mlir::Operation* op) {
   return op->getName().getStringRef() == "tfrt.return";
 }
 
-static bool IsNativeFunc(mlir::FuncOp op) {
+static bool IsNativeFunc(mlir::func::FuncOp op) {
   return !!op->getAttr("tfrt.native");
 }
 
-static bool IsSyncFunc(mlir::FuncOp op) { return !!op->getAttr("tfrt.sync"); }
+static bool IsSyncFunc(mlir::func::FuncOp op) {
+  return !!op->getAttr("tfrt.sync");
+}
 
 static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   // Emit information about the type of the function.
@@ -181,7 +184,7 @@ struct EntityTable {
   void AddType(mlir::Type type);
   unsigned GetTypeIndex(mlir::Type type) const;
 
-  void AddNativeFunction(mlir::FuncOp op);
+  void AddNativeFunction(mlir::func::FuncOp op);
   LogicalResult AddFunction(mlir::Region* region, string_view name,
                             FunctionKind func_kind);
   unsigned GetFunctionID(const mlir::Region& region) const;
@@ -216,7 +219,7 @@ unsigned EntityTable::GetTypeIndex(mlir::Type type) const {
   return it->second;
 }
 
-void EntityTable::AddNativeFunction(mlir::FuncOp op) {
+void EntityTable::AddNativeFunction(mlir::func::FuncOp op) {
   auto function_type = op.getFunctionType();
 
   for (auto type : function_type.getInputs()) AddType(type);
@@ -343,7 +346,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
         // We treat functions specially, putting them into the symbol table and
         // ignoring their attributes.
-        if (auto fn = llvm::dyn_cast<mlir::FuncOp>(op)) {
+        if (auto fn = llvm::dyn_cast<mlir::func::FuncOp>(op)) {
           if (IsNativeFunc(fn)) {
             AddNativeFunction(fn);
           } else {

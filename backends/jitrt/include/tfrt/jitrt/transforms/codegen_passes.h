@@ -33,8 +33,8 @@ namespace jitrt {
 std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>>
 CreateAlignedAllocationsPass(int64_t alignment = 64);
 
-std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateMathOptimizationPass(
-    bool enable_avx2 = false);
+std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>>
+CreateMathOptimizationPass(bool enable_avx2 = false);
 
 std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass();
 

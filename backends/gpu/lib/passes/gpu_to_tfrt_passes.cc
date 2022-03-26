@@ -1350,7 +1350,7 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
       Location loc = op->getLoc();
       auto callee_type =
           rewriter.getFunctionType(context.getType(), handle_type);
-      auto callee_op = rewriter.create<mlir::FuncOp>(
+      auto callee_op = rewriter.create<mlir::func::FuncOp>(
           loc, op->getName().getIdentifier(), callee_type);
       symbol_table.insert(callee_op);
       rewriter.setInsertionPointToEnd(callee_op.addEntryBlock());

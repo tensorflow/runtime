@@ -16,6 +16,7 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Math/Transforms/Passes.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/Pass/Pass.h"
@@ -50,8 +51,8 @@ void MathOptimizationPass::runOnOperation() {
     signalPassFailure();
 }
 
-std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateMathOptimizationPass(
-    bool enable_avx2) {
+std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>>
+CreateMathOptimizationPass(bool enable_avx2) {
   return std::make_unique<MathOptimizationPass>(enable_avx2);
 }
 

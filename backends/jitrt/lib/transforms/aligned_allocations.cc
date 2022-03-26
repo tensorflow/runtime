@@ -17,6 +17,7 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OperationSupport.h"
@@ -54,8 +55,8 @@ void AlignedAllocationsPass::runOnOperation() {
   });
 }
 
-std::unique_ptr<mlir::OperationPass<mlir::FuncOp>> CreateAlignedAllocationsPass(
-    int64_t alignment) {
+std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>>
+CreateAlignedAllocationsPass(int64_t alignment) {
   return std::make_unique<AlignedAllocationsPass>(alignment);
 }
 

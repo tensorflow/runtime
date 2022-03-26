@@ -118,7 +118,7 @@ class TestSetEntryPointPass
     auto platform = tfrt::gpu::wrapper::ParsePlatform(platform_);
     if (!platform) return emitError(toString(platform.takeError()));
 
-    mlir::FuncOp func_op;
+    mlir::func::FuncOp func_op;
     if (function_name_.hasValue()) {
       func_op = mlir::SymbolTable::lookupNearestSymbolFrom<FuncOp>(
           getOperation(), mlir::StringAttr::get(&getContext(), function_name_));

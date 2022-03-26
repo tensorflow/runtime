@@ -17,6 +17,7 @@
 #ifndef TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_SPECIALIZATION_H_
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_SPECIALIZATION_H_
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 #include "tfrt/jitrt/constraints.h"
@@ -53,7 +54,7 @@ struct SpecializationListener {
 //
 // See an example of a compiled module specialization in `jitrt.h`.
 Error SpecializeFunction(
-    mlir::FuncOp func, ArrayRef<MemrefDesc> operands,
+    mlir::func::FuncOp func, ArrayRef<MemrefDesc> operands,
     ArrayRef<SymbolicShapesResolver::SymbolicShape> symbolic_shapes,
     ArrayRef<OperandConstraint> constraints,
     const SpecializationListener* listener = nullptr);

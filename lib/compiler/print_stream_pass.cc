@@ -16,6 +16,7 @@
 
 // This implements PrintStreamPass for testing StreamAnalysis.
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "tfrt/compiler/stream_analysis.h"
 
@@ -25,7 +26,7 @@ namespace {
 
 class PrintStreamPass
     : public mlir::PassWrapper<PrintStreamPass,
-                               mlir::OperationPass<mlir::FuncOp>> {
+                               mlir::OperationPass<mlir::func::FuncOp>> {
  public:
   llvm::StringRef getArgument() const final { return "tfrt-print-stream"; }
 

@@ -80,10 +80,11 @@ void CreateDefaultJitRtCompilationPipeline(
 
   // Optimize operations from the math dialect before outlining compute regions
   // into functions to see all constant operands.
-  pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass(opts.math_avx2));
+  pm.addNestedPass<mlir::func::FuncOp>(
+      CreateMathOptimizationPass(opts.math_avx2));
 
   // Convert all linalg operations to parallel loops.
-  pm.addNestedPass<mlir::FuncOp>(
+  pm.addNestedPass<mlir::func::FuncOp>(
       mlir::createConvertLinalgToParallelLoopsPass());
   // Canonicalize generated scf.parallel operations to remove single iterations.
   pm.addPass(mlir::createCanonicalizerPass());
@@ -109,11 +110,13 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
 
   // Expand math operations into std/arith dialect operations.
-  pm.addNestedPass<mlir::FuncOp>(mlir::arith::createArithmeticExpandOpsPass());
-  pm.addNestedPass<mlir::FuncOp>(mlir::memref::createExpandOpsPass());
+  pm.addNestedPass<mlir::func::FuncOp>(
+      mlir::arith::createArithmeticExpandOpsPass());
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::memref::createExpandOpsPass());
 
   // Add alignment attribute to all memref allocations.
-  pm.addNestedPass<mlir::FuncOp>(CreateAlignedAllocationsPass(opts.alignment));
+  pm.addNestedPass<mlir::func::FuncOp>(
+      CreateAlignedAllocationsPass(opts.alignment));
 
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());
@@ -127,7 +130,7 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(CreateConvertRuntimeToLLVMPass());
 
   {
-    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
+    mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();
     fpm.addPass(mlir::createConvertMathToLLVMPass());
   }
 

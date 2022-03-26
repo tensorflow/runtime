@@ -27,13 +27,13 @@ namespace jitrt {
 namespace {
 
 using mlir::Block;
-using mlir::FuncOp;
 using mlir::FunctionType;
 using mlir::ImplicitLocOpBuilder;
 using mlir::ModuleOp;
 using mlir::Value;
 using mlir::cf::AssertOp;
 using mlir::cf::CondBranchOp;
+using mlir::func::FuncOp;
 using mlir::func::ReturnOp;
 
 #define GEN_PASS_CLASSES
@@ -94,7 +94,7 @@ static void ConvertAssertOperations(FuncOp func, Value kernel_ctx) {
   }
 }
 
-static Value PrependKernelContextArgument(mlir::FuncOp func) {
+static Value PrependKernelContextArgument(mlir::func::FuncOp func) {
   mlir::Type new_type = KernelContextType::get(func.getContext());
   mlir::DictionaryAttr attr = mlir::DictionaryAttr::get(func.getContext());
   func.insertArguments({0}, {new_type}, {attr}, {func.getLoc()});

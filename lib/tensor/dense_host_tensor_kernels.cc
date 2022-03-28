@@ -16,6 +16,7 @@
 
 #include "tfrt/tensor/dense_host_tensor_kernels.h"
 
+#include <algorithm>
 #include <complex>
 
 #include "llvm/ADT/STLExtras.h"
@@ -122,6 +123,25 @@ static Error SyncSetDenseTensorWithConstantValues(MutableDHTArrayView<T> in,
                            values.size(), ", but expected ", in.NumElements());
   }
   std::copy(values.data().begin(), values.data().end(), in.Elements().begin());
+  return Error::success();
+}
+
+template <>
+Error SyncSetDenseTensorWithConstantValues(
+    MutableDHTArrayView<std::complex<float>> in,
+    ArrayAttribute<std::complex<float>> values) {
+  // In actuality, 'values' is an ArrayAttribute<float>. Treating it as an
+  // ArrayAttribute<std::complex<float>> makes the copy easier, and fits the
+  // template specialization nicely.
+  const int total_value_count = in.NumElements() * 2;  // real and imaginary
+  if (total_value_count != values.size()) {
+    return MakeStringError(
+        "Incorrect number of real and imaginary values for the complex "
+        "tensor: ",
+        values.size(), ", but expected ", total_value_count);
+  }
+  std::copy(values.data().begin(), values.data().begin() + in.NumElements(),
+            in.Elements().begin());
   return Error::success();
 }
 

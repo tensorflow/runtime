@@ -128,13 +128,17 @@ class SetTensorOp<string dtype>
 
   let description = [{
     An operation that sets an input tensor with given values. It takes an input
-    tensor and a chain as inputs and a list of values as attribute, and outputs
-    a chain.
+    tensor and a chain as inputs and a list of values as attribute (for complex
+    element type, real and complex values are interleaved, resulting in twice
+    the number of values overall). This operation outputs a chain.
 
     Example:
       %1 = tfrt.new.chain
       %2 = tfrt_dht.create_uninitialized_tensor.i32.2 [1 : i32, 2 : i32]
-      %3 = tfrt_dht.set_tensor_with_constant_values.i32 %2, %1 [0 : i32, 1 : i32]
+      %3 = tfrt_dht.set_tensor_with_constant_values.i32 %2, %1 [8 : i32, 9 : i32]
+      %4 = tfrt_dht.create_uninitialized_tensor.complex64.2 [1 : i32, 2 : i32]
+      %5 = tfrt_dht.set_tensor_with_constant_values.complex64 %2, %1
+          [8.000e+00 : f32, 0.000e+00 : f32, 9.000e+00 : f32, 0.000e+00 : f32]
   }];
 
   let arguments = (ins TensorType, TFRT_ChainType, ArrayAttr:$values);

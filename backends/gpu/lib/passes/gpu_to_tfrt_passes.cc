@@ -945,10 +945,29 @@ static Value CreateSetTensor(ConversionPatternRewriter &rewriter, Location loc,
   OperationState state(loc, name);
   state.addTypes(chain.getType());
   state.addOperands({tensor, chain});
-  std::vector<Attribute> values;
-  values.reserve(init_values.getNumElements());
-  llvm::copy(init_values.getValues<Attribute>(), std::back_inserter(values));
-  state.addAttribute("values", rewriter.getArrayAttr(values));
+  if (auto complex_type =
+          init_values.getElementType().dyn_cast<mlir::ComplexType>()) {
+    const char *values_ptr = init_values.getRawData().data();
+    // real and imaginary
+    const int total_value_count = init_values.getNumElements() * 2;
+    auto element_type = complex_type.getElementType();
+    if (element_type.isF32()) {
+      ArrayRef<float> values(reinterpret_cast<const float *>(values_ptr),
+                             total_value_count);
+      state.addAttribute("values", rewriter.getF32ArrayAttr(values));
+    } else if (element_type.isF64()) {
+      ArrayRef<double> values(reinterpret_cast<const double *>(values_ptr),
+                              total_value_count);
+      state.addAttribute("values", rewriter.getF64ArrayAttr(values));
+    } else {
+      llvm_unreachable("Unsupported type");
+    }
+  } else {
+    std::vector<Attribute> values;
+    values.reserve(init_values.getNumElements());
+    llvm::copy(init_values.getValues<Attribute>(), std::back_inserter(values));
+    state.addAttribute("values", rewriter.getArrayAttr(values));
+  }
   return rewriter.create(state)->getResult(0);
 }
 

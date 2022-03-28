@@ -18,7 +18,7 @@
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )
 func.func @pass_context(%arg0: !rt.kernel_context) {
-  return
+  func.return
 }
 
 // -----
@@ -35,7 +35,7 @@ func.func @set_output(%arg0: !rt.kernel_context) {
   // CHECK: %[[LLVM_PTR:.*]] = llvm.bitcast %[[RES_PTR]]
   // CHECK: llvm.store %[[LLVM_MEMREF]], %[[LLVM_PTR]]
   rt.set_output %arg0, 0, %0 : memref<f32>
-  return
+  func.return
 }
 
 // -----
@@ -55,5 +55,5 @@ func.func @set_error(%arg0: !rt.kernel_context) {
   // CHECK: %[[PTR1:.*]] = llvm.bitcast %[[ADDR1]] {{.*}} to !llvm.ptr<i8>
   // CHECK: call @runtimeSetError(%[[CTX]], %[[PTR1]])
   rt.set_error %arg0, "Failed precondition #1"
-  return
+  func.return
 }

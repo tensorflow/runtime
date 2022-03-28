@@ -26,5 +26,5 @@
 // CHECK: tfrt.return %[[result]] : !tfrt_gpu.entry_point
 
 func.func @main() {
-  return
+  func.return
 }

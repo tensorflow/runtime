@@ -16,7 +16,7 @@
 
 module @kernel attributes { tfrt.compiled } {
   func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
-    return
+    func.return
   }
 }
 

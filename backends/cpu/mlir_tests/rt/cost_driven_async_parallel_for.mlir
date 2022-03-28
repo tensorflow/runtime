@@ -29,7 +29,7 @@ func.func @loop1d(%arg: memref<?xf32>) {
   // expected-remark@-6 {{ramCost: { %c0_3 = arith.constant 0 : index } cpuCost: { %c0_4 = arith.constant 0 : index }}}
   // expected-remark@-7 {{ramCost: { %1 = arith.addi %c0_3, %c4 : index } cpuCost: { %2 = arith.addi %c0_4, %c0_0 : index }}}
   // expected-remark@-8 {{ramCost: { %3 = arith.addi %1, %c0_1 : index } cpuCost: { %4 = arith.addi %2, %c0_2 : index }}}
-  return
+  func.return
 }
 
 // -----
@@ -59,5 +59,5 @@ func.func @loop2d(%arg: memref<?x?xf32>) {
   // expected-remark@-15  {{ramCost: { %c0_7 = arith.constant 0 : index } cpuCost: { %c0_8 = arith.constant 0 : index }}}
   // expected-remark@-16  {{ramCost: { %10 = arith.addi %c0_7, %8 : index } cpuCost: { %11 = arith.addi %c0_8, %9 : index }}}
   // expected-remark@-17  {{ramCost: { %12 = arith.addi %10, %c0_5 : index } cpuCost: { %13 = arith.addi %11, %c0_6 : index }}}
-  return
+  func.return
 }

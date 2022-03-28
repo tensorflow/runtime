@@ -42,7 +42,7 @@ func.func @test_wrap_async_execute() {
   "wrap.op"() : () -> ()
 
   // CHECK: return
-  return
+  func.return
 }
 
 func.func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
@@ -74,5 +74,5 @@ func.func @test_rewrite_alloc() {
   // CHECK: %[[tmp:.*]] = gpu.alloc  () : memref<64xi8>
   %temp = memref.alloca() : memref<64xi8>
   // CHECK: return
-  return
+  func.return
 }

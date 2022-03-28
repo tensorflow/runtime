@@ -17,14 +17,14 @@
 // CHECK-DAG: @kernel0 attributes {tfrt.compiled}
 module @kernel0 attributes {tfrt.compiled} {
   func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
-    return
+    func.return
   }
 }
 
 // CHECK-DAG: @kernel1 attributes {tfrt.compiled}
 module @kernel1 attributes {tfrt.compiled} {
   func.func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {
-    return
+    func.return
   }
 }
 

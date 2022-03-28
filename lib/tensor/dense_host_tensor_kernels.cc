@@ -115,20 +115,6 @@ static Chain FillDenseTensorWithConstantValue(
 }
 
 template <typename T>
-static void SetDenseTensorWithConstantValues(
-    ArgumentView<MutableDHTArrayView<T>> in, Argument<Chain> chain_in,
-    Result<Chain> chain_out, ArrayAttribute<T> values,
-    KernelErrorHandler handler) {
-  if (in->NumElements() != values.size()) {
-    handler.ReportError("Incorrect number of values for the tensor: ",
-                        values.size(), ", but expected ", in->NumElements());
-    return;
-  }
-  std::copy(values.data().begin(), values.data().end(), in->Elements().begin());
-  chain_out.Set(chain_in);
-}
-
-template <typename T>
 static Error SyncSetDenseTensorWithConstantValues(MutableDHTArrayView<T> in,
                                                   ArrayAttribute<T> values) {
   if (in.NumElements() != values.size()) {
@@ -137,6 +123,18 @@ static Error SyncSetDenseTensorWithConstantValues(MutableDHTArrayView<T> in,
   }
   std::copy(values.data().begin(), values.data().end(), in.Elements().begin());
   return Error::success();
+}
+
+template <typename T>
+static void SetDenseTensorWithConstantValues(
+    ArgumentView<MutableDHTArrayView<T>> in, Argument<Chain> chain_in,
+    Result<Chain> chain_out, ArrayAttribute<T> values,
+    KernelErrorHandler handler) {
+  if (auto error = SyncSetDenseTensorWithConstantValues<T>(*in, values)) {
+    handler.ReportError(toString(std::move(error)));
+    return;
+  }
+  chain_out.Set(chain_in);
 }
 
 template <typename T>

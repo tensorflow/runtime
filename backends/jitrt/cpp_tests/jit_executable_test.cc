@@ -46,11 +46,11 @@ using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 // -------------------------------------------------------------------------- //
 
 static const char* mlir_module = R"(
-    func @compute(%arg0: memref<?x?xf32>,
+    func.func @compute(%arg0: memref<?x?xf32>,
                   %arg1: memref<?x?xf32>,
                   %arg3: memref<?x?xf32>,
                   %arg4: memref<16x32xf32>) {
-      return
+      func.return
     })";
 
 static const char* entrypoint = "compute";

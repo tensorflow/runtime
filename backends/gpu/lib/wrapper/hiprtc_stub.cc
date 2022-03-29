@@ -14,7 +14,7 @@
 
 // Implementation of the HIP API forwarding calls to symbols dynamically loaded
 // from the real library.
-#include "tfrt/gpu/wrapper/hip_stub.h"
+#include "tfrt/gpu/wrapper/hiprtc_stub.h"
 
 #include "symbol_loader.h"
 
@@ -32,32 +32,19 @@ static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
 // Calls function 'symbol_name' in shared library with 'args'.
 // TODO(csigg): Change to 'auto Func' when C++17 is allowed.
 template <typename Func, Func *, typename... Args>
-static hipError_t DynamicCall(const char *symbol_name, Args &&...args) {
+static hiprtcResult DynamicCall(const char *symbol_name, Args &&...args) {
   static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
-  if (!func_ptr) return hipErrorSharedObjectInitFailed;
+  if (!func_ptr) return HIPRTC_ERROR_NAME_EXPRESSION_NOT_VALID;
   return func_ptr(std::forward<Args>(args)...);
 }
 
-#define __dparm(x)
-#define DEPRECATED(x) [[deprecated]]
-#define dim3 hipDim3_t
-
 extern "C" {
-#include "hip_stub.cc.inc"
+#include "hiprtc_stub.cc.inc"
 }
 
-// The functions below have a different return type and therefore don't fit
-// the code generator patterns.
-
-const char *hipGetErrorName(hipError_t hip_error) {
-  static auto func_ptr = GetFunctionPointer("hipGetErrorName", hipGetErrorName);
-  if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
-  return func_ptr(hip_error);
-}
-
-const char *hipGetErrorString(hipError_t hip_error) {
+const char *hiprtcGetErrorString(hiprtcResult result) {
   static auto func_ptr =
-      GetFunctionPointer("hipGetErrorString", hipGetErrorString);
+      GetFunctionPointer("hiprtcGetErrorString", hiprtcGetErrorString);
   if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
-  return func_ptr(hip_error);
+  return func_ptr(result);
 }

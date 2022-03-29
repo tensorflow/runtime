@@ -33,16 +33,9 @@ bazel build --nocheck_visibility --config=$1\
 # Generate header and implementation files.
 HDR_PATH="third_party/hip/%s_stub.h.inc"
 SRC_PATH="third_party/hip/%s_stub.cc.inc"
-for API in "hip" "rocblas" "rocsolver" "miopen" "hipfft"; do
+for API in "hip" "rocblas" "rocsolver" "miopen" "hipfft" "hiprtc"; do
    ./bazel-bin/backends/gpu/tools/stub_codegen/header_codegen \
        $(dirname $0)/$API.json | clang-format > $(printf $HDR_PATH $API)
    ./bazel-bin/backends/gpu/tools/stub_codegen/impl_codegen \
        $(dirname $0)/$API.json | clang-format > $(printf $SRC_PATH $API)
 done
-
-# Hiprtc is currently rolled up in hip shared library. 
-# It is subject to change in future releases.
-./bazel-bin/backends/gpu/tools/stub_codegen/header_codegen \
-    $(dirname $0)/hiprtc.json | clang-format >> third_party/hip/hip_stub.h.inc
-./bazel-bin/backends/gpu/tools/stub_codegen/impl_codegen \
-    $(dirname $0)/hiprtc.json | clang-format >> third_party/hip/hip_stub.cc.inc

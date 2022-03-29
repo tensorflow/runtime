@@ -12,5 +12,15 @@
       "hiprtcResult"
    ],
    "functions":[
+      "hiprtcVersion", 
+      "hiprtcAddNameExpression",
+      "hiprtcCompileProgram",
+      "hiprtcCreateProgram",
+      "hiprtcDestroyProgram",
+      "hiprtcGetLoweredName",
+      "hiprtcGetProgramLog",
+      "hiprtcGetProgramLogSize",
+      "hiprtcGetCode",
+      "hiprtcGetCodeSize"
    ]
 }

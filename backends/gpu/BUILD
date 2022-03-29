@@ -82,6 +82,7 @@ tfrt_cc_library(
     name = "rocm_stubs",
     srcs = [
         "lib/wrapper/hip_stub.cc",
+        "lib/wrapper/hiprtc_stub.cc",
         "lib/wrapper/hipfft_stub.cc",
         "lib/wrapper/miopen_stub.cc",
         "lib/wrapper/rccl_stub.cc",
@@ -91,6 +92,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/gpu/wrapper/hip_forwards.h",
         "include/tfrt/gpu/wrapper/hip_stub.h",
+        "include/tfrt/gpu/wrapper/hiprtc_stub.h",
         "include/tfrt/gpu/wrapper/hipfft_stub.h",
         "include/tfrt/gpu/wrapper/miopen_stub.h",
         "include/tfrt/gpu/wrapper/rccl_stub.h",
@@ -164,6 +166,7 @@ tfrt_cc_library(
         "lib/wrapper/driver_wrapper.cc",
         "lib/wrapper/fft_wrapper.cc",
         "lib/wrapper/hip_wrapper.cc",
+        "lib/wrapper/hiprtc_wrapper.cc",
         "lib/wrapper/hipfft_wrapper.cc",
         "lib/wrapper/miopen_enums.cc",
         "lib/wrapper/miopen_wrapper.cc",
@@ -191,6 +194,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/driver_wrapper.h",
         "include/tfrt/gpu/wrapper/fft_wrapper.h",
         "include/tfrt/gpu/wrapper/hip_wrapper.h",
+        "include/tfrt/gpu/wrapper/hiprtc_wrapper.h",
         "include/tfrt/gpu/wrapper/hipfft_wrapper.h",
         "include/tfrt/gpu/wrapper/miopen_wrapper.h",
         "include/tfrt/gpu/wrapper/nccl_wrapper.h",

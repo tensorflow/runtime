@@ -175,9 +175,10 @@ class DeviceTypeRegistry {
   const DeviceType& GetDeviceType(string_view type) const;
 
  private:
-  // We use an array instead of map because we don't expected to have many
-  // device types. And it is not on the performance critical path.
-  llvm::SmallVector<DeviceType, 4> types_;
+  // We don't use map because we don't expected to have many device types. And
+  // it is not on the performance critical path. However we need to avoid
+  // reallocations as Device stores the reference.
+  llvm::SmallVector<std::unique_ptr<DeviceType>, 4> types_;
 };
 
 // Register and return a new DeviceType.

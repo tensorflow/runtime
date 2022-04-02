@@ -22,18 +22,19 @@ namespace tfrt {
 
 const DeviceType& DeviceTypeRegistry::RegisterDeviceType(string_view type) {
   for (auto& dt : types_) {
-    if (dt.name() == type) {
+    if (dt->name() == type) {
       assert(false && "re-registered existing device type.");
     }
   }
-  types_.push_back(DeviceType(type));
-  return types_.back();
+  // DeviceType will be owned by types_.
+  types_.emplace_back(new DeviceType(type));
+  return *types_.back();
 }
 
 const DeviceType& DeviceTypeRegistry::GetDeviceType(string_view type) const {
   for (auto& dt : types_) {
-    if (dt.name() == type) {
-      return dt;
+    if (dt->name() == type) {
+      return *dt;
     }
   }
   return DeviceType::kUnknownDeviceType;

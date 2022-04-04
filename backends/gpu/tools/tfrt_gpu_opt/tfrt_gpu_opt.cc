@@ -143,8 +143,7 @@ class TestSetEntryPointPass
 
   Option<std::string> platform_{*this, "platform"};
   Option<std::string> function_name_{*this, "function_name"};
-  ListOption<int64_t> buffer_sizes_{*this, "buffer_sizes",
-                                    llvm::cl::MiscFlags::CommaSeparated};
+  ListOption<int64_t> buffer_sizes_{*this, "buffer_sizes"};
 };
 
 }  // namespace

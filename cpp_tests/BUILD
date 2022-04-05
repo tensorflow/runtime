@@ -708,3 +708,14 @@ tfrt_cc_test(
         "@tf_runtime//:support",
     ],
 )
+
+tfrt_cc_test(
+    name = "bef/bef_test",
+    srcs = [
+        "bef/bef_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:bef",
+    ],
+)

@@ -228,6 +228,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "bef",
     hdrs = [
+        "include/tfrt/bef/bef.h",
         "include/tfrt/bef/bef_buffer.h",
         "include/tfrt/bef/bef_encoding.h",
         "include/tfrt/bef/bef_reader.h",

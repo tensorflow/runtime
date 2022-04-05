@@ -28,6 +28,8 @@ class PrintStreamPass
     : public mlir::PassWrapper<PrintStreamPass,
                                mlir::OperationPass<mlir::func::FuncOp>> {
  public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(PrintStreamPass)
+
   llvm::StringRef getArgument() const final { return "tfrt-print-stream"; }
 
   llvm::StringRef getDescription() const final {

@@ -48,6 +48,8 @@ namespace {
 struct TestGpuAsyncConversionPass
     : public mlir::PassWrapper<TestGpuAsyncConversionPass,
                                OperationPass<FuncOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestGpuAsyncConversionPass)
+
   StringRef getArgument() const final { return "test-gpu-async-conversion"; }
 
   void getDependentDialects(DialectRegistry &registry) const override {
@@ -100,6 +102,8 @@ struct TestGpuAsyncConversionPass
 class TestSetEntryPointPass
     : public mlir::PassWrapper<TestSetEntryPointPass, OperationPass<ModuleOp>> {
  public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestSetEntryPointPass)
+
   TestSetEntryPointPass() = default;
   TestSetEntryPointPass(const TestSetEntryPointPass &pass) {}
   void getDependentDialects(DialectRegistry &registry) const override {

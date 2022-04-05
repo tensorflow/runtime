@@ -465,6 +465,7 @@ struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
 // !tfrt_gpu.stream arguments and return a !tfrt.chain.
 struct AddChainAndStreamToFuncPass
     : public PassWrapper<AddChainAndStreamToFuncPass, OperationPass<FuncOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(AddChainAndStreamToFuncPass)
  private:
   void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
@@ -478,6 +479,7 @@ struct AddChainAndStreamToFuncPass
 struct ConvertAsyncToChainAndEventPass
     : public PassWrapper<ConvertAsyncToChainAndEventPass,
                          OperationPass<FuncOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ConvertAsyncToChainAndEventPass)
  private:
   void runOnOperation() override;
   StringRef getArgument() const override { return "async-tfrt-streamify"; }
@@ -491,6 +493,7 @@ struct ConvertAsyncToChainAndEventPass
 // A pass which converts from gpu dialect to tfrt_gpu dialect.
 struct ConvertGpuToTfrtGpuPass
     : public PassWrapper<ConvertGpuToTfrtGpuPass, OperationPass<ModuleOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ConvertGpuToTfrtGpuPass)
  private:
   void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
@@ -502,6 +505,7 @@ struct ConvertGpuToTfrtGpuPass
 // A pass which outlines resource creating ops and replaces them with tfrt.once.
 struct HoistingPass
     : public PassWrapper<HoistingPass, OperationPass<ModuleOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(HoistingPass)
  private:
   void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
@@ -513,6 +517,7 @@ struct HoistingPass
 // A pass which removes unrealized_conversion_cast ops.
 struct ReconcileCastsPass
     : public PassWrapper<ReconcileCastsPass, OperationPass<ModuleOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ReconcileCastsPass)
  private:
   void runOnOperation() override;
   StringRef getArgument() const override { return "cast-tfrt-streamify"; }
@@ -521,6 +526,7 @@ struct ReconcileCastsPass
 // A pass which converts from async dialect to tfrt dialect.
 struct ConvertAsyncToTfrtPass
     : public PassWrapper<ConvertAsyncToTfrtPass, OperationPass<FuncOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ConvertAsyncToTfrtPass)
  private:
   void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {

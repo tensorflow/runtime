@@ -96,6 +96,7 @@ GpuContextCache::~GpuContextCache() {
 
 GpuContextCache::Resources GpuContextCache::GetOrCreate(
     wrapper::Context context) {
+  mutex_lock lock(mutex_);
   auto pair = context_resources_.try_emplace(context);
   if (pair.second) {
     auto gpu_context =

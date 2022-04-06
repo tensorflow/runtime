@@ -48,7 +48,7 @@ namespace tfrt {
 class BEFFile;
 namespace gpu {
 
-// Creates and caches GpuContexts and an associated tfrt::ResourceContexts.
+// Creates and caches GpuContexts and associated tfrt::ResourceContexts.
 class GpuContextCache {
   using Resources = std::pair<AsyncValueRef<GpuContext>, ResourceContext*>;
 
@@ -56,14 +56,17 @@ class GpuContextCache {
   GpuContextCache() = default;
   GpuContextCache(GpuContextCache&&) = default;
   GpuContextCache& operator=(GpuContextCache&&) = default;
+  // Ensure no more GetOrCreate() calls before destruction.
   ~GpuContextCache();
 
   // Returns the `context` as non-owning AsyncValue plus a resource context
-  // that is unique to `context`.
+  // that is unique to `context`. This call is thread-safe.
   Resources GetOrCreate(wrapper::Context context);
 
  private:
-  llvm::SmallDenseMap<wrapper::Context, Resources> context_resources_;
+  mutex mutex_;
+  llvm::SmallDenseMap<wrapper::Context, Resources> context_resources_
+      TFRT_GUARDED_BY(mutex_);
 };
 
 struct BorrowedStreamDeleter {

@@ -218,19 +218,11 @@ static Error GpuMemCopy(RemainingArguments args,
 
   auto dst_ptr = get_ptr(args[0]);
   auto src_ptr = get_ptr(args[1]);
-  if (dst_ptr == src_ptr) {
-    // Source and destination are the same; skip copy.
-    return Error::success();
-  }
+  // Skip copy if source and destination are the same.
+  if (dst_ptr == src_ptr) return Error::success();
 
-  if (auto error = wrapper::MemcpyAsync(*current, dst_ptr, src_ptr, dst_size,
-                                        stream.get()))
-    return error;
-
-  // Hold on to ref-counts of src and dst until the async memcpy completes.
-  return GpuContext::AddEventualCallback(
-      *current, stream, [dst = FormRef(args[0]), src = FormRef(args[1])] {},
-      exec_ctx.host());
+  return wrapper::MemcpyAsync(*current, dst_ptr, src_ptr, dst_size,
+                              stream.get());
 }
 
 static Expected<GpuBuffer> GpuMemRegister(

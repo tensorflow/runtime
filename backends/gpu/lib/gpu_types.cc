@@ -140,14 +140,14 @@ class GpuContext::CallbackManager : public ReferenceCounted<CallbackManager> {
     callbacks_.erase(it, callbacks_.end());
     if (error) return error;
     if (callbacks_.empty() || pending_invoke_ || !host) return Error::success();
-    // Enqueue a blocking task that calls this function again after some
-    // delay.
+    // Run a blocking task that calls this function again after some delay.
+    // This is not 'EnqueueBlockingWork' because the work queue might run these
+    // from the calling thread (specifically, the GpuWorkQueue does).
     pending_invoke_ = true;
-    bool enqueued =
-        EnqueueBlockingWork(host, [host, manager = std::move(manager)] {
-          if (auto error = manager->InvokeLater(host))
-            host->EmitError(DecodedDiagnostic(std::move(error)));
-        });
+    bool enqueued = RunBlockingWork(host, [host, manager = std::move(manager)] {
+      if (auto error = manager->InvokeLater(host))
+        host->EmitError(DecodedDiagnostic(std::move(error)));
+    });
     if (!enqueued) return MakeStringError("Failed to enqueue blocking work.");
     return Error::success();
   }

@@ -15,6 +15,7 @@
 // GPU Executor Test Driver
 
 #include <cstdlib>
+#include <memory>
 #include <string>
 
 #include "llvm/Support/CommandLine.h"
@@ -34,11 +35,8 @@
 // arguments, executes the entry point function and synchronizes the stream.
 static llvm::Error ExecuteBefFile(llvm::StringRef path) {
   mlir::MLIRContext context;
-  tfrt::HostContext host_ctx(
-      tfrt::gpu::GetDiagHandler(&context), tfrt::CreateMallocAllocator(),
-      tfrt::CreateMultiThreadedWorkQueue(
-          /*num_threads=*/32, /*num_blocking_threads=*/16));
-  tfrt::RegisterStaticKernels(host_ctx.GetMutableRegistry());
+  std::unique_ptr<tfrt::HostContext> host_ctx =
+      tfrt::gpu::CreateHostContext(tfrt::gpu::GetDiagHandler(&context));
 
   auto buffer = tfrt::gpu::OpenBefBuffer(path);
   if (!buffer) return buffer.takeError();
@@ -46,8 +44,8 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
       reinterpret_cast<const uint8_t*>(buffer.get()->getBufferStart()),
       buffer.get()->getBufferSize());
   auto file =
-      tfrt::BEFFile::Open(data, host_ctx.GetKernelRegistry(),
-                          host_ctx.diag_handler(), host_ctx.allocator());
+      tfrt::BEFFile::Open(data, host_ctx->GetKernelRegistry(),
+                          host_ctx->diag_handler(), host_ctx->allocator());
   if (!file) return tfrt::MakeStringError("Failed to open file");
 
   // Augment diagnostics with source and verify expected errors.
@@ -55,7 +53,8 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
   mlir::SourceMgrDiagnosticVerifierHandler handler(src_mgr, &context);
 
   tfrt::ResourceContext resource_ctx;
-  auto exec_ctx = tfrt::gpu::CreateExecutionContext(&host_ctx, &resource_ctx);
+  auto exec_ctx =
+      tfrt::gpu::CreateExecutionContext(host_ctx.get(), &resource_ctx);
   if (!exec_ctx) return exec_ctx.takeError();
   auto entry_point = tfrt::gpu::GetEntryPoint(*file, *exec_ctx);
   if (!entry_point) return entry_point.takeError();
@@ -82,7 +81,7 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
 
   // The above only guarantees that work depending on `result` has completed.
   // Flush all remaining work before checking for potential errors.
-  host_ctx.Quiesce();
+  host_ctx->Quiesce();
 
   if (failed(handler.verify()))
     return tfrt::MakeStringError("unexpected errors reported");

@@ -24,6 +24,7 @@
 #include "common.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "tfrt/gpu/gpu_executor.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
@@ -151,10 +152,7 @@ TEST_F(Test, CallbackManagerCUDA) {
                          wrapper::StreamCreateNonBlocking(current));
   GpuStream gpu_stream(gpu_context.CopyRef(), std::move(stream));
 
-  HostContext host([](const tfrt::DecodedDiagnostic&) {},
-                   tfrt::CreateMallocAllocator(),
-                   tfrt::CreateMultiThreadedWorkQueue(
-                       /*num_threads=*/1, /*num_blocking_threads=*/1));
+  auto host_ctx = CreateHostContext([](const tfrt::DecodedDiagnostic&) {});
 
   // PTX string of a kernel which runs for a specified number of nanoseconds.
   const char* kernel_ptx = R"(
@@ -193,9 +191,10 @@ TEST_F(Test, CallbackManagerCUDA) {
               IsSuccess());
 
   std::atomic<bool> invoked(false);
-  EXPECT_THAT(GpuContext::AddEventualCallback(
-                  current, gpu_stream, [&] { invoked.store(true); }, &host),
-              IsSuccess());
+  EXPECT_THAT(
+      GpuContext::AddEventualCallback(
+          current, gpu_stream, [&] { invoked.store(true); }, host_ctx.get()),
+      IsSuccess());
 
   // Check that callback is not invoked while kernel is still running.
   bool none_pending;

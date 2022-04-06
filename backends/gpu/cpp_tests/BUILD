@@ -10,7 +10,6 @@ licenses(["notice"])
 tfrt_cc_library(
     name = "common",
     testonly = True,
-    srcs = ["instantiate_suite.cc"],
     hdrs = ["include/common.h"],
     deps = [
         "@tf_runtime//backends/gpu:gpu_wrapper",
@@ -21,7 +20,10 @@ tfrt_cc_library(
 [
     tfrt_cc_test(
         name = "wrapper/%s_wrapper_test" % name,
-        srcs = ["wrapper/%s_wrapper_test.cc" % name],
+        srcs = [
+            "instantiate_suite.cc",
+            "wrapper/%s_wrapper_test.cc" % name,
+        ],
         # Skip ROCm tests by default for now. TODO(csigg): make configurable.
         args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
         tags = [
@@ -47,7 +49,10 @@ tfrt_cc_library(
 
 tfrt_cc_test(
     name = "wrapper/dnn_wrapper_test",
-    srcs = ["wrapper/dnn_wrapper_test.cc"],
+    srcs = [
+        "instantiate_suite.cc",
+        "wrapper/dnn_wrapper_test.cc",
+    ],
     # Skip ROCm tests by default for now. TODO(csigg): make configurable.
     args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
     env = {"CUDNN_LOGDEST_DBG": "tfrt"},
@@ -67,6 +72,7 @@ tfrt_cc_test(
     name = "gpu_types_test",
     srcs = [
         "gpu_types_test.cc",
+        "instantiate_suite.cc",
     ],
     # Skip ROCm tests by default for now. TODO(csigg): make configurable.
     args = ["--%s_filter=*CUDA" % if_google("gunit", "gtest")],
@@ -79,7 +85,21 @@ tfrt_cc_test(
         ":common",
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:hostcontext",
+        "@tf_runtime//backends/gpu:gpu_executor",
         "@tf_runtime//backends/gpu:gpu_types",
         "@tf_runtime//backends/gpu:gpu_wrapper",
+    ],
+)
+
+tfrt_cc_test(
+    name = "work_queue_test",
+    srcs = [
+        "work_queue_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//backends/gpu:gpu_executor",
     ],
 )

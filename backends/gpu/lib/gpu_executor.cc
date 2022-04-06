@@ -15,9 +15,17 @@
 // Implementation of gpu executor driver.
 #include "tfrt/gpu/gpu_executor.h"
 
+#include <algorithm>
+#include <condition_variable>
 #include <cstdint>
+#include <functional>
+#include <iostream>
+#include <iterator>
+#include <limits>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "gpu_entry_point.h"
@@ -159,23 +167,231 @@ static mlir::Location GetLocation(llvm::Optional<DecodedLocation> loc,
   return mlir::UnknownLoc::get(context);
 }
 
-static void EmitError(const DecodedDiagnostic& diagnostic,
-                      mlir::MLIRContext* context) {
-  mlir::emitError(GetLocation(diagnostic.location, context))
-      << "runtime error: " << diagnostic.message;
-}
-
 DiagHandler GetDiagHandler(mlir::MLIRContext* context) {
   return [=](const DecodedDiagnostic& diagnostic) {
-    EmitError(diagnostic, context);
+    mlir::emitError(GetLocation(diagnostic.location, context))
+        << "runtime error: " << diagnostic.message;
   };
 }
 
-DiagHandler GetDiagHandler() {
-  std::shared_ptr<mlir::MLIRContext> context(new mlir::MLIRContext);
-  return [context = std::move(context)](const DecodedDiagnostic& diagnostic) {
-    EmitError(diagnostic, context.get());
+namespace {
+// Work-queue which executes tasks in the caller's thread, except for tasks that
+// don't allow queuing which are executed in an unbounded thread pool.
+class GpuWorkQueue : public ConcurrentWorkQueue {
+  // Wraps a thread which runs 'work' and then adds itself to 'stack_' until
+  // new work is pushed.
+  class Thread {
+   public:
+    // Sentinel value for 'stack_' to block pushing or popping.
+    static Thread* const kQuiesce;
+
+    explicit Thread(std::atomic<Thread*>& stack, TaskFunction work)
+        : stack_(stack),
+          work_(std::move(work)),
+          thread_(std::mem_fn(&Thread::Work), this) {}
+
+    Thread(const Thread&) = delete;
+    Thread& operator=(const Thread&) = delete;
+
+    // Prerequisite: needs to be in idle state.
+    ~Thread() {
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        shutdown_ = true;
+      }
+      cond_var_.notify_all();
+      thread_.join();
+    }
+
+    // Pushes new 'work' to be executed on the thread.
+    // May be called once after 'this' has been popped off the 'stack'.
+    void Push(TaskFunction work) {
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        this->work_ = std::move(work);
+      }
+      cond_var_.notify_all();
+    }
+
+    // Pops top thread from the 'stack'.
+    static Thread* Pop(std::atomic<Thread*>& stack) {
+      Thread* thread = stack.load();
+      do {
+        // Return if stack is empty or blocked from popping.
+        if (thread == nullptr || thread == kQuiesce) return nullptr;
+        // Repeat until this thread wins the race to pop from 'stack'.
+      } while (!stack.compare_exchange_weak(thread, thread->next_));
+      return thread;
+    }
+
+    // Block until thread is idle and update 'next_'.
+    void Wait(Thread* next) {
+      std::unique_lock<std::mutex> lock(mutex_);
+      cond_var_.wait(lock, [&] { return !work_; });
+      next_ = next;
+    }
+
+   private:
+    // The main loop of 'thread'.
+    void Work() {
+      std::unique_lock<std::mutex> lock(mutex_);
+      do {
+        work_();
+        work_ = nullptr;
+        // Push this instance to 'stack_', unless quiescing.
+        next_ = stack_.load();
+        do {
+          if (next_ == kQuiesce) {
+            // Notify 'Wait()', which updates next_.
+            // 'Quiesce()' then pushes all threads onto the stack at once.
+            cond_var_.notify_all();
+            break;
+          }
+          // Repeat until this thread wins the race to push to 'stack_'.
+        } while (!stack_.compare_exchange_weak(next_, this));
+        // Enter idle state.
+        cond_var_.wait(lock, [&] { return work_ || shutdown_; });
+      } while (work_);
+    }
+
+    std::atomic<Thread*>& stack_;
+    std::mutex mutex_;
+    std::condition_variable cond_var_;
+    TaskFunction work_;
+    bool shutdown_ = false;
+    std::thread thread_;
+    Thread* next_;
   };
+
+  void AddBlockingTaskImpl(TaskFunction work, bool allow_queuing) {
+    // If queuing is allowed, execute 'work' in calling thread.
+    if (allow_queuing) return work();
+    // Execute 'work' in idle thread if available.
+    if (Thread* thread = Thread::Pop(stack_))
+      return thread->Push(std::move(work));
+    // Execute 'work' in new thread.
+    std::lock_guard<std::mutex> lock(mutex_);
+    threads_.emplace_back(new Thread(stack_, std::move(work)));
+  }
+
+ public:
+  // The instance needs to be quiesced. The HostContext takes care of this.
+  ~GpuWorkQueue() override = default;
+
+  std::string name() const override { return "GpuWorkQueue"; }
+
+  void AddTask(TaskFunction work) override { work(); };
+
+  Optional<TaskFunction> AddBlockingTask(TaskFunction work,
+                                         bool allow_queuing) override {
+    AddBlockingTaskImpl(std::move(work), allow_queuing);
+    return llvm::None;
+  }
+
+  void Await(ArrayRef<RCReference<AsyncValue>> values) override {
+    // Count values that are not yet available.
+    int unavailable = llvm::count_if(
+        values, [](const auto& value) { return value->IsUnavailable(); });
+    if (unavailable == 0) return;
+
+    // std::latch (C++20)
+    std::atomic<int> counter(unavailable);
+    bool complete = false;
+    auto decrement = [&]() mutable {
+      if (counter.fetch_sub(1) > 1) return;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        complete = true;
+      }
+      cond_var_.notify_all();
+    };
+
+    // Count down latch each time a value becomes available.
+    for (const auto& value : values) {
+      if (value->IsAvailable()) continue;
+      value->AndThen(decrement);
+    }
+
+    // Wait for latch to reach zero.
+    std::unique_lock<std::mutex> lock(mutex_);
+    cond_var_.wait(lock, [&] { return complete; });
+  }
+
+  // This function is not thread-safe.
+  void Quiesce() override {
+    // The implementation temporarily disables the stack from being pushed or
+    // popped, which prevents threads from going from idle back to working
+    // state. It then waits for each thread to reach the idle state. If any
+    // pending work adds new blocking tasks, those will spin up new threads. The
+    // process is repeated until no more threads are spun up. Threads that are
+    // spun up during this process are stopped again before returning from the
+    // function. Spinning up temporary threads is not efficient, but we don't
+    // expect this function to be called often.
+    //
+    // An alternative implementation would loop to call Thread::Wait() on each
+    // thread until the stack isn't pushed anymore, but detecting that case
+    // would make the more common AddBlockingTask() implementation slower.
+    //
+    // A more optimized implementation would loop to lock all thread's mutexes
+    // at once (e.g. using boost::lock()) until no more threads are spun up.
+    // Correctly locking a range of loops is non-trivial to implement though.
+
+    // Stop pushing idle threads to 'stack_'.
+    stack_.store(Thread::kQuiesce);
+    std::vector<std::unique_ptr<Thread>> threads;
+    size_t num_threads = std::numeric_limits<size_t>::max();
+    Thread* head = nullptr;
+    do {
+      size_t num_idle = threads.size();
+      // Temporarily lock mutex_ to move 'threads_' to local variable.
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        llvm::move(threads_, std::back_inserter(threads));
+        threads_.resize(0);
+      }
+      // Wait for newly added threads to become idle.
+      for (auto it = threads.begin() + num_idle; it != threads.end(); ++it) {
+        (*it)->Wait(head);
+        head = it->get();
+      }
+      // Save threads.size() during the first iteration.
+      num_threads = std::min(threads.size(), num_threads);
+      // Repeat if new threads were spun up.
+    } while ([&] {
+      std::lock_guard<std::mutex> lock(mutex_);
+      return !threads_.empty();
+    }());
+    // Delete threads that were spun up during the process above.
+    threads.resize(num_threads);
+    // Add all threads to idle 'stack_'.
+    stack_.store(threads.empty() ? nullptr : threads.back().get());
+    // Move local variable back to 'threads_'.
+    threads_ = std::move(threads);
+  }
+
+  int GetParallelismLevel() const override { return 0; }
+  bool IsInWorkerThread() const override { return true; }
+
+ private:
+  std::mutex mutex_;
+  std::condition_variable cond_var_;
+  // Guarded by mutex_, but without annotating so because std::lock_guard
+  // has no thread annotations.
+  std::vector<std::unique_ptr<Thread>> threads_;
+  // Head of idle threads stack.
+  std::atomic<Thread*> stack_;
+};
+
+GpuWorkQueue::Thread* const GpuWorkQueue::Thread::kQuiesce =
+    reinterpret_cast<GpuWorkQueue::Thread*>(-1);
+}  // namespace
+
+std::unique_ptr<HostContext> CreateHostContext(DiagHandler diag_handler) {
+  auto host_ctx =
+      std::make_unique<HostContext>(diag_handler, tfrt::CreateMallocAllocator(),
+                                    std::make_unique<GpuWorkQueue>());
+  tfrt::RegisterStaticKernels(host_ctx->GetMutableRegistry());
+  return host_ctx;
 }
 
 llvm::Expected<ExecutionContext> CreateExecutionContext(

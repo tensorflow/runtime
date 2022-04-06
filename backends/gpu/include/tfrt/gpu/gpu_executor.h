@@ -19,7 +19,9 @@
 #ifndef TFRT_GPU_GPU_EXECUTOR_H_
 #define TFRT_GPU_GPU_EXECUTOR_H_
 
+#include <functional>
 #include <memory>
+#include <string>
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/Support/Error.h"
@@ -81,7 +83,9 @@ llvm::Expected<UniqueMemoryBuffer> OpenBefBuffer(llvm::StringRef path);
 // Creates a diagnostic handler to pass to host context.
 using DiagHandler = std::function<void(const DecodedDiagnostic&)>;
 DiagHandler GetDiagHandler(mlir::MLIRContext* context);
-DiagHandler GetDiagHandler();  // Creates a MLIRContext internally.
+
+// Creates a host context suitable for gpu execution.
+std::unique_ptr<HostContext> CreateHostContext(DiagHandler diag_handler);
 
 // Creates an execution context suitable for gpu execution.
 llvm::Expected<ExecutionContext> CreateExecutionContext(

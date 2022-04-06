@@ -897,6 +897,11 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   struct SyncKernelCallHelper<ShapeAttr, Tail...>
       : SyncKernelCallTypedAttrHelper<ShapeAttr, Tail...> {};
 
+  // Like the above, but for TypeAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<TypeAttr, Tail...>
+      : SyncKernelCallTypedAttrHelper<TypeAttr, Tail...> {};
+
   // Like the above, but for ArrayAttr.
   template <typename... Tail>
   struct SyncKernelCallHelper<ArrayAttr, Tail...>

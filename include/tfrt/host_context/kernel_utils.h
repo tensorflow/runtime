@@ -351,7 +351,7 @@ class RemainingResults {
   }
 
   template <typename T, typename... Args>
-  const void EmplaceAt(int index, Args&&... args) {
+  void EmplaceAt(int index, Args&&... args) {
     assert(!remaining_results_[index]);
     remaining_results_[index] =
         MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...);

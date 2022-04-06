@@ -92,7 +92,7 @@ class GpuContext {
   // Allocates write-combined page-locked array of `count` elements.
   // The user is responsible to destroy the result before the context.
   //
-  // The memory is not deallocated until the context is. The indended use is to
+  // The memory is not deallocated until the context is. The intended use is to
   // repeatedly allocate small amounts for device access or async memcopy.
   template <typename T>
   Expected<HostPoolMemory<T>> AllocateHostPoolMemory(

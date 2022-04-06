@@ -45,8 +45,7 @@ func.func @memset(
     : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
   %dst = builtin.unrealized_conversion_cast %arg2
     : !tfrt_gpu.buffer to memref<32xi32>
-  // CHECK: %[[ch:.*]] = tfrt_gpu.mem.set %arg2, %arg3, %arg1, %arg0
-  // CHECK-SAME: : !tfrt_gpu.buffer, i32
+  // CHECK: %[[ch:.*]] = tfrt_gpu.mem.set %arg2, %arg3, %arg1, %arg0 : i32
   %t1 = gpu.memset async [%t0] %dst, %arg3 : memref<32xi32>, i32
   // CHECK: builtin.unrealized_conversion_cast %[[ch]], %arg1
   // CHECK-SAME: : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token

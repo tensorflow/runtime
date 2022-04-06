@@ -57,20 +57,20 @@ func.func @main() -> !tfrt.chain {
   %bufD = tfrt_gpu.mem.allocate %allocator, %stream, %sizeD, %ch0
 
   %value = tfrt.constant.i32 0x3f803f80
-  %ch1 = tfrt_gpu.mem.set %buf0, %value, %stream, %ch0 : !tfrt_gpu.buffer, i32
-  %ch2 = tfrt_gpu.mem.set %buf1, %value, %stream, %ch1 : !tfrt_gpu.buffer, i32
-  %ch3 = tfrt_gpu.mem.set %buf2, %value, %stream, %ch2 : !tfrt_gpu.buffer, i32
-  %ch4 = tfrt_gpu.mem.set %buf3, %value, %stream, %ch3 : !tfrt_gpu.buffer, i32
-  %ch5 = tfrt_gpu.mem.set %buf4, %value, %stream, %ch4 : !tfrt_gpu.buffer, i32
-  %ch6 = tfrt_gpu.mem.set %buf5, %value, %stream, %ch5 : !tfrt_gpu.buffer, i32
-  %ch7 = tfrt_gpu.mem.set %buf6, %value, %stream, %ch6 : !tfrt_gpu.buffer, i32
-  %ch8 = tfrt_gpu.mem.set %buf7, %value, %stream, %ch7 : !tfrt_gpu.buffer, i32
-  %ch9 = tfrt_gpu.mem.set %buf8, %value, %stream, %ch8 : !tfrt_gpu.buffer, i32
-  %chA = tfrt_gpu.mem.set %buf9, %value, %stream, %ch9 : !tfrt_gpu.buffer, i32
-  %chB = tfrt_gpu.mem.set %bufA, %value, %stream, %chA : !tfrt_gpu.buffer, i32
-  %chC = tfrt_gpu.mem.set %bufB, %value, %stream, %chB : !tfrt_gpu.buffer, i32
-  %chD = tfrt_gpu.mem.set %bufC, %value, %stream, %chC : !tfrt_gpu.buffer, i32
-  %chE = tfrt_gpu.mem.set %bufD, %value, %stream, %chD : !tfrt_gpu.buffer, i32
+  %ch1 = tfrt_gpu.mem.set %buf0, %value, %stream, %ch0 : i32
+  %ch2 = tfrt_gpu.mem.set %buf1, %value, %stream, %ch1 : i32
+  %ch3 = tfrt_gpu.mem.set %buf2, %value, %stream, %ch2 : i32
+  %ch4 = tfrt_gpu.mem.set %buf3, %value, %stream, %ch3 : i32
+  %ch5 = tfrt_gpu.mem.set %buf4, %value, %stream, %ch4 : i32
+  %ch6 = tfrt_gpu.mem.set %buf5, %value, %stream, %ch5 : i32
+  %ch7 = tfrt_gpu.mem.set %buf6, %value, %stream, %ch6 : i32
+  %ch8 = tfrt_gpu.mem.set %buf7, %value, %stream, %ch7 : i32
+  %ch9 = tfrt_gpu.mem.set %buf8, %value, %stream, %ch8 : i32
+  %chA = tfrt_gpu.mem.set %buf9, %value, %stream, %ch9 : i32
+  %chB = tfrt_gpu.mem.set %bufA, %value, %stream, %chA : i32
+  %chC = tfrt_gpu.mem.set %bufB, %value, %stream, %chB : i32
+  %chD = tfrt_gpu.mem.set %bufC, %value, %stream, %chC : i32
+  %chE = tfrt_gpu.mem.set %bufD, %value, %stream, %chD : i32
 
   %count = tfrt.constant.i32 20
   %result:16 = tfrt.repeat.i32 %count,

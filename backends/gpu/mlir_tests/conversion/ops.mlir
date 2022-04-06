@@ -65,7 +65,7 @@ func.func @driver_ops() {
   // CHECK: %[[value:.*]] = tfrt.constant.i32 13
   %value = tfrt.constant.i32 13
   // CHECK: tfrt_gpu.mem.set %[[buffer]], %[[value]], %[[stream]], %{{.*}}
-  %ch7 = tfrt_gpu.mem.set %buffer, %value, %stream, %ch6 : !tfrt_gpu.buffer, i32
+  %ch7 = tfrt_gpu.mem.set %buffer, %value, %stream, %ch6 : i32
 
   // CHECK: %[[module:.*]] = tfrt_gpu.module.load %[[context]] {data = "foobar\00"}
   %module = tfrt_gpu.module.load %context {data = "foobar\00"}

@@ -29,7 +29,7 @@ func.func @memset_test() {
 
   // Set device buffer to value.
   %value = tfrt.constant.i32 13
-  %ch2 = tfrt_gpu.mem.set %device_buffer, %value, %stream, %ch1 : !tfrt_gpu.buffer, i32
+  %ch2 = tfrt_gpu.mem.set %device_buffer, %value, %stream, %ch1 : i32
 
   // Create a host tensor and copy the device buffer to host to check the value.
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]

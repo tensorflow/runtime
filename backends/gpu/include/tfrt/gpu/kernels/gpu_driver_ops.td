@@ -252,8 +252,7 @@ def GPU_MemSetOp : GPU_Op<"mem.set"> {
     Execution is asynchronous.
 
     Example:
-      %ch1 = tfrt_gpu.mem.set %dst, %value, %stream, %ch0
-                 : !tfrt_gpu.buffer, f32
+      %ch1 = tfrt_gpu.mem.set %dst, %value, %stream, %ch0 : f32
   }];
   let arguments = (ins GPU_BufferType:$dst,
                    AnyType:$value,
@@ -261,7 +260,7 @@ def GPU_MemSetOp : GPU_Op<"mem.set"> {
   let results = (outs TFRT_ChainType);
 
   let assemblyFormat = [{
-    $dst`,` $value`,` $stream`,` $chain attr-dict `:` type($dst)`,` type($value)
+    $dst`,` $value`,` $stream`,` $chain attr-dict `:` type($value)
   }];
 
 }

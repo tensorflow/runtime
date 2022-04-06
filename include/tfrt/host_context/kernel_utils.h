@@ -269,7 +269,7 @@ class RepeatedArguments {
     return repeated_arguments_[index]->template get<T>();
   }
 
-  // Enable the ranged-for usage, e.g. for (auto& v : repeated_arguments) {...}
+  // Enables the ranged-for usage, e.g. for (auto& v : repeated_arguments) {...}
   Iterator begin() const { return Iterator{repeated_arguments_.begin()}; }
   Iterator end() const { return Iterator{repeated_arguments_.end()}; }
 
@@ -284,7 +284,7 @@ class Result {
  public:
   explicit Result(RCReference<AsyncValue>* result) : result_(*result) {}
 
-  // Construct the result in place.
+  // Constructs the result in place.
   template <typename... Args>
   void Emplace(Args&&... args) {
     Set(MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...));
@@ -475,7 +475,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   }
 
  private:
-  // Check whether a type T has an internal UnderlyingT type.
+  // Checks whether a type T has an internal UnderlyingT type.
   template <typename T>
   using UnderlyingT = typename T::UnderlyingT;
 
@@ -511,27 +511,33 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
-  // Store result as an AsyncValue output in AsyncKernelFrame by creating a
+  // Stores result as an AsyncValue output in AsyncKernelFrame by creating a
   // ConcreteAsyncValue.
   template <typename T>
   static void StoreResultAt(AsyncKernelFrame* frame, int index, T&& t) {
     frame->EmplaceResultAt<std::decay_t<T>>(index, std::forward<T>(t));
   }
 
-  // Store the output Chain as an AsyncValue output in AsyncKernelFrame by
+  // Stores the output Chain as an AsyncValue output in AsyncKernelFrame by
   // re-using the ready chain cached in HostContext.
   static void StoreResultAt(AsyncKernelFrame* frame, int index, Chain t) {
     frame->SetResultAt(index, GetReadyChain());
   }
 
-  // Store an already created AsyncValue as a result in the AsyncKernelFrame.
+  // Stores an already created AsyncValue as a result in the AsyncKernelFrame.
   template <typename T>
   static void StoreResultAt(AsyncKernelFrame* frame, int index,
                             AsyncValueRef<T> t) {
     frame->SetResultAt(index, std::move(t));
   }
 
-  // Store the function result back to the output AsyncValue in the
+  // Stores an already created AsyncValue as a result in the AsyncKernelFrame.
+  static void StoreResultAt(AsyncKernelFrame* frame, int index,
+                            RCReference<AsyncValue> ref) {
+    frame->SetResultAt(index, std::move(ref));
+  }
+
+  // Stores the function result back to the output AsyncValue in the
   // AsyncKernelFrame.
   template <typename T>
   static void HandleReturn(AsyncKernelFrame* frame, T&& t) {
@@ -540,8 +546,8 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     StoreResultAt(frame, 0, std::forward<T>(t));
   }
 
-  // For kernel functions that return std::pair<>, store the result as the first
-  // and second output AsyncValue in the AsyncKernelFrame.
+  // For kernel functions that return std::pair<>, stores the result as the
+  // first and second output AsyncValue in the AsyncKernelFrame.
   template <typename T1, typename T2>
   static void HandleReturn(AsyncKernelFrame* frame, std::pair<T1, T2>&& t) {
     assert(frame->GetNumResults() == 2 &&
@@ -550,7 +556,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     StoreResultAt(frame, 1, std::move(t.second));
   }
 
-  // For kernel functions that return std::tuple<>, store the results in order
+  // For kernel functions that return std::tuple<>, stores the results in order
   // as the output AsyncValues in the AsyncKernelFrame.
   template <typename... T>
   static void HandleReturn(AsyncKernelFrame* frame, std::tuple<T...>&& t) {
@@ -561,7 +567,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   }
 
   // For kernel functions that return Expected<T>, if the returned Expected<T>
-  // contains an error, call frame->ReportError() to report the error message
+  // contains an error, calls frame->ReportError() to report the error message
   // and set an error in the output AsyncValue. Otherwise, store the return
   // value as output AsyncValue.
   template <typename T>
@@ -573,7 +579,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   }
 
-  // For kernel functions that return AsyncValueRef<std::tuple<>>, store the
+  // For kernel functions that return AsyncValueRef<std::tuple<>>, stores the
   // results in order as the output AsyncValues in the AsyncKernelFrame.
   template <typename... T>
   static void HandleReturn(AsyncKernelFrame* frame,

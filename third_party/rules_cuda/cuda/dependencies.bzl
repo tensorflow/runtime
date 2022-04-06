@@ -61,10 +61,10 @@ def rules_cuda_dependencies(with_rules_cc = True):
     maybe(
         name = "platforms",
         repo_rule = http_archive,
-        sha256 = "48a2d8d343863989c232843e01afc8a986eb8738766bfd8611420a7db8f6f0c3",
+        sha256 = "379113459b0feaf6bfbb584a91874c065078aa673222846ac765f86661c27407",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.2/platforms-0.0.2.tar.gz",
-            "https://github.com/bazelbuild/platforms/releases/download/0.0.2/platforms-0.0.2.tar.gz",
+            "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.5/platforms-0.0.5.tar.gz",
+            "https://github.com/bazelbuild/platforms/releases/download/0.0.5/platforms-0.0.5.tar.gz",
         ],
     )
     _local_cuda(name = "local_cuda")

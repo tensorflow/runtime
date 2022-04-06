@@ -232,6 +232,7 @@ tfrt_cc_library(
         "include/tfrt/bef/bef_buffer.h",
         "include/tfrt/bef/bef_encoding.h",
         "include/tfrt/bef/bef_reader.h",
+        "include/tfrt/bef/kernel.h",
         "include/tfrt/bef/span.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],

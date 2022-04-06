@@ -721,6 +721,17 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "bef/kernel_test",
+    srcs = [
+        "bef/kernel_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:bef",
+    ],
+)
+
+tfrt_cc_test(
     name = "bef/span_test",
     srcs = [
         "bef/span_test.cc",

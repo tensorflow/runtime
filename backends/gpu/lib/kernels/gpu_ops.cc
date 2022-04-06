@@ -220,6 +220,21 @@ static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute,
       StrCat("could not infer type from ", attribute.getValue()));
 }
 
+template <typename... Types>
+static ParseResult parseTypeAttr(OpAsmParser &parser, TypeAttr &attribute,
+                                 Types &...types) {
+  Type type;
+  if (failed(parser.parseType(type))) {
+    return parser.emitError(parser.getCurrentLocation(),
+                            "failed to parse type");
+  }
+
+  attribute = TypeAttr::get(type);
+  Type dummy[]{(types = type)...};
+  (void)dummy;
+  return success();
+}
+
 template <typename T>
 static void printEnum(OpAsmPrinter &printer, Operation *,
                       const EnumAttr<T> &attribute) {
@@ -231,6 +246,12 @@ template <typename T, typename... Types>
 static void printEnum(OpAsmPrinter &printer, Operation *op,
                       const EnumAttr<T> &attribute, const Types &...) {
   printEnum(printer, op, attribute);
+}
+
+template <typename... Types>
+static void printTypeAttr(OpAsmPrinter &printer, Operation *op,
+                          const TypeAttr &attribute, const Types &...) {
+  printer.printType(attribute.getType());
 }
 
 static bool AllEqual(ArrayRef<wrapper::BlasDataType> types) {

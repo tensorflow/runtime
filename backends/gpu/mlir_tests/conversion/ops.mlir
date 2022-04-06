@@ -48,24 +48,28 @@ func.func @driver_ops() {
   %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch4
   // CHECK: tfrt_gpu.mem.deallocate %[[buffer]], %[[stream]], %{{.*}}
   %ch5 = tfrt_gpu.mem.deallocate %buffer, %stream, %ch4
+  // CHECK: %[[host_buffer:.*]] = tfrt_gpu.mem.allocate_host %[[context]], %[[size]], %{{.*}}
+  %host_buffer = tfrt_gpu.mem.allocate_host %context, %size, %ch4
 
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [256 : i64]
-  // CHECK: %[[host_buffer:.*]]:2 = tfrt_dht.get_buffer
-  %host_buffer:2 = tfrt_dht.get_buffer %host_tensor, %ch4
-  // CHECK: %[[pinned_buffer:.*]] = tfrt_gpu.mem.register %[[context]], %[[host_buffer]]
-  %pinned_buffer = tfrt_gpu.mem.register %context, %host_buffer
+  // CHECK: %[[get_buffer:.*]]:2 = tfrt_dht.get_buffer
+  %get_buffer:2 = tfrt_dht.get_buffer %host_tensor, %ch4
+  // CHECK: %[[pinned_buffer:.*]] = tfrt_gpu.mem.register %[[context]], %[[get_buffer]]
+  %pinned_buffer = tfrt_gpu.mem.register %context, %get_buffer
   // CHECK: %[[offset:.*]] = tfrt.constant.ui64 42
   %offset = tfrt.constant.ui64 42
   // CHECK: %[[size:.*]] = tfrt.constant.ui64 64
   %size_1 = tfrt.constant.ui64 64
   // CHECK: tfrt_gpu.mem.view %[[buffer]], %[[offset]], %[[size]]
   %view = tfrt_gpu.mem.view %buffer, %offset, %size_1
-  // CHECK: tfrt_gpu.mem.copy %[[host_buffer]]#0, %[[buffer]], %[[stream]], %{{.*}} : !ht.host_buffer, !tfrt_gpu.buffer
-  %ch6 = tfrt_gpu.mem.copy %host_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
+  // CHECK: tfrt_gpu.mem.copy %[[get_buffer]]#0, %[[buffer]], %[[stream]], %{{.*}} : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch6 = tfrt_gpu.mem.copy %get_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: %[[value:.*]] = tfrt.constant.i32 13
   %value = tfrt.constant.i32 13
   // CHECK: tfrt_gpu.mem.set %[[buffer]], %[[value]], %[[stream]], %{{.*}}
   %ch7 = tfrt_gpu.mem.set %buffer, %value, %stream, %ch6 : i32
+  // CHECK: tfrt_gpu.mem.load %[[buffer]], %{{.*}}
+  %load = tfrt_gpu.mem.load %buffer, %ch6 : i32
 
   // CHECK: %[[module:.*]] = tfrt_gpu.module.load %[[context]] {data = "foobar\00"}
   %module = tfrt_gpu.module.load %context {data = "foobar\00"}

@@ -208,6 +208,17 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
   let results = (outs GPU_BufferType);
 }
 
+def GPU_MemAllocateHostOp : GPU_Op<"mem.allocate_host"> {
+  let description = [{
+    tfrt_gpu.mem.allocate_host allocates a buffer of host memory.
+
+    Example:
+      %buffer = tfrt_gpu.mem.allocate_host %ctx, %size, %ch0
+  }];
+  let arguments = (ins GPU_ContextType, I64:$size, TFRT_ChainType);
+  let results = (outs GPU_BufferType);
+}
+
 def GPU_MemDeallocateOp : GPU_Op<"mem.deallocate"> {
   let description = [{
     tfrt_gpu.mem.deallocate frees a buffer of device memory.
@@ -295,6 +306,21 @@ def GPU_MemViewOp : GPU_Op<"mem.view", [NoSideEffect]> {
   let results = (outs GPU_BufferType);
 
   let assemblyFormat = "$buffer`,` $offset`,` $size attr-dict";
+}
+
+def GPU_MemLoadOp : GPU_Op<"mem.load"> {
+  let description = [{
+    tfrt_gpu.mem.load returns the value stored in a buffer of host memory.
+
+    Example:
+      %result = tfrt_gpu.mem.load %buffer, %ch : i32
+  }];
+  let arguments = (ins GPU_BufferType:$buffer, TFRT_ChainType:$chain, TypeAttr:$type);
+  let results = (outs AnyTypeOf<[I1, I32]>:$result);
+
+  let assemblyFormat = [{
+    $buffer`,` $chain attr-dict `:` custom<TypeAttr>($type, type($result))
+  }];
 }
 
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {

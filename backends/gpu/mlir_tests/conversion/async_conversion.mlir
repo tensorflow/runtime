@@ -17,6 +17,7 @@
 // RUN:   -allow-unregistered-dialect \
 // RUN: | FileCheck %s
 
+// CHECK-LABEL: @test_wrap_async_execute
 func.func @test_wrap_async_execute() {
 
   // CHECK: "other.op"() : () -> ()
@@ -41,11 +42,24 @@ func.func @test_wrap_async_execute() {
   "wrap.op"() : () -> ()
   "wrap.op"() : () -> ()
 
+  // CHECK: tfrt.call @returns_value() : () -> f32
+  %0 = tfrt.call @returns_value() : () -> f32
+  // CHECK: "tfrt_gpu_conversion.async.execute"() ({
+  // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+  // CHECK:   tfrt.call @takes_argument(%0) : (f32) -> ()
+  // CHECK:   tfrt.return %arg0 : !tfrt.chain
+  // CHECK: }) : () -> ()
+  tfrt.call @takes_argument(%0) : (f32) -> ()
+
   // CHECK: return
   func.return
 }
 
-func.func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
+func.func private @returns_value() -> f32
+func.func private @takes_argument(%arg0: f32)
+
+// CHECK-LABEL: @test_fold_memref_view
+func.func @test_fold_memref_view(%arg0: memref<64xi8>) -> memref<4x4xf32> {
   %zero = arith.constant 0 : index
   // CHECK-NOT: memref.view
   // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
@@ -55,7 +69,8 @@ func.func @test_fold_memref_view(%arg0 : memref<64xi8>) -> memref<4x4xf32> {
   func.return %view : memref<4x4xf32>
 }
 
-func.func @test_fold_memref_cast(%arg0 : memref<64xi8>) -> memref<8x8xi8> {
+// CHECK-LABEL: @test_fold_memref_cast
+func.func @test_fold_memref_cast(%arg0: memref<64xi8>) -> memref<8x8xi8> {
   // CHECK-NOT: memref.reinterpret_cast
   // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
   // CHECK: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<8x8xi8>
@@ -66,6 +81,7 @@ func.func @test_fold_memref_cast(%arg0 : memref<64xi8>) -> memref<8x8xi8> {
   func.return %cast : memref<8x8xi8>
 }
 
+// CHECK-LABEL: @test_rewrite_alloc
 func.func @test_rewrite_alloc() {
   // CHECK: %[[memref:.*]] = gpu.alloc  () : memref<64xi8>
   %memref = memref.alloc() : memref<64xi8>

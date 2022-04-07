@@ -32,3 +32,13 @@ func.func @add_chain_and_stream(%arg0 : f32 {tfrt_gpu.attr = 42 : i32}) {
   // CHECK: tfrt.return %[[cast]]#0 : !tfrt.chain
   tfrt.return
 }
+
+// CHECK-LABEL: tfrt_gpu_conversion.async.execute
+"tfrt_gpu_conversion.async.execute"() ({
+^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream, %arg2: f32):
+  // CHECK: %[[ch:.*]] = tfrt.call @add_chain_and_stream(%arg0, %arg1, %arg2)
+  // CHECK-SAME: : (!tfrt.chain, !tfrt_gpu.stream, f32) -> !tfrt.chain
+  tfrt.call @add_chain_and_stream(%arg2) : (f32) -> ()
+  // CHECK: tfrt.return %[[ch]] : !tfrt.chain
+  tfrt.return %arg0 : !tfrt.chain
+}) : () -> ()

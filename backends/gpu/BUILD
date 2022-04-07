@@ -844,6 +844,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:AsyncTransforms",
         "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:FuncTransforms",
         "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MemRefDialect",

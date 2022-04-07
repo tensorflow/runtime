@@ -17,6 +17,7 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Func/Transforms/FuncConversions.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/PatternMatch.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
@@ -100,6 +101,19 @@ struct RewriteMemrefDeallocPattern
  private:
   LogicalResult matchAndRewrite(memref::DeallocOp dealloc_op,
                                 PatternRewriter &rewriter) const override;
+};
+
+// Dummy pattern to trigger memref to !tfrt_gpu.buffer conversion.
+template <typename OpTy>
+struct ConvertOpTypesPattern : public OpConversionPattern<OpTy> {
+  using OpAdaptor = typename OpConversionPattern<OpTy>::OpAdaptor;
+  using OpConversionPattern<OpTy>::OpConversionPattern;
+  using OpConversionPattern<OpTy>::typeConverter;
+
+ private:
+  LogicalResult matchAndRewrite(
+      OpTy op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
 };
 
 }  // namespace
@@ -221,11 +235,38 @@ LogicalResult RewriteMemrefDeallocPattern::matchAndRewrite(
   return success();
 }
 
+template <typename OpTy>
+LogicalResult ConvertOpTypesPattern<OpTy>::matchAndRewrite(
+    OpTy op, OpAdaptor adaptor, ConversionPatternRewriter &rewriter) const {
+  SmallVector<Type, 4> result_types;
+  if (failed(typeConverter->convertTypes(op->getResultTypes(), result_types)))
+    return rewriter.notifyMatchFailure(op, "failed to convert result types");
+  rewriter.replaceOpWithNewOp<OpTy>(op, result_types, adaptor.getOperands(),
+                                    op->getAttrs());
+  return success();
+}
+
 void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
                                         TypeConverter &converter,
                                         ConversionTarget &target) {
+  // Wrap tfrt.call ops with no results to provide chain and stream that may be
+  // added to the callee's arguments. This adds a chain and stream argument to
+  // all functions containing such tfrt.call. If this turns out to be a problem,
+  // we need to analyze the call graph and only wrap calls that execute ops
+  // implementing the AsyncOpInterface.
+  target.addDynamicallyLegalOp<tfrt::compiler::CallOp>(
+      [](Operation *op) { return op->getNumResults() == 0; });
+
+  populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns, converter);
+  populateCallOpTypeConversionPattern(patterns, converter);
+  populateReturnOpTypeConversionPattern(patterns, converter);
+  patterns.add<ConvertOpTypesPattern<compiler::CallOp>,
+               ConvertOpTypesPattern<compiler::ReturnOp>>(
+      converter, patterns.getContext());
+
   patterns.add<NestLegalOpsInConversionAsyncExecPattern>(patterns.getContext(),
                                                          target);
+
   patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern,
                RewriteMemrefAllocPattern<memref::AllocOp>,
                RewriteMemrefAllocPattern<memref::AllocaOp>>(

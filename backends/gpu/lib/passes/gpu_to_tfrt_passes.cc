@@ -118,6 +118,16 @@ struct AddChainAndStreamToFuncPattern : public OpRewritePattern<FuncOp> {
                                 PatternRewriter &rewriter) const override;
 };
 
+// Adds chain and stream argument to tfrt.call to match the rewritten function.
+struct AddChainAndStreamToCallPattern
+    : tfrt::gpu::GpuAsyncOpConversionPattern<tfrt::compiler::CallOp> {
+  using tfrt::gpu::GpuAsyncOpConversionPattern<
+      tfrt::compiler::CallOp>::GpuAsyncOpConversionPattern;
+  FailureOr<Value> matchAndRewriteOp(
+      tfrt::compiler::CallOp op, OpAdaptor adaptor, Value chain, Value stream,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
 // Two type conversion patterns for async.execute. It inserts casts to/from the
 // converted types before/after as well as at the end/beginning of the region.
 //
@@ -464,7 +474,7 @@ struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
 // A pass which rewrites a function to take extra !tfrt.chain and
 // !tfrt_gpu.stream arguments and return a !tfrt.chain.
 struct AddChainAndStreamToFuncPass
-    : public PassWrapper<AddChainAndStreamToFuncPass, OperationPass<FuncOp>> {
+    : public PassWrapper<AddChainAndStreamToFuncPass, OperationPass<ModuleOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(AddChainAndStreamToFuncPass)
  private:
   void runOnOperation() override;
@@ -722,6 +732,17 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator, results);
 
   return success();
+}
+
+FailureOr<Value> AddChainAndStreamToCallPattern::matchAndRewriteOp(
+    tfrt::compiler::CallOp op, OpAdaptor adaptor, Value chain, Value stream,
+    ConversionPatternRewriter &rewriter) const {
+  llvm::SmallVector<Value, 8> operands = {chain, stream};
+  llvm::copy(adaptor.getOperands(), std::back_inserter(operands));
+  auto call_op = rewriter.create<tfrt::compiler::CallOp>(
+      op->getLoc(), chain.getType(), adaptor.calleeAttr(), operands);
+  rewriter.eraseOp(op);
+  return call_op.getResult(0);
 }
 
 LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
@@ -1394,9 +1415,25 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
 }
 
 void AddChainAndStreamToFuncPass::runOnOperation() {
-  RewritePatternSet patterns(&getContext());
-  patterns.add<AddChainAndStreamToFuncPattern>(&getContext());
-  if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
+  // First, update functions which contain at least two gpu.wait ops.
+  RewritePatternSet func_patterns(&getContext());
+  func_patterns.add<AddChainAndStreamToFuncPattern>(&getContext());
+  if (failed(applyPatternsAndFoldGreedily(getOperation(),
+                                          std::move(func_patterns))))
+    return signalPassFailure();
+  // Second, update call sites which no longer match the function signature.
+  RewritePatternSet call_patterns(&getContext());
+  call_patterns.add<AddChainAndStreamToCallPattern>(&getContext());
+  ConversionTarget target(getContext());
+  target.addDynamicallyLegalOp<compiler::CallOp>(
+      [symbol_table = SymbolTable(getOperation())](compiler::CallOp call_op) {
+        auto func_op = symbol_table.lookupNearestSymbolFrom<FuncOp>(
+            call_op, call_op.calleeAttr());
+        return func_op && func_op.getFunctionType() == call_op.getCalleeType();
+      });
+  target.addLegalOp<compiler::ReturnOp>();  // tfrt.return is updated as well.
+  if (failed(applyPartialConversion(getOperation(), target,
+                                    std::move(call_patterns))))
     return signalPassFailure();
 }
 

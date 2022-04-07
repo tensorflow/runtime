@@ -416,6 +416,22 @@ llvm::Expected<EntryPoint> GetEntryPoint(const BEFFile& file,
   return *AsyncValueRef<EntryPoint>(std::move(result));
 }
 
+llvm::Error PreloadGpuResources(const BEFFile& file,
+                                const ExecutionContext& exec_ctx,
+                                AsyncValueRef<GpuContext> context) {
+  const Function* function = file.GetFunction(PreloadResourcesFuncName());
+  if (!function)
+    return MakeStringError(PreloadResourcesFuncName(), " not found");
+
+  RCReference<AsyncValue> result;
+  function->Execute(exec_ctx, {context.GetAsyncValue()}, result);
+  tfrt::Await(result);
+
+  if (result->IsError()) return tfrt::MakeStringError(result->GetError());
+
+  return llvm::Error::success();
+}
+
 static Expected<GpuStream> CreateGpuStreamImpl(wrapper::Platform platform,
                                                int ordinal) {
   if (auto error = wrapper::Init(platform)) return std::move(error);

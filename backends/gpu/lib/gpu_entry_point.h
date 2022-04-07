@@ -36,6 +36,10 @@ constexpr int64_t GetEntryPointVersion() {
   return 410724080;
 }
 
+constexpr const char* PreloadResourcesFuncName() {
+  return "tfrt_gpu_preload_resources";
+}
+
 }  // namespace gpu
 }  // namespace tfrt
 

@@ -105,6 +105,13 @@ struct EntryPoint {
 llvm::Expected<EntryPoint> GetEntryPoint(const BEFFile& file,
                                          const ExecutionContext& exec_ctx);
 
+// Runs the BEF function to preload GPU resources for the given GPU context.
+// This isn't required for correct execution. However, it prevents the initial
+// execution step from being slowed down due to initializing GPU resources.
+llvm::Error PreloadGpuResources(const BEFFile& file,
+                                const ExecutionContext& exec_ctx,
+                                AsyncValueRef<GpuContext> context);
+
 // Acquires the primary gpu context and creates a stream for the given gpu.
 AsyncValueRef<GpuStream> CreateGpuStream(wrapper::Platform platform,
                                          int ordinal = 0);

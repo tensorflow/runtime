@@ -70,3 +70,15 @@ func.func @gpu_hoist_create_solver_handle(
   %solver = tfrt_gpu.solver.create %context
   tfrt.return %arg0 : !tfrt.chain
 }
+
+// CHECK-LABEL: func @tfrt_gpu_preload_resources
+// CHECK-SAME: (%arg0: !tfrt_gpu.context) -> !tfrt.chain {
+// CHECK: %[[blas:.*]] = tfrt.once @tfrt_gpu.blas.create(%arg0)
+// CHECK-SAME: : (!tfrt_gpu.context) -> (!tfrt_gpu.blas.handle)
+// CHECK: %[[dnn:.*]] = tfrt.once @tfrt_gpu.dnn.create(%arg0)
+// CHECK-SAME: : (!tfrt_gpu.context) -> (!tfrt_gpu.dnn.handle)
+// CHECK: %[[solver:.*]] = tfrt.once @tfrt_gpu.solver.create(%arg0)
+// CHECK-SAME: : (!tfrt_gpu.context) -> (!tfrt_gpu.solver.handle)
+// CHECK: %[[chain:.*]] = tfrt.merge.chains %[[blas]], %[[dnn]], %[[solver]]
+// CHECK: tfrt.return %[[chain]]
+// CHECK: }

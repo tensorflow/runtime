@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 
+#include "../gpu_entry_point.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/raw_ostream.h"
@@ -513,6 +514,8 @@ struct ConvertGpuToTfrtGpuPass
 };
 
 // A pass which outlines resource creating ops and replaces them with tfrt.once.
+// Resource creating ops are bundled in a function that can be invoked to
+// preload the resources.
 struct HoistingPass
     : public PassWrapper<HoistingPass, OperationPass<ModuleOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(HoistingPass)
@@ -1020,6 +1023,11 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
   auto data = module_op->getAttrOfType<StringAttr>(getGpuBinaryAttrName());
   if (!data)
     return rewriter.notifyMatchFailure(module_op, "no device code attribute");
+  if (data.size() == 0) {
+    // These ops are not only redundant, they get in the way of preloading.
+    module_op.erase();
+    return success();
+  }
   Location loc = module_op->getLoc();
   auto constants =
       module_op->getAttrOfType<ArrayAttr>(getGpuConstantsAttrName());
@@ -1517,6 +1525,40 @@ void HoistingPass::runOnOperation() {
   SmallVector<Operation *, 4> func_ops;
   llvm::copy(getOperation().getOps<FuncOp>(), std::back_inserter(func_ops));
   applyOpPatternsAndFold(func_ops, std::move(patterns), /*strict=*/false);
+
+  SmallVector<FuncOp, 4> preload_callees;
+  getOperation().walk([&](FuncOp func_op) {
+    // Assumes that any function that only takes a context is loading GPU
+    // resources, and that it is legal and useful to tfrt.once-initialize it.
+    if (IsTypes<ContextType>(func_op.getFunctionType().getInputs())) {
+      preload_callees.push_back(func_op);
+    }
+  });
+
+  OpBuilder builder(&getContext());
+  auto preload_func_type =
+      builder.getFunctionType({builder.getType<ContextType>()},
+                              {builder.getType<compiler::ChainType>()});
+  builder.setInsertionPoint(getOperation());
+  Location loc = getOperation().getLoc();
+  auto preload_func = builder.create<mlir::func::FuncOp>(
+      loc, PreloadResourcesFuncName(), preload_func_type);
+  SymbolTable symbol_table(getOperation());
+  symbol_table.insert(preload_func);
+  builder.setInsertionPointToEnd(preload_func.addEntryBlock());
+  SmallVector<Value, 4> resources;
+  for (auto preload_callee : preload_callees) {
+    auto resource =
+        builder
+            .create<tfrt::compiler::OnceOp>(
+                loc, preload_callee.getResultTypes(),
+                preload_func.getArgument(0), preload_callee.getName())
+            .getResults();
+    llvm::copy(resource, std::back_inserter(resources));
+  }
+  Value merged_chain = builder.create<tfrt::compiler::MergeChainsOp>(
+      loc, builder.getType<compiler::ChainType>(), resources);
+  builder.create<tfrt::compiler::ReturnOp>(loc, merged_chain);
 }
 
 void ReconcileCastsPass::runOnOperation() {

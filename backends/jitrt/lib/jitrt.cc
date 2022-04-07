@@ -803,16 +803,16 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Escape slashes, substituting them with double underscores.
   // The profiler's UI might interpret slashes as callchain separators,
   // whereas we want the region name to be shown in full.
-  auto escape_region_name = [](llvm::StringRef str) -> std::string {
-    llvm::SmallVector<llvm::StringRef> vec;
-    for (llvm::StringRef sub : llvm::split(str, '/')) {
-      vec.push_back(sub);
-    }
-    return llvm::join(vec, "__");
+  auto escape_region_name = [](llvm::StringRef str) {
+    return llvm::join(llvm::split(str, '/'), "__");
   };
+
+  // Name of the compiled module if available.
+  auto module_name = ctx->module().getSymName().getValueOr("<unknown>");
+
   std::string mapper_name = llvm::formatv(
-      "/jitrt{0}{1}:@{2}:{3}", memory_region_name.empty() ? "" : ":",
-      escape_region_name(memory_region_name), entrypoint,
+      "/jitrt{0}{1}:@{2}::@{3}:{4}", memory_region_name.empty() ? "" : ":",
+      escape_region_name(memory_region_name), module_name, entrypoint,
       specialization.hasValue() ? "specialized" : "default");
 
   std::unique_ptr<JitRtMemoryMapper> memory_mapper =

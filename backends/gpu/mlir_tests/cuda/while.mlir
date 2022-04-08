@@ -37,18 +37,10 @@ func.func @cond(
              %zero, %ch0,
              args(%value, %cond) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer)
 
-  %cond_ht = tfrt_dht.create_uninitialized_tensor.bool.0 []
-  %cond_hb:2 = tfrt_dht.get_buffer %cond_ht, %ch0
+  %ch2 = tfrt_gpu.stream.synchronize %stream, %ch1
+  %result = tfrt_gpu.mem.load %cond, %ch2 : i1
 
-  %ch2 = tfrt_gpu.mem.copy %cond_hb#0, %cond, %stream, %ch1 : !ht.host_buffer, !tfrt_gpu.buffer
-  %ch3 = tfrt_gpu.stream.synchronize %stream, %ch2
-
-  // '%result = tfrt_dht.get_value %cond_ht', but that kernel does not exist.
-  %true_ht = tfrt_dht.create_uninitialized_tensor.bool.0 []
-  %ch4 = tfrt_dht.fill_tensor_with_constant.bool %true_ht, %ch3 1 : i1
-  %result:2 = tfrt_dht.tensor_equal.bool %cond_ht, %true_ht, %ch4
-
-  tfrt.return %result#0 : i1
+  tfrt.return %result : i1
 }
 
 // Runs a kernel updating %value and %cond. Returns all arguments plus the value
@@ -114,26 +106,23 @@ func.func @main() {
   %stream = tfrt_gpu.stream.create %context
 
   %value_size = tfrt.constant.i64 4
+  %value_init = tfrt.constant.i32 1
   %value = tfrt_gpu.mem.allocate %allocator, %stream, %value_size, %ch0
-  %value_ht = tfrt_dht.create_uninitialized_tensor.i32.0 []
-  %value_hb:2 = tfrt_dht.get_buffer %value_ht, %ch0
-  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %value_ht, %ch0 1 : i32
-  %ch2 = tfrt_gpu.mem.copy %value, %value_hb#0, %stream, %ch1 : !tfrt_gpu.buffer, !ht.host_buffer
+  %ch1 = tfrt_gpu.mem.set %value, %value_init, %stream, %ch0 : i32
 
   %cond_size = tfrt.constant.i64 1
-  %cond = tfrt_gpu.mem.allocate %allocator, %stream, %cond_size, %ch0
-  %cond_ht = tfrt_dht.create_uninitialized_tensor.bool.0 []
-  %cond_hb:2 = tfrt_dht.get_buffer %cond_ht, %ch0
-  %ch3 = tfrt_dht.fill_tensor_with_constant.bool %cond_ht, %ch2 1 : i1
-  %ch4 = tfrt_gpu.mem.copy %cond, %cond_hb#0, %stream, %ch3 : !tfrt_gpu.buffer, !ht.host_buffer
+  %cond = tfrt_gpu.mem.allocate_host %context, %cond_size, %ch0
 
-  %ch5 = tfrt.call @while(%ch4, %stream, %value, %cond)
+  %ch2 = tfrt.call @while(%ch1, %stream, %value, %cond)
     :  (!tfrt.chain, !tfrt_gpu.stream, !tfrt_gpu.buffer, !tfrt_gpu.buffer) -> !tfrt.chain
 
-  %ch6 = tfrt_gpu.mem.copy %value_hb#0, %value, %stream, %ch5 : !ht.host_buffer, !tfrt_gpu.buffer
-  %ch7 = tfrt_gpu.stream.synchronize %stream, %ch6
+  %result_ht = tfrt_dht.create_uninitialized_tensor.i32.0 []
+  %result_hb:2 = tfrt_dht.get_buffer %result_ht, %ch0
+  %ch3 = tfrt_gpu.mem.copy %result_hb#0, %value, %stream, %ch2 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch4 = tfrt_gpu.stream.synchronize %stream, %ch3
+
   // CHECK: DenseHostTensor dtype = i32, shape = [], values = [8]
-  %ch8 = tfrt_dht.print_tensor %value_ht, %ch7
+  %ch5 = tfrt_dht.print_tensor %result_ht, %ch4
 
   tfrt.return
 }

@@ -28,6 +28,7 @@
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/support/error_util.h"
@@ -151,6 +152,24 @@ static Expected<GpuBuffer> GpuMemAllocate(Argument<GpuAllocator> allocator,
   return GpuBuffer::Allocate(allocator.ValueRef(), size, stream.get());
 }
 
+// tfrt_gpu.mem.allocate_host allocates a new host gpu buffer.
+static Expected<GpuBuffer> GpuMemAllocateHost(Argument<GpuContext> context,
+                                              int64_t size) {
+  auto current = wrapper::CtxSetCurrent(context->get());
+  if (!current) return current.takeError();
+  auto memory = context->AllocateHostPoolMemory<char>(*current, size);
+  if (!memory) return memory.takeError();
+
+  // The allocator releases the context and the host buffer on destruction.
+  using Allocator = GpuOneShotAllocator<
+      std::tuple<AsyncValueRef<GpuContext>, GpuContext::HostPoolMemory<char>>>;
+  GpuPointer pointer(memory->get());  // Retrieve before moving from.
+  auto allocator = MakeAvailableAsyncValueRef<Allocator>(
+      pointer, std::make_tuple(context.ValueRef(), std::move(*memory)));
+
+  return GpuBuffer::Allocate(std::move(allocator), size);
+}
+
 // tfrt_gpu.mem.deallocate frees a gpu buffer.
 static Error GpuMemDeallocate(Argument<GpuBuffer> buffer,
                               const GpuStream& stream) {
@@ -158,7 +177,7 @@ static Error GpuMemDeallocate(Argument<GpuBuffer> buffer,
 }
 
 // tfrt_gpu.mem.set fills memory with a 32bit scalar value.
-static Error GpuMemset(const GpuBuffer& buffer, AsyncValue* untyped_value,
+static Error GpuMemSet(const GpuBuffer& buffer, AsyncValue* untyped_value,
                        const GpuStream& stream) {
   if (!(untyped_value->IsType<uint32_t>() || untyped_value->IsType<int32_t>() ||
         untyped_value->IsType<float>())) {
@@ -258,6 +277,24 @@ static Expected<GpuBuffer> GpuMemView(Argument<GpuBuffer> buffer,
   auto allocator = MakeAvailableAsyncValueRef<Allocator>(
       wrapper::Pointer<char>(buffer->pointer()) + offset, buffer.ValueRef());
   return GpuBuffer::Allocate(std::move(allocator), size);
+}
+
+template <typename T>
+static RCReference<AsyncValue> GpuMemLoadImpl(const GpuBuffer& buffer) {
+  auto ptr = static_cast<wrapper::Pointer<const T>>(buffer.pointer());
+  return MakeAvailableAsyncValueRef<T>(*ptr.raw(buffer.pointer().platform()));
+}
+
+static RCReference<AsyncValue> GpuMemLoad(const GpuBuffer& buffer,
+                                          TypeAttr type) {
+  switch (type.GetValue()) {
+    case DType::I1:
+      return GpuMemLoadImpl<bool>(buffer);
+    case DType::I32:
+      return GpuMemLoadImpl<int32_t>(buffer);
+    default:
+      return MakeErrorAsyncValueRef("unsupported type");
+  }
 }
 
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
@@ -416,14 +453,17 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(GpuAllocatorCreate));
 
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(GpuMemAllocate));
+  kernel_reg->AddKernel("tfrt_gpu.mem.allocate_host",
+                        TFRT_KERNEL(GpuMemAllocateHost));
   kernel_reg->AddKernel("tfrt_gpu.mem.deallocate",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemDeallocate));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemCopy));
   kernel_reg->AddKernel("tfrt_gpu.mem.set",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemset));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemSet));
   kernel_reg->AddKernel("tfrt_gpu.mem.register", TFRT_KERNEL(GpuMemRegister));
   kernel_reg->AddKernel("tfrt_gpu.mem.view", TFRT_KERNEL(GpuMemView));
+  kernel_reg->AddKernel("tfrt_gpu.mem.load", TFRT_KERNEL(GpuMemLoad));
   kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemPrintMetadata));
 

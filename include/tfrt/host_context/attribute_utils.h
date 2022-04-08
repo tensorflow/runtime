@@ -270,6 +270,8 @@ class I1Attr : public internal::DataTypeAttrBase<DType::I1, uint8_t> {
 class TypeAttr : public TypedAttrBase {
  public:
   using TypedAttrBase::TypedAttrBase;
+  explicit TypeAttr(const void* data)
+      : TypedAttrBase(BEFAttributeType::kType, data) {}
 
   DType GetValue() const {
     DType dtype;

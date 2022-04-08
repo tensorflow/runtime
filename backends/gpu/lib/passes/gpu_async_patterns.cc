@@ -250,10 +250,12 @@ void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
                                         TypeConverter &converter,
                                         ConversionTarget &target) {
   // Wrap tfrt.call ops with no results to provide chain and stream that may be
-  // added to the callee's arguments. This adds a chain and stream argument to
-  // all functions containing such tfrt.call. If this turns out to be a problem,
-  // we need to analyze the call graph and only wrap calls that execute ops
-  // implementing the AsyncOpInterface.
+  // added to the callee's arguments. tfrt.call with results are not wrapped
+  // because tfrt_gpu_conversion.async.execute does not return any results
+  // beyond the optional gpu.async.token. This adds a chain and stream argument
+  // to all functions containing such tfrt.call. If this turns out to be a
+  // problem, we need to analyze the call graph and only wrap calls that execute
+  // ops implementing the AsyncOpInterface.
   target.addDynamicallyLegalOp<tfrt::compiler::CallOp>(
       [](Operation *op) { return op->getNumResults() == 0; });
 

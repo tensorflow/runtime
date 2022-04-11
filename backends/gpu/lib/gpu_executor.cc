@@ -318,7 +318,6 @@ class GpuWorkQueue : public ConcurrentWorkQueue {
     cond_var_.wait(lock, [&] { return complete; });
   }
 
-  // This function is not thread-safe.
   void Quiesce() override {
     // The implementation temporarily disables the stack from being pushed or
     // popped, which prevents threads from going from idle back to working
@@ -337,7 +336,7 @@ class GpuWorkQueue : public ConcurrentWorkQueue {
     // at once (e.g. using boost::lock()) until no more threads are spun up.
     // Correctly locking a range of loops is non-trivial to implement though.
 
-    // Stop pushing idle threads to 'stack_'.
+    // Stop pushing idle threads to 'stack_' while quiescing.
     stack_.store(Thread::kQuiesce);
     std::vector<std::unique_ptr<Thread>> threads;
     size_t num_threads = std::numeric_limits<size_t>::max();
@@ -357,17 +356,18 @@ class GpuWorkQueue : public ConcurrentWorkQueue {
       }
       // Save threads.size() during the first iteration.
       num_threads = std::min(threads.size(), num_threads);
-      // Repeat if new threads were spun up.
     } while ([&] {
       std::lock_guard<std::mutex> lock(mutex_);
-      return !threads_.empty();
+      // Repeat if new threads were spun up.
+      if (!threads_.empty()) return true;
+      // Delete threads that were spun up during the process above.
+      threads.resize(num_threads);
+      // Move pre-existing threads from local variable back to 'threads_'.
+      threads_ = std::move(threads);
+      // Restore 'stack_' by adding all threads.
+      stack_.store(threads_.empty() ? nullptr : threads_.back().get());
+      return false;
     }());
-    // Delete threads that were spun up during the process above.
-    threads.resize(num_threads);
-    // Add all threads to idle 'stack_'.
-    stack_.store(threads.empty() ? nullptr : threads.back().get());
-    // Move local variable back to 'threads_'.
-    threads_ = std::move(threads);
   }
 
   int GetParallelismLevel() const override { return 0; }

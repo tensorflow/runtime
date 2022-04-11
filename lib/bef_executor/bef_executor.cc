@@ -278,6 +278,32 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 
 constexpr int kPseudoKernelId = 0;
 
+namespace {
+// When BefExecutor arguments produced by another BefExecutor (e.g. inside a
+// loop), we can potentially build a very large in-memory graph of dependent
+// tasks, chained with `AndThen` callbacks. If all of these callbacks depend
+// on a single async value, then when it will become available, we can
+// potentially get an unbounded call stack depth.
+//
+// A a safety measure we prevent unbounded stack growth, by enqueuing
+// continuation as a task inside the `AndThen` callback below when we reach a
+// stack depth threshhold.
+static constexpr int64_t kMaxStackDepth = 100;
+static thread_local int64_t stack_depth = 0;
+
+struct StackOverflowGuard {
+  StackOverflowGuard() { stack_depth++; }
+  ~StackOverflowGuard() { stack_depth--; }
+
+  StackOverflowGuard(const StackOverflowGuard&) = delete;
+  StackOverflowGuard(StackOverflowGuard&&) = delete;
+  StackOverflowGuard& operator=(const StackOverflowGuard&) = delete;
+  StackOverflowGuard& operator=(StackOverflowGuard&&) = delete;
+
+  static bool MustEnqueue() { return stack_depth >= kMaxStackDepth; }
+};
+}  // namespace
+
 // Enqueue the `users` of the `result` for later processing. If the result has
 // no users, it will be skipped. If the result is immediately available, then we
 // push them to `ready_kernel_queue`, otherwise we need to enqueue them into
@@ -318,15 +344,29 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
   auto* result_ptr = result.get();
   result_ptr->AndThen([this, stream_id = ready_kernel_queue.stream_id(), users,
                        result_register, result = std::move(result)]() mutable {
-    ReadyKernelQueue ready_kernel_queue(stream_id, kernel_infos());
+    // Keep track of the call stack depth to prevent stack overflows.
+    StackOverflowGuard guard;
 
-    // SetRegisterValue() must be done before
-    // DecrementReadyCountAndEnqueue() because as soon as we decrement a
-    // kernel's ready count, it might be executed in another thread.
-    SetRegisterValue(result_register, std::move(result));
-    ready_kernel_queue.DecrementReadyCountAndEnqueue(users);
-    this->ProcessReadyKernels(ready_kernel_queue);
-    this->DropRef();
+    // Continue processing ready kernels.
+    auto continuation = [this, stream_id, users, result_register,
+                         result = std::move(result)]() mutable {
+      ReadyKernelQueue ready_kernel_queue(stream_id, kernel_infos());
+
+      // SetRegisterValue() must be done before
+      // DecrementReadyCountAndEnqueue() because as soon as we decrement a
+      // kernel's ready count, it might be executed in another thread.
+      SetRegisterValue(result_register, std::move(result));
+      ready_kernel_queue.DecrementReadyCountAndEnqueue(users);
+      this->ProcessReadyKernels(ready_kernel_queue);
+      this->DropRef();
+    };
+
+    // Maybe schedule continuation as a separate task to prevent stack overflow.
+    if (StackOverflowGuard::MustEnqueue())
+      EnqueueWork(exec_ctx_,
+                  [run = std::move(continuation)]() mutable { run(); });
+    else
+      continuation();
   });
 }
 

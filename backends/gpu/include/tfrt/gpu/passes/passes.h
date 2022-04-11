@@ -34,15 +34,15 @@ enum class Platform;
 }
 
 namespace internal {
-mlir::Value GpuAsyncOpConversionGetStream(mlir::Operation* parent);
-mlir::Value GpuAsyncOpConversionGetChain(mlir::Operation* parent);
-void GpuAsyncOpConversionSetChain(mlir::Value chain,
-                                  mlir::PatternRewriter& rewriter);
+mlir::Value StreamifyOpConversionGetStream(mlir::Operation* parent);
+mlir::Value StreamifyOpConversionGetChain(mlir::Operation* parent);
+void StreamifyOpConversionSetChain(mlir::Value chain,
+                                   mlir::PatternRewriter& rewriter);
 }  // namespace internal
 
-// Base class for lowering ops inside a tfrt_gpu_conversion.async.execute op.
+// Base class for lowering ops inside a tfrt_gpu.streamify op.
 template <typename OpTy>
-struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
+struct StreamifyOpConversionPattern : mlir::OpConversionPattern<OpTy> {
   using typename mlir::OpConversionPattern<OpTy>::OpAdaptor;
   using mlir::OpConversionPattern<OpTy>::OpConversionPattern;
 
@@ -51,13 +51,13 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
       OpTy op, OpAdaptor adaptor,
       mlir::ConversionPatternRewriter& rewriter) const final {
     auto* parent = op->getParentOp();
-    auto in_chain = internal::GpuAsyncOpConversionGetChain(parent);
-    auto stream = internal::GpuAsyncOpConversionGetStream(parent);
+    auto in_chain = internal::StreamifyOpConversionGetChain(parent);
+    auto stream = internal::StreamifyOpConversionGetStream(parent);
     if (!in_chain || !stream)
       return rewriter.notifyMatchFailure(op, "Failed to get chain and stream.");
     auto out_chain = matchAndRewriteOp(op, adaptor, in_chain, stream, rewriter);
     if (failed(out_chain)) return mlir::failure();
-    internal::GpuAsyncOpConversionSetChain(*out_chain, rewriter);
+    internal::StreamifyOpConversionSetChain(*out_chain, rewriter);
     return mlir::success();
   }
 
@@ -84,10 +84,10 @@ mlir::StringRef getGpuModuleAttrName();
 mlir::TypeConverter createMemrefToTfrtGpuConverter();
 
 // Adds rewrite patterns that wraps consecutive legal ops as defined by
-// `target` into a tfrt_gpu_conversion.async.execute op.
-void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
-                                        mlir::TypeConverter& converter,
-                                        mlir::ConversionTarget& target);
+// `target` into a tfrt_gpu.streamify op.
+void populateStreamifyConversionPatterns(mlir::RewritePatternSet& patterns,
+                                         mlir::TypeConverter& converter,
+                                         mlir::ConversionTarget& target);
 
 // Adds passes to convert from MLIR's gpu and async dialects to TFRT. Adds
 // !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments to functions.

@@ -25,6 +25,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
@@ -135,17 +136,6 @@ using CclReductionOpAttr = EnumAttr<wrapper::CclReductionOp>;
 using FftTypeAttr = EnumAttr<wrapper::FftType>;
 using FftDirectionAttr = EnumAttr<wrapper::FftDirection>;
 
-namespace conversion {
-
-// Dialect for cuda conversion helper operations.
-class GpuConversionDialect : public Dialect {
- public:
-  static StringRef getDialectNamespace() { return "tfrt_gpu_conversion"; }
-  explicit GpuConversionDialect(MLIRContext* context);
-};
-
-}  // namespace conversion
-
 }  // namespace gpu
 }  // namespace tfrt
 
@@ -154,7 +144,5 @@ class GpuConversionDialect : public Dialect {
 #include "tfrt/gpu/kernels/gpu_typedefs.h.inc"
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_opdefs.h.inc"
-#define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.h.inc"
 
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_

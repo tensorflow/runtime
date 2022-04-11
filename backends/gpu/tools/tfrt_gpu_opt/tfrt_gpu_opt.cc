@@ -44,21 +44,20 @@
 
 namespace {
 
-// Test pass to wrap tfrt_gpu ops in tfrt_gpu_conversion.async.execute.
-struct TestGpuAsyncConversionPass
-    : public mlir::PassWrapper<TestGpuAsyncConversionPass,
+// Test pass to wrap tfrt_gpu ops in tfrt_gpu.streamify.
+struct TestStreamifyConversionPass
+    : public mlir::PassWrapper<TestStreamifyConversionPass,
                                OperationPass<FuncOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestGpuAsyncConversionPass)
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestStreamifyConversionPass)
 
-  StringRef getArgument() const final { return "test-gpu-async-conversion"; }
+  StringRef getArgument() const final { return "test-streamify-conversion"; }
 
   void getDependentDialects(DialectRegistry &registry) const override {
     tfrt::RegisterTFRTDialects(registry);
     tfrt::RegisterTFRTCompiledDialects(registry);
-    registry.insert<tfrt::gpu::GpuDialect, arith::ArithmeticDialect,
-                    cf::ControlFlowDialect,
-                    tfrt::gpu::conversion::GpuConversionDialect,
-                    gpu::GPUDialect, memref::MemRefDialect, func::FuncDialect,
+    registry.insert<tfrt::gpu::GpuDialect, mlir::arith::ArithmeticDialect,
+                    mlir::cf::ControlFlowDialect, mlir::gpu::GPUDialect,
+                    mlir::memref::MemRefDialect, mlir::func::FuncDialect,
                     tfrt::compiler::TFRTDialect>();
   }
 
@@ -84,11 +83,14 @@ struct TestGpuAsyncConversionPass
     wrap.addLegalDialect("wrap");
 
     RewritePatternSet patterns(&getContext());
-    tfrt::gpu::populateGpuAsyncConversionPatterns(patterns, converter, wrap);
+    tfrt::gpu::populateStreamifyConversionPatterns(patterns, converter, wrap);
 
     ConversionTarget target(getContext());
-    target.addLegalDialect("gpu", "other", "tfrt", "tfrt_gpu_conversion");
+    target
+        .addLegalDialect<mlir::gpu::GPUDialect, tfrt::compiler::TFRTDialect>();
+    target.addLegalDialect("other");
     target.addLegalOp<mlir::UnrealizedConversionCastOp>();
+    target.addLegalOp<tfrt::gpu::StreamifyOp>();
     target.addDynamicallyLegalOp<FuncOp>([&](FuncOp op) {
       return none_of(op.getBody().getOps(),
                      [&](Operation &op) { return wrap.isLegal(&op); });
@@ -109,10 +111,9 @@ class TestSetEntryPointPass
   void getDependentDialects(DialectRegistry &registry) const override {
     tfrt::RegisterTFRTDialects(registry);
     tfrt::RegisterTFRTCompiledDialects(registry);
-    registry.insert<tfrt::gpu::GpuDialect, arith::ArithmeticDialect,
-                    cf::ControlFlowDialect,
-                    tfrt::gpu::conversion::GpuConversionDialect,
-                    gpu::GPUDialect, memref::MemRefDialect, func::FuncDialect,
+    registry.insert<tfrt::gpu::GpuDialect, mlir::arith::ArithmeticDialect,
+                    mlir::cf::ControlFlowDialect, mlir::gpu::GPUDialect,
+                    mlir::memref::MemRefDialect, mlir::func::FuncDialect,
                     tfrt::compiler::TFRTDialect>();
   }
 
@@ -159,9 +160,8 @@ int main(int argc, char **argv) {
                   mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
                   mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
-                  tfrt::gpu::conversion::GpuConversionDialect,
                   tfrt::test::TestDialect>();
-  PassRegistration<TestGpuAsyncConversionPass>();
+  PassRegistration<TestStreamifyConversionPass>();
   PassRegistration<TestSetEntryPointPass>();
   tfrt::gpu::registerPasses();
 

@@ -777,31 +777,8 @@ gentbl_cc_library(
     ],
     deps = [
         ":GpuOpBaseTdFile",
-        "@llvm-project//mlir:SideEffectTdFiles",
-        "@tf_runtime//:OpBaseTdFiles",
-    ],
-)
-
-gentbl_cc_library(
-    name = "gpu_conversion_helper_opdefs_inc_gen",
-    includes = [
-        "../../include",
-        "include",
-    ],
-    tbl_outs = [
-        (
-            ["-gen-op-decls"],
-            "include/tfrt/gpu/kernels/gpu_conversion_helper_opdefs.h.inc",
-        ),
-        (
-            ["-gen-op-defs"],
-            "include/tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/gpu/kernels/gpu_conversion_helper_ops.td",
-    deps = [
         "@llvm-project//mlir:GPUOpsTdFiles",
+        "@llvm-project//mlir:SideEffectTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
     ],
 )
@@ -815,10 +792,10 @@ tfrt_cc_library(
         ["//visibility:public"],
     ),
     deps = [
-        ":gpu_conversion_helper_opdefs_inc_gen",
         ":gpu_opdefs_inc_gen",
         ":gpu_wrapper",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",

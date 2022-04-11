@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -47,6 +48,8 @@ namespace gpu {
 GpuDialect::GpuDialect(MLIRContext *context)
     : Dialect(/*name*/ "tfrt_gpu", context, TypeID::get<GpuDialect>()) {
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
+  context->getOrLoadDialect<mlir::gpu::GPUDialect>();
+
   allowUnknownTypes();
   allowUnknownOperations();
 
@@ -295,21 +298,7 @@ LogicalResult FftCreateOp::verify() {
   return mlir::success();
 }
 
-namespace conversion {
-
-GpuConversionDialect::GpuConversionDialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_gpu_conversion", context,
-              TypeID::get<GpuConversionDialect>()) {
-  allowUnknownTypes();
-  allowUnknownOperations();
-
-  addOperations<
-#define GET_OP_LIST
-#include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc"
-      >();
-}
-
-void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
+void StreamifyOp::build(OpBuilder &builder, OperationState &result) {
   // Add a region with stream and chain block arguments.
   auto block = [&] {
     Region *region = result.addRegion();
@@ -326,8 +315,6 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
   builder.create<compiler::ReturnOp>(result.location, chain);
 }
 
-}  // namespace conversion
-
 }  // namespace gpu
 }  // namespace tfrt
 
@@ -336,8 +323,6 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
 #include "tfrt/gpu/kernels/gpu_typedefs.cpp.inc"
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_opdefs.cpp.inc"
-#define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc"
 
 Type tfrt::gpu::GpuDialect::parseType(DialectAsmParser &parser) const {
   StringRef typeTag;

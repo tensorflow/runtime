@@ -21,47 +21,47 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef GPU_BLAS_OPS
+#ifdef TFRTGPU_BLAS_OPS
 #else
-#define GPU_BLAS_OPS
+#define TFRTGPU_BLAS_OPS
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def GPU_BlasHandleType : GPU_Type<"BlasHandle"> {
+def TFRTGPU_BlasHandleType : TFRTGPU_Type<"BlasHandle"> {
   let mnemonic = "blas.handle";
 }
-def GPU_BlasGemmAlgoType : GPU_Type<"BlasGemmAlgo"> {
+def TFRTGPU_BlasGemmAlgoType : TFRTGPU_Type<"BlasGemmAlgo"> {
   let mnemonic = "blas.gemm.algo";
 }
 
-def GPU_BlasDataTypeAttr : GPU_WrapperAttr<"BlasDataType">;
-def GPU_BlasDiagTypeAttr : GPU_WrapperAttr<"BlasDiagType">;
-def GPU_BlasComputeTypeAttr : GPU_WrapperAttr<"BlasComputeType">;
-def GPU_BlasOperationAttr : GPU_WrapperAttr<"BlasOperation">;
-def GPU_BlasGemmAlgoAttr : GPU_WrapperAttr<"BlasGemmAlgo">;
-def GPU_BlasFillModeAttr : GPU_WrapperAttr<"BlasFillMode">;
-def GPU_BlasSideModeAttr : GPU_WrapperAttr<"BlasSideMode">;
+def TFRTGPU_BlasDataTypeAttr : TFRTGPU_WrapperAttr<"BlasDataType">;
+def TFRTGPU_BlasDiagTypeAttr : TFRTGPU_WrapperAttr<"BlasDiagType">;
+def TFRTGPU_BlasComputeTypeAttr : TFRTGPU_WrapperAttr<"BlasComputeType">;
+def TFRTGPU_BlasOperationAttr : TFRTGPU_WrapperAttr<"BlasOperation">;
+def TFRTGPU_BlasGemmAlgoAttr : TFRTGPU_WrapperAttr<"BlasGemmAlgo">;
+def TFRTGPU_BlasFillModeAttr : TFRTGPU_WrapperAttr<"BlasFillMode">;
+def TFRTGPU_BlasSideModeAttr : TFRTGPU_WrapperAttr<"BlasSideMode">;
 
-def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
+def TFRTGPU_BlasCreateOp : TFRTGPU_Op<"blas.create"> {
   let description = [{
     tfrt_gpu.blas.create creates a handle to the BLAS library context.
 
     This will be explicitly passed to every subsequent BLAS library call.
   }];
-  let arguments = (ins GPU_ContextType);
-  let results = (outs GPU_BlasHandleType);
+  let arguments = (ins TFRTGPU_ContextType);
+  let results = (outs TFRTGPU_BlasHandleType);
 }
 
-def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy"> {
+def TFRTGPU_BlasSaxpyOp : TFRTGPU_Op<"blas.axpy"> {
   let description = [{
     tfrt_gpu.blas.axpy call BLAS axpy function.
   }];
-  let arguments = (ins GPU_BlasHandleType:$handle, GPU_StreamType:$stream, I32:$n, AnyType:$alpha,
-                   GPU_BlasDataTypeAttr:$typeAlpha, GPU_BufferType:$x,
-                   GPU_BlasDataTypeAttr:$typeX, I32:$strideX, GPU_BufferType:$y,
-                   GPU_BlasDataTypeAttr:$typeY, I32:$strideY,
-                   GPU_BlasDataTypeAttr:$executionType, TFRT_ChainType:$chain);
+  let arguments = (ins TFRTGPU_BlasHandleType:$handle, TFRTGPU_StreamType:$stream, I32:$n, AnyType:$alpha,
+                   TFRTGPU_BlasDataTypeAttr:$typeAlpha, TFRTGPU_BufferType:$x,
+                   TFRTGPU_BlasDataTypeAttr:$typeX, I32:$strideX, TFRTGPU_BufferType:$y,
+                   TFRTGPU_BlasDataTypeAttr:$typeY, I32:$strideY,
+                   TFRTGPU_BlasDataTypeAttr:$executionType, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
     $handle`,` $stream`,` $n`,` $alpha`,` custom<Enum>($typeAlpha, type($alpha))`,`
@@ -71,25 +71,25 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy"> {
   let hasVerifier = 1;
 }
 
-def GPU_BlasGemmAlgoOp : GPU_Op<"blas.gemm.algo", [NoSideEffect]> {
-  let arguments = (ins GPU_BlasGemmAlgoAttr:$algo);
-  let results = (outs GPU_BlasGemmAlgoType);
+def TFRTGPU_BlasGemmAlgoOp : TFRTGPU_Op<"blas.gemm.algo", [NoSideEffect]> {
+  let arguments = (ins TFRTGPU_BlasGemmAlgoAttr:$algo);
+  let results = (outs TFRTGPU_BlasGemmAlgoType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
 
-def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
+def TFRTGPU_BlasGemmOp : TFRTGPU_Op<"blas.gemm"> {
   let description = [{
     tfrt_gpu.blas.gemm This kernel is an extension of blas.gemm.<t> kernels
                        that allows the user to individually specify the data
                        types for each of the A, B and C matrices, the precision
                        of computation and the GEMM algorithm to be run.
   }];
-  let arguments = (ins GPU_BlasHandleType:$handle, GPU_StreamType:$stream, GPU_BlasOperationAttr:$transA,
-    GPU_BlasOperationAttr:$transB, I32:$m, I32:$n, I32:$k, AnyType:$alpha,
-    GPU_BufferType:$A, GPU_BlasDataTypeAttr:$typeA, I32:$heightA, GPU_BufferType:$B,
-    GPU_BlasDataTypeAttr:$typeB, I32:$heightB, AnyType:$beta, GPU_BufferType:$C,
-    GPU_BlasDataTypeAttr:$typeC, I32:$heightC, GPU_BlasComputeTypeAttr:$computeType,
-    GPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
+  let arguments = (ins TFRTGPU_BlasHandleType:$handle, TFRTGPU_StreamType:$stream, TFRTGPU_BlasOperationAttr:$transA,
+    TFRTGPU_BlasOperationAttr:$transB, I32:$m, I32:$n, I32:$k, AnyType:$alpha,
+    TFRTGPU_BufferType:$A, TFRTGPU_BlasDataTypeAttr:$typeA, I32:$heightA, TFRTGPU_BufferType:$B,
+    TFRTGPU_BlasDataTypeAttr:$typeB, I32:$heightB, AnyType:$beta, TFRTGPU_BufferType:$C,
+    TFRTGPU_BlasDataTypeAttr:$typeC, I32:$heightC, TFRTGPU_BlasComputeTypeAttr:$computeType,
+    TFRTGPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
 
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -102,20 +102,20 @@ def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
   let hasVerifier = 1;
 }
 
-def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
+def TFRTGPU_BlasGemmBatchExOp : TFRTGPU_Op<"blas.gemm.batch"> {
   let description = [{
     tfrt_gpu.blas.gemm.batch This kernel is an extension of blas.gemm that
                            performs the matrix-matrix multiplication of a batch
                            of matrices and allows the individual specification
                            strides between consecutive elements.
   }];
-  let arguments = (ins GPU_BlasHandleType:$handle, GPU_StreamType:$stream, GPU_BlasOperationAttr:$transA,
-    GPU_BlasOperationAttr:$transB, I32:$m, I32:$n, I32:$k, AnyType:$alpha,
-    GPU_BufferType:$A, GPU_BlasDataTypeAttr:$typeA, I32:$heightA, I64:$strideA,
-    GPU_BufferType:$B, GPU_BlasDataTypeAttr:$typeB, I32:$heightB, I64:$strideB,
-    AnyType:$beta,  GPU_BufferType:$C, GPU_BlasDataTypeAttr:$typeC, I32:$heightC,
-    I64:$strideC, I32:$batchCount, GPU_BlasComputeTypeAttr:$computeType,
-    GPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
+  let arguments = (ins TFRTGPU_BlasHandleType:$handle, TFRTGPU_StreamType:$stream, TFRTGPU_BlasOperationAttr:$transA,
+    TFRTGPU_BlasOperationAttr:$transB, I32:$m, I32:$n, I32:$k, AnyType:$alpha,
+    TFRTGPU_BufferType:$A, TFRTGPU_BlasDataTypeAttr:$typeA, I32:$heightA, I64:$strideA,
+    TFRTGPU_BufferType:$B, TFRTGPU_BlasDataTypeAttr:$typeB, I32:$heightB, I64:$strideB,
+    AnyType:$beta,  TFRTGPU_BufferType:$C, TFRTGPU_BlasDataTypeAttr:$typeC, I32:$heightC,
+    I64:$strideC, I32:$batchCount, TFRTGPU_BlasComputeTypeAttr:$computeType,
+    TFRTGPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
     $handle`,` $stream`,` custom<Enum>($transA)`,` custom<Enum>($transB)`,`
@@ -128,16 +128,16 @@ def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
   let hasVerifier = 1;
 }
 
-def GPU_BlasTrsmBatchOp : GPU_Op<"blas.trsm.batch"> {
+def TFRTGPU_BlasTrsmBatchOp : TFRTGPU_Op<"blas.trsm.batch"> {
   let description = [{
     tfrt_gpu.blas.trsm.batch solves an array of triangular linear systems with
     multiple right-hand-sides using the specified batch size.
   }];
-  let arguments = (ins GPU_BlasHandleType:$handle, GPU_StreamType:$stream, GPU_BlasSideModeAttr:$sideMode,
-                   GPU_BlasFillModeAttr:$fillMode, GPU_BlasOperationAttr:$trans,
-                   GPU_BlasDiagTypeAttr:$diagType, I32:$m, I32:$n,
-                   GPU_BlasDataTypeAttr:$dataType, AnyType:$alpha,
-                   GPU_BufferType:$A, I32:$heightA, GPU_BufferType:$B,
+  let arguments = (ins TFRTGPU_BlasHandleType:$handle, TFRTGPU_StreamType:$stream, TFRTGPU_BlasSideModeAttr:$sideMode,
+                   TFRTGPU_BlasFillModeAttr:$fillMode, TFRTGPU_BlasOperationAttr:$trans,
+                   TFRTGPU_BlasDiagTypeAttr:$diagType, I32:$m, I32:$n,
+                   TFRTGPU_BlasDataTypeAttr:$dataType, AnyType:$alpha,
+                   TFRTGPU_BufferType:$A, I32:$heightA, TFRTGPU_BufferType:$B,
                    I32:$heightB, I32:$batchCount, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -148,4 +148,4 @@ def GPU_BlasTrsmBatchOp : GPU_Op<"blas.trsm.batch"> {
   }];
 }
 
-#endif  // GPU_OPS
+#endif  // TFRTGPU_OPS

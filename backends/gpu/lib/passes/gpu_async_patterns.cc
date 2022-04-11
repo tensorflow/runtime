@@ -16,9 +16,11 @@
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/iterator_range.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/PatternMatch.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
@@ -27,18 +29,18 @@
 namespace tfrt {
 namespace gpu {
 
-Value internal::GpuAsyncOpConversionGetStream(Operation *parent) {
-  if (auto exec_op = dyn_cast_or_null<conversion::AsyncExecuteOp>(parent))
-    return exec_op.getRegion().getArgument(1);
+Value internal::StreamifyOpConversionGetStream(Operation *parent) {
+  if (auto streamify_op = dyn_cast_or_null<StreamifyOp>(parent))
+    return streamify_op.getRegion().getArgument(1);
   return Value();
 }
-Value internal::GpuAsyncOpConversionGetChain(Operation *parent) {
-  if (auto exec_op = dyn_cast_or_null<conversion::AsyncExecuteOp>(parent))
-    return exec_op.getRegion().back().getTerminator()->getOperand(0);
+Value internal::StreamifyOpConversionGetChain(Operation *parent) {
+  if (auto streamify_op = dyn_cast_or_null<StreamifyOp>(parent))
+    return streamify_op.getRegion().back().getTerminator()->getOperand(0);
   return Value();
 }
-void internal::GpuAsyncOpConversionSetChain(Value chain,
-                                            PatternRewriter &rewriter) {
+void internal::StreamifyOpConversionSetChain(Value chain,
+                                             PatternRewriter &rewriter) {
   Operation *terminator = chain.getParentRegion()->back().getTerminator();
   rewriter.updateRootInPlace(
       terminator, [&] { terminator->setOperands(ValueRange(chain)); });
@@ -47,11 +49,10 @@ void internal::GpuAsyncOpConversionSetChain(Value chain,
 namespace {
 
 // Wraps consecutive legal ops within a block into a
-// tfrt_gpu_conversion.async.execute op.
-struct NestLegalOpsInConversionAsyncExecPattern
-    : public OpRewritePattern<FuncOp> {
-  NestLegalOpsInConversionAsyncExecPattern(MLIRContext *context,
-                                           ConversionTarget &target)
+// tfrt_gpu.streamify op.
+struct NestLegalOpsInStreamifyOpPattern : public OpRewritePattern<FuncOp> {
+  NestLegalOpsInStreamifyOpPattern(MLIRContext *context,
+                                   ConversionTarget &target)
       : OpRewritePattern(context), target(target) {}
 
  private:
@@ -118,15 +119,14 @@ struct ConvertOpTypesPattern : public OpConversionPattern<OpTy> {
 
 }  // namespace
 
-LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewrite(
+LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewrite(
     FuncOp func_op, PatternRewriter &rewriter) const {
   rewriter.startRootUpdate(func_op);
   LogicalResult result = failure();
   func_op.walk([&](Block *block) {
-    if (isa<conversion::AsyncExecuteOp>(block->getParentOp()))
-      return WalkResult::skip();
+    if (isa<StreamifyOp>(block->getParentOp())) return WalkResult::skip();
     if (succeeded(matchAndRewriteBlock(block, rewriter)))
-      result = success();  //
+      result = success();  // At least one op has been nested.
     return WalkResult::advance();
   });
   succeeded(result) ? rewriter.finalizeRootUpdate(func_op)
@@ -135,8 +135,8 @@ LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewrite(
 }
 
 // Iterate over ops in block, and whenever we transition from a legal to an
-// illegal op, wrap preceding legal ops in !tfrt_gpu_conversion.async.execute.
-LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewriteBlock(
+// illegal op, wrap preceding legal ops in !tfrt_gpu.streamify.
+LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewriteBlock(
     Block *block, PatternRewriter &rewriter) const {
   LogicalResult result = failure();
   Operation *legal_begin = nullptr;
@@ -151,9 +151,8 @@ LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewriteBlock(
 
     rewriter.setInsertionPoint(legal_begin);
     auto loc = legal_begin->getLoc();
-    auto *body = rewriter.create<conversion::AsyncExecuteOp>(loc).getBody();
-    // Move sequence of legal ops into !tfrt_gpu_conversion.async.execute
-    // body.
+    auto *body = rewriter.create<StreamifyOp>(loc).getBody();
+    // Move sequence of legal ops into !tfrt_gpu.streamify body.
     body->getOperations().splice(body->begin(), op->getBlock()->getOperations(),
                                  legal_begin->getIterator(), op->getIterator());
     legal_begin = nullptr;  // Start of illegal op sequence.
@@ -246,12 +245,12 @@ LogicalResult ConvertOpTypesPattern<OpTy>::matchAndRewrite(
   return success();
 }
 
-void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
-                                        TypeConverter &converter,
-                                        ConversionTarget &target) {
+void populateStreamifyConversionPatterns(RewritePatternSet &patterns,
+                                         TypeConverter &converter,
+                                         ConversionTarget &target) {
   // Wrap tfrt.call ops with no results to provide chain and stream that may be
   // added to the callee's arguments. tfrt.call with results are not wrapped
-  // because tfrt_gpu_conversion.async.execute does not return any results
+  // because tfrt_gpu.streamify does not return any results
   // beyond the optional gpu.async.token. This adds a chain and stream argument
   // to all functions containing such tfrt.call. If this turns out to be a
   // problem, we need to analyze the call graph and only wrap calls that execute
@@ -266,8 +265,7 @@ void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
                ConvertOpTypesPattern<compiler::ReturnOp>>(
       converter, patterns.getContext());
 
-  patterns.add<NestLegalOpsInConversionAsyncExecPattern>(patterns.getContext(),
-                                                         target);
+  patterns.add<NestLegalOpsInStreamifyOpPattern>(patterns.getContext(), target);
 
   patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern,
                RewriteMemrefAllocPattern<memref::AllocOp>,

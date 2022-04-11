@@ -18,15 +18,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef GPU_OPS_BASE
+#ifdef TFRTGPU_OPS_BASE
 #else
-#define GPU_OPS_BASE
+#define TFRTGPU_OPS_BASE
 
 include "tfrt/tfrt_op_base.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 
 // "tfrt_gpu" dialect
-def GPU_Dialect : Dialect {
+def TFRTGPU_Dialect : Dialect {
   let name = "tfrt_gpu";
 
   let description = [{
@@ -43,39 +43,39 @@ def GPU_Dialect : Dialect {
 }
 
 // Base class for GPU dialect ops.
-class GPU_Op<string mnemonic, list<Trait> traits = []> :
-    Op<GPU_Dialect, mnemonic, traits> {
+class TFRTGPU_Op<string mnemonic, list<Trait> traits = []> :
+    Op<TFRTGPU_Dialect, mnemonic, traits> {
   let summary = !strconcat("tfrt_gpu.", mnemonic, " operation");
   let assemblyFormat = "operands attr-dict";
 }
 
 // Type definitions.
 
-class GPU_Type<string name, list<Trait> traits = []> :
-    TypeDef<GPU_Dialect, name, traits> {
+class TFRTGPU_Type<string name, list<Trait> traits = []> :
+    TypeDef<TFRTGPU_Dialect, name, traits> {
   let summary = !strconcat("!tfrt_gpu.", mnemonic, " type");
 }
 
-def GPU_AllocatorType : GPU_Type<"Allocator"> { let mnemonic = "allocator"; }
-def GPU_BufferType : GPU_Type<"Buffer"> { let mnemonic = "buffer"; }
-def GPU_ContextType : GPU_Type<"Context"> { let mnemonic = "context"; }
-def GPU_StreamType : GPU_Type<"Stream"> { let mnemonic = "stream"; }
+def TFRTGPU_AllocatorType : TFRTGPU_Type<"Allocator"> { let mnemonic = "allocator"; }
+def TFRTGPU_BufferType : TFRTGPU_Type<"Buffer"> { let mnemonic = "buffer"; }
+def TFRTGPU_ContextType : TFRTGPU_Type<"Context"> { let mnemonic = "context"; }
+def TFRTGPU_StreamType : TFRTGPU_Type<"Stream"> { let mnemonic = "stream"; }
 // Specific to driver, but included here for export.
-def GPU_ModuleType : GPU_Type<"Module"> { let mnemonic = "module"; }
+def TFRTGPU_ModuleType : TFRTGPU_Type<"Module"> { let mnemonic = "module"; }
 // Specific to CCL, but included here for export.
-def GPU_CclHandleType : GPU_Type<"CclHandle"> { let mnemonic = "ccl.handle"; }
+def TFRTGPU_CclHandleType : TFRTGPU_Type<"CclHandle"> { let mnemonic = "ccl.handle"; }
 
 // Attribute definitions.
 
-class GPU_WrapperAttr<string name> : DialectAttr<
-    GPU_Dialect, CPred<"$_self.isa<::tfrt::gpu::" # name # "Attr>()">> {
+class TFRTGPU_WrapperAttr<string name> : DialectAttr<
+    TFRTGPU_Dialect, CPred<"$_self.isa<::tfrt::gpu::" # name # "Attr>()">> {
   let storageType = "::tfrt::gpu::" # name # "Attr";
   let returnType = "::tfrt::gpu::wrapper::" # name;
   let constBuilderCall = storageType # "::get($_builder.getContext(), $0)";
 }
 
-def GPU_PlatformAttr : GPU_WrapperAttr<"Platform">;
+def TFRTGPU_PlatformAttr : TFRTGPU_WrapperAttr<"Platform">;
 // Specific to CCL, but included here for export.
-def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType">;
+def TFRTGPU_CclDataTypeAttr : TFRTGPU_WrapperAttr<"CclDataType">;
 
-#endif  // GPU_OPS_BASE
+#endif  // TFRTGPU_OPS_BASE

@@ -20,21 +20,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef GPU_FFT_OPS
+#ifdef TFRTGPU_FFT_OPS
 #else
-#define GPU_FFT_OPS
+#define TFRTGPU_FFT_OPS
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 //===----------------------------------------------------------------------===//
 // Fast Fourier Transform Type enum definitions.
 //===----------------------------------------------------------------------===//
-def GPU_FftHandleType : GPU_Type<"OwningFftHandle"> { let mnemonic = "fft.handle"; }
+def TFRTGPU_FftHandleType : TFRTGPU_Type<"OwningFftHandle"> { let mnemonic = "fft.handle"; }
 
-def GPU_FftTypeAttr : GPU_WrapperAttr<"FftType">;
-def GPU_FftDirectionAttr : GPU_WrapperAttr<"FftDirection">;
+def TFRTGPU_FftTypeAttr : TFRTGPU_WrapperAttr<"FftType">;
+def TFRTGPU_FftDirectionAttr : TFRTGPU_WrapperAttr<"FftDirection">;
 
-def GPU_FftCreateOp : GPU_Op<"fft.create"> {
+def TFRTGPU_FftCreateOp : TFRTGPU_Op<"fft.create"> {
   let description = [{
     tfrt_gpu.fft.create returns a tfrt_gpu.fft.handle for the FFT operation
     that is described by the supplied parameters.
@@ -47,10 +47,10 @@ def GPU_FftCreateOp : GPU_Op<"fft.create"> {
   // Note: these attributes will have to become values to support dynamic
   // shapes. But it's unclear at the moment what type they would be and XLIR
   // as the only user is operating on static shapes still.
-  let arguments = (ins GPU_ContextType:$context,
-    GPU_FftTypeAttr:$type, I64Attr:$batch, I64ArrayAttr:$dims,
+  let arguments = (ins TFRTGPU_ContextType:$context,
+    TFRTGPU_FftTypeAttr:$type, I64Attr:$batch, I64ArrayAttr:$dims,
     I64ArrayAttr:$in_strides, I64ArrayAttr:$out_strides);
-  let results = (outs GPU_FftHandleType:$handle);
+  let results = (outs TFRTGPU_FftHandleType:$handle);
   let assemblyFormat = [{
     $context`,` custom<Enum>($type)`,` $batch`,` $dims`,`
     $in_strides`,` $out_strides attr-dict
@@ -58,27 +58,27 @@ def GPU_FftCreateOp : GPU_Op<"fft.create"> {
   let hasVerifier = 1;
 }
 
-def GPU_FftGetWorkspaceSizeOp : GPU_Op<"fft.get_workspace_size", [NoSideEffect]> {
+def TFRTGPU_FftGetWorkspaceSizeOp : TFRTGPU_Op<"fft.get_workspace_size", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.fft.create returns workspace size in bytes required to execute
     the FFT operation.
   }];
-  let arguments = (ins GPU_FftHandleType:$handle);
+  let arguments = (ins TFRTGPU_FftHandleType:$handle);
   let results = (outs I64:$workspace_size);
   let assemblyFormat = [{$handle attr-dict}];
 }
 
-def GPU_FftExecuteOp : GPU_Op<"fft.execute"> {
+def TFRTGPU_FftExecuteOp : TFRTGPU_Op<"fft.execute"> {
   let description = [{
     tfrt_gpu.fft.execute runs the FFT according to the supplied parameters.
   }];
   let arguments = (ins
-    GPU_StreamType:$stream,
-    GPU_FftHandleType:$handle,
-    GPU_BufferType:$input,
-    GPU_BufferType:$output,
-    GPU_BufferType:$workspace,
-    GPU_FftDirectionAttr:$direction,
+    TFRTGPU_StreamType:$stream,
+    TFRTGPU_FftHandleType:$handle,
+    TFRTGPU_BufferType:$input,
+    TFRTGPU_BufferType:$output,
+    TFRTGPU_BufferType:$workspace,
+    TFRTGPU_FftDirectionAttr:$direction,
     TFRT_ChainType:$chain
   );
   let results = (outs TFRT_ChainType);
@@ -88,4 +88,4 @@ def GPU_FftExecuteOp : GPU_Op<"fft.execute"> {
   }];
 }
 
-#endif  // GPU_FFT_OPS
+#endif  // TFRTGPU_FFT_OPS

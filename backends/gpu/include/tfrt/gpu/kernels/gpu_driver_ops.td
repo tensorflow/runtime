@@ -18,19 +18,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef GPU_DRIVER_OPS
+#ifdef TFRTGPU_DRIVER_OPS
 #else
-#define GPU_DRIVER_OPS
+#define TFRTGPU_DRIVER_OPS
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def GPU_DeviceType : GPU_Type<"Device"> { let mnemonic = "device"; }
-def GPU_EventType : GPU_Type<"Event"> { let mnemonic = "event"; }
-def GPU_FunctionType : GPU_Type<"Function"> { let mnemonic = "function"; }
+def TFRTGPU_DeviceType : TFRTGPU_Type<"Device"> { let mnemonic = "device"; }
+def TFRTGPU_EventType : TFRTGPU_Type<"Event"> { let mnemonic = "event"; }
+def TFRTGPU_FunctionType : TFRTGPU_Type<"Function"> { let mnemonic = "function"; }
 
-def GPU_DeviceGetOp : GPU_Op<"device.get", [NoSideEffect]> {
+def TFRTGPU_DeviceGetOp : TFRTGPU_Op<"device.get", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.device.get returns the gpu device at the given index.
 
@@ -38,12 +38,12 @@ def GPU_DeviceGetOp : GPU_Op<"device.get", [NoSideEffect]> {
       %ordinal = tfrt.constant.i32 0
       %device = tfrt_gpu.device.get CUDA, %ordinal
   }];
-  let arguments = (ins GPU_PlatformAttr:$platform, I32:$ordinal);
-  let results = (outs GPU_DeviceType);
+  let arguments = (ins TFRTGPU_PlatformAttr:$platform, I32:$ordinal);
+  let results = (outs TFRTGPU_DeviceType);
   let assemblyFormat = "custom<Enum>($platform)`,` operands attr-dict";
 }
 
-def GPU_ContextPrimaryOp : GPU_Op<"context.primary", [NoSideEffect]> {
+def TFRTGPU_ContextPrimaryOp : TFRTGPU_Op<"context.primary", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.context.primary returns the primary gpu context of the device.
 
@@ -52,11 +52,11 @@ def GPU_ContextPrimaryOp : GPU_Op<"context.primary", [NoSideEffect]> {
       %device = tfrt_gpu.device.get CUDA, %ordinal
       %ctx = tfrt_gpu.context.primary %device
   }];
-  let arguments = (ins GPU_DeviceType);
-  let results = (outs GPU_ContextType);
+  let arguments = (ins TFRTGPU_DeviceType);
+  let results = (outs TFRTGPU_ContextType);
 }
 
-def GPU_ContextCreateOp : GPU_Op<"context.create"> {
+def TFRTGPU_ContextCreateOp : TFRTGPU_Op<"context.create"> {
   let description = [{
     tfrt_gpu.context.create returns a gpu context for the given device.
 
@@ -65,11 +65,11 @@ def GPU_ContextCreateOp : GPU_Op<"context.create"> {
       %device = tfrt_gpu.device.get CUDA, %ordinal
       %ctx = tfrt_gpu.context.create %device
   }];
-  let arguments = (ins GPU_DeviceType);
-  let results = (outs GPU_ContextType);
+  let arguments = (ins TFRTGPU_DeviceType);
+  let results = (outs TFRTGPU_ContextType);
 }
 
-def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
+def TFRTGPU_StreamCreateOp : TFRTGPU_Op<"stream.create"> {
   let description = [{
     tfrt_gpu.stream.create creates a gpu stream in the given context.
 
@@ -79,22 +79,22 @@ def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
       %ch1 = tfrt.new.chain
       %stream = tfrt_gpu.stream.create %context
   }];
-  let arguments = (ins GPU_ContextType);
-  let results = (outs GPU_StreamType);
+  let arguments = (ins TFRTGPU_ContextType);
+  let results = (outs TFRTGPU_StreamType);
 }
 
-def GPU_StreamGetContextOp : GPU_Op<"stream.get_context", [NoSideEffect]> {
+def TFRTGPU_StreamGetContextOp : TFRTGPU_Op<"stream.get_context", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.stream.get_context returns the context the stream was created with.
 
     Example:
       %context = tfrt_gpu.stream.get_context %stream
   }];
-  let arguments = (ins GPU_StreamType);
-  let results = (outs GPU_ContextType);
+  let arguments = (ins TFRTGPU_StreamType);
+  let results = (outs TFRTGPU_ContextType);
 }
 
-def GPU_StreamWaitOp : GPU_Op<"stream.wait"> {
+def TFRTGPU_StreamWaitOp : TFRTGPU_Op<"stream.wait"> {
   let description = [{
     tfrt_gpu.stream.wait makes a stream wait on a gpu event.
 
@@ -102,11 +102,11 @@ def GPU_StreamWaitOp : GPU_Op<"stream.wait"> {
       %ch1 = tfrt.new.chain
       %ch2 = tfrt_gpu.stream.wait %stream, %event, %ch1
   }];
-  let arguments = (ins GPU_StreamType, GPU_EventType, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_StreamType, TFRTGPU_EventType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_StreamSynchronizeOp : GPU_Op<"stream.synchronize"> {
+def TFRTGPU_StreamSynchronizeOp : TFRTGPU_Op<"stream.synchronize"> {
   let description = [{
     tfrt_gpu.stream.synchronize waits until all the work scheduled on the
     stream has completed.
@@ -116,22 +116,22 @@ def GPU_StreamSynchronizeOp : GPU_Op<"stream.synchronize"> {
 Example:
       %synced = tfrt_gpu.stream.synchronize %stream, %ch
   }];
-  let arguments = (ins GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_EventCreateOp : GPU_Op<"event.create"> {
+def TFRTGPU_EventCreateOp : TFRTGPU_Op<"event.create"> {
   let description = [{
     tfrt_gpu.event.create creates a gpu event in the provided context.
 
     Example:
       %event = tfrt_gpu.event.create %context
   }];
-  let arguments = (ins GPU_ContextType);
-  let results = (outs GPU_EventType);
+  let arguments = (ins TFRTGPU_ContextType);
+  let results = (outs TFRTGPU_EventType);
 }
 
-def GPU_EventRecordOp : GPU_Op<"event.record"> {
+def TFRTGPU_EventRecordOp : TFRTGPU_Op<"event.record"> {
   let description = [{
     tfrt_gpu.event.record records a gpu event on the given stream.
 
@@ -139,11 +139,11 @@ def GPU_EventRecordOp : GPU_Op<"event.record"> {
       %ch1 = tfrt.new.chain
       %ch2 = tfrt_gpu.event.record %event, %stream, %ch1
   }];
-  let arguments = (ins GPU_EventType, GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_EventType, TFRTGPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_EventSynchronizeOp : GPU_Op<"event.synchronize"> {
+def TFRTGPU_EventSynchronizeOp : TFRTGPU_Op<"event.synchronize"> {
   let description = [{
     tfrt_gpu.event.synchronize waits for the completion of work captured by the
     event.
@@ -154,22 +154,22 @@ def GPU_EventSynchronizeOp : GPU_Op<"event.synchronize"> {
       %ch1 = tfrt.new.chain
       %ch2 = tfrt_gpu.event.synchronize %event, %ch1
   }];
-  let arguments = (ins GPU_EventType, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_EventType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_AllocatorCreateOp : GPU_Op<"allocator.create", [NoSideEffect]> {
+def TFRTGPU_AllocatorCreateOp : TFRTGPU_Op<"allocator.create", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.allocator.create creates an allocator for the given context.
 
     Example:
       %allocator = tfrt_gpu.allocator.create %context
   }];
-  let arguments = (ins GPU_ContextType);
-  let results = (outs GPU_AllocatorType);
+  let arguments = (ins TFRTGPU_ContextType);
+  let results = (outs TFRTGPU_AllocatorType);
 }
 
-def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
+def TFRTGPU_MemAllocateOp : TFRTGPU_Op<"mem.allocate"> {
   let description = [{
     tfrt_gpu.mem.allocate allocates a buffer of device memory.
 
@@ -204,22 +204,22 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
       %ch0 = tfrt.new.chain
       %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
   }];
-  let arguments = (ins GPU_AllocatorType, GPU_StreamType, I64:$size, TFRT_ChainType);
-  let results = (outs GPU_BufferType);
+  let arguments = (ins TFRTGPU_AllocatorType, TFRTGPU_StreamType, I64:$size, TFRT_ChainType);
+  let results = (outs TFRTGPU_BufferType);
 }
 
-def GPU_MemAllocateHostOp : GPU_Op<"mem.allocate_host"> {
+def TFRTGPU_MemAllocateHostOp : TFRTGPU_Op<"mem.allocate_host"> {
   let description = [{
     tfrt_gpu.mem.allocate_host allocates a buffer of host memory.
 
     Example:
       %buffer = tfrt_gpu.mem.allocate_host %ctx, %size, %ch0
   }];
-  let arguments = (ins GPU_ContextType, I64:$size, TFRT_ChainType);
-  let results = (outs GPU_BufferType);
+  let arguments = (ins TFRTGPU_ContextType, I64:$size, TFRT_ChainType);
+  let results = (outs TFRTGPU_BufferType);
 }
 
-def GPU_MemDeallocateOp : GPU_Op<"mem.deallocate"> {
+def TFRTGPU_MemDeallocateOp : TFRTGPU_Op<"mem.deallocate"> {
   let description = [{
     tfrt_gpu.mem.deallocate frees a buffer of device memory.
 
@@ -229,11 +229,11 @@ def GPU_MemDeallocateOp : GPU_Op<"mem.deallocate"> {
       %ch0 = tfrt.new.chain
       %ch1 = tfrt_gpu.mem.deallocate %buffer, %stream, %ch0
   }];
-  let arguments = (ins GPU_BufferType, GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_BufferType, TFRTGPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
+def TFRTGPU_MemCopyOp : TFRTGPU_Op<"mem.copy"> {
   let description = [{
     tfrt_gpu.mem.copy copies memory between host or device.
 
@@ -245,9 +245,9 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
       %ch1 = tfrt_gpu.mem.copy %dst, %src, %stream, %ch0
                  : !tfrt_gpu.buffer, !tfrt_gpu.buffer
   }];
-  let arguments = (ins AnyTypeOf<[GPU_BufferType, HostBufferType]>:$dst,
-                   AnyTypeOf<[GPU_BufferType, HostBufferType]>:$src,
-                   GPU_StreamType:$stream, TFRT_ChainType:$chain);
+  let arguments = (ins AnyTypeOf<[TFRTGPU_BufferType, HostBufferType]>:$dst,
+                   AnyTypeOf<[TFRTGPU_BufferType, HostBufferType]>:$src,
+                   TFRTGPU_StreamType:$stream, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
 
   let assemblyFormat = [{
@@ -256,7 +256,7 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
 
 }
 
-def GPU_MemSetOp : GPU_Op<"mem.set"> {
+def TFRTGPU_MemSetOp : TFRTGPU_Op<"mem.set"> {
   let description = [{
     tfrt_gpu.mem.set fills dst memory with a scalar value.
 
@@ -265,9 +265,9 @@ def GPU_MemSetOp : GPU_Op<"mem.set"> {
     Example:
       %ch1 = tfrt_gpu.mem.set %dst, %value, %stream, %ch0 : f32
   }];
-  let arguments = (ins GPU_BufferType:$dst,
+  let arguments = (ins TFRTGPU_BufferType:$dst,
                    AnyType:$value,
-                   GPU_StreamType:$stream, TFRT_ChainType:$chain);
+                   TFRTGPU_StreamType:$stream, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
 
   let assemblyFormat = [{
@@ -276,7 +276,7 @@ def GPU_MemSetOp : GPU_Op<"mem.set"> {
 
 }
 
-def GPU_MemRegisterOp : GPU_Op<"mem.register"> {
+def TFRTGPU_MemRegisterOp : TFRTGPU_Op<"mem.register"> {
   let description = [{
     tfrt_gpu.mem.register page-locks a host buffer for device access.
 
@@ -285,13 +285,13 @@ def GPU_MemRegisterOp : GPU_Op<"mem.register"> {
     Example:
       %result = tfrt_gpu.mem.register %ctx, %buffer
   }];
-  let arguments = (ins GPU_ContextType:$ctx, HostBufferType:$buffer);
-  let results = (outs GPU_BufferType);
+  let arguments = (ins TFRTGPU_ContextType:$ctx, HostBufferType:$buffer);
+  let results = (outs TFRTGPU_BufferType);
 
   let assemblyFormat = "$ctx`,` $buffer attr-dict";
 }
 
-def GPU_MemViewOp : GPU_Op<"mem.view", [NoSideEffect]> {
+def TFRTGPU_MemViewOp : TFRTGPU_Op<"mem.view", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.mem.view returns a buffer view of the given byte size and offset.
 
@@ -302,20 +302,20 @@ def GPU_MemViewOp : GPU_Op<"mem.view", [NoSideEffect]> {
       %size   = tfrt.constant.ui64 64
       %result = tfrt_gpu.mem.register %buffer, %offset, %size
   }];
-  let arguments = (ins GPU_BufferType:$buffer, UI64:$offset, UI64:$size);
-  let results = (outs GPU_BufferType);
+  let arguments = (ins TFRTGPU_BufferType:$buffer, UI64:$offset, UI64:$size);
+  let results = (outs TFRTGPU_BufferType);
 
   let assemblyFormat = "$buffer`,` $offset`,` $size attr-dict";
 }
 
-def GPU_MemLoadOp : GPU_Op<"mem.load"> {
+def TFRTGPU_MemLoadOp : TFRTGPU_Op<"mem.load"> {
   let description = [{
     tfrt_gpu.mem.load returns the value stored in a buffer of host memory.
 
     Example:
       %result = tfrt_gpu.mem.load %buffer, %ch : i32
   }];
-  let arguments = (ins GPU_BufferType:$buffer, TFRT_ChainType:$chain, TypeAttr:$type);
+  let arguments = (ins TFRTGPU_BufferType:$buffer, TFRT_ChainType:$chain, TypeAttr:$type);
   let results = (outs AnyTypeOf<[I1, I32]>:$result);
 
   let assemblyFormat = [{
@@ -323,7 +323,7 @@ def GPU_MemLoadOp : GPU_Op<"mem.load"> {
   }];
 }
 
-def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
+def TFRTGPU_MemPrintOp : TFRTGPU_Op<"mem.print_metadata"> {
   let description = [{
     tfrt_gpu.mem.print_metadata prints a gpu buffer metadata
 
@@ -331,11 +331,11 @@ def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
       %ch1 = tfrt.new.chain
       %ch2 = tfrt_gpu.mem.print_metadata %buffer %ch1
   }];
-  let arguments = (ins GPU_BufferType, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_BufferType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-class TensorMakeOp<string dtype> : GPU_Op<"tensor.make." # dtype> {
+class TensorMakeOp<string dtype> : TFRTGPU_Op<"tensor.make." # dtype> {
   let description = [{
     tfrt_gpu.tensor.make makes a tensor from the given buffer
 
@@ -348,16 +348,16 @@ class TensorMakeOp<string dtype> : GPU_Op<"tensor.make." # dtype> {
       %shape = ts.build_shape [2 : i32, 4 : i32]
       %tensor, %ch2 = tfrt_gpu.tensor.make.f32 %buffer %shape %ch1
   }];
-  let arguments = (ins GPU_BufferType, TS_Shape, TFRT_ChainType);
+  let arguments = (ins TFRTGPU_BufferType, TS_Shape, TFRT_ChainType);
   let results = (outs TensorType);
 }
 
 // TODO(csigg): this should just be a type attribute.
 foreach dtype = ["i8", "i32", "i64", "f32", "f64"] in {
-  def GPU_TensorMakeOp_#dtype : TensorMakeOp<dtype>;
+  def TFRTGPU_TensorMakeOp_#dtype : TensorMakeOp<dtype>;
 }
 
-def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
+def TFRTGPU_TensorPrintOp : TFRTGPU_Op<"tensor.print_metadata"> {
   let description = [{
     tfrt_gpu.tensor.print prints a gpu tensor metadata
 
@@ -369,7 +369,7 @@ def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
+def TFRTGPU_ModuleLoadOp : TFRTGPU_Op<"module.load"> {
   let description = [{
     tfrt_gpu.module.load loads GPU device module from a binary blob.
 
@@ -380,33 +380,33 @@ def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
         data = "null-terminated device function blob, e.g. PTX"
       }
   }];
-  let arguments = (ins GPU_ContextType:$ctx, StrAttr:$data);
-  let results = (outs GPU_ModuleType);
+  let arguments = (ins TFRTGPU_ContextType:$ctx, StrAttr:$data);
+  let results = (outs TFRTGPU_ModuleType);
 }
 
-def GPU_ModuleGetGlobalOp : GPU_Op<"module.get_global"> {
+def TFRTGPU_ModuleGetGlobalOp : TFRTGPU_Op<"module.get_global"> {
   let description = [{
     tfrt_gpu.module.get_global retrieves a GPU device global from a module.
 
     Example:
       %global = tfrt_gpu.module.get_global %module { name = "symbol" }
   }];
-  let arguments = (ins GPU_ModuleType:$module, StrAttr:$name);
-  let results = (outs GPU_BufferType);
+  let arguments = (ins TFRTGPU_ModuleType:$module, StrAttr:$name);
+  let results = (outs TFRTGPU_BufferType);
 }
 
-def GPU_ModuleGetFunctionOp : GPU_Op<"module.get_function", [NoSideEffect]> {
+def TFRTGPU_ModuleGetFunctionOp : TFRTGPU_Op<"module.get_function", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.module.get_function retrieves a GPU device function from a module.
 
     Example:
       %function = tfrt_gpu.module.get_function %module { name = "kernel" }
   }];
-  let arguments = (ins GPU_ModuleType:$module, StrAttr:$name);
-  let results = (outs GPU_FunctionType);
+  let arguments = (ins TFRTGPU_ModuleType:$module, StrAttr:$name);
+  let results = (outs TFRTGPU_FunctionType);
 }
 
-def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
+def TFRTGPU_FunctionLaunchOp : TFRTGPU_Op<"function.launch"> {
   let description = [{
     tfrt_gpu.function.launch invokes the provided device function on a stream.
 
@@ -418,8 +418,8 @@ def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
                  args(%arg0, %arg1, ..., %argN) : (<type0>, <type1>, ... <typeN>)
   }];
   let arguments = (ins
-    GPU_StreamType:$stream,
-    GPU_FunctionType:$function,
+    TFRTGPU_StreamType:$stream,
+    TFRTGPU_FunctionType:$function,
     UI32:$grid_dim_x,
     UI32:$grid_dim_y,
     UI32:$grid_dim_z,
@@ -428,7 +428,7 @@ def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
     UI32:$block_dim_z,
     UI32:$shared_memory_size_bytes,
     TFRT_ChainType:$in_chain,
-    Variadic<AnyTypeOf<[GPU_BufferType, AnyFloat, AnyInteger]>>:$args
+    Variadic<AnyTypeOf<[TFRTGPU_BufferType, AnyFloat, AnyInteger]>>:$args
   );
   let results = (outs TFRT_ChainType:$out_chain);
   let assemblyFormat = [{
@@ -440,7 +440,7 @@ def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
   }];
 }
 
-def GPU_AliasOp : GPU_Op<"alias", [
+def TFRTGPU_AliasOp : TFRTGPU_Op<"alias", [
       NoSideEffect,
       TypesMatchWith<"value type matches result type", "res", "value", "$_self">
 ]>{
@@ -461,4 +461,4 @@ def GPU_AliasOp : GPU_Op<"alias", [
 
 }
 
-#endif  // GPU_OPS
+#endif  // TFRTGPU_OPS

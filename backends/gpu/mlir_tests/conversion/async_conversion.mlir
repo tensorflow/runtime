@@ -13,16 +13,16 @@
 // limitations under the License.
 
 // RUN: tfrt_gpu_opt %s \
-// RUN:   -test-gpu-async-conversion \
+// RUN:   -test-streamify-conversion \
 // RUN:   -allow-unregistered-dialect \
 // RUN: | FileCheck %s
 
-// CHECK-LABEL: @test_wrap_async_execute
-func.func @test_wrap_async_execute() {
+// CHECK-LABEL: @test_wrap_streamify
+func.func @test_wrap_streamify() {
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: "tfrt_gpu_conversion.async.execute"() ({
+  // CHECK: "tfrt_gpu.streamify"() ({
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
   // CHECK:   "wrap.op"() : () -> ()
   // CHECK:   "wrap.op"() : () -> ()
@@ -33,7 +33,7 @@ func.func @test_wrap_async_execute() {
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: "tfrt_gpu_conversion.async.execute"() ({
+  // CHECK: "tfrt_gpu.streamify"() ({
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
   // CHECK:   "wrap.op"() : () -> ()
   // CHECK:   "wrap.op"() : () -> ()
@@ -44,7 +44,7 @@ func.func @test_wrap_async_execute() {
 
   // CHECK: tfrt.call @returns_value() : () -> f32
   %0 = tfrt.call @returns_value() : () -> f32
-  // CHECK: "tfrt_gpu_conversion.async.execute"() ({
+  // CHECK: "tfrt_gpu.streamify"() ({
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
   // CHECK:   tfrt.call @takes_argument(%0) : (f32) -> ()
   // CHECK:   tfrt.return %arg0 : !tfrt.chain

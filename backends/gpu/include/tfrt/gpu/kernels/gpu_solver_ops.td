@@ -21,33 +21,33 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef GPU_SOLVER_OPS
+#ifdef TFRTGPU_SOLVER_OPS
 #else
-#define GPU_SOLVER_OPS
+#define TFRTGPU_SOLVER_OPS
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
-def GPU_SolverHandleType : GPU_Type<"SolverHandle"> {
+def TFRTGPU_SolverHandleType : TFRTGPU_Type<"SolverHandle"> {
   let mnemonic = "solver.handle";
 }
 
-def SolverCreateOp : GPU_Op<"solver.create"> {
+def SolverCreateOp : TFRTGPU_Op<"solver.create"> {
   let description = [{
     tfrt_gpu.solver.create creates a handle to the SOLVER library context
 
     This will be explicitly passed to every subsequent SOLVER library call.
   }];
-  let arguments = (ins GPU_ContextType);
-  let results = (outs GPU_SolverHandleType);
+  let arguments = (ins TFRTGPU_ContextType);
+  let results = (outs TFRTGPU_SolverHandleType);
 }
 
-def SolverPotrfBufferSizeOp : GPU_Op<"solver.potrf.buffer_size", [NoSideEffect]> {
+def SolverPotrfBufferSizeOp : TFRTGPU_Op<"solver.potrf.buffer_size", [NoSideEffect]> {
   let description = [{
     Calculates the work buffer size for tfrt_gpu.solver.portf.
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle, GPU_StreamType:$stream,
-                   GPU_BlasFillModeAttr:$fillMode, I32:$n,
-                   GPU_BlasDataTypeAttr:$dataType, I32:$stride,
+  let arguments = (ins TFRTGPU_SolverHandleType:$handle, TFRTGPU_StreamType:$stream,
+                   TFRTGPU_BlasFillModeAttr:$fillMode, I32:$n,
+                   TFRTGPU_BlasDataTypeAttr:$dataType, I32:$stride,
                    TFRT_ChainType:$chain);
   let results = (outs I64:$workspaceSize);
   let assemblyFormat = [{
@@ -56,14 +56,14 @@ def SolverPotrfBufferSizeOp : GPU_Op<"solver.potrf.buffer_size", [NoSideEffect]>
   }];
 }
 
-def SolverPotrfOp : GPU_Op<"solver.potrf"> {
+def SolverPotrfOp : TFRTGPU_Op<"solver.potrf"> {
   let description = [{
     Computes the Cholesky factorization of a Hermitian positive-definite matrix.
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle, GPU_StreamType:$stream,
-                   GPU_BlasFillModeAttr:$fillMode, I32:$n,
-                   GPU_BlasDataTypeAttr:$dataType, GPU_BufferType:$buffer,
-                   I32:$stride, GPU_BufferType:$workspace, GPU_BufferType:$devInfo,
+  let arguments = (ins TFRTGPU_SolverHandleType:$handle, TFRTGPU_StreamType:$stream,
+                   TFRTGPU_BlasFillModeAttr:$fillMode, I32:$n,
+                   TFRTGPU_BlasDataTypeAttr:$dataType, TFRTGPU_BufferType:$buffer,
+                   I32:$stride, TFRTGPU_BufferType:$workspace, TFRTGPU_BufferType:$devInfo,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -72,15 +72,15 @@ def SolverPotrfOp : GPU_Op<"solver.potrf"> {
   }];
 }
 
-def SolverPotrfBatchOp : GPU_Op<"solver.potrf.batch"> {
+def SolverPotrfBatchOp : TFRTGPU_Op<"solver.potrf.batch"> {
   let description = [{
     Computes the Cholesky factorization of a Hermitian positive-definite matrix
     using the specified batch size.
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle, GPU_StreamType:$stream,
-                   GPU_BlasFillModeAttr:$fillMode, I32:$n,
-                   GPU_BlasDataTypeAttr:$dataType, GPU_BufferType:$buffer,
-                   I32:$stride, GPU_BufferType:$devInfo, I32:$batch_size,
+  let arguments = (ins TFRTGPU_SolverHandleType:$handle, TFRTGPU_StreamType:$stream,
+                   TFRTGPU_BlasFillModeAttr:$fillMode, I32:$n,
+                   TFRTGPU_BlasDataTypeAttr:$dataType, TFRTGPU_BufferType:$buffer,
+                   I32:$stride, TFRTGPU_BufferType:$devInfo, I32:$batch_size,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -89,4 +89,4 @@ def SolverPotrfBatchOp : GPU_Op<"solver.potrf.batch"> {
   }];
 }
 
-#endif  // GPU_SOLVER_OPS
+#endif  // TFRTGPU_SOLVER_OPS

@@ -21,47 +21,47 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef GPU_DNN_OPS
+#ifdef TFRTGPU_DNN_OPS
 #else
-#define GPU_DNN_OPS
+#define TFRTGPU_DNN_OPS
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
-def GPU_DnnHandleType : GPU_Type<"DnnHandle"> { let mnemonic = "dnn.handle"; }
-def GPU_DnnConvolutionPlanType : GPU_Type<"DnnConvolutionPlan"> {
+def TFRTGPU_DnnHandleType : TFRTGPU_Type<"DnnHandle"> { let mnemonic = "dnn.handle"; }
+def TFRTGPU_DnnConvolutionPlanType : TFRTGPU_Type<"DnnConvolutionPlan"> {
   let mnemonic = "dnn.convolution.plan";
 }
-def GPU_DnnConvolutionAlgorithmType : GPU_Type<"DnnConvolutionAlgorithmType"> {
+def TFRTGPU_DnnConvolutionAlgorithmType : TFRTGPU_Type<"DnnConvolutionAlgorithmType"> {
   let mnemonic = "dnn.convolution.algorithm";
 }
 
 // TODO(hanbinyoon): Remove these. Move legacy convolution to the
 // BuildConvolution(cached)->RunConvolution style API.
-def GPU_DnnActivationDescriptorType : GPU_Type<"DnnActivationDescriptor"> {
+def TFRTGPU_DnnActivationDescriptorType : TFRTGPU_Type<"DnnActivationDescriptor"> {
   let mnemonic = "dnn.activation.descriptor";
 }
-def GPU_DnnConvolutionDescriptorType : GPU_Type<"DnnConvolutionDescriptor"> {
+def TFRTGPU_DnnConvolutionDescriptorType : TFRTGPU_Type<"DnnConvolutionDescriptor"> {
   let mnemonic = "dnn.convolution.descriptor";
 }
-def GPU_DnnFilterDescriptorType : GPU_Type<"DnnFilterDescriptor"> {
+def TFRTGPU_DnnFilterDescriptorType : TFRTGPU_Type<"DnnFilterDescriptor"> {
   let mnemonic = "dnn.filter.descriptor";
 }
-def GPU_DnnPoolingDescriptorType : GPU_Type<"DnnPoolingDescriptor"> {
+def TFRTGPU_DnnPoolingDescriptorType : TFRTGPU_Type<"DnnPoolingDescriptor"> {
   let mnemonic = "dnn.pooling.descriptor";
 }
-def GPU_DnnTensorDescriptorType : GPU_Type<"DnnTensorDescriptor"> {
+def TFRTGPU_DnnTensorDescriptorType : TFRTGPU_Type<"DnnTensorDescriptor"> {
   let mnemonic = "dnn.tensor.descriptor";
 }
 
-def GPU_DnnDataTypeAttr : GPU_WrapperAttr<"DnnDataType">;
-def GPU_DnnConvolutionModeAttr : GPU_WrapperAttr<"DnnConvolutionMode">;
-def GPU_DnnActivationModeAttr : GPU_WrapperAttr<"DnnActivationMode">;
-def GPU_DnnMathTypeAttr : GPU_WrapperAttr<"DnnMathType">;
-def GPU_DnnConvFwdAlgoAttr : GPU_WrapperAttr<"DnnConvFwdAlgo">;
-def GPU_DnnConvBwdDataAlgoAttr : GPU_WrapperAttr<"DnnConvBwdDataAlgo">;
-def GPU_DnnConvBwdFilterAlgoAttr : GPU_WrapperAttr<"DnnConvBwdFilterAlgo">;
+def TFRTGPU_DnnDataTypeAttr : TFRTGPU_WrapperAttr<"DnnDataType">;
+def TFRTGPU_DnnConvolutionModeAttr : TFRTGPU_WrapperAttr<"DnnConvolutionMode">;
+def TFRTGPU_DnnActivationModeAttr : TFRTGPU_WrapperAttr<"DnnActivationMode">;
+def TFRTGPU_DnnMathTypeAttr : TFRTGPU_WrapperAttr<"DnnMathType">;
+def TFRTGPU_DnnConvFwdAlgoAttr : TFRTGPU_WrapperAttr<"DnnConvFwdAlgo">;
+def TFRTGPU_DnnConvBwdDataAlgoAttr : TFRTGPU_WrapperAttr<"DnnConvBwdDataAlgo">;
+def TFRTGPU_DnnConvBwdFilterAlgoAttr : TFRTGPU_WrapperAttr<"DnnConvBwdFilterAlgo">;
 
-def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
+def TFRTGPU_DnnCreateOp : TFRTGPU_Op<"dnn.create"> {
   let description = [{
     tfrt_gpu.dnn.create initializes the DNN library and creates a handle to an
     opaque structure holding the DNN library context. It allocates hardware
@@ -75,12 +75,12 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
     %dnn = tfrt_gpu.dnn.create %context
 
   }];
-  let arguments = (ins GPU_ContextType);
-  let results = (outs GPU_DnnHandleType);
+  let arguments = (ins TFRTGPU_ContextType);
+  let results = (outs TFRTGPU_DnnHandleType);
 }
 
-def GPU_DnnCreateConvolutionDescriptorOp
-  : GPU_Op<"dnn.create_convolution_descriptor", [NoSideEffect]> {
+def TFRTGPU_DnnCreateConvolutionDescriptorOp
+  : TFRTGPU_Op<"dnn.create_convolution_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_convolution_descriptor creates a convolution descriptor
     object by allocating the memory needed to hold its opaque structure. The
@@ -91,19 +91,19 @@ def GPU_DnnCreateConvolutionDescriptorOp
       CUDNN_CROSS_CORRELATION, CUDNN_TENSOR_OP_MATH, [0 : i32, 0 : i32],
       [1 : i32, 1 : i32], [1 : i32, 1 : i32]
   }];
-  let arguments = (ins GPU_DnnDataTypeAttr:$compute_type,
-                   GPU_DnnConvolutionModeAttr:$conv_mode,
-                   GPU_DnnMathTypeAttr:$math_type, I32ArrayAttr:$pad,
+  let arguments = (ins TFRTGPU_DnnDataTypeAttr:$compute_type,
+                   TFRTGPU_DnnConvolutionModeAttr:$conv_mode,
+                   TFRTGPU_DnnMathTypeAttr:$math_type, I32ArrayAttr:$pad,
                    I32ArrayAttr:$filter_stride, I32ArrayAttr:$dilation);
-  let results = (outs GPU_DnnConvolutionDescriptorType);
+  let results = (outs TFRTGPU_DnnConvolutionDescriptorType);
   let assemblyFormat = [{
     custom<Enum>($compute_type)`,` custom<Enum>($conv_mode)`,`
     custom<Enum>($math_type)`,` $pad`,` $filter_stride`,` $dilation attr-dict
   }];
 }
 
-def GPU_DnnCreateFilterDescriptorOp
-  : GPU_Op<"dnn.create_filter_descriptor", [NoSideEffect]> {
+def TFRTGPU_DnnCreateFilterDescriptorOp
+  : TFRTGPU_Op<"dnn.create_filter_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_filter_descriptor creates a filter descriptor object by
     allocating the memory needed to hold its opaque structure. The data is
@@ -113,17 +113,17 @@ def GPU_DnnCreateFilterDescriptorOp
     %desc = tfrt_gpu.dnn.create_filter_descriptor CUDNN_DATA_FLOAT,
       [3 : i32, 3 : i32]
   }];
-  let arguments = (ins GPU_DnnDataTypeAttr:$data_type,
+  let arguments = (ins TFRTGPU_DnnDataTypeAttr:$data_type,
                    I32Attr:$tensor_format,
                    I32ArrayAttr:$dimensions);
-  let results = (outs GPU_DnnFilterDescriptorType);
+  let results = (outs TFRTGPU_DnnFilterDescriptorType);
   let assemblyFormat = [{
     custom<Enum>($data_type)`,` $tensor_format`,` $dimensions attr-dict
   }];
 }
 
-def GPU_DnnCreatePoolingDescriptorOp
-  : GPU_Op<"dnn.create_pooling_descriptor", [NoSideEffect]> {
+def TFRTGPU_DnnCreatePoolingDescriptorOp
+  : TFRTGPU_Op<"dnn.create_pooling_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_pooling_descriptor creates a pooling descriptor object
     by allocating the memory needed to hold its opaque structure then it
@@ -148,18 +148,18 @@ def GPU_DnnCreatePoolingDescriptorOp
       %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
       [1 : i32, 1 : i32]
   }];
-  let arguments = (ins GPU_ContextType:$context, UI32:$mode,
+  let arguments = (ins TFRTGPU_ContextType:$context, UI32:$mode,
                    UI32:$nan_propagation, I32ArrayAttr:$window_dimensions,
                    I32ArrayAttr:$paddings, I32ArrayAttr:$strides);
-  let results = (outs GPU_DnnPoolingDescriptorType);
+  let results = (outs TFRTGPU_DnnPoolingDescriptorType);
   let assemblyFormat = [{
     $context`,` $mode`,` $nan_propagation`,` $window_dimensions`,` $paddings`,`
     $strides attr-dict
   }];
 }
 
-def GPU_DnnCreateTensorDescriptorOp
-  : GPU_Op<"dnn.create_tensor_descriptor", [NoSideEffect]> {
+def TFRTGPU_DnnCreateTensorDescriptorOp
+  : TFRTGPU_Op<"dnn.create_tensor_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_tensor_descriptor creates a generic tensor
     descriptor object by allocating the memory needed to hold its opaque
@@ -169,49 +169,49 @@ def GPU_DnnCreateTensorDescriptorOp
     %desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
       [3 : i32, 3 : i32], [1 : i32, 1 : i32]
   }];
-  let arguments = (ins GPU_DnnDataTypeAttr:$data_type, I32ArrayAttr:$dimensions,
+  let arguments = (ins TFRTGPU_DnnDataTypeAttr:$data_type, I32ArrayAttr:$dimensions,
                    I32ArrayAttr:$strides);
-  let results = (outs GPU_DnnTensorDescriptorType);
+  let results = (outs TFRTGPU_DnnTensorDescriptorType);
   let assemblyFormat = [{
     custom<Enum>($data_type)`,` $dimensions`,` $strides attr-dict
   }];
 }
 
-def GPU_DnnCreateActivationDescriptorOp
-  : GPU_Op<"dnn.create_activation_descriptor", [NoSideEffect]> {
+def TFRTGPU_DnnCreateActivationDescriptorOp
+  : TFRTGPU_Op<"dnn.create_activation_descriptor", [NoSideEffect]> {
   let description = [{
     tfrt_gpu.dnn.create_activation_descriptor creates an activation descriptor
     object by allocating the memory needed to hold its opaque structure. The
     data is initialized to provided values.
   }];
-  let arguments = (ins F64:$coefficient, GPU_DnnActivationModeAttr:$mode,
+  let arguments = (ins F64:$coefficient, TFRTGPU_DnnActivationModeAttr:$mode,
                    BoolAttr:$nan_progapation);
-  let results = (outs GPU_DnnActivationDescriptorType);
+  let results = (outs TFRTGPU_DnnActivationDescriptorType);
   let assemblyFormat = [{
     $coefficient`,` custom<Enum>($mode)`,` $nan_progapation attr-dict
   }];
 }
 
-def GPU_DnnConvolutionForwardAlgorithmOp
-  : GPU_Op<"dnn.convolution_forward_algorithm", [NoSideEffect]> {
-  let arguments = (ins GPU_DnnConvFwdAlgoAttr:$algo);
-  let results = (outs GPU_DnnConvolutionAlgorithmType);
+def TFRTGPU_DnnConvolutionForwardAlgorithmOp
+  : TFRTGPU_Op<"dnn.convolution_forward_algorithm", [NoSideEffect]> {
+  let arguments = (ins TFRTGPU_DnnConvFwdAlgoAttr:$algo);
+  let results = (outs TFRTGPU_DnnConvolutionAlgorithmType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
-def GPU_DnnConvolutionBackwardDataAlgorithmOp
-  : GPU_Op<"dnn.convolution_backward_data_algorithm", [NoSideEffect]> {
-  let arguments = (ins GPU_DnnConvBwdDataAlgoAttr:$algo);
-  let results = (outs GPU_DnnConvolutionAlgorithmType);
+def TFRTGPU_DnnConvolutionBackwardDataAlgorithmOp
+  : TFRTGPU_Op<"dnn.convolution_backward_data_algorithm", [NoSideEffect]> {
+  let arguments = (ins TFRTGPU_DnnConvBwdDataAlgoAttr:$algo);
+  let results = (outs TFRTGPU_DnnConvolutionAlgorithmType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
-def GPU_DnnConvolutionBackwardFilterAlgorithmOp
-  : GPU_Op<"dnn.convolution_backward_filter_algorithm", [NoSideEffect]> {
-  let arguments = (ins GPU_DnnConvBwdFilterAlgoAttr:$algo);
-  let results = (outs GPU_DnnConvolutionAlgorithmType);
+def TFRTGPU_DnnConvolutionBackwardFilterAlgorithmOp
+  : TFRTGPU_Op<"dnn.convolution_backward_filter_algorithm", [NoSideEffect]> {
+  let arguments = (ins TFRTGPU_DnnConvBwdFilterAlgoAttr:$algo);
+  let results = (outs TFRTGPU_DnnConvolutionAlgorithmType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
 
-def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
+def TFRTGPU_DnnPoolingForwardOp : TFRTGPU_Op<"dnn.pooling_forward"> {
   let description = [{
     tfrt_gpu.dnn.pooling_forward computes pooling of input values (meaning,
     the maximum or average of several adjacent values) to produce an
@@ -222,21 +222,21 @@ def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
 
 }];
   let arguments = (ins
-                   GPU_DnnHandleType,
-                   GPU_StreamType,
-                   GPU_DnnPoolingDescriptorType,
+                   TFRTGPU_DnnHandleType,
+                   TFRTGPU_StreamType,
+                   TFRTGPU_DnnPoolingDescriptorType,
                    F32,
-                   GPU_DnnTensorDescriptorType,
-                   GPU_BufferType,
+                   TFRTGPU_DnnTensorDescriptorType,
+                   TFRTGPU_BufferType,
                    F32,
-                   GPU_DnnTensorDescriptorType,
-                   GPU_BufferType,
+                   TFRTGPU_DnnTensorDescriptorType,
+                   TFRTGPU_BufferType,
                    TFRT_ChainType
                   );
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
+def TFRTGPU_DnnPoolingBackwardOp : TFRTGPU_Op<"dnn.pooling_backward"> {
   let description = [{
     tfrt_gpu.dnn.pooling_backward computes the gradient of a pooling operation.
 
@@ -244,42 +244,42 @@ def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
     %ch42 = tfrt_gpu.dnn.pooling_backward %context, %cudnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
   }];
-  let arguments = (ins GPU_DnnHandleType,
-                   GPU_StreamType,
-                   GPU_DnnPoolingDescriptorType,
+  let arguments = (ins TFRTGPU_DnnHandleType,
+                   TFRTGPU_StreamType,
+                   TFRTGPU_DnnPoolingDescriptorType,
                    F32,
-                   GPU_DnnTensorDescriptorType,
-                   GPU_BufferType,
-                   GPU_DnnTensorDescriptorType,
-                   GPU_BufferType,
-                   GPU_DnnTensorDescriptorType,
-                   GPU_BufferType,
+                   TFRTGPU_DnnTensorDescriptorType,
+                   TFRTGPU_BufferType,
+                   TFRTGPU_DnnTensorDescriptorType,
+                   TFRTGPU_BufferType,
+                   TFRTGPU_DnnTensorDescriptorType,
+                   TFRTGPU_BufferType,
                    F32,
-                   GPU_DnnTensorDescriptorType,
-                   GPU_BufferType,
+                   TFRTGPU_DnnTensorDescriptorType,
+                   TFRTGPU_BufferType,
                    TFRT_ChainType
                   );
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
+def TFRTGPU_DnnConvolutionForwardOp : TFRTGPU_Op<"dnn.convolution_forward"> {
   let description = [{
     tfrt_gpu.dnn.convolution_forward executes convolutions or
                                       cross-correlations over x using filters
                                       specified with w, returning results in y.
   }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$scale_type,
-                   GPU_DnnTensorDescriptorType:$x_desc,
-                   GPU_BufferType:$x,
-                   GPU_DnnFilterDescriptorType:$w_desc,
-                   GPU_BufferType:$w,
-                   GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   GPU_DnnConvolutionAlgorithmType:$algo,
-                   GPU_BufferType:$work_space,
-                   GPU_DnnTensorDescriptorType:$y_desc,
-                   GPU_BufferType:$y,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_StreamType:$stream,
+                   TFRTGPU_DnnDataTypeAttr:$scale_type,
+                   TFRTGPU_DnnTensorDescriptorType:$x_desc,
+                   TFRTGPU_BufferType:$x,
+                   TFRTGPU_DnnFilterDescriptorType:$w_desc,
+                   TFRTGPU_BufferType:$w,
+                   TFRTGPU_DnnConvolutionDescriptorType:$conv_desc,
+                   TFRTGPU_DnnConvolutionAlgorithmType:$algo,
+                   TFRTGPU_BufferType:$work_space,
+                   TFRTGPU_DnnTensorDescriptorType:$y_desc,
+                   TFRTGPU_BufferType:$y,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -289,7 +289,7 @@ def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
   }];
 }
 
-def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
+def TFRTGPU_DnnConvolutionBackwardDataOp : TFRTGPU_Op<"dnn.convolution_backward_data"> {
   let description = [{
     tfrt_gpu.dnn.convolution_backward_data computes the convolution data
                                             gradient of the tensor dy, where y
@@ -300,18 +300,18 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
                                             returns the results in the output
                                             tensor dx.
 }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$scale_type,
-                   GPU_DnnFilterDescriptorType:$w_desc,
-                   GPU_BufferType:$w,
-                   GPU_DnnTensorDescriptorType:$dy_desc,
-                   GPU_BufferType:$dy,
-                   GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   GPU_DnnConvolutionAlgorithmType:$algo,
-                   GPU_BufferType:$work_space,
-                   GPU_DnnTensorDescriptorType:$dx_desc,
-                   GPU_BufferType:$dx,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_StreamType:$stream,
+                   TFRTGPU_DnnDataTypeAttr:$scale_type,
+                   TFRTGPU_DnnFilterDescriptorType:$w_desc,
+                   TFRTGPU_BufferType:$w,
+                   TFRTGPU_DnnTensorDescriptorType:$dy_desc,
+                   TFRTGPU_BufferType:$dy,
+                   TFRTGPU_DnnConvolutionDescriptorType:$conv_desc,
+                   TFRTGPU_DnnConvolutionAlgorithmType:$algo,
+                   TFRTGPU_BufferType:$work_space,
+                   TFRTGPU_DnnTensorDescriptorType:$dx_desc,
+                   TFRTGPU_BufferType:$dx,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -321,7 +321,7 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
   }];
 }
 
-def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter"> {
+def TFRTGPU_DnnConvolutionBackwardFilterOp : TFRTGPU_Op<"dnn.convolution_backward_filter"> {
   let description = [{
     tfrt_gpu.dnn.convolution_backward_filter computes the convolution weight
                                               (filter) gradient of the tensor
@@ -332,18 +332,18 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
                                               returns the results in the output
                                               tensor dw.
 }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$scale_type,
-                   GPU_DnnTensorDescriptorType:$x_desc,
-                   GPU_BufferType:$x,
-                   GPU_DnnTensorDescriptorType:$dy_desc,
-                   GPU_BufferType:$dy,
-                   GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   GPU_DnnConvolutionAlgorithmType:$algo,
-                   GPU_BufferType:$work_space,
-                   GPU_DnnFilterDescriptorType:$dw_desc,
-                   GPU_BufferType:$dw,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_StreamType:$stream,
+                   TFRTGPU_DnnDataTypeAttr:$scale_type,
+                   TFRTGPU_DnnTensorDescriptorType:$x_desc,
+                   TFRTGPU_BufferType:$x,
+                   TFRTGPU_DnnTensorDescriptorType:$dy_desc,
+                   TFRTGPU_BufferType:$dy,
+                   TFRTGPU_DnnConvolutionDescriptorType:$conv_desc,
+                   TFRTGPU_DnnConvolutionAlgorithmType:$algo,
+                   TFRTGPU_BufferType:$work_space,
+                   TFRTGPU_DnnFilterDescriptorType:$dw_desc,
+                   TFRTGPU_BufferType:$dw,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -353,8 +353,8 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
   }];
 }
 
-def GPU_DnnConvolutionBiasActivationForwardOp :
-             GPU_Op<"dnn.convolution_bias_activation_forward"> {
+def TFRTGPU_DnnConvolutionBiasActivationForwardOp :
+             TFRTGPU_Op<"dnn.convolution_bias_activation_forward"> {
   let description = [{
     tfrt_gpu.dnn.convolution_bias_activation_forward applies a bias and then
                         an activation to the convolutions or cross-correlations
@@ -362,25 +362,25 @@ def GPU_DnnConvolutionBiasActivationForwardOp :
                         in y. The full computation follows the equation
                         y = act ( alpha1 * conv(x) + alpha2 * z + bias ).
   }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_StreamType:$stream,
-                   GPU_DnnDataTypeAttr:$scale_type,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_StreamType:$stream,
+                   TFRTGPU_DnnDataTypeAttr:$scale_type,
                    AnyType:$alpha1,
-                   GPU_DnnTensorDescriptorType:$x_desc,
-                   GPU_BufferType:$x,
-                   GPU_DnnFilterDescriptorType:$w_desc,
-                   GPU_BufferType:$w,
-                   GPU_DnnConvolutionDescriptorType:$conv_desc,
-                   GPU_DnnConvolutionAlgorithmType:$algo,
-                   GPU_BufferType:$work_space,
+                   TFRTGPU_DnnTensorDescriptorType:$x_desc,
+                   TFRTGPU_BufferType:$x,
+                   TFRTGPU_DnnFilterDescriptorType:$w_desc,
+                   TFRTGPU_BufferType:$w,
+                   TFRTGPU_DnnConvolutionDescriptorType:$conv_desc,
+                   TFRTGPU_DnnConvolutionAlgorithmType:$algo,
+                   TFRTGPU_BufferType:$work_space,
                    AnyType:$alpha2,
-                   GPU_DnnTensorDescriptorType:$z_desc,
-                   GPU_BufferType:$z,
-                   GPU_DnnTensorDescriptorType:$bias_desc,
-                   GPU_BufferType:$bias,
-                   GPU_DnnActivationDescriptorType:$activation_desc,
-                   GPU_DnnTensorDescriptorType:$y_desc,
-                   GPU_BufferType:$y,
+                   TFRTGPU_DnnTensorDescriptorType:$z_desc,
+                   TFRTGPU_BufferType:$z,
+                   TFRTGPU_DnnTensorDescriptorType:$bias_desc,
+                   TFRTGPU_BufferType:$bias,
+                   TFRTGPU_DnnActivationDescriptorType:$activation_desc,
+                   TFRTGPU_DnnTensorDescriptorType:$y_desc,
+                   TFRTGPU_BufferType:$y,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -391,19 +391,19 @@ def GPU_DnnConvolutionBiasActivationForwardOp :
   }];
 }
 
-def GPU_DnnBuildConvolutionOp : GPU_Op<"dnn.build_convolution"> {
+def TFRTGPU_DnnBuildConvolutionOp : TFRTGPU_Op<"dnn.build_convolution"> {
   let description = [{
     tfrt_gpu.dnn.build_convolution returns a tfrt_gpu.dnn.convolution_plan for
     the convolution that is described by the supplied input, output, filter, and
     convolution configuration parameters.
   }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_DnnDataTypeAttr:$input_type,
-                   GPU_DnnDataTypeAttr:$output_type,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_DnnDataTypeAttr:$input_type,
+                   TFRTGPU_DnnDataTypeAttr:$output_type,
                    I64ArrayAttr:$input_dims, I64ArrayAttr:$input_strides,
                    I64ArrayAttr:$output_dims, I64ArrayAttr:$output_strides,
                    I64ArrayAttr:$filter_dims, I64ArrayAttr:$filter_strides,
-                   GPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
+                   TFRTGPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
                    I64ArrayAttr:$conv_dilations, I64ArrayAttr:$conv_padding,
                    I64ArrayAttr:$conv_strides,
                    // TODO(hanbinyoon): Add custom parsing/printing for these
@@ -411,7 +411,7 @@ def GPU_DnnBuildConvolutionOp : GPU_Op<"dnn.build_convolution"> {
                    I32Attr:$backend_type, I32Attr:$engine_id,
                    I64ArrayAttr:$tuning_knob_ids,
                    I64ArrayAttr:$tuning_knob_values);
-  let results = (outs GPU_DnnConvolutionPlanType);
+  let results = (outs TFRTGPU_DnnConvolutionPlanType);
   let assemblyFormat = [{
     $handle`,` custom<Enum>($input_type)`,` custom<Enum>($output_type)`,`
     $input_dims`,` $input_strides`,` $output_dims`,` $output_strides`,`
@@ -421,16 +421,16 @@ def GPU_DnnBuildConvolutionOp : GPU_Op<"dnn.build_convolution"> {
   }];
 }
 
-def GPU_DnnRunConvolutionOp : GPU_Op<"dnn.run_convolution"> {
+def TFRTGPU_DnnRunConvolutionOp : TFRTGPU_Op<"dnn.run_convolution"> {
   let description = [{
     tfrt_gpu.dnn.run_convolution runs the convolution according to the supplied
     convolution plan using the input, output, filter, and workspace buffers.
   }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_StreamType:$stream,
-                   GPU_DnnConvolutionPlanType:$convolution_plan,
-                   GPU_BufferType:$input, GPU_BufferType:$output,
-                   GPU_BufferType:$filter, GPU_BufferType:$workspace,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_StreamType:$stream,
+                   TFRTGPU_DnnConvolutionPlanType:$convolution_plan,
+                   TFRTGPU_BufferType:$input, TFRTGPU_BufferType:$output,
+                   TFRTGPU_BufferType:$filter, TFRTGPU_BufferType:$workspace,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -439,22 +439,22 @@ def GPU_DnnRunConvolutionOp : GPU_Op<"dnn.run_convolution"> {
   }];
 }
 
-def GPU_DnnBuildFusedConvolutionOp : GPU_Op<"dnn.build_fused_convolution"> {
+def TFRTGPU_DnnBuildFusedConvolutionOp : TFRTGPU_Op<"dnn.build_fused_convolution"> {
   let description = [{
     tfrt_gpu.dnn.build_fused_convolution returns a tfrt_gpu.dnn.convolution_plan
     for the convolution that is described by the supplied input, output, filter,
     and convolution configuration parameters. Additionally, bias, side input
     (scaling), and activation are fused into the convolution plan.
   }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_DnnDataTypeAttr:$input_type,
-                   GPU_DnnDataTypeAttr:$output_type,
-                   GPU_DnnDataTypeAttr:$bias_type,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_DnnDataTypeAttr:$input_type,
+                   TFRTGPU_DnnDataTypeAttr:$output_type,
+                   TFRTGPU_DnnDataTypeAttr:$bias_type,
                    I64ArrayAttr:$input_dims, I64ArrayAttr:$input_strides,
                    I64ArrayAttr:$output_dims, I64ArrayAttr:$output_strides,
                    I64ArrayAttr:$filter_dims, I64ArrayAttr:$filter_strides,
                    I64ArrayAttr:$bias_dims, I64ArrayAttr:$bias_strides,
-                   GPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
+                   TFRTGPU_DnnConvolutionModeAttr:$conv_mode, I32Attr:$conv_dim,
                    I64ArrayAttr:$conv_dilations, I64ArrayAttr:$conv_padding,
                    I64ArrayAttr:$conv_strides,
                    // TODO(hanbinyoon): Add custom parsing/printing for these
@@ -463,7 +463,7 @@ def GPU_DnnBuildFusedConvolutionOp : GPU_Op<"dnn.build_fused_convolution"> {
                    I32Attr:$activation_mode, I32Attr:$engine_id,
                    I64ArrayAttr:$tuning_knob_ids,
                    I64ArrayAttr:$tuning_knob_values);
-  let results = (outs GPU_DnnConvolutionPlanType);
+  let results = (outs TFRTGPU_DnnConvolutionPlanType);
   let assemblyFormat = [{
     $handle`,` custom<Enum>($input_type)`,` custom<Enum>($output_type)`,`
     custom<Enum>($bias_type)`,` $input_dims`,` $input_strides`,` $output_dims`,`
@@ -475,18 +475,18 @@ def GPU_DnnBuildFusedConvolutionOp : GPU_Op<"dnn.build_fused_convolution"> {
   }];
 }
 
-def GPU_DnnRunFusedConvolutionOp : GPU_Op<"dnn.run_fused_convolution"> {
+def TFRTGPU_DnnRunFusedConvolutionOp : TFRTGPU_Op<"dnn.run_fused_convolution"> {
   let description = [{
     tfrt_gpu.dnn.run_fused_convolution runs the fused convolution according to
     the supplied convolution plan using the input, output, filter, side_input,
     bias, and workspace buffers.
   }];
-  let arguments = (ins GPU_DnnHandleType:$handle,
-                   GPU_StreamType:$stream,
-                   GPU_DnnConvolutionPlanType:$convolution_plan,
-                   GPU_BufferType:$input, GPU_BufferType:$output,
-                   GPU_BufferType:$filter, GPU_BufferType:$side_input,
-                   GPU_BufferType:$bias, GPU_BufferType:$workspace,
+  let arguments = (ins TFRTGPU_DnnHandleType:$handle,
+                   TFRTGPU_StreamType:$stream,
+                   TFRTGPU_DnnConvolutionPlanType:$convolution_plan,
+                   TFRTGPU_BufferType:$input, TFRTGPU_BufferType:$output,
+                   TFRTGPU_BufferType:$filter, TFRTGPU_BufferType:$side_input,
+                   TFRTGPU_BufferType:$bias, TFRTGPU_BufferType:$workspace,
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
@@ -495,4 +495,4 @@ def GPU_DnnRunFusedConvolutionOp : GPU_Op<"dnn.run_fused_convolution"> {
   }];
 }
 
-#endif  // GPU_DNN_OPS
+#endif  // TFRTGPU_DNN_OPS

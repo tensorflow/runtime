@@ -159,11 +159,11 @@ module @gpu_container_module attributes {gpu.container_module} {
   }
 }
 
-// CHECK-LABEL: @unwrap_async
-func.func @unwrap_async(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
+// CHECK-LABEL: @inline_streamify
+func.func @inline_streamify(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
   %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
       : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
-  %t1 = "tfrt_gpu_conversion.async.execute"(%t0) ({
+  %t1 = "tfrt_gpu.streamify"(%t0) ({
   ^bb0(%ch0: !tfrt.chain, %stream: !tfrt_gpu.stream):
     // CHECK: %[[ch:.*]] = tfrt_gpu.stream.synchronize %arg1, %arg0
     %ch1 = tfrt_gpu.stream.synchronize %stream, %ch0

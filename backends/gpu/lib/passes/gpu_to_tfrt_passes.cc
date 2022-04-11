@@ -121,9 +121,9 @@ struct AddChainAndStreamToFuncPattern : public OpRewritePattern<FuncOp> {
 
 // Adds chain and stream argument to tfrt.call to match the rewritten function.
 struct AddChainAndStreamToCallPattern
-    : tfrt::gpu::GpuAsyncOpConversionPattern<tfrt::compiler::CallOp> {
-  using tfrt::gpu::GpuAsyncOpConversionPattern<
-      tfrt::compiler::CallOp>::GpuAsyncOpConversionPattern;
+    : tfrt::gpu::StreamifyOpConversionPattern<tfrt::compiler::CallOp> {
+  using tfrt::gpu::StreamifyOpConversionPattern<
+      tfrt::compiler::CallOp>::StreamifyOpConversionPattern;
   FailureOr<Value> matchAndRewriteOp(
       tfrt::compiler::CallOp op, OpAdaptor adaptor, Value chain, Value stream,
       ConversionPatternRewriter &rewriter) const override;
@@ -323,14 +323,14 @@ struct FoldConstCastPattern : OpConversionPattern<CastOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Moves the body of a tfrt_gpu_conversion.async.execute op into the parent
+// Moves the body of a tfrt_gpu.streamify op into the parent
 // block and removes the op.
 //
 //     %t0 = unrealized_conversion_cast %ch0, %stream : !gpu.async.token
-//     %t1 = tfrt_gpu_conversion.async.execute [%t0] {
-//       ^bb(%0 : !tfrt.chain, %1 : !tfrt_gpu.stream)
-//       ... ops using %0 and %1 ...
-//       tfrt.return %n : !tfrt.chain
+//     %t1 = tfrt_gpu.streamify async [%t0] {
+//       ^bb(%ch0 : !tfrt.chain, %stream : !tfrt_gpu.stream)
+//       ... ops using %ch0 and %stream ...
+//       tfrt.return %chN : !tfrt.chain
 //     }
 //
 // will be rewritten to
@@ -339,13 +339,12 @@ struct FoldConstCastPattern : OpConversionPattern<CastOp> {
 //     ... ops using %ch0 and %stream ...
 //     %t1 = unrealized_conversion_cast %n, %stream : !gpu.async.token
 //
-struct InlineConversionAsyncExecPattern
-    : public OpConversionPattern<conversion::AsyncExecuteOp> {
+struct InlineStreamifyOpPattern : public OpConversionPattern<StreamifyOp> {
   using OpConversionPattern::OpConversionPattern;
 
  private:
   LogicalResult matchAndRewrite(
-      conversion::AsyncExecuteOp exec_op, OpAdaptor adaptor,
+      StreamifyOp streamify_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -1189,21 +1188,23 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
   return rewriter.notifyMatchFailure(cast_op, "Unsupported type");
 }
 
-LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
-    conversion::AsyncExecuteOp exec_op, OpAdaptor adaptor,
+LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
+    StreamifyOp streamify_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.asyncDependencies().empty() || !exec_op.getAsyncToken())
-    return rewriter.notifyMatchFailure(exec_op, "no async deps or no result");
+  if (adaptor.asyncDependencies().empty() || !streamify_op.getAsyncToken())
+    return rewriter.notifyMatchFailure(streamify_op,
+                                       "no async deps or no result");
   auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
-    return rewriter.notifyMatchFailure(exec_op, "operand not def by cast");
+    return rewriter.notifyMatchFailure(streamify_op, "operand not def by cast");
 
-  // Merge !tfrt_gpu_conversion.async.execute body into parent block.
-  Operation *terminator = exec_op.getBody()->getTerminator();
-  rewriter.mergeBlockBefore(exec_op.getBody(), exec_op, cast_op.getOperands());
+  // Merge !tfrt_gpu.streamify body into parent block.
+  Operation *terminator = streamify_op.getBody()->getTerminator();
+  rewriter.mergeBlockBefore(streamify_op.getBody(), streamify_op,
+                            cast_op.getOperands());
   auto chain_and_stream = {terminator->getOperand(0), cast_op.getOperand(1)};
-  auto token = CastToToken(rewriter, exec_op->getLoc(), chain_and_stream);
-  rewriter.replaceOp(exec_op, token);
+  auto token = CastToToken(rewriter, streamify_op->getLoc(), chain_and_stream);
+  rewriter.replaceOp(streamify_op, token);
   rewriter.eraseOp(terminator);
   return success();
 }
@@ -1505,12 +1506,11 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
   patterns.add<ConvertAllocPattern, ConvertDeallocPattern, ConvertMemsetPattern,
                ConvertMemcpyPattern, ConvertMemrefGlobalPattern,
                ConvertLaunchFuncPattern>(converter, &getContext());
-  patterns.add<ConvertGetGlobalPattern, InlineConversionAsyncExecPattern,
+  patterns.add<ConvertGetGlobalPattern, InlineStreamifyOpPattern,
                ConvertGpuWaitToChainAndStreamPattern>(&getContext());
   ConversionTarget target(getContext());
   target.addIllegalDialect<mlir::gpu::GPUDialect>();
-  target.addIllegalOp<conversion::AsyncExecuteOp, memref::GetGlobalOp,
-                      memref::GlobalOp>();
+  target.addIllegalOp<StreamifyOp, memref::GetGlobalOp, memref::GlobalOp>();
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
   if (failed(applyPartialConversion(getOperation(), target,

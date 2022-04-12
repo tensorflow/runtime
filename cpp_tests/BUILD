@@ -567,8 +567,10 @@ tfrt_cc_test(
     srcs = ["utils/kernel_runner_test.cc"],
     deps = [
         "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
         "@tf_runtime//:kernel_runner",
         "@tf_runtime//:test_kernels_alwayslink",
+        "@tf_runtime//cpp_tests:common",
     ],
 )
 

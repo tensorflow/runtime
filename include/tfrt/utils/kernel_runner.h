@@ -27,8 +27,10 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/execution_context.h"
+#include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/resource_context.h"
+#include "tfrt/host_context/value.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -52,7 +54,9 @@ namespace tfrt {
  *              .RunAndGetResult<std::string>();
  *
  * EXPECT_EQ(str, "hello");
+ *
  * ```
+ * KernelRunner can also be used to run synchronous TFRT kernels.
  */
 
 class KernelRunner {
@@ -68,7 +72,8 @@ class KernelRunner {
 
   template <typename T>
   T& GetArgAt(int index) {
-    return arguments_[index]->get<T>();
+    return is_sync_kernel() ? sync_arguments_[index].get<T>()
+                            : arguments_[index]->get<T>();
   }
 
   template <typename T>
@@ -94,7 +99,8 @@ class KernelRunner {
 
   template <typename T>
   const T& GetResultAt(int index) {
-    return results_[index]->get<T>();
+    return is_sync_kernel() ? sync_results_[index].get<T>()
+                            : results_[index]->get<T>();
   }
 
   template <typename T, typename... Args>
@@ -115,9 +121,13 @@ class KernelRunner {
  private:
   template <typename T>
   void AddArg(T&& t) {
-    arguments_.emplace_back(
-        MakeAvailableAsyncValueRef<std::decay_t<T>>(std::forward<T>(t))
-            .ReleaseRCRef());
+    if (is_sync_kernel()) {
+      sync_arguments_.emplace_back(std::forward<T>(t));
+    } else {
+      arguments_.emplace_back(
+          MakeAvailableAsyncValueRef<std::decay_t<T>>(std::forward<T>(t))
+              .ReleaseRCRef());
+    }
   }
 
   void SetArgsHelper() {}
@@ -128,15 +138,29 @@ class KernelRunner {
     SetArgsHelper(std::forward<Args>(args)...);
   }
 
+  // Runs async kernel.
+  void RunAsyncInternal(size_t num_results);
+
+  // Runs sync kernel.
+  void RunSyncInternal(size_t num_results);
+
+  // Returns true if the kernel held by this runner is a sync kernel.
+  bool is_sync_kernel() const {
+    return kernel_fn_.is<SyncKernelImplementation>();
+  }
+
   std::unique_ptr<HostContext> default_host_context_;
   HostContext* host_;
-  AsyncKernelImplementation kernel_fn_;
+  KernelImplementation kernel_fn_;
 
   BefAttrEncoder bef_attr_encoder_;
   std::vector<uint32_t> attr_offsets_;
 
   llvm::SmallVector<RCReference<AsyncValue>, 8> arguments_;
   llvm::SmallVector<RCReference<AsyncValue>, 8> results_;
+
+  llvm::SmallVector<Value, 8> sync_arguments_;
+  llvm::SmallVector<Value, 8> sync_results_;
 
   ResourceContext resource_ctx_;
   RequestContextBuilder req_ctx_builder_;

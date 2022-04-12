@@ -16,6 +16,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 
 namespace tfrt {
 namespace {
@@ -25,6 +27,10 @@ TEST(KernelRunnerTest, Basic) {
       KernelRunner("tfrt_test.sum").SetArgs(1, 2, 3).RunAndGetResult<int>();
 
   EXPECT_EQ(sum, 6);
+}
+
+int sum(int a, int b, Attribute<int> constant) {
+  return a + b + constant.get();
 }
 
 TEST(KernelRunnerTest, ArrayAttribute) {
@@ -92,6 +98,16 @@ TEST(KernelRunnerTest, RequestContext) {
   auto value = runner.RunAndGetResult<int>();
 
   EXPECT_EQ(value, 3);
+}
+
+TEST(KernelRunnerTest, BefInterpreterTest) {
+  auto host_ctx = CreateHostContext();
+  host_ctx->GetMutableRegistry()->AddSyncKernel("kernel_runner_test.sum",
+                                                TFRT_SYNC_KERNEL(sum));
+  KernelRunner kernel_runner("kernel_runner_test.sum", host_ctx.get());
+  kernel_runner.SetArgs(1, 2).AddAttribute(1);
+
+  EXPECT_EQ(kernel_runner.RunAndGetResult<int>(), 4);
 }
 
 }  // namespace

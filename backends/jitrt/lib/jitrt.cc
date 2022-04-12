@@ -790,9 +790,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   llvm::SmallVector<llvm::StringRef, 4> libs;
 
   // Additional LLVM passes to run.
-  llvm::SmallVector<const llvm::PassInfo*, 4> passes;
-  auto transformer = mlir::makeLLVMPassesTransformer(passes, /*mbOptLevel=*/2,
-                                                     target_machine->get());
+  auto transformer = mlir::makeOptimizingTransformer(
+      /*optLevel=*/2, /*sizeLevel=*/0, target_machine->get());
 
   // Build MLIR execution engine.
   mlir::ExecutionEngineOptions engine_options;

@@ -298,21 +298,98 @@ LogicalResult FftCreateOp::verify() {
   return mlir::success();
 }
 
-void StreamifyOp::build(OpBuilder &builder, OperationState &result) {
-  // Add a region with stream and chain block arguments.
-  auto block = [&] {
-    Region *region = result.addRegion();
-    region->emplaceBlock();
-    return region->begin();
-  }();
-  auto chain = block->addArgument(builder.getType<compiler::ChainType>(),
-                                  result.location);
-  block->addArgument(builder.getType<StreamType>(), result.location);
+void StreamifyOp::build(OpBuilder &builder, OperationState &state,
+                        ValueRange results) {
+  state.addTypes(TypeRange(results));
 
-  // Return chain block argument.
+  // Add a region with stream and chain block arguments.
+  Region *region = state.addRegion();
+  Block &block = region->emplaceBlock();
+  auto chain =
+      block.addArgument(builder.getType<compiler::ChainType>(), state.location);
+  block.addArgument(builder.getType<StreamType>(), state.location);
+
+  // Add return of chain block argument and provided results.
   OpBuilder::InsertionGuard guard(builder);
-  builder.setInsertionPointToStart(&*block);
-  builder.create<compiler::ReturnOp>(result.location, chain);
+  builder.setInsertionPointToEnd(&block);
+  builder.create<compiler::ReturnOp>(state.location, chain)
+      ->insertOperands(1, results);
+}
+
+// Copied from MLIR's GPUDialect.cpp.
+static ParseResult parseAsyncDependencies(
+    OpAsmParser &parser, Type &asyncTokenType,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &asyncDependencies) {
+  auto loc = parser.getCurrentLocation();
+  if (succeeded(parser.parseOptionalKeyword("async"))) {
+    if (parser.getNumResults() == 0)
+      return parser.emitError(loc, "needs to be named when marked 'async'");
+    asyncTokenType = parser.getBuilder().getType<mlir::gpu::AsyncTokenType>();
+  }
+  return parser.parseOperandList(asyncDependencies,
+                                 OpAsmParser::Delimiter::OptionalSquare);
+}
+
+ParseResult StreamifyOp::parse(OpAsmParser &parser, OperationState &result) {
+  Type token_type;
+  SmallVector<OpAsmParser::UnresolvedOperand, 4> async_dependencies;
+  if (parseAsyncDependencies(parser, token_type, async_dependencies))
+    return failure();
+
+  if (parser.parseOptionalAttrDictWithKeyword(result.attributes))
+    return failure();
+
+  auto body = std::make_unique<Region>();
+  if (parser.parseRegion(*body)) return failure();
+  ensureTerminator(*body, parser.getBuilder(), result.location);
+  result.addRegion(std::move(body));
+
+  if (succeeded(parser.parseOptionalColon()) &&
+      parser.parseTypeList(result.types))
+    return failure();
+  if (token_type) result.addTypes(token_type);
+
+  auto context = parser.getBuilder().getContext();
+  return parser.resolveOperands(async_dependencies,
+                                mlir::gpu::AsyncTokenType::get(context),
+                                result.operands);
+}
+
+void StreamifyOp::print(OpAsmPrinter &printer) {
+  if (asyncToken()) printer << " async";
+  if (!asyncDependencies().empty()) {
+    printer << " [";
+    llvm::interleaveComma(asyncDependencies(), printer);
+    printer << "]";
+  }
+
+  printer.printOptionalAttrDictWithKeyword(getOperation()->getAttrs());
+  printer << ' ';
+  printer.printRegion(body());
+
+  if (!results().empty()) printer << " : " << results().getTypes();
+}
+
+Operation::result_range StreamifyOp::results() {
+  auto results = getOperation()->getResults();
+  if (asyncToken()) return results.drop_back();
+  return results;
+}
+
+OpResult StreamifyOp::asyncToken() {
+  if (getOperation()->getNumResults() == 0) return nullptr;
+  OpResult result = getOperation()->getResults().back();
+  if (!result.getType().isa<mlir::gpu::AsyncTokenType>()) return nullptr;
+  return result;
+}
+
+LogicalResult StreamifyOp::verify() {
+  TypeRange return_types = getBody()->getTerminator()->getOperandTypes();
+  if (return_types.empty() || !return_types.front().isa<compiler::ChainType>())
+    return emitOpError("first return operand type is not a !tfrt.chain");
+  if (return_types.drop_front() != TypeRange(results()))
+    return emitOpError("trailing return types don't match result types");
+  return mlir::success();
 }
 
 }  // namespace gpu

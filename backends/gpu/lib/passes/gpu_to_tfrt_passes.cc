@@ -741,9 +741,11 @@ FailureOr<Value> AddChainAndStreamToCallPattern::matchAndRewriteOp(
     ConversionPatternRewriter &rewriter) const {
   llvm::SmallVector<Value, 8> operands = {chain, stream};
   llvm::copy(adaptor.getOperands(), std::back_inserter(operands));
+  llvm::SmallVector<Type, 4> result_types = {chain.getType()};
+  llvm::copy(op.getResultTypes(), std::back_inserter(result_types));
   auto call_op = rewriter.create<tfrt::compiler::CallOp>(
-      op->getLoc(), chain.getType(), adaptor.calleeAttr(), operands);
-  rewriter.eraseOp(op);
+      op->getLoc(), result_types, adaptor.calleeAttr(), operands);
+  rewriter.replaceOp(op, call_op->getResults().drop_front());
   return call_op.getResult(0);
 }
 
@@ -1200,12 +1202,14 @@ LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
 
   // Merge !tfrt_gpu.streamify body into parent block.
   Operation *terminator = streamify_op.getBody()->getTerminator();
+  rewriter.splitBlock(streamify_op.getBody(), terminator->getIterator());
   rewriter.mergeBlockBefore(streamify_op.getBody(), streamify_op,
                             cast_op.getOperands());
+  SmallVector<Value, 4> results(terminator->getOperands().drop_front());
   auto chain_and_stream = {terminator->getOperand(0), cast_op.getOperand(1)};
-  auto token = CastToToken(rewriter, streamify_op->getLoc(), chain_and_stream);
-  rewriter.replaceOp(streamify_op, token);
-  rewriter.eraseOp(terminator);
+  Value token = CastToToken(rewriter, streamify_op->getLoc(), chain_and_stream);
+  results.push_back(token);
+  rewriter.replaceOp(streamify_op, results);
   return success();
 }
 

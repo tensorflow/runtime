@@ -42,8 +42,8 @@ Value internal::StreamifyOpConversionGetChain(Operation *parent) {
 void internal::StreamifyOpConversionSetChain(Value chain,
                                              PatternRewriter &rewriter) {
   Operation *terminator = chain.getParentRegion()->back().getTerminator();
-  rewriter.updateRootInPlace(
-      terminator, [&] { terminator->setOperands(ValueRange(chain)); });
+  rewriter.updateRootInPlace(terminator,
+                             [&] { terminator->setOperand(0, chain); });
 }
 
 namespace {
@@ -149,12 +149,40 @@ LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewriteBlock(
     if (!legal_begin)  // Continue in illegal op sequence.
       continue;
 
+    // Split block before first illegal 'op'.
+    Block *epilogue = rewriter.splitBlock(block, op->getIterator());
+    auto op_range = make_range(legal_begin->getIterator(), block->end());
+
+    // Collect results with uses outside of 'block'.
+    SmallVector<Value, 4> results;
+    for (auto &op : op_range) {
+      for (OpResult result : op.getResults()) {
+        // Replace uses of 'result' outside of 'block' with new block argument.
+        BlockArgument block_arg =
+            epilogue->addArgument(result.getType(), result.getLoc());
+        result.replaceUsesWithIf(block_arg, [&](OpOperand &use) {
+          return !block->findAncestorOpInBlock(*use.getOwner());
+        });
+        // If no use was replaced, erase argument again. Otherwise add result.
+        if (block_arg.use_empty()) {
+          epilogue->eraseArgument(block_arg.getArgNumber());
+        } else {
+          results.push_back(result);
+        }
+      }
+    }
+
+    // Create !tfrt_gpu.streamify op with those results.
     rewriter.setInsertionPoint(legal_begin);
-    auto loc = legal_begin->getLoc();
-    auto *body = rewriter.create<StreamifyOp>(loc).getBody();
-    // Move sequence of legal ops into !tfrt_gpu.streamify body.
-    body->getOperations().splice(body->begin(), op->getBlock()->getOperations(),
-                                 legal_begin->getIterator(), op->getIterator());
+    Location loc = legal_begin->getLoc();
+    auto streamify_op = rewriter.create<StreamifyOp>(loc, results);
+
+    // Move legal ops into !tfrt_gpu.streamify body and merge blocks again.
+    Block *body = streamify_op.getBody();
+    body->getOperations().splice(body->begin(), block->getOperations(),
+                                 op_range.begin(), op_range.end());
+    rewriter.mergeBlocks(epilogue, block, streamify_op->getResults());
+
     legal_begin = nullptr;  // Start of illegal op sequence.
     result = success();
   }
@@ -248,15 +276,12 @@ LogicalResult ConvertOpTypesPattern<OpTy>::matchAndRewrite(
 void populateStreamifyConversionPatterns(RewritePatternSet &patterns,
                                          TypeConverter &converter,
                                          ConversionTarget &target) {
-  // Wrap tfrt.call ops with no results to provide chain and stream that may be
-  // added to the callee's arguments. tfrt.call with results are not wrapped
-  // because tfrt_gpu.streamify does not return any results
-  // beyond the optional gpu.async.token. This adds a chain and stream argument
-  // to all functions containing such tfrt.call. If this turns out to be a
-  // problem, we need to analyze the call graph and only wrap calls that execute
-  // ops implementing the AsyncOpInterface.
-  target.addDynamicallyLegalOp<tfrt::compiler::CallOp>(
-      [](Operation *op) { return op->getNumResults() == 0; });
+  // Wrap tfrt.call ops to provide chain and stream which may be added to the
+  // callee's arguments. This adds a chain and stream argument to all functions
+  // containing such tfrt.call. If this turns out to be a problem, we need to
+  // analyze the call graph and only wrap calls that execute ops implementing
+  // the AsyncOpInterface.
+  target.addLegalOp<tfrt::compiler::CallOp>();
 
   populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns, converter);
   populateCallOpTypeConversionPattern(patterns, converter);

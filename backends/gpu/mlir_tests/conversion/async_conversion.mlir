@@ -22,40 +22,43 @@ func.func @test_wrap_streamify() {
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: "tfrt_gpu.streamify"() ({
+
+  // CHECK: tfrt_gpu.streamify {
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
   // CHECK:   "wrap.op"() : () -> ()
   // CHECK:   "wrap.op"() : () -> ()
   // CHECK:   tfrt.return %arg0 : !tfrt.chain
-  // CHECK: }) : () -> ()
+  // CHECK: }
   "wrap.op"() : () -> ()
   "wrap.op"() : () -> ()
 
   // CHECK: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: "tfrt_gpu.streamify"() ({
-  // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
-  // CHECK:   "wrap.op"() : () -> ()
-  // CHECK:   "wrap.op"() : () -> ()
-  // CHECK:   tfrt.return %arg0 : !tfrt.chain
-  // CHECK: }) : () -> ()
-  "wrap.op"() : () -> ()
-  "wrap.op"() : () -> ()
 
-  // CHECK: tfrt.call @returns_value() : () -> f32
-  %0 = tfrt.call @returns_value() : () -> f32
-  // CHECK: "tfrt_gpu.streamify"() ({
+  // CHECK: %[[value:.*]] = tfrt_gpu.streamify {
   // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
-  // CHECK:   tfrt.call @takes_argument(%0) : (f32) -> ()
+  // CHECK:   %[[results:.*]]:2 = tfrt.call @returns_values() : () -> (f32, f32)
+  // CHECK:   tfrt.call @takes_argument(%[[results]]#0) : (f32) -> ()
+  // CHECK:   tfrt.return %arg0, %[[results]]#1 : !tfrt.chain, f32
+  // CHECK: } : f32
+  %values:2 = tfrt.call @returns_values() : () -> (f32, f32)
+  tfrt.call @takes_argument(%values#0) : (f32) -> ()
+
+  // CHECK: "other.op"() : () -> ()
+  "other.op"() : () -> ()
+
+  // CHECK: tfrt_gpu.streamify {
+  // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+  // CHECK:   tfrt.call @takes_argument(%[[value]]) : (f32) -> ()
   // CHECK:   tfrt.return %arg0 : !tfrt.chain
-  // CHECK: }) : () -> ()
-  tfrt.call @takes_argument(%0) : (f32) -> ()
+  // CHECK: }
+  tfrt.call @takes_argument(%values#1) : (f32) -> ()
 
   // CHECK: return
   func.return
 }
 
-func.func private @returns_value() -> f32
+func.func private @returns_values() -> (f32, f32)
 func.func private @takes_argument(%arg0: f32)
 
 // CHECK-LABEL: @test_fold_memref_view
@@ -85,6 +88,8 @@ func.func @test_fold_memref_cast(%arg0: memref<64xi8>) -> memref<8x8xi8> {
 func.func @test_rewrite_alloc() {
   // CHECK: %[[memref:.*]] = gpu.alloc  () : memref<64xi8>
   %memref = memref.alloc() : memref<64xi8>
+  // CHECK: "other.op"() : () -> ()
+  "other.op"() : () -> ()
   // CHECK: gpu.dealloc  %[[memref]] : memref<64xi8>
   memref.dealloc %memref : memref<64xi8>
   // CHECK: %[[tmp:.*]] = gpu.alloc  () : memref<64xi8>

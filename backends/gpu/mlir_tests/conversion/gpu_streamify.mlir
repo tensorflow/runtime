@@ -160,18 +160,25 @@ module @gpu_container_module attributes {gpu.container_module} {
 }
 
 // CHECK-LABEL: @inline_streamify
-func.func @inline_streamify(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) {
+func.func @inline_streamify(
+  %arg0 : !tfrt.chain,
+  %arg1 : !tfrt_gpu.stream
+) -> f32 {
   %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
       : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
-  %t1 = "tfrt_gpu.streamify"(%t0) ({
+  // CHECK-NOT: tfrt_gpu.streamify
+  %value, %t1 = tfrt_gpu.streamify async [%t0] {
   ^bb0(%ch0: !tfrt.chain, %stream: !tfrt_gpu.stream):
     // CHECK: %[[ch:.*]] = tfrt_gpu.stream.synchronize %arg1, %arg0
     %ch1 = tfrt_gpu.stream.synchronize %stream, %ch0
-    tfrt.return %ch1 : !tfrt.chain
-  }) : (!gpu.async.token) -> (!gpu.async.token)
+    // CHECK: %[[value:.*]] = tfrt.constant.f32 1.0
+    %result = tfrt.constant.f32 1.0
+    tfrt.return %ch1, %result : !tfrt.chain, f32
+  } : f32
   // CHECK: builtin.unrealized_conversion_cast %[[ch]], %arg1
   // CHECK-SAME: !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
-  tfrt.return
+  // CHECK: tfrt.return %[[value]] : f32
+  tfrt.return %value : f32
 }
 
 // CHECK-LABEL: @gpu_wait_remove

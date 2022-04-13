@@ -34,29 +34,41 @@ include "tfrt/gpu/kernels/gpu_solver_ops.td"
 
 include "mlir/Dialect/GPU/GPUBase.td"
 
-def TFRTGPU_StreamifyOp : TFRTGPU_Op<"streamify",
-    [GPU_AsyncOpInterface, SingleBlockImplicitTerminator<"compiler::ReturnOp">]> {
+def TFRTGPU_StreamifyOp : TFRTGPU_Op<"streamify", [
+  GPU_AsyncOpInterface,
+  SingleBlockImplicitTerminator<"::tfrt::compiler::ReturnOp">
+]> {
   let summary = "tfrt_gpu.streamify operation";
   let description = [{
-    tfrt_gpu.streamify wraps a block to take and produce
-    !gpu.async.tokens (i.e. it implements the mlir::gpu::AsyncOpInterface).
+    tfrt_gpu.streamify wraps a block to take and produce !gpu.async.tokens
+    (i.e. it implements the mlir::gpu::AsyncOpInterface).
 
-    The region has a single block with !tfrt.chain and !gpu.async.token
-    arguments and a !tfrt.chain terminator operand.
+    This op is used only during conversion to the tfrt_gpu dialect and has no
+    kernel implementation.
 
-    This op is used by the Dialect Conversion framework when lowering to the
-    tfrt_gpu dialect. This op should only exist during the conversion process,
-    and so doesn't map to an implementation.
+    The region has a single block with !tfrt.chain and !tfrt_gpu.stream
+    arguments and at least a !tfrt.chain return operand. Ops within the region
+    can be lowered to tfrt_gpu ops before the surrounding code. Usually such
+    lowering is implemented by deriving from GpuStreamifyOpConversionPattern<T>.
   }];
 
   let arguments = (ins Variadic<GPU_AsyncToken>:$asyncDependencies);
-  let results = (outs Optional<GPU_AsyncToken>:$asyncToken);
+  let results = (outs Variadic<AnyType>);
   let regions = (region SizedRegion<1>:$body);
 
+  let extraClassDeclaration = [{
+    result_range results();
+    OpResult asyncToken();
+  }];
+
   let skipDefaultBuilders = 1;
-  let builders = [OpBuilder<(ins)>];
+  let builders = [
+    OpBuilder<(ins CArg<"::mlir::ValueRange", "::llvm::None">:$results)>
+  ];
 
   let assemblyFormat = ?;
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
 }
 
 #endif  // TFRTGPU_OPS

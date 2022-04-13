@@ -412,3 +412,37 @@ func.func @fft_ops() {
 
   tfrt.return
 }
+
+func.func @streamify_ops() {
+
+  // CHECK: tfrt_gpu.streamify attributes {foo} {
+  // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+  // CHECK:   tfrt.return %arg0 : !tfrt.chain
+  // CHECK: }
+  tfrt_gpu.streamify attributes {foo} {
+  ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+    tfrt.return %arg0 : !tfrt.chain
+  }
+
+  // CHECK: %[[token:.*]] = tfrt_gpu.streamify async {
+  // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+  // CHECK:   tfrt.return %arg0 : !tfrt.chain
+  // CHECK: }
+  %token = tfrt_gpu.streamify async {
+  ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+    tfrt.return %arg0 : !tfrt.chain
+  }
+
+  // CHECK: %{{.*}}:2 = tfrt_gpu.streamify [%[[token]]] {
+  // CHECK: ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+  // CHECK:   %[[zero:.*]] = tfrt.constant.i32 0
+  // CHECK:   tfrt.return %arg0, %[[zero]], %[[zero]] : !tfrt.chain, i32, i32
+  // CHECK: } : i32, i32
+  %0:2 = tfrt_gpu.streamify [%token] {
+  ^bb0(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream):
+    %1 = tfrt.constant.i32 0
+    tfrt.return %arg0, %1, %1 : !tfrt.chain, i32, i32
+  } : i32, i32
+
+  tfrt.return
+}

@@ -254,7 +254,7 @@ static void printEnum(OpAsmPrinter &printer, Operation *op,
 template <typename... Types>
 static void printTypeAttr(OpAsmPrinter &printer, Operation *op,
                           const TypeAttr &attribute, const Types &...) {
-  printer.printType(attribute.getType());
+  printer.printType(attribute.getValue());
 }
 
 static bool AllEqual(ArrayRef<wrapper::BlasDataType> types) {

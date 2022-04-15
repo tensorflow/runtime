@@ -78,8 +78,8 @@ func.func @driver_ops() {
   // CHECK: %[[function:.*]] = tfrt_gpu.module.get_function %[[module]] {name = "kernel"}
   %function = tfrt_gpu.module.get_function %module {name = "kernel"}
 
-  // CHECK: %[[dim:.*]] = tfrt.constant.ui32 1
-  %dim = tfrt.constant.ui32 1
+  // CHECK: %[[dim:.*]] = tfrt.constant.ui64 1
+  %dim = tfrt.constant.ui64 1
   // CHECK: %[[shmem:.*]] = tfrt.constant.ui32 0
   %shmem = tfrt.constant.ui32 0
   // CHECK: tfrt_gpu.function.launch %[[stream]], %[[function]],

@@ -1125,16 +1125,16 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   Value shared_mem_size = adaptor.dynamicSharedMemorySize();
   if (!shared_mem_size)
     shared_mem_size = rewriter.create<compiler::ConstantUI32Op>(loc, 0);
-  auto cast_to_ui32 = [&](Value value) {
+  auto cast_to_ui64 = [&](Value value) {
     return typeConverter->materializeTargetConversion(
-        rewriter, loc, rewriter.getIntegerType(32, /*isSigned=*/false), value);
+        rewriter, loc, rewriter.getIntegerType(64, /*isSigned=*/false), value);
   };
   auto new_op = rewriter.create<FunctionLaunchOp>(
       loc, chain.getType(), stream, get_func_op.getResult(),
-      cast_to_ui32(adaptor.gridSizeX()), cast_to_ui32(adaptor.gridSizeY()),
-      cast_to_ui32(adaptor.gridSizeZ()), cast_to_ui32(adaptor.blockSizeX()),
-      cast_to_ui32(adaptor.blockSizeY()), cast_to_ui32(adaptor.blockSizeZ()),
-      cast_to_ui32(shared_mem_size), chain, adaptor.operands());
+      cast_to_ui64(adaptor.gridSizeX()), cast_to_ui64(adaptor.gridSizeY()),
+      cast_to_ui64(adaptor.gridSizeZ()), cast_to_ui64(adaptor.blockSizeX()),
+      cast_to_ui64(adaptor.blockSizeY()), cast_to_ui64(adaptor.blockSizeZ()),
+      shared_mem_size, chain, adaptor.operands());
   rewriter.replaceOp(launch_op, CastToToken(rewriter, loc, {new_op, stream}));
   return success();
 }

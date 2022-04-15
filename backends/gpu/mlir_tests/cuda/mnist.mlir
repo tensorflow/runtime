@@ -175,15 +175,15 @@ func.func @a_inference_train_mnist_213(
   %4 = tfrt.once @gpu_module(%0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
   %5 = tfrt_gpu.module.get_function %4 {name = "fusion_9_a_inference_train_mnist_213_199"}
   %6 = tfrt.constant.ui32 0
-  %7 = tfrt.constant.ui32 77
-  %8 = tfrt.constant.ui32 1
-  %9 = tfrt.constant.ui32 256
+  %7 = tfrt.constant.ui64 77
+  %8 = tfrt.constant.ui64 1
+  %9 = tfrt.constant.ui64 256
   %10 = tfrt_gpu.function.launch %arg1, %5, blocks in (%7, %8, %8), threads in (%9, %8, %8), %6, %arg0, args(%arg2, %3) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer)
   %11 = tfrt.constant.ui64 4000
   %12 = tfrt_gpu.mem.view %arg15, %2, %11
   %13 = tfrt.once @gpu_module_0(%0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
   %14 = tfrt_gpu.module.get_function %13 {name = "broadcast_41_a_inference_train_mnist_213_199"}
-  %15 = tfrt.constant.ui32 250
+  %15 = tfrt.constant.ui64 250
   %16 = tfrt_gpu.function.launch %arg1, %14, blocks in (%8, %8, %8), threads in (%15, %8, %8), %6, %10, args(%arg5, %12) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer)
   %17 = tfrt_gpu.mem.copy %12, %12, %arg1, %16 : !tfrt_gpu.buffer, !tfrt_gpu.buffer
   %18 = tfrt.constant.i32 10
@@ -199,7 +199,7 @@ func.func @a_inference_train_mnist_213(
   %28 = tfrt_gpu.mem.view %arg15, %26, %27
   %29 = tfrt.once @gpu_module_1(%0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
   %30 = tfrt_gpu.module.get_function %29 {name = "reduce_71_a_inference_train_mnist_213_199"}
-  %31 = tfrt.constant.ui32 25
+  %31 = tfrt.constant.ui64 25
   %32 = tfrt_gpu.function.launch %arg1, %30, blocks in (%8, %8, %8), threads in (%31, %8, %8), %6, %25, args(%12, %28) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer)
   %33 = tfrt.constant.ui64 318208
   %34 = tfrt_gpu.mem.view %arg15, %33, %27
@@ -213,7 +213,7 @@ func.func @a_inference_train_mnist_213(
   %42 = tfrt_gpu.mem.view %arg15, %41, %11
   %43 = tfrt.once @gpu_module_3(%0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
   %44 = tfrt_gpu.module.get_function %43 {name = "input_fusion_reduce_a_inference_train_mnist_213_199"}
-  %45 = tfrt.constant.ui32 1024
+  %45 = tfrt.constant.ui64 1024
   %46 = tfrt_gpu.function.launch %arg1, %44, blocks in (%8, %8, %8), threads in (%45, %8, %8), %6, %37, args(%arg3, %34, %12, %28, %40, %42) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
   %47 = tfrt.constant.ui64 31360
   %48 = tfrt_gpu.mem.view %arg15, %2, %47
@@ -229,11 +229,11 @@ func.func @a_inference_train_mnist_213(
   %58 = tfrt_gpu.function.launch %arg1, %57, blocks in (%8, %8, %8), threads in (%8, %8, %8), %6, %53, args(%arg8, %arg6, %arg9, %arg7, %55, %arg7) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
   %59 = tfrt.once @gpu_module_5(%0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
   %60 = tfrt_gpu.module.get_function %59 {name = "fusion_3_a_inference_train_mnist_213_199"}
-  %61 = tfrt.constant.ui32 8
+  %61 = tfrt.constant.ui64 8
   %62 = tfrt_gpu.function.launch %arg1, %60, blocks in (%61, %8, %8), threads in (%9, %8, %8), %6, %58, args(%arg4, %55, %arg10, %arg8, %48, %arg11, %arg9, %arg4, %arg10, %arg11) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
   %63 = tfrt.once @gpu_module_6(%0) : (!tfrt_gpu.context) -> (!tfrt_gpu.module)
   %64 = tfrt_gpu.module.get_function %63 {name = "fusion_a_inference_train_mnist_213"}
-  %65 = tfrt.constant.ui32 5
+  %65 = tfrt.constant.ui64 5
   %66 = tfrt_gpu.function.launch %arg1, %64, blocks in (%8, %8, %8), threads in (%65, %8, %8), %6, %62, args(%arg5, %55, %arg12, %arg8, %40, %arg13, %arg9, %arg5, %arg12, %arg13) : (!tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
   tfrt.return %66 : !tfrt.chain
 }

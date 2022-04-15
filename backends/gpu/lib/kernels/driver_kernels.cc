@@ -377,10 +377,10 @@ static Expected<GpuFunction> GpuModuleGetFunction(Argument<GpuModule> module,
 }
 
 static Error GpuFunctionLaunch(const GpuStream& stream,
-                               const GpuFunction& function, uint32_t grid_dim_x,
-                               uint32_t grid_dim_y, uint32_t grid_dim_z,
-                               uint32_t block_dim_x, uint32_t block_dim_y,
-                               uint32_t block_dim_z,
+                               const GpuFunction& function, uint64_t grid_dim_x,
+                               uint64_t grid_dim_y, uint64_t grid_dim_z,
+                               uint64_t block_dim_x, uint64_t block_dim_y,
+                               uint64_t block_dim_z,
                                uint32_t shared_memory_size_bytes, Chain,
                                RemainingArguments args) {
   auto current = wrapper::CtxSetCurrent(stream.context()->get());

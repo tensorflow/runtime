@@ -420,12 +420,12 @@ def TFRTGPU_FunctionLaunchOp : TFRTGPU_Op<"function.launch"> {
   let arguments = (ins
     TFRTGPU_StreamType:$stream,
     TFRTGPU_FunctionType:$function,
-    UI32:$grid_dim_x,
-    UI32:$grid_dim_y,
-    UI32:$grid_dim_z,
-    UI32:$block_dim_x,
-    UI32:$block_dim_y,
-    UI32:$block_dim_z,
+    UI64:$grid_dim_x,
+    UI64:$grid_dim_y,
+    UI64:$grid_dim_z,
+    UI64:$block_dim_x,
+    UI64:$block_dim_y,
+    UI64:$block_dim_z,
     UI32:$shared_memory_size_bytes,
     TFRT_ChainType:$in_chain,
     Variadic<AnyTypeOf<[TFRTGPU_BufferType, AnyFloat, AnyInteger]>>:$args

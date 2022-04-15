@@ -28,8 +28,8 @@ func.func @noop_kernel() {
 
   %func = tfrt_gpu.module.get_function %module { name = "empty_kernel" }
 
-  %blk_dim = tfrt.constant.ui32 1
-  %grid_dim = tfrt.constant.ui32 1
+  %blk_dim = tfrt.constant.ui64 1
+  %grid_dim = tfrt.constant.ui64 1
   %shared_mem_size = tfrt.constant.ui32 0
 
   %ch = tfrt.new.chain
@@ -85,8 +85,8 @@ func.func @vector_add_kernel() {
   %ch17 = tfrt_gpu.mem.copy %x_device, %x_host_buffer, %stream, %ch14 : !tfrt_gpu.buffer, !ht.host_buffer
   %ch18 = tfrt_gpu.mem.copy %y_device, %y_host_buffer, %stream, %ch14 : !tfrt_gpu.buffer, !ht.host_buffer
 
-  %one = tfrt.constant.ui32 1
-  %eight = tfrt.constant.ui32 8
+  %one = tfrt.constant.ui64 1
+  %eight = tfrt.constant.ui64 8
   %shared_mem_size = tfrt.constant.ui32 0
   %len = tfrt.constant.i32 8
 
@@ -128,7 +128,7 @@ func.func @float_arg_kernel() {
   %host_buffer, %ch1 = tfrt_dht.get_buffer %host_tensor, %ch0
   %device_buffer = tfrt_gpu.mem.register %context, %host_buffer
 
-  %one = tfrt.constant.ui32 1
+  %one = tfrt.constant.ui64 1
   %shared_mem_size = tfrt.constant.ui32 0
   %val_to_add = tfrt.constant.f32 2.0
 

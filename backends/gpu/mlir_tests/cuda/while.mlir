@@ -30,7 +30,7 @@ func.func @cond(
   %func = tfrt_gpu.module.get_function %module { name = "Kernel" }
 
   %zero = tfrt.constant.ui32 0
-  %one = tfrt.constant.ui32 1
+  %one = tfrt.constant.ui64 1
   %ch1 = tfrt_gpu.function.launch %stream, %func,
              blocks in (%one, %one, %one),
              threads in (%one, %one, %one),
@@ -60,7 +60,7 @@ func.func @body(
   %func = tfrt_gpu.module.get_function %module { name = "Kernel" }
 
   %zero = tfrt.constant.ui32 0
-  %one = tfrt.constant.ui32 1
+  %one = tfrt.constant.ui64 1
   %ch1 = tfrt_gpu.function.launch %stream, %func,
              blocks in (%one, %one, %one),
              threads in (%one, %one, %one),

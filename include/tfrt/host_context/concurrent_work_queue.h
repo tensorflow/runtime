@@ -33,7 +33,6 @@
 namespace tfrt {
 
 class AsyncValue;
-class ExecutionContext;
 class RequestContextBuilder;
 
 // This is a pure virtual base class for concurrent work queue implementations.
@@ -89,14 +88,6 @@ class ConcurrentWorkQueue {
   // thread.
   virtual void AddTask(TaskFunction work) = 0;
 
-  // ExecutionContext includes the context information for this task, such as
-  // the request priority. A concrete CWQ implemenation may use the context
-  // information to schedule the task as appropriate. The default implementation
-  // ignores the ExecutionContext.
-  virtual void AddTask(const ExecutionContext& exec_ctx, TaskFunction work) {
-    AddTask(std::move(work));
-  }
-
   // Enqueue a blocking task. Thread-safe.
   //
   // If `allow_queuing` is false, implementation must guarantee that work will
@@ -107,15 +98,6 @@ class ConcurrentWorkQueue {
   // returns the argument wrapped in an optional.
   LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
       TaskFunction work, bool allow_queuing) = 0;
-
-  // ExecutionContext includes the context information for this task, such as
-  // the request priority. A concrete CWQ implemenation may use the context
-  // information to schedule the task as appropriate. The default implementation
-  // ignores the ExecutionContext.
-  LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
-      const ExecutionContext& exec_ctx, TaskFunction work, bool allow_queuing) {
-    return AddBlockingTask(std::move(work), allow_queuing);
-  }
 
   // Block until the specified values are available (either with a value or an
   // error result).

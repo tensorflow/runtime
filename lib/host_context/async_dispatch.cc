@@ -18,6 +18,8 @@
 
 #include "tfrt/host_context/async_dispatch.h"
 
+#include <utility>
+
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/task_function.h"
 
@@ -35,7 +37,7 @@ void Await(HostContext* host, ArrayRef<RCReference<AsyncValue>> values) {
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work) {
   auto& work_queue = exec_ctx.work_queue();
-  work_queue.AddTask(exec_ctx, TaskFunction(std::move(work)));
+  work_queue.AddTask(TaskFunction(std::move(work)));
 }
 
 void EnqueueWork(HostContext* host, llvm::unique_function<void()> work) {

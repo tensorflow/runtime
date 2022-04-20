@@ -600,12 +600,12 @@ func.func @test_control_flow_case() {
   %arg1 = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1], values = [4 : i32] } : 1
 
-  %ch1, %res0 = tfrt.case %branch_index0 [@branch0, @branch1] (%ch0, %arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
+  %ch1, %res0 = tfrt.case %branch_index0 [@branch0, @branch1] (%ch0, %arg0, %arg1) : (!tfrt.chain, !corert.tensorhandle, !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = i32, shape = [1], values = [6]
   %ch2 = "corert.print_tensorhandle"(%res0, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  %ch3, %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%ch2, %arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
+  %ch3, %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%ch2, %arg0, %arg1) : (!tfrt.chain, !corert.tensorhandle, !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = i32, shape = [1], values = [10]
   %ch4 = "corert.print_tensorhandle"(%res1, %ch3) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain

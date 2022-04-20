@@ -244,14 +244,14 @@ func.func @tfrt_case_test() {
 
   %arg = tfrt.constant.i32 40
 
-  %ch1, %res = tfrt.case %branch_index [@branch0, @branch1] (%ch0, %arg) :  (i32) -> (i32)
+  %ch1, %res = tfrt.case %branch_index [@branch0, @branch1] (%ch0, %arg) :  (!tfrt.chain, i32) -> (!tfrt.chain, i32)
 
   // CHECK: int32 = 42
   %ch2 = tfrt.print.i32 %res, %ch1
 
   %branch_index1 = tfrt.constant.i32 1
 
-  %ch3, %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%ch2, %arg) :  (i32) -> (i32)
+  %ch3, %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%ch2, %arg) :  (!tfrt.chain, i32) -> (!tfrt.chain, i32)
 
   // CHECK: int32 = 43
   %ch4 = tfrt.print.i32 %res1, %ch3

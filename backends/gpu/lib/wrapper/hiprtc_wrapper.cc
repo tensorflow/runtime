@@ -18,6 +18,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/gpu/wrapper/hiprtc_stub.h"
 #include "wrapper_detail.h"
+#include "tfrt/support/logging.h"
 
 namespace tfrt {
 namespace gpu {
@@ -29,8 +30,33 @@ llvm::raw_ostream& Print(llvm::raw_ostream& os, hiprtcResult result) {
   return os;
 }
 
-llvm::Error HiprtcVersion(int* major, int* minor){
-  return TO_ERROR(hiprtcVersion(major, minor));
+void internal::ProgramDeleter::operator()(hiprtcProgram prog) const{
+  LogIfError(HiprtcDestroyProgram(&prog));
+}
+
+llvm::Expected<LibraryVersion> HiprtcVersion(){
+  int major, minor;
+  RETURN_IF_ERROR(hiprtcVersion(&major, &minor));
+  return LibraryVersion{major, minor, 0};
+}
+
+llvm::Expected<OwningProgram> HiprtcCreateProgram(const char* src){
+  hiprtcProgram prog;
+  RETURN_IF_ERROR(hiprtcCreateProgram(&prog, src, "", 
+		      0, 
+		      nullptr,
+		      nullptr)); 
+  return OwningProgram(prog);
+}
+
+llvm::Error HiprtcDestroyProgram(hiprtcProgram* prog){
+  return TO_ERROR(hiprtcDestroyProgram(prog));
+}
+
+llvm::Error HiprtcCompileProgram(
+                                 hiprtcProgram prog,
+                                 llvm::ArrayRef<char*> options){
+  return TO_ERROR(hiprtcCompileProgram(prog, 0, nullptr));
 }
 
 llvm::Error HiprtcAddNameExpression(hiprtcProgram prog,
@@ -38,59 +64,41 @@ llvm::Error HiprtcAddNameExpression(hiprtcProgram prog,
   return TO_ERROR(hiprtcAddNameExpression(prog, name_expression));
 }
 
-llvm::Error HiprtcCompileProgram(
-                                 hiprtcProgram prog,
-                                 int numOptions,
-                                 const char** options){
-  return TO_ERROR(hiprtcCompileProgram(prog, numOptions, options));
-}
-
-llvm::Error HiprtcCreateProgram(
-                                hiprtcProgram* prog,
-                                const char* src,
-                                const char* name,
-                                int numberHeaders,
-                                const char** headers,
-                                const char** includeNames){
-  return TO_ERROR(hiprtcCreateProgram(
-                                      prog, 
-                                      src, 
-                                      name, 
-                                      numberHeaders, 
-                                      headers, 
-                                      includeNames));
-}
-
-llvm::Error HiprtcDestroyProgram(hiprtcProgram* prog){
-  return TO_ERROR(hiprtcDestroyProgram(prog));
-}
-
 llvm::Error HiprtcGetLoweredName(
                                  hiprtcProgram prog,
                                  const char* name_expression,
-                                 const char** lowered_name){
+                                 llvm::ArrayRef<char*> lowered_name){
   return TO_ERROR(hiprtcGetLoweredName(
                                        prog,
                                        name_expression,
-                                       lowered_name));
+                                       const_cast<const char**>(lowered_name.data())));
 }
 
-llvm::Error HiprtcGetProgramLog(hiprtcProgram prog, char* log){
-  return TO_ERROR(hiprtcGetProgramLog(prog, log));
+
+llvm::Expected<size_t> HiprtcGetProgramLogSize(hiprtcProgram prog){
+  size_t log_size = 0;
+  RETURN_IF_ERROR(hiprtcGetProgramLogSize(prog, &log_size));
+  return log_size;
 }
 
-llvm::Error HiprtcGetProgramLogSize(hiprtcProgram prog, size_t* logSizeRet){
-  return TO_ERROR(hiprtcGetProgramLogSize(prog, logSizeRet));
+llvm::Expected<std::string> HiprtcGetProgramLog(hiprtcProgram prog, size_t log_size){
+  std::string log(log_size, '\0');
+  RETURN_IF_ERROR(hiprtcGetProgramLog(prog, &log[0]));
+  return std::move(log);
 }
 
-llvm::Error HiprtcGetCode(hiprtcProgram prog, char* code){
-  return TO_ERROR(hiprtcGetCode(prog, code));
+llvm::Expected<std::vector<char>> HiprtcGetCode(hiprtcProgram prog, size_t code_size){
+  std::vector<char> code(code_size + 1, '\0');
+  RETURN_IF_ERROR(hiprtcGetCode(prog, code.data()));
+  return std::move(code);
 }
 
-llvm::Error HiprtcGetCodeSize(hiprtcProgram prog, size_t* codeSizeRet){
-  return TO_ERROR(hiprtcGetCodeSize(prog, codeSizeRet));
+llvm::Expected<size_t> HiprtcGetCodeSize(hiprtcProgram prog){
+  size_t code_size = 0;
+  RETURN_IF_ERROR(hiprtcGetCodeSize(prog, &code_size));
+  return code_size;
 }
 
-} // namespace tfrt
-} // namespace gpu
 } // namespace wrapper
+} // namespace gpu
+} // namespace tfrt

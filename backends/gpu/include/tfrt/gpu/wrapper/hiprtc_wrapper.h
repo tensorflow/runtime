@@ -27,30 +27,40 @@ namespace wrapper {
 
 raw_ostream& Print(raw_ostream& os, hiprtcResult result);
 
-llvm::Error HiprtcVersion(int* major, int* minor);
+namespace internal{
+struct ProgramDeleter{
+  using pointer = hiprtcProgram;
+  void operator()(hiprtcProgram prog) const;
+};
+template <typename D>
+using OwningResource = std::unique_ptr<typename D::pointer, D>;
+} // namespace internal 
+
+using OwningProgram = internal::OwningResource<internal::ProgramDeleter>;
+
+//llvm::Expected<OwningPogram> CreateProgram(const char* str){
+//  hiprtcProgram prog;
+//  RETURN_IF_ERROR(hiprtcCreate(&prog, str, "", 0, nullptr,nullptr));
+//  return OwningProgram(prog);
+//}
+
+llvm::Expected<LibraryVersion> HiprtcGetVersion();
 llvm::Error HiprtcAddNameExpression(hiprtcProgram prog,
                                     const char* name_expression);
 llvm::Error HiprtcCompileProgram(
                                  hiprtcProgram prog,
-                                 int numOptions,
-                                 const char** options);
-llvm::Error HiprtcCreateProgram(
-                                hiprtcProgram* prog,
-                                const char* src,
-                                const char* name,
-                                int numberHeaders,
-                                const char** headers,
-                                const char** includeNames);
+                                 llvm::ArrayRef<char*> options);
+llvm::Expected<OwningProgram> HiprtcCreateProgram(const char* src);
 llvm::Error HiprtcDestroyProgram(hiprtcProgram* prog);
 llvm::Error HiprtcGetLoweredName(
                                  hiprtcProgram prog,
                                  const char* name_expression,
-                                 const char** lowered_name);
-llvm::Error HiprtcGetProgramLog(hiprtcProgram prog, char* log);
-llvm::Error HiprtcGetProgramLogSize(hiprtcProgram prog, size_t* logSizeRet);
-llvm::Error HiprtcGetCode(hiprtcProgram prog, char* code);
-llvm::Error HiprtcGetCodeSize(hiprtcProgram prog, size_t* codeSizeRet);
-} // namespace tfrt
-} // namespace gpu
+                                 llvm::ArrayRef<char*> lowered_name);
+llvm::Expected<std::string> HiprtcGetProgramLog(hiprtcProgram prog, size_t log_size);
+llvm::Expected<size_t> HiprtcGetProgramLogSize(hiprtcProgram prog);
+llvm::Expected<std::vector<char>> HiprtcGetCode(hiprtcProgram prog, size_t code_size);
+llvm::Expected<size_t> HiprtcGetCodeSize(hiprtcProgram prog);
 } // namespace wrapper
+} // namespace gpu
+} // namespace tfrt
 #endif //TFRT_GPU_WRAPPER_HIPRTC_WRAPPER_H_

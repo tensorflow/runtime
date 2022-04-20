@@ -19,6 +19,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
+#include "tfrt/gpu/wrapper/hiprtc_wrapper.h"
 #include "tfrt/support/logging.h"
 #include "wrapper_detail.h"
 
@@ -852,7 +853,22 @@ llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
     case Platform::CUDA:
       return CuModuleLoadData(current, image);
     case Platform::ROCm:
-      return HipModuleLoadData(current, image);
+    {
+      auto prog = HiprtcCreateProgram(reinterpret_cast<const char*>(image));
+      if (!prog) return prog.takeError();
+      if (auto err = HiprtcCompileProgram(prog->get(), {})){
+        return err;
+      }
+      auto code_size = HiprtcGetCodeSize(prog->get());
+      if (!code_size){
+        return MakeStringError("Failed to get code size.");
+      }
+      auto code = HiprtcGetCode(prog->get(), *code_size);
+      if (!code){
+        return MakeStringError("Failed to get code.");
+      }
+      return HipModuleLoadData(current, code->data());
+    }
     default:
       return InvalidPlatform(platform);
   }

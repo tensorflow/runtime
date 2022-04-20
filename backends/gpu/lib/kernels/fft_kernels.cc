@@ -103,7 +103,8 @@ void RegisterGpuFftKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.fft.create", TFRT_KERNEL(FftCreate));
   kernel_reg->AddKernel("tfrt_gpu.fft.get_workspace_size",
                         TFRT_KERNEL(FftGetWorkspaceSize));
-  kernel_reg->AddKernel("tfrt_gpu.fft.execute", TFRT_KERNEL(FftExecute));
+  kernel_reg->AddKernel("tfrt_gpu.fft.execute",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(FftExecute));
 }
 
 }  // namespace gpu

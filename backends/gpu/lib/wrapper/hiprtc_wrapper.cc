@@ -26,7 +26,11 @@ namespace wrapper {
 
 llvm::raw_ostream& Print(llvm::raw_ostream& os, hiprtcResult result) {
   const char* msg = hiprtcGetErrorString(result);
-  if (msg != nullptr) os << "hiprtc Error: (" << msg << ")";
+  if (msg != nullptr) {
+    os << "hiprtc Error: (" << msg << ")";
+  } else {
+    os <<"Unknown hiprtc Error";
+  }
   return os;
 }
 

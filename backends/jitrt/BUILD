@@ -382,7 +382,7 @@ td_library(
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = ["include"],
-    visibility = ["@tf_runtime//:friends"],
+    visibility = ["//visibility:private"],
     deps = [
         "@llvm-project//mlir:OpBaseTdFiles",
     ],

@@ -41,8 +41,8 @@ void setEntryPoint(ModuleOp module, wrapper::Platform platform,
       builder.getStringAttr(GpuDialect::getDialectNamespace()), "entry_point");
   mlir::FunctionType func_type = builder.getFunctionType({}, entry_point_type);
   mlir::Location loc = module->getLoc();
-  FuncOp func_op =
-      builder.create<FuncOp>(loc, GetEntryPointFuncName(), func_type);
+  mlir::func::FuncOp func_op = builder.create<mlir::func::FuncOp>(
+      loc, GetEntryPointFuncName(), func_type);
   builder.setInsertionPointToEnd(func_op.addEntryBlock());
 
   // Create an op that returns the entry point.

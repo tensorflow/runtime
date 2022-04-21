@@ -111,7 +111,7 @@ class OneToAnyConversion {
 //       return %ch
 //     }
 //
-struct AddChainAndStreamToFuncPattern : public OpRewritePattern<FuncOp> {
+struct AddChainAndStreamToFuncPattern : public OpRewritePattern<func::FuncOp> {
   using OpRewritePattern::OpRewritePattern;
 
  private:
@@ -463,7 +463,7 @@ struct FoldAsyncAwaitPattern : public OpConversionPattern<async::AwaitOp> {
 };
 
 // A rewrite pattern to hoist tfrt_gpu.blas/dnn/solver.create operations.
-struct HoistCreateHandlePattern : public OpRewritePattern<FuncOp> {
+struct HoistCreateHandlePattern : public OpRewritePattern<func::FuncOp> {
   using OpRewritePattern::OpRewritePattern;
 
  private:
@@ -488,7 +488,7 @@ struct AddChainAndStreamToFuncPass
 // !tfrt_gpu.stream instead of !gpu.async.token.
 struct ConvertAsyncToChainAndEventPass
     : public PassWrapper<ConvertAsyncToChainAndEventPass,
-                         OperationPass<FuncOp>> {
+                         OperationPass<func::FuncOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ConvertAsyncToChainAndEventPass)
  private:
   void runOnOperation() override;
@@ -537,7 +537,7 @@ struct ReconcileCastsPass
 
 // A pass which converts from async dialect to tfrt dialect.
 struct ConvertAsyncToTfrtPass
-    : public PassWrapper<ConvertAsyncToTfrtPass, OperationPass<FuncOp>> {
+    : public PassWrapper<ConvertAsyncToTfrtPass, OperationPass<func::FuncOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ConvertAsyncToTfrtPass)
  private:
   void runOnOperation() override;
@@ -918,7 +918,7 @@ LogicalResult ConvertDeallocPattern::matchAndRewrite(
 // Inserts tfrt_gpu.stream.get_context if it doesn't already exist.
 Value GetContextFromParentFunc(ConversionPatternRewriter &rewriter,
                                Operation *op) {
-  auto func_op = op->getParentOfType<FuncOp>();
+  auto func_op = op->getParentOfType<func::FuncOp>();
   auto get_ctx_ops = func_op.getOps<StreamGetContextOp>();
   if (!get_ctx_ops.empty()) return *get_ctx_ops.begin();
   OpBuilder::InsertionGuard guard(rewriter);
@@ -1034,7 +1034,7 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
       module_op->getAttrOfType<ArrayAttr>(getGpuConstantsAttrName());
   mlir::FunctionType func_type = rewriter.getFunctionType(
       rewriter.getType<ContextType>(), rewriter.getType<ModuleType>());
-  func::FuncOp func_op = rewriter.replaceOpWithNewOp<FuncOp>(
+  func::FuncOp func_op = rewriter.replaceOpWithNewOp<func::FuncOp>(
       module_op, module_op.getName(), func_type);
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
   Value context = func_op.getArgument(0);
@@ -1065,7 +1065,7 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
     ConversionPatternRewriter &rewriter) const {
   mlir::FunctionType func_type = rewriter.getFunctionType(
       rewriter.getType<ContextType>(), rewriter.getType<BufferType>());
-  auto func_op = rewriter.replaceOpWithNewOp<FuncOp>(
+  auto func_op = rewriter.replaceOpWithNewOp<func::FuncOp>(
       global_op, global_op.sym_name(), func_type);
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
   Location loc = global_op->getLoc();
@@ -1111,7 +1111,7 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   Value chain = cast_op.getOperand(0);
   Value stream = cast_op.getOperand(1);
   Value context = GetContextFromParentFunc(rewriter, launch_op);
-  auto func_op = SymbolTable::lookupNearestSymbolFrom<FuncOp>(
+  auto func_op = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
       launch_op, adaptor.kernel().getRootReference());
   auto once_op = rewriter.create<compiler::OnceOp>(
       loc, func_op.getFunctionType().getResults(), context, func_op.getName());
@@ -1399,7 +1399,7 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
 
   mlir::SymbolTable symbol_table(func_op->getParentOp());
   // Map from handle type and context value to tfrt.once callee.
-  llvm::SmallDenseMap<std::tuple<Type, Value>, FuncOp> map;
+  llvm::SmallDenseMap<std::tuple<Type, Value>, func::FuncOp> map;
   for (auto *op : create_handle_ops) {
     Type handle_type = op->getResult(0).getType();
     Value context = op->getOperand(0);
@@ -1440,7 +1440,7 @@ void AddChainAndStreamToFuncPass::runOnOperation() {
   ConversionTarget target(getContext());
   target.addDynamicallyLegalOp<compiler::CallOp>(
       [symbol_table = SymbolTable(getOperation())](compiler::CallOp call_op) {
-        auto func_op = symbol_table.lookupNearestSymbolFrom<FuncOp>(
+        auto func_op = symbol_table.lookupNearestSymbolFrom<func::FuncOp>(
             call_op, call_op.calleeAttr());
         return func_op && func_op.getFunctionType() == call_op.getCalleeType();
       });
@@ -1527,11 +1527,12 @@ void HoistingPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   patterns.add<HoistCreateHandlePattern>(&getContext());
   SmallVector<Operation *, 4> func_ops;
-  llvm::copy(getOperation().getOps<FuncOp>(), std::back_inserter(func_ops));
+  llvm::copy(getOperation().getOps<func::FuncOp>(),
+             std::back_inserter(func_ops));
   applyOpPatternsAndFold(func_ops, std::move(patterns), /*strict=*/false);
 
-  SmallVector<FuncOp, 4> preload_callees;
-  getOperation().walk([&](FuncOp func_op) {
+  SmallVector<func::FuncOp, 4> preload_callees;
+  getOperation().walk([&](func::FuncOp func_op) {
     // Assumes that any function that only takes a context is loading GPU
     // resources, and that it is legal and useful to tfrt.once-initialize it.
     if (IsTypes<ContextType>(func_op.getFunctionType().getInputs())) {

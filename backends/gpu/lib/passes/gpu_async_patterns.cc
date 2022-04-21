@@ -50,13 +50,14 @@ namespace {
 
 // Wraps consecutive legal ops within a block into a
 // tfrt_gpu.streamify op.
-struct NestLegalOpsInStreamifyOpPattern : public OpRewritePattern<FuncOp> {
+struct NestLegalOpsInStreamifyOpPattern
+    : public OpRewritePattern<func::FuncOp> {
   NestLegalOpsInStreamifyOpPattern(MLIRContext *context,
                                    ConversionTarget &target)
       : OpRewritePattern(context), target(target) {}
 
  private:
-  LogicalResult matchAndRewrite(FuncOp func_op,
+  LogicalResult matchAndRewrite(func::FuncOp func_op,
                                 PatternRewriter &rewriter) const override;
   LogicalResult matchAndRewriteBlock(Block *block,
                                      PatternRewriter &rewriter) const;
@@ -120,7 +121,7 @@ struct ConvertOpTypesPattern : public OpConversionPattern<OpTy> {
 }  // namespace
 
 LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewrite(
-    FuncOp func_op, PatternRewriter &rewriter) const {
+    func::FuncOp func_op, PatternRewriter &rewriter) const {
   rewriter.startRootUpdate(func_op);
   LogicalResult result = failure();
   func_op.walk([&](Block *block) {
@@ -283,7 +284,8 @@ void populateStreamifyConversionPatterns(RewritePatternSet &patterns,
   // the AsyncOpInterface.
   target.addLegalOp<tfrt::compiler::CallOp>();
 
-  populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns, converter);
+  populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
+                                                                 converter);
   populateCallOpTypeConversionPattern(patterns, converter);
   populateReturnOpTypeConversionPattern(patterns, converter);
   patterns.add<ConvertOpTypesPattern<compiler::CallOp>,

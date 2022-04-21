@@ -47,7 +47,7 @@ namespace {
 // Test pass to wrap tfrt_gpu ops in tfrt_gpu.streamify.
 struct TestStreamifyConversionPass
     : public mlir::PassWrapper<TestStreamifyConversionPass,
-                               OperationPass<FuncOp>> {
+                               OperationPass<mlir::func::FuncOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestStreamifyConversionPass)
 
   StringRef getArgument() const final { return "test-streamify-conversion"; }
@@ -91,10 +91,11 @@ struct TestStreamifyConversionPass
     target.addLegalDialect("other");
     target.addLegalOp<mlir::UnrealizedConversionCastOp>();
     target.addLegalOp<tfrt::gpu::StreamifyOp>();
-    target.addDynamicallyLegalOp<FuncOp>([&](FuncOp op) {
-      return none_of(op.getBody().getOps(),
-                     [&](Operation &op) { return wrap.isLegal(&op); });
-    });
+    target.addDynamicallyLegalOp<mlir::func::FuncOp>(
+        [&](mlir::func::FuncOp op) {
+          return none_of(op.getBody().getOps(),
+                         [&](Operation &op) { return wrap.isLegal(&op); });
+        });
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns))))
       return signalPassFailure();
@@ -125,12 +126,12 @@ class TestSetEntryPointPass
 
     mlir::func::FuncOp func_op;
     if (function_name_.hasValue()) {
-      func_op = mlir::SymbolTable::lookupNearestSymbolFrom<FuncOp>(
+      func_op = mlir::SymbolTable::lookupNearestSymbolFrom<mlir::func::FuncOp>(
           getOperation(), mlir::StringAttr::get(&getContext(), function_name_));
       if (!func_op)
         return emitError("Function '" + function_name_ + "' not found");
     } else {
-      auto funcs = getOperation().getOps<FuncOp>();
+      auto funcs = getOperation().getOps<mlir::func::FuncOp>();
       if (funcs.empty() || ++funcs.begin() != funcs.end())
         return emitError("Expected exactly one function");
       func_op = *funcs.begin();

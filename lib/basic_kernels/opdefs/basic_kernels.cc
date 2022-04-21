@@ -28,6 +28,8 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
+using func::FuncOp;
+
 namespace tfrt {
 namespace compiler {
 

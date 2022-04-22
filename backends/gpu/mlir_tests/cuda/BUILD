@@ -11,7 +11,26 @@ glob_tfrt_lit_tests(
         for file in glob(["*.mlir"])
     }.items() + {
         # Note: NCCL in the sandbox produces the wrong result in OSS.
-        "ccl.mlir": ["requires-gpu-nvidia:2"] + if_oss(["no-sandbox"]),
+        "all_gather.mlir": [
+            "requires-gpu-nvidia:2",
+            "requires-net:ipv4",
+        ] + if_oss(["no-sandbox"]),
+        "all_reduce.mlir": [
+            "requires-gpu-nvidia:2",
+            "requires-net:ipv4",
+        ] + if_oss(["no-sandbox"]),
+        "all_to_all.mlir": [
+            "requires-gpu-nvidia:2",
+            "requires-net:ipv4",
+        ] + if_oss(["no-sandbox"]),
+        "reduce_scatter.mlir": [
+            "requires-gpu-nvidia:2",
+            "requires-net:ipv4",
+        ] + if_oss(["no-sandbox"]),
+        "send_recv.mlir": [
+            "requires-gpu-nvidia:2",
+            "requires-net:ipv4",
+        ] + if_oss(["no-sandbox"]),
     }.items() + {
         "dnn.mlir": [
             "requires-gpu-nvidia",

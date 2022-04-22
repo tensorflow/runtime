@@ -381,8 +381,16 @@ func.func @ccl_ops() {
   %ch2 = tfrt_gpu.ccl.all_reduce %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %ch1
   // CHECK: tfrt_gpu.ccl.reduce_scatter %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, ncclSum, %{{.*}}
   %ch3 = tfrt_gpu.ccl.reduce_scatter %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %ch2
+  // CHECK: %[[peer:.*]] = tfrt.constant.i32 0
+  %peer = tfrt.constant.i32 0
+  // CHECK: tfrt_gpu.ccl.send %[[ccl]], %[[buffer]], %[[peer]], ncclFloat32, %{{.*}}
+  %ch4 = tfrt_gpu.ccl.send %ccl, %buffer, %peer, ncclFloat32, %ch3
+  // CHECK: tfrt_gpu.ccl.recv %[[ccl]], %[[buffer]], %[[peer]], ncclFloat32, %{{.*}}
+  %ch5 = tfrt_gpu.ccl.recv %ccl, %buffer, %peer, ncclFloat32, %ch4
+  // CHECK: tfrt_gpu.ccl.all_to_all %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, %{{.*}}
+  %ch6 = tfrt_gpu.ccl.all_to_all %ccl, %buffer, %buffer, ncclFloat32, %ch5
   // CHECK: tfrt_gpu.ccl.execute %[[stream]], %[[ccl]], %{{.*}}
-  %ch4 = tfrt_gpu.ccl.execute %stream, %ccl, %ch3
+  %ch7 = tfrt_gpu.ccl.execute %stream, %ccl, %ch6
 
   tfrt.return
 }

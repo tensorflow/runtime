@@ -46,11 +46,14 @@ func.func @all_reduce_test() {
 
   %ch0, %t0 = tfrt.call @all_reduce(%rank0, %count, %id)
               : (i32, i32, !tfrt_gpu.ccl.id) -> (!tfrt.chain, !t.tensor)
-  %unused:2 = tfrt.call @all_reduce(%rank1, %count, %id)
+  %ch1, %t1 = tfrt.call @all_reduce(%rank1, %count, %id)
               : (i32, i32, !tfrt_gpu.ccl.id) -> (!tfrt.chain, !t.tensor)
 
   // CHECK: DenseHostTensor dtype = i32, shape = [1], values = [2]
-  %ch1 = tfrt_dht.print_tensor %t0, %ch0
+  %ch2 = tfrt_dht.print_tensor %t0, %ch0
+  %ch3 = tfrt.merge.chains %ch1, %ch2 : !tfrt.chain, !tfrt.chain
+  // CHECK: DenseHostTensor dtype = i32, shape = [1], values = [2]
+  %ch4 = tfrt_dht.print_tensor %t1, %ch3
 
   tfrt.return
 }

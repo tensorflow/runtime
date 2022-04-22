@@ -52,15 +52,16 @@ static_assert(std::is_trivially_copy_constructible<AsyncRuntime>::value,
 static_assert(sizeof(AsyncRuntime) == 1 * sizeof(void *),
               "AsyncRuntime must only hold one pointer");
 
-AsyncRuntime &GetAsyncRuntime() {
-  assert(async_runtime.runner() != nullptr);
-  return async_runtime;
-}
 }  // namespace
 
 void SetAsyncRuntime(AsyncRuntime runtime) {
   assert(runtime.runner() != nullptr);
   async_runtime = runtime;
+}
+
+AsyncRuntime &GetAsyncRuntime() {
+  assert(async_runtime.runner() != nullptr);
+  return async_runtime;
 }
 
 AsyncValueRef<Chain> ConvertAsyncTokenToChain(AsyncRuntime::Token *token) {

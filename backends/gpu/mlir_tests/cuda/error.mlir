@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// XFAIL: *
 // RUN: tfrt_gpu_opt -mlir-print-debuginfo \
 // RUN:   -test-set-entry-point='platform=CUDA function_name=error' %s \
 // RUN: | tfrt_gpu_translate -mlir-to-bef \

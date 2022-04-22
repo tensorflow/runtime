@@ -175,14 +175,12 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
   // Parse the body region.
   Region *then_region = result.addRegion();
   if (parser.parseRegion(*then_region, body_operands, body_types,
-                         /*argLocations=*/{},
                          /*enableNameShadowing=*/true))
     return failure();
 
   Region *else_region = result.addRegion();
   if (succeeded(parser.parseOptionalKeyword("else"))) {
     if (parser.parseRegion(*else_region, body_operands, body_types,
-                           /*argLocations=*/{},
                            /*enableNameShadowing=*/true))
       return failure();
   } else {
@@ -320,7 +318,6 @@ ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
   // Parse the body region.
   Region *body = result.addRegion();
   return parser.parseRegion(*body, loop_operands, types,
-                            /*argLocations=*/{},
                             /*enableNameShadowing=*/true);
 }
 
@@ -416,7 +413,6 @@ ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
 
   Region *body = result.addRegion();
   return parser.parseRegion(*body, body_operands, body_operands_types,
-                            /*argLocations=*/{},
                             /*enableNameShadowing=*/true);
 }
 

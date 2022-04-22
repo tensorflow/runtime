@@ -72,6 +72,8 @@ static Type GetType(MLIRContext *context, cudaDataType data_type) {
       return Float32Type::get(context);
     case CUDA_R_64F:
       return Float64Type::get(context);
+    case CUDA_C_32F:
+      return ComplexType::get(Float32Type::get(context));
     default:
       llvm_unreachable("unexpected cuda data type");
   }
@@ -287,6 +289,21 @@ static LogicalResult VerifyBlasGemmOp(OpTy op) {
 
 LogicalResult BlasGemmOp::verify() { return VerifyBlasGemmOp(*this); }
 LogicalResult BlasGemmBatchExOp::verify() { return VerifyBlasGemmOp(*this); }
+
+LogicalResult BlasScalOp::verify() {
+  BlasScalOp op = *this;
+  if (!AllEqual({op.typeAlpha(), op.typeX(), op.executionType()})) {
+    // The actual requirements of typeAlpha/typeX/executionType are less strict
+    // than this, but at the moment we only use all float or all double. Relax
+    // this check when we add support for e.g. mixed precision.
+    return op.emitOpError("typeAlpha, typeX, and executionType need to match");
+  }
+  Type type_alpha = GetType(op.typeAlphaAttr());
+  if (op.alpha().getType() != type_alpha) {
+    return op.emitOpError("alpha's type doesn't match typeAlpha");
+  }
+  return mlir::success();
+}
 
 LogicalResult FftCreateOp::verify() {
   if (dims().empty() || dims().size() > 3)

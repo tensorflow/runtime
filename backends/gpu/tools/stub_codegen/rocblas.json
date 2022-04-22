@@ -28,6 +28,7 @@
       "rocblas_strsm_batched",
       "rocblas_dtrsm_batched",
       "rocblas_ctrsm_batched",
-      "rocblas_ztrsm_batched"
+      "rocblas_ztrsm_batched",
+      "rocblas_scal_ex"
    ]
 }

@@ -103,6 +103,16 @@ llvm::Error RocblasGemmStridedBatchedEx(
       computeType, algo, /*solution_index=*/0, /*flags=*/0));
 }
 
+llvm::Error RocblasScalEx(
+    CurrentContext current, rocblas_handle handle, int n,
+    Pointer<const void> alpha, /* host or device pointer */
+    rocblas_datatype alphaType, Pointer<const void> x, rocblas_datatype typeX,
+    int strideX, rocblas_datatype executionType) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_scal_ex(handle, n, ToRocm(alpha), alphaType,
+                                  ToRocm(x), typeX, strideX, executionType));
+}
+
 llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
                                rocblas_datatype dataType, rocblas_side sideMode,
                                rocblas_fill fillMode, rocblas_operation trans,

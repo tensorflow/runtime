@@ -186,6 +186,23 @@ llvm::Error BlasGemmStridedBatchedEx(
   }
 }
 
+llvm::Error BlasScalEx(CurrentContext current, BlasHandle handle, int n,
+                       Pointer<const void> alpha, BlasDataType alphaType,
+                       Pointer<void> x, BlasDataType typeX, int strideX,
+                       BlasDataType executionType) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CublasScalEx(current, handle, n, alpha, alphaType, x, typeX,
+                          strideX, executionType);
+    case Platform::ROCm:
+      return RocblasScalEx(current, handle, n, alpha, alphaType, x, typeX,
+                           strideX, executionType);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Error BlasTrsmBatched(CurrentContext current, BlasHandle handle,
                             BlasDataType dataType, BlasSideMode sideMode,
                             BlasFillMode fillMode, BlasOperation trans,

@@ -161,6 +161,12 @@ func.func @blas_ops() {
     CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT, %stride, %stride,
     CUDA_R_32F, %alpha, %buffer, %stride, %buffer, %stride, %stride, %ch3
 
+  // CHECK: tfrt_gpu.blas.scal %[[blas]], %[[stream]], %[[width]], %[[alpha]],
+  // CHECK-SAME: CUDA_R_32F, %[[buffer]], CUDA_R_32F, %[[stride]], CUDA_R_32F,
+  // CHECK-SAME: %{{.*}}
+  %ch5 = tfrt_gpu.blas.scal %blas, %stream, %width, %alpha, CUDA_R_32F,
+    %buffer, CUDA_R_32F, %stride, CUDA_R_32F, %ch4
+
   tfrt.return
 }
 

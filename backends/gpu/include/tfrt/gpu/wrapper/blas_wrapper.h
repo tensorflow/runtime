@@ -89,6 +89,11 @@ llvm::Error BlasGemmStridedBatchedEx(
     int64_t strideC, int batchCount, BlasComputeType computeType,
     BlasGemmAlgo algo);
 
+llvm::Error BlasScalEx(CurrentContext current, BlasHandle handle, int n,
+                       Pointer<const void> alpha, BlasDataType alphaType,
+                       Pointer<void> x, BlasDataType typeX, int strideX,
+                       BlasDataType executionType);
+
 llvm::Error BlasTrsmBatched(CurrentContext current, BlasHandle handle,
                             BlasDataType dataType, BlasSideMode sideMode,
                             BlasFillMode fillMode, BlasOperation trans,

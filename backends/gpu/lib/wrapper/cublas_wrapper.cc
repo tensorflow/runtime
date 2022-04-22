@@ -128,6 +128,15 @@ llvm::Error CublasGemmStridedBatchedEx(
       typeC, heightC, strideC, batchCount, computeType, algo));
 }
 
+llvm::Error CublasScalEx(CurrentContext current, cublasHandle_t handle, int n,
+                         Pointer<const void> alpha, cudaDataType alphaType,
+                         Pointer<void> x, cudaDataType xType, int incx,
+                         cudaDataType executionType) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasScalEx(handle, n, ToCuda(alpha), alphaType, ToCuda(x),
+                               xType, incx, executionType));
+}
+
 llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
                               cudaDataType dataType, cublasSideMode_t sideMode,
                               cublasFillMode_t fillMode,

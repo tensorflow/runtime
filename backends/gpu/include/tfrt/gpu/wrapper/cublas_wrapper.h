@@ -130,6 +130,12 @@ llvm::Error CublasGemmStridedBatchedEx(
     int64_t strideC, int batchCount, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo);
 
+llvm::Error CublasScalEx(CurrentContext current, cublasHandle_t handle, int n,
+                         Pointer<const void> alpha, /* host or device pointer */
+                         cudaDataType alphaType, Pointer<void> x,
+                         cudaDataType xType, int incx,
+                         cudaDataType executionType);
+
 llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
                               cudaDataType dataType, cublasSideMode_t sideMode,
                               cublasFillMode_t fillMode,

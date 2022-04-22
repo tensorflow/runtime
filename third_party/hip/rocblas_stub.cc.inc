@@ -120,3 +120,12 @@ ROCBLAS_EXPORT rocblas_status rocblas_axpy_ex(
       "rocblas_axpy_ex", handle, n, alpha, alpha_type, x, x_type, incx, y,
       y_type, incy, execution_type);
 }
+
+ROCBLAS_EXPORT rocblas_status rocblas_scal_ex(
+    rocblas_handle handle, rocblas_int n, const void* alpha,
+    rocblas_datatype alpha_type, const void* x, rocblas_datatype x_type,
+    rocblas_int incx, rocblas_datatype execution_type) {
+  return DynamicCall<decltype(rocblas_scal_ex), &rocblas_scal_ex>(
+      "rocblas_scal_ex", handle, n, alpha, alpha_type, x, x_type, incx,
+      execution_type);
+}

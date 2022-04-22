@@ -15,6 +15,7 @@
       "cublasStrsmBatched",
       "cublasDtrsmBatched",
       "cublasCtrsmBatched",
-      "cublasZtrsmBatched"
+      "cublasZtrsmBatched",
+      "cublasScalEx"
    ]
 }

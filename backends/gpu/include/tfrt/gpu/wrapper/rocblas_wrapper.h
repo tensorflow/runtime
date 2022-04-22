@@ -127,6 +127,12 @@ llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
                                Pointer<const void*> A, int lda,
                                Pointer<void*> B, int ldb, int batchCount);
 
+llvm::Error RocblasScalEx(
+    CurrentContext current, rocblas_handle handle, int n,
+    Pointer<const void> alpha, /* host or device pointer */
+    rocblas_datatype alphaType, Pointer<const void> x, rocblas_datatype typeX,
+    int strideX, rocblas_datatype executionType);
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

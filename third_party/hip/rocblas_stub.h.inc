@@ -142,3 +142,8 @@ ROCBLAS_EXPORT rocblas_status rocblas_axpy_ex(
     rocblas_datatype alpha_type, const void* x, rocblas_datatype x_type,
     rocblas_int incx, void* y, rocblas_datatype y_type, rocblas_int incy,
     rocblas_datatype execution_type);
+
+ROCBLAS_EXPORT rocblas_status rocblas_scal_ex(
+    rocblas_handle handle, rocblas_int n, const void* alpha,
+    rocblas_datatype alpha_type, const void* x, rocblas_datatype x_type,
+    rocblas_int incx, rocblas_datatype execution_type);

@@ -128,6 +128,23 @@ def TFRTGPU_BlasGemmBatchExOp : TFRTGPU_Op<"blas.gemm.batch"> {
   let hasVerifier = 1;
 }
 
+def TFRTGPU_BlasScalOp : TFRTGPU_Op<"blas.scal"> {
+  let description = [{
+    tfrt_gpu.blas.scal call BLAS scal function.
+  }];
+  let arguments = (ins TFRTGPU_BlasHandleType:$handle, TFRTGPU_StreamType:$stream, I32:$n,
+                   AnyType:$alpha, TFRTGPU_BlasDataTypeAttr:$typeAlpha,
+                   TFRTGPU_BufferType:$x, TFRTGPU_BlasDataTypeAttr:$typeX, I32:$strideX,
+                   TFRTGPU_BlasDataTypeAttr:$executionType, TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $stream`,` $n`,` $alpha`,` custom<Enum>($typeAlpha, type($alpha))`,`
+    $x`,` custom<Enum>($typeX)`,` $strideX`,`
+    custom<Enum>($executionType)`,` $chain attr-dict
+  }];
+  let hasVerifier = 1;
+}
+
 def TFRTGPU_BlasTrsmBatchOp : TFRTGPU_Op<"blas.trsm.batch"> {
   let description = [{
     tfrt_gpu.blas.trsm.batch solves an array of triangular linear systems with

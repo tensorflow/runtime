@@ -170,6 +170,28 @@ static Error BlasGemmBatch(
       batchCount, compute_type, algo);
 }
 
+static Error BlasScal(const GpuBlasHandle& handle, const GpuStream& stream,
+                      int32_t n, AsyncValue* alpha, const GpuBuffer& x,
+                      int32_t strideX,
+                      // Needs to be sorted alphabetically by attribute name!
+                      Attribute<int32_t> executionType,
+                      Attribute<int32_t> typeAlpha, Attribute<int32_t> typeX) {
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
+  if (!current) return current.takeError();
+
+  if (auto error = wrapper::BlasSetStream(handle.get(), stream.get()))
+    return error;
+
+  auto type_alpha = wrapper::BlasDataType::FromOpaqueValue(*typeAlpha);
+  auto alpha_ptr = GetScalePointer(alpha, type_alpha);
+  if (!alpha_ptr) return alpha_ptr.takeError();
+
+  return wrapper::BlasScalEx(
+      *current, handle.get(), n, *alpha_ptr, type_alpha, x.pointer(),
+      wrapper::BlasDataType::FromOpaqueValue(*typeX), strideX,
+      wrapper::BlasDataType::FromOpaqueValue(*executionType));
+}
+
 static Error BlasTrsmBatch(
     const GpuBlasHandle& handle, const GpuStream& stream, int32_t m, int32_t n,
     AsyncValue* alpha, const GpuBuffer& A, int32_t heightA, const GpuBuffer& B,
@@ -230,6 +252,8 @@ void RegisterGpuBlasKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemm));
   kernel_reg->AddKernel("tfrt_gpu.blas.gemm.batch",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemmBatch));
+  kernel_reg->AddKernel("tfrt_gpu.blas.scal",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasScal));
   kernel_reg->AddKernel("tfrt_gpu.blas.trsm.batch",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasTrsmBatch));
 }

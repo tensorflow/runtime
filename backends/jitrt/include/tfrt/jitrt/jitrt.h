@@ -177,6 +177,11 @@ struct CompilationOptions {
   using CallingConvention =
       std::function<mlir::FunctionType(mlir::FunctionType)>;
 
+  // Runtime symbol map allows to pass user-defined bindings for symbols at JIT
+  // compilation time (e.g. to implement custom C APIs).
+  using RuntimeSymbolMap =
+      std::function<llvm::orc::SymbolMap(llvm::orc::MangleAndInterner)>;
+
   // Returns a calling convention that only adds the kernel context argument.
   static CallingConvention DefaultCallingConvention();
 
@@ -198,6 +203,9 @@ struct CompilationOptions {
 
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
+
+  // User-defined bindings for symbols.
+  RuntimeSymbolMap runtime_symbol_map;
 
   // What level of specialization is enabled at runtime.
   Specialization specialization = Specialization::kAlways;

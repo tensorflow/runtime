@@ -829,6 +829,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   (*engine)->registerSymbols(runtime::RuntimeApiSymbolMap);
   // Register memory allocation functions (malloc, free, ...).
   (*engine)->registerSymbols(AsyncRuntimeMemoryAllocationSymbolMap);
+  // Register any user-defined API passed via the compilation options.
+  if (ctx->options().runtime_symbol_map)
+    (*engine)->registerSymbols(ctx->options().runtime_symbol_map);
 
   // Trigger compilation by looking up the entrypoint function in the engine.
   Expected<Executable::KernelFunctionPtr> kernel_fn =

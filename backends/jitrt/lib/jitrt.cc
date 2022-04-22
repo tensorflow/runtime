@@ -295,6 +295,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
 
 void ReturnValueConverterBase::ReturnErrors(
     RCReference<ErrorAsyncValue> error) const {
+  if (results_.empty()) return;
   results_[0] = std::move(error);
   for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
 }

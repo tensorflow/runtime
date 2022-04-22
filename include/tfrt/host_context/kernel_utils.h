@@ -329,6 +329,7 @@ class RemainingResults {
   MutableArrayRef<RCReference<AsyncValue>> values() const {
     return remaining_results_;
   }
+  bool empty() const { return remaining_results_.empty(); }
   size_t size() const { return remaining_results_.size(); }
   RCReference<AsyncValue>& operator[](size_t i) const {
     return remaining_results_[i];

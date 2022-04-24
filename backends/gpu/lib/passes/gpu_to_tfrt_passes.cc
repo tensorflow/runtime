@@ -129,6 +129,16 @@ struct AddChainAndStreamToCallPattern
       ConversionPatternRewriter &rewriter) const override;
 };
 
+// Adds chain and stream argument to tfrt.while to match the rewritten function.
+struct AddChainAndStreamToWhilePattern
+    : tfrt::gpu::StreamifyOpConversionPattern<tfrt::compiler::WhileOp> {
+  using tfrt::gpu::StreamifyOpConversionPattern<
+      tfrt::compiler::WhileOp>::StreamifyOpConversionPattern;
+  FailureOr<Value> matchAndRewriteOp(
+      tfrt::compiler::WhileOp op, OpAdaptor adaptor, Value chain, Value stream,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
 // Two type conversion patterns for async.execute. It inserts casts to/from the
 // converted types before/after as well as at the end/beginning of the region.
 //
@@ -300,6 +310,39 @@ struct ConvertMemrefGlobalPattern : OpConversionPattern<memref::GlobalOp> {
  private:
   LogicalResult matchAndRewrite(
       memref::GlobalOp global_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts a `memref.load` to tfrt gpu.
+//
+//     tfrt_gpu.streamify() {
+//      ^bb(%ch0: !tfrt.chain, %stream: !tfrt_gpu.stream):
+//       %value = memref.load %memref : memref<i32>
+//       ...
+//       tfrt.return %ch0 : !tfrt.chain
+//     }
+//
+// will be rewritten to
+//
+//     tfrt_gpu_conversion.async.execute() {
+//      ^bb(%ch0: !tfrt.chain, %stream: !tfrt_gpu.stream):
+//       %context = tfrt_gpu.stream.get_context %stream
+//       %size = tfrt.constant.i64 4
+//       %host = tfrt_gpu.mem.allocate_host %context, %size, %ch0
+//       %buffer = unrealized_conversion_cast %memref : !tfrt_gpu.buffer
+//       %ch1 = tfrt_gpu.mem.copy %stream, %host, %buffer, %ch0
+//       %ch2 = tfrt_gpu.stream.synchronize %stream, %ch1
+//       %value = tfrt_gpu.mem.load %host, %ch2 : i32
+//       ...
+//       tfrt.return %ch2 : !tfrt.chain
+//     }
+//
+struct ConvertMemrefLoadPattern
+    : tfrt::gpu::StreamifyOpConversionPattern<memref::LoadOp> {
+  using tfrt::gpu::StreamifyOpConversionPattern<
+      memref::LoadOp>::StreamifyOpConversionPattern;
+  FailureOr<Value> matchAndRewriteOp(
+      memref::LoadOp op, OpAdaptor adaptor, Value chain, Value stream,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -749,6 +792,18 @@ FailureOr<Value> AddChainAndStreamToCallPattern::matchAndRewriteOp(
   return call_op.getResult(0);
 }
 
+FailureOr<Value> AddChainAndStreamToWhilePattern::matchAndRewriteOp(
+    tfrt::compiler::WhileOp op, OpAdaptor adaptor, Value chain, Value stream,
+    ConversionPatternRewriter &rewriter) const {
+  llvm::SmallVector<Value, 8> operands = {chain, stream};
+  llvm::copy(adaptor.operands(), std::back_inserter(operands));
+  auto while_op = rewriter.create<tfrt::compiler::WhileOp>(
+      op->getLoc(), TypeRange(ValueRange(operands)), adaptor.cond(), operands,
+      adaptor.body_fn());
+  rewriter.replaceOp(op, while_op->getResults().drop_front(2));
+  return while_op.getResult(0);
+}
+
 LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
     async::ExecuteOp exec_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
@@ -1098,6 +1153,23 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
   return success();
 }
 
+FailureOr<Value> ConvertMemrefLoadPattern::matchAndRewriteOp(
+    memref::LoadOp op, OpAdaptor adaptor, Value chain, Value stream,
+    ConversionPatternRewriter &rewriter) const {
+  Location loc = op.getLoc();
+  Value context = rewriter.create<StreamGetContextOp>(loc, stream);
+  Value size = rewriter.create<compiler::ConstantI64Op>(
+      loc, GetTypeSizeBytes(op.getType()));
+  Value host_buffer =
+      rewriter.create<MemAllocateHostOp>(loc, context, size, chain);
+  chain = rewriter.create<MemCopyOp>(loc, host_buffer, adaptor.memref(), stream,
+                                     chain);
+  chain = rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
+  rewriter.replaceOpWithNewOp<MemLoadOp>(op, op.getType(), host_buffer, chain,
+                                         op.getType());
+  return chain;
+}
+
 LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
     mlir::gpu::LaunchFuncOp launch_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
@@ -1436,13 +1508,23 @@ void AddChainAndStreamToFuncPass::runOnOperation() {
     return signalPassFailure();
   // Second, update call sites which no longer match the function signature.
   RewritePatternSet call_patterns(&getContext());
-  call_patterns.add<AddChainAndStreamToCallPattern>(&getContext());
+  call_patterns
+      .add<AddChainAndStreamToCallPattern, AddChainAndStreamToWhilePattern>(
+          &getContext());
   ConversionTarget target(getContext());
-  target.addDynamicallyLegalOp<compiler::CallOp>(
-      [symbol_table = SymbolTable(getOperation())](compiler::CallOp call_op) {
+  SymbolTable symbol_table(getOperation());
+  target.addDynamicallyLegalOp<compiler::CallOp>([&](compiler::CallOp call_op) {
+    auto func_op = symbol_table.lookupNearestSymbolFrom<func::FuncOp>(
+        call_op, call_op.calleeAttr());
+    return func_op && func_op.getFunctionType() == call_op.getCalleeType();
+  });
+  target.addDynamicallyLegalOp<compiler::WhileOp>(
+      [&](compiler::WhileOp while_op) {
         auto func_op = symbol_table.lookupNearestSymbolFrom<func::FuncOp>(
-            call_op, call_op.calleeAttr());
-        return func_op && func_op.getFunctionType() == call_op.getCalleeType();
+            while_op, while_op.body_fnAttr());
+        if (!func_op) return false;
+        // tfrt.while: (i1, ...) -> (...), body func: (...) -> (..., i1)
+        return func_op.getArgumentTypes() == while_op.getResultTypes();
       });
   target.addLegalOp<compiler::ReturnOp>();  // tfrt.return is updated as well.
   if (failed(applyPartialConversion(getOperation(), target,
@@ -1505,17 +1587,28 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
   // Rewrite `gpu.module` before rewriting the referenced `memref.global` ops.
   if (failed(ConvertGpuModuleOps(getOperation()))) return signalPassFailure();
 
-  RewritePatternSet patterns(&getContext());
   auto converter = createMemrefToTfrtGpuConverter();
+  ConversionTarget target(getContext());
+
+  // Rewrite `memref.load` before `tfrt_gpu.streamify` is inlined.
+  target.addIllegalOp<memref::LoadOp>();
+  target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
+  if (failed(applyPartialConversion(
+          getOperation(), target,
+          RewritePatternSet(&getContext(),
+                            std::make_unique<ConvertMemrefLoadPattern>(
+                                converter, &getContext()))))) {
+    return signalPassFailure();
+  }
+
+  RewritePatternSet patterns(&getContext());
   patterns.add<ConvertAllocPattern, ConvertDeallocPattern, ConvertMemsetPattern,
                ConvertMemcpyPattern, ConvertMemrefGlobalPattern,
                ConvertLaunchFuncPattern>(converter, &getContext());
   patterns.add<ConvertGetGlobalPattern, InlineStreamifyOpPattern,
                ConvertGpuWaitToChainAndStreamPattern>(&getContext());
-  ConversionTarget target(getContext());
   target.addIllegalDialect<mlir::gpu::GPUDialect>();
   target.addIllegalOp<StreamifyOp, memref::GetGlobalOp, memref::GlobalOp>();
-  target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
   if (failed(applyPartialConversion(getOperation(), target,
                                     std::move(patterns)))) {

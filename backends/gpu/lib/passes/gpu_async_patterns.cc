@@ -282,15 +282,16 @@ void populateStreamifyConversionPatterns(RewritePatternSet &patterns,
   // containing such tfrt.call. If this turns out to be a problem, we need to
   // analyze the call graph and only wrap calls that execute ops implementing
   // the AsyncOpInterface.
-  target.addLegalOp<tfrt::compiler::CallOp>();
+  target.addLegalOp<compiler::CallOp, compiler::WhileOp, memref::LoadOp>();
 
   populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
                                                                  converter);
   populateCallOpTypeConversionPattern(patterns, converter);
   populateReturnOpTypeConversionPattern(patterns, converter);
   patterns.add<ConvertOpTypesPattern<compiler::CallOp>,
-               ConvertOpTypesPattern<compiler::ReturnOp>>(
-      converter, patterns.getContext());
+               ConvertOpTypesPattern<compiler::ReturnOp>,
+               ConvertOpTypesPattern<compiler::WhileOp>>(converter,
+                                                         patterns.getContext());
 
   patterns.add<NestLegalOpsInStreamifyOpPattern>(patterns.getContext(), target);
 

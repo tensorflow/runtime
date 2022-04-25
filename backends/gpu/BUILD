@@ -818,6 +818,7 @@ tfrt_cc_library(
         ":gpu_entry_point",
         ":gpu_opdefs",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:AsyncTransforms",
         "@llvm-project//mlir:FuncDialect",

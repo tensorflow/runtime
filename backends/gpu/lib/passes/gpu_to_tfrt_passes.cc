@@ -1729,7 +1729,6 @@ TypeConverter CreateMemrefToTfrtGpuConverter() {
 void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
   pm.addPass(std::make_unique<AddChainAndStreamToFuncPass>());
   pm.addPass(std::make_unique<ConvertAsyncToChainAndEventPass>());
-  pm.addPass(createCanonicalizerPass());  // Remove unused `cast(get_global)`.
   pm.addPass(std::make_unique<ConvertGpuToTfrtGpuPass>());
   pm.addPass(std::make_unique<ReconcileCastsPass>());
   pm.addPass(std::make_unique<ConvertAsyncToTfrtPass>());

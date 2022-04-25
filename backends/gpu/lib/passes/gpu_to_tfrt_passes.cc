@@ -1077,7 +1077,7 @@ static Value CreateSetGlobal(ConversionPatternRewriter &rewriter,
 LogicalResult ConvertGpuModulePattern::matchAndRewrite(
     mlir::gpu::GPUModuleOp module_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  auto data = module_op->getAttrOfType<StringAttr>(getGpuBinaryAttrName());
+  auto data = module_op->getAttrOfType<StringAttr>(GetGpuBinaryAttrName());
   if (!data)
     return rewriter.notifyMatchFailure(module_op, "no device code attribute");
   if (data.size() == 0) {
@@ -1087,7 +1087,7 @@ LogicalResult ConvertGpuModulePattern::matchAndRewrite(
   }
   Location loc = module_op->getLoc();
   auto constants =
-      module_op->getAttrOfType<ArrayAttr>(getGpuConstantsAttrName());
+      module_op->getAttrOfType<ArrayAttr>(GetGpuConstantsAttrName());
   mlir::FunctionType func_type = rewriter.getFunctionType(
       rewriter.getType<ContextType>(), rewriter.getType<ModuleType>());
   func::FuncOp func_op = rewriter.replaceOpWithNewOp<func::FuncOp>(
@@ -1129,7 +1129,7 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
 
   // If the global is a GPU module symbol, return that.
   if (auto module_attr =
-          global_op->getAttrOfType<FlatSymbolRefAttr>(getGpuModuleAttrName())) {
+          global_op->getAttrOfType<FlatSymbolRefAttr>(GetGpuModuleAttrName())) {
     auto once_op = rewriter.create<compiler::OnceOp>(
         loc, rewriter.getType<ModuleType>(), ValueRange(context), module_attr);
     Value buffer = rewriter.create<ModuleGetGlobalOp>(
@@ -1588,7 +1588,7 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
   // Rewrite `gpu.module` before rewriting the referenced `memref.global` ops.
   if (failed(ConvertGpuModuleOps(getOperation()))) return signalPassFailure();
 
-  auto converter = createMemrefToTfrtGpuConverter();
+  auto converter = CreateMemrefToTfrtGpuConverter();
   ConversionTarget target(getContext());
 
   // Rewrite `memref.load` before `tfrt_gpu.streamify` is inlined.
@@ -1710,11 +1710,11 @@ static Value MaterializeCast(OpBuilder &builder, Type type, ValueRange values,
   return builder.create<CastOp>(loc, type, values).getResult(0);
 }
 
-StringRef getGpuBinaryAttrName() { return "binary"; }
-StringRef getGpuConstantsAttrName() { return "constants"; }
-StringRef getGpuModuleAttrName() { return "gpu_module"; }
+StringRef GetGpuBinaryAttrName() { return "binary"; }
+StringRef GetGpuConstantsAttrName() { return "constants"; }
+StringRef GetGpuModuleAttrName() { return "gpu_module"; }
 
-TypeConverter createMemrefToTfrtGpuConverter() {
+TypeConverter CreateMemrefToTfrtGpuConverter() {
   TypeConverter converter;
   converter.addConversion([](Type type) { return type; });
   converter.addConversion([&](BaseMemRefType type) {

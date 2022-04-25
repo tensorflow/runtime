@@ -145,6 +145,25 @@ Error SyncSetDenseTensorWithConstantValues(
   return Error::success();
 }
 
+template <>
+Error SyncSetDenseTensorWithConstantValues(
+    MutableDHTArrayView<std::complex<double>> in,
+    ArrayAttribute<std::complex<double>> values) {
+  // In actuality, 'values' is an ArrayAttribute<double>. Treating it as an
+  // ArrayAttribute<std::complex<double>> makes the copy easier, and fits the
+  // template specialization nicely.
+  const int total_value_count = in.NumElements() * 2;  // real and imaginary
+  if (total_value_count != values.size()) {
+    return MakeStringError(
+        "Incorrect number of real and imaginary values for the complex "
+        "tensor: ",
+        values.size(), ", but expected ", total_value_count);
+  }
+  std::copy(values.data().begin(), values.data().begin() + in.NumElements(),
+            in.Elements().begin());
+  return Error::success();
+}
+
 template <typename T>
 static void SetDenseTensorWithConstantValues(
     ArgumentView<MutableDHTArrayView<T>> in, Argument<Chain> chain_in,

@@ -74,6 +74,7 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
                        " # branches: ", branches.size()),
           tfrt::ErrorCode::kInvalidArgument);
       for (auto& result : results) result = error;
+      return;
     }
     branches[branch_index]->Execute(exec_ctx, args.drop_front(), results);
   };

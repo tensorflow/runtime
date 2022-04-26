@@ -102,56 +102,6 @@ struct TestStreamifyConversionPass
   }
 };
 
-class TestSetEntryPointPass
-    : public mlir::PassWrapper<TestSetEntryPointPass, OperationPass<ModuleOp>> {
- public:
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestSetEntryPointPass)
-
-  TestSetEntryPointPass() = default;
-  TestSetEntryPointPass(const TestSetEntryPointPass &pass) {}
-  void getDependentDialects(DialectRegistry &registry) const override {
-    tfrt::RegisterTFRTDialects(registry);
-    tfrt::RegisterTFRTCompiledDialects(registry);
-    registry.insert<tfrt::gpu::GpuDialect, mlir::arith::ArithmeticDialect,
-                    mlir::cf::ControlFlowDialect, mlir::gpu::GPUDialect,
-                    mlir::memref::MemRefDialect, mlir::func::FuncDialect,
-                    tfrt::compiler::TFRTDialect>();
-  }
-
-  StringRef getArgument() const final { return "test-set-entry-point"; }
-
-  void runOnOperation() override {
-    auto platform = tfrt::gpu::wrapper::ParsePlatform(platform_);
-    if (!platform) return emitError(toString(platform.takeError()));
-
-    mlir::func::FuncOp func_op;
-    if (function_name_.hasValue()) {
-      func_op = mlir::SymbolTable::lookupNearestSymbolFrom<mlir::func::FuncOp>(
-          getOperation(), mlir::StringAttr::get(&getContext(), function_name_));
-      if (!func_op)
-        return emitError("Function '" + function_name_ + "' not found");
-    } else {
-      auto funcs = getOperation().getOps<mlir::func::FuncOp>();
-      if (funcs.empty() || ++funcs.begin() != funcs.end())
-        return emitError("Expected exactly one function");
-      func_op = *funcs.begin();
-    }
-
-    tfrt::gpu::setEntryPoint(getOperation(), *platform, func_op.getSymName(),
-                             buffer_sizes_);
-  }
-
- private:
-  void emitError(StringRef message) {
-    getOperation()->emitError() << message;
-    signalPassFailure();
-  }
-
-  Option<std::string> platform_{*this, "platform"};
-  Option<std::string> function_name_{*this, "function_name"};
-  ListOption<int64_t> buffer_sizes_{*this, "buffer_sizes"};
-};
-
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -163,7 +113,6 @@ int main(int argc, char **argv) {
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
                   tfrt::test::TestDialect>();
   PassRegistration<TestStreamifyConversionPass>();
-  PassRegistration<TestSetEntryPointPass>();
   tfrt::gpu::registerPasses();
 
   return mlir::asMainReturnCode(

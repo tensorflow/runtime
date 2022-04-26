@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // RUN: tfrt_gpu_opt \
-// RUN:   -test-set-entry-point='platform=CUDA buffer_sizes=1,2,3' %s \
+// RUN:   -tfrt-set-entry-point='platform=CUDA buffer_sizes=1,2,3' %s \
 // RUN: | FileCheck %s
 
 // CHECK: func @get_tfrt_gpu_entry_point() -> !tfrt_gpu.entry_point {

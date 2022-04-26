@@ -96,11 +96,12 @@ void populateGpuToTfrtGpuPasses(mlir::OpPassManager& pm);
 // Registers all tfrt gpu passes.
 void registerPasses();
 
-// Adds a function to `module` which returns the entry point information for
-// the gpu executor.
-void setEntryPoint(mlir::ModuleOp module, wrapper::Platform platform,
-                   llvm::StringRef function_name,
-                   llvm::ArrayRef<int64_t> buffer_sizes);
+// Creates a pass which adds a function returning the entry point information
+// for the gpu executor.
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> CreateSetEntryPointPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> CreateSetEntryPointPass(
+    wrapper::Platform platform, mlir::StringRef function_name,
+    mlir::ArrayRef<int64_t> buffer_sizes);
 
 }  // namespace gpu
 }  // namespace tfrt

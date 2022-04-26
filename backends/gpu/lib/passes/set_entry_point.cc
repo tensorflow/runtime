@@ -31,8 +31,41 @@
 namespace tfrt {
 namespace gpu {
 
-void setEntryPoint(ModuleOp module, wrapper::Platform platform,
-                   StringRef function_name, ArrayRef<int64_t> buffer_sizes) {
+namespace {
+
+struct SetEntryPointPass
+    : public PassWrapper<SetEntryPointPass, OperationPass<ModuleOp>> {
+ public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(SetEntryPointPass)
+
+  SetEntryPointPass() = default;
+  SetEntryPointPass(const SetEntryPointPass &) {}
+
+  Option<wrapper::Platform> platform{
+      *this, "platform",
+      llvm::cl::values(
+          llvm::cl::OptionEnumValue{
+              "CUDA", static_cast<int>(wrapper::Platform::CUDA), ""},
+          llvm::cl::OptionEnumValue{
+              "ROCm", static_cast<int>(wrapper::Platform::ROCm), ""})};
+  Option<std::string> function_name{*this, "function_name"};
+  ListOption<int64_t> buffer_sizes{*this, "buffer_sizes"};
+
+ private:
+  StringRef getArgument() const final { return "tfrt-set-entry-point"; }
+
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<compiler::TFRTDialect, GpuDialect>();
+  }
+
+  void runOnOperation() override;
+};
+
+}  // namespace
+
+static void SetEntryPoint(ModuleOp module, wrapper::Platform platform,
+                          StringRef function_name,
+                          ArrayRef<int64_t> buffer_sizes) {
   OpBuilder builder(module.getContext());
 
   // Create a function.
@@ -63,6 +96,47 @@ void setEntryPoint(ModuleOp module, wrapper::Platform platform,
 
   // Return entry point.
   builder.create<compiler::ReturnOp>(loc, get_entry_point_op->getResult(0));
+}
+
+void SetEntryPointPass::runOnOperation() {
+  if (!platform.hasValue()) {
+    getOperation()->emitError() << "Unspecified 'platform' option";
+    return signalPassFailure();
+  }
+
+  func::FuncOp func_op;
+  if (function_name.hasValue()) {
+    func_op = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        getOperation(), StringAttr::get(&getContext(), function_name));
+    if (!func_op) {
+      getOperation()->emitError()
+          << "Function '" << function_name << "' not found";
+      return signalPassFailure();
+    }
+  } else {
+    auto funcs = getOperation().getOps<func::FuncOp>();
+    if (funcs.empty() || ++funcs.begin() != funcs.end()) {
+      getOperation()->emitError() << "Expected exactly one function";
+      return signalPassFailure();
+    }
+    func_op = *funcs.begin();
+  }
+
+  SetEntryPoint(getOperation(), platform, func_op.getSymName(), buffer_sizes);
+}
+
+std::unique_ptr<OperationPass<ModuleOp>> CreateSetEntryPointPass() {
+  return std::make_unique<SetEntryPointPass>();
+}
+
+std::unique_ptr<OperationPass<ModuleOp>> CreateSetEntryPointPass(
+    wrapper::Platform platform, StringRef function_name,
+    ArrayRef<int64_t> buffer_sizes) {
+  auto pass = std::make_unique<SetEntryPointPass>();
+  pass->platform = platform;
+  pass->function_name = function_name.str();
+  pass->buffer_sizes = buffer_sizes;
+  return pass;
 }
 
 }  // namespace gpu

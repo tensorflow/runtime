@@ -1742,6 +1742,7 @@ void registerPasses() {
   PassRegistration<ReconcileCastsPass>();
   PassRegistration<ConvertAsyncToTfrtPass>();
   PassRegistration<HoistingPass>();
+  registerPass([] { return CreateSetEntryPointPass(); });
 
   PassPipelineRegistration<>(
       "gpu-to-tfrt-gpu",

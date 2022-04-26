@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // RUN: tfrt_gpu_opt -mlir-print-debuginfo \
-// RUN:   -test-set-entry-point='platform=CUDA buffer_sizes=64' %s \
+// RUN:   -tfrt-set-entry-point='platform=CUDA buffer_sizes=64' %s \
 // RUN: | tfrt_gpu_translate -mlir-to-bef \
 // RUN: | tfrt_gpu_executor \
 // RUN: | FileCheck %s

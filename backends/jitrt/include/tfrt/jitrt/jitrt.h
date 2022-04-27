@@ -802,8 +802,13 @@ class Executable {
   }
 
   // Initializes call frame by adding all operands as pointers to the arguments
-  // vector. Also allocates storage for the returned values. Return values
-  // storage requirements inferred from the kernel function signature.
+  // vector. Also allocates storage for the returned values.
+  //
+  // If `verify_operands` is true (in debug mode it's always on, independent of
+  // the argument value) this function also verifies that operands passed at run
+  // time matches the executable entrypoint signature (e.g. all statically known
+  // dimensions of the memrefs matches the operands). Returns an error if finds
+  // a mismatch.
   //
   // This function leaves the kernel context argument (the first argument of a
   // kernel function) uninitialized. It will be initialized in the `Execute`
@@ -811,7 +816,8 @@ class Executable {
   //
   // See mlir::ExecutionEngine `packFunctionArguments` for the details.
   Error InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                            CallFrame* call_frame) const;
+                            CallFrame* call_frame,
+                            bool verify_operands = true) const;
 
   // Converts returned values owned by the call frame using provided value
   // converter. If result conversion fails (e.g. result type is not supported)
@@ -822,16 +828,20 @@ class Executable {
   Error ReturnResults(const ReturnValueConverterBase& results,
                       CallFrame* call_frame) const;
 
-  // Executes compiled function with given operands. If operands passed at
-  // runtime are not compatible with the compiled function signature, allocates
-  // error async values for all results.
+  // Executes compiled function with given operands.
+  //
+  // If `verify_operands` is true (in debug mode it's always on, independent of
+  // the argument value) this function also verifies that operands passed at run
+  // time matches the executable entrypoint signature. If some of the operands
+  // do not match the expected type, this function allocates error async values
+  // for all results and returns an error.
   //
   // Returns compiled function results via the user-provided results converter.
   // If compiled function execution completed in the error state, emits error
   // async value for all results.
   Error Execute(ArrayRef<MemrefDesc> operands,
                 const ReturnValueConverterBase& results,
-                const ExecuteOpts& opts) const;
+                const ExecuteOpts& opts, bool verify_operands = true) const;
 
   // Executes compiled function using user provided call frame.
   //

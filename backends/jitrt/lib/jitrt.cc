@@ -224,41 +224,53 @@ static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
   for (const Index& stride : memref.strides) add_arg(&stride);
 }
 
+// Always verify executable operands in debug mode.
+static bool VerifyOperands(bool verify_operands) {
+#if defined(NDEBUG)
+  return verify_operands;
+#endif
+  return true;
+}
+
 Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                                      CallFrame* call_frame) const {
+                                      CallFrame* call_frame,
+                                      bool verify_operands) const {
   // TODO(ezhulenev): If executable is specialized for operands shapes then
   // there is no need to verify them once more here. However currently we rely
   // on a hash code to look up specializations, and this can lead to collisions.
+  if (VerifyOperands(verify_operands)) {
+    // We verify run time operands against the run time signature.
+    const FunctionType& signature = runtime_signature_;
 
-  // Make sure that we call the kernel with the correct number of operands.
-  // We subtract one operand from the signature because it corresponds to the
-  // context that we prepend to the given operands.
-  if (LLVM_UNLIKELY(operands.size() != runtime_signature_.num_operands() - 1))
-    return MakeStringError(
-        "number of operands doesn't match the function signature: ",
-        operands.size(), " vs ", runtime_signature_.num_operands() - 1);
+    // Make sure that we call the kernel with the correct number of operands.
+    // We subtract one operand from the signature because it corresponds to the
+    // context that we prepend to the given operands.
+    if (LLVM_UNLIKELY(operands.size() != signature.num_operands() - 1))
+      return MakeStringError(
+          "number of operands doesn't match the function signature: ",
+          operands.size(), " vs ", signature.num_operands() - 1);
 
-  // Verify that all operands passed at runtime are compatible with compiled
-  // function signature.
-  auto kctx = dyn_cast<KernelContextOperandType>(runtime_signature_.operand(0));
-  if (LLVM_UNLIKELY(!kctx)) {
-    return MakeStringError(
-        "expected KernelContext in first argument of "
-        "signature, got: ",
-        runtime_signature_.operand(0));
-  }
+    // Verify that all operands passed at runtime are compatible with compiled
+    // function signature.
+    auto kctx = dyn_cast<KernelContextOperandType>(signature.operand(0));
+    if (LLVM_UNLIKELY(!kctx)) {
+      return MakeStringError(
+          "expected KernelContext in first argument of signature, got: ",
+          signature.operand(0));
+    }
 
-  // We use 0-based index for operands, because the kernel context operand is an
-  // internal implementation detail, and in case of an error users should get
-  // back operand index corresponding to the user provided signature.
-  for (unsigned i = 0; i < operands.size(); ++i) {
-    unsigned idx = i + 1;  // use 1-based index to fetch runtime operand
+    // We use 0-based index for operands, because the kernel context operand is
+    // an internal implementation detail, and in case of an error users should
+    // get back operand index corresponding to the user provided signature.
+    for (unsigned i = 0; i < operands.size(); ++i) {
+      unsigned idx = i + 1;  // use 1-based index to fetch runtime operand
 
-    if (auto* memref = dyn_cast<MemrefType>(runtime_signature_.operand(idx))) {
-      if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
-    } else {
-      return MakeStringError("expected memref operand at #", i,
-                             ", got: ", *runtime_signature_.operand(i));
+      if (auto* memref = dyn_cast<MemrefType>(signature.operand(idx))) {
+        if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
+      } else {
+        return MakeStringError("expected memref operand at #", i,
+                               ", got: ", *signature.operand(i));
+      }
     }
   }
 
@@ -415,7 +427,7 @@ Error ReturnErrors(const ReturnValueConverterBase& results, Error error) {
 
 Error Executable::Execute(ArrayRef<MemrefDesc> operands,
                           const ReturnValueConverterBase& results,
-                          const ExecuteOpts& opts) const {
+                          const ExecuteOpts& opts, bool verify_operands) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
   // the data after the initial function will return the result.
@@ -445,7 +457,7 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
 
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
-  if (auto err = InitializeCallFrame(operands, &call_frame))
+  if (auto err = InitializeCallFrame(operands, &call_frame, verify_operands))
     return ReturnErrors(results, std::move(err));
 
   Execute(call_frame, opts);

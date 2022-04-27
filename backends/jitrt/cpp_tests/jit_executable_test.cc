@@ -15,6 +15,7 @@
  */
 
 #include <memory>
+#include <utility>
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
@@ -47,9 +48,9 @@ using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 
 static const char* mlir_module = R"(
     func.func @compute(%arg0: memref<?x?xf32>,
-                  %arg1: memref<?x?xf32>,
-                  %arg3: memref<?x?xf32>,
-                  %arg4: memref<16x32xf32>) {
+                       %arg1: memref<?x?xf32>,
+                       %arg3: memref<?x?xf32>,
+                       %arg4: memref<16x32xf32>) {
       func.return
     })";
 
@@ -72,6 +73,7 @@ SmallVector<MemrefDesc> GetFakeMemrefs(SmallVector<SymbolicShape> shapes) {
     MemrefDesc desc;
     desc.dtype = DType::F32;
     desc.sizes.insert(desc.sizes.begin(), shape.begin(), shape.end());
+    desc.strides.append(shape.size(), 0);  // we don't need real strides
     memrefs.push_back(std::move(desc));
   }
 
@@ -111,6 +113,43 @@ void BenchmarkGetExecutable(benchmark::State& state,
   }
 }
 
+void BenchmarkInitializeCallFrame(benchmark::State& state,
+                                  SmallVector<MemrefDesc> operands,
+                                  bool verify) {
+  auto host = CreateSingleThreadedHostContext();
+
+  CompilationOptions opts;
+  opts.specialization = CompilationOptions::Specialization::kAlways;
+  opts.register_dialects = RegisterDefaultJitRtDialects;
+
+  CompilationPipelineOptions copts;
+  opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+    CreateDefaultJitRtCompilationPipeline(pm, copts);
+  };
+
+  llvm::Expected<JitExecutable> jit_executable =
+      JitExecutable::Instantiate(mlir_module, entrypoint, opts);
+  if (auto err = jit_executable.takeError()) TFRT_LOG(FATAL) << err;
+
+  // Get the executable.
+  Expected<AsyncValuePtr<Executable>> executable =
+      jit_executable->GetExecutable(operands);
+  if (auto err = executable.takeError()) TFRT_LOG(FATAL) << err;
+
+  // Check that compilation was successful.
+  host->Quiesce();
+  if (executable->IsError()) TFRT_LOG(FATAL) << executable->GetError();
+
+  for (auto _ : state) {
+    Executable::CallFrame call_frame;
+    auto err =
+        (*executable)->InitializeCallFrame(operands, &call_frame, verify);
+    benchmark::DoNotOptimize(call_frame);
+  }
+}
+
+// -------------------------------------------------------------------------- //
+
 #define BM_GetExecutable(NAME, OPERANDS)                        \
   static void BM_GetExecutable##NAME(benchmark::State& state) { \
     BenchmarkGetExecutable(state, OPERANDS);                    \
@@ -125,6 +164,39 @@ BM_GetExecutable(SameShapes,
 
 BM_GetExecutable(KnownShapes,
                  GetFakeMemrefs({{16, 32}, {16, 32}, {16, 32}, {16, 32}}));
+
+// -------------------------------------------------------------------------- //
+
+#define BM_InitializeCallFrame(NAME, OPERANDS, VERIFY)     \
+  static void BM_InitializeCallFrame##NAME##_##VERIFY(     \
+      benchmark::State& state) {                           \
+    BenchmarkInitializeCallFrame(state, OPERANDS, VERIFY); \
+  }                                                        \
+  BENCHMARK(BM_InitializeCallFrame##NAME##_##VERIFY)
+
+BM_InitializeCallFrame(UniqueShapes,
+                       GetFakeMemrefs({{10, 11}, {12, 13}, {14, 15}, {16, 32}}),
+                       true);
+
+BM_InitializeCallFrame(SameShapes,
+                       GetFakeMemrefs({{10, 11}, {10, 11}, {10, 11}, {16, 32}}),
+                       true);
+
+BM_InitializeCallFrame(KnownShapes,
+                       GetFakeMemrefs({{16, 32}, {16, 32}, {16, 32}, {16, 32}}),
+                       true);
+
+BM_InitializeCallFrame(UniqueShapes,
+                       GetFakeMemrefs({{10, 11}, {12, 13}, {14, 15}, {16, 32}}),
+                       false);
+
+BM_InitializeCallFrame(SameShapes,
+                       GetFakeMemrefs({{10, 11}, {10, 11}, {10, 11}, {16, 32}}),
+                       false);
+
+BM_InitializeCallFrame(KnownShapes,
+                       GetFakeMemrefs({{16, 32}, {16, 32}, {16, 32}, {16, 32}}),
+                       false);
 
 }  // namespace
 }  // namespace tfrt

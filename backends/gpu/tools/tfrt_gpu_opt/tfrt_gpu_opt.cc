@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
                   mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
                   tfrt::test::TestDialect>();
-  tfrt::gpu::registerPasses();
+  tfrt::gpu::RegisterPasses();
 
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));

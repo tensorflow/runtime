@@ -105,10 +105,10 @@ void PopulateMemrefConversionPatterns(mlir::RewritePatternSet& patterns,
 
 // Adds passes to convert from MLIR's gpu and async dialects to TFRT. Adds
 // !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments to functions.
-void populateGpuToTfrtGpuPasses(mlir::OpPassManager& pm);
+void PopulateGpuToTfrtGpuPasses(mlir::OpPassManager& pm);
 
 // Registers all tfrt gpu passes.
-void registerPasses();
+void RegisterPasses();
 
 // Creates a pass which adds a function returning the entry point information
 // for the gpu executor.

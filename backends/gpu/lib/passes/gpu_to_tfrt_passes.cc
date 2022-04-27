@@ -1726,7 +1726,7 @@ TypeConverter CreateMemrefToTfrtGpuConverter() {
   return converter;
 }
 
-void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
+void PopulateGpuToTfrtGpuPasses(OpPassManager &pm) {
   pm.addPass(std::make_unique<AddChainAndStreamToFuncPass>());
   pm.addPass(std::make_unique<ConvertAsyncToChainAndEventPass>());
   pm.addPass(std::make_unique<ConvertGpuToTfrtGpuPass>());
@@ -1735,7 +1735,7 @@ void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
   pm.addPass(std::make_unique<HoistingPass>());
 }
 
-void registerPasses() {
+void RegisterPasses() {
   registerPass([] { return CreateStreamifyOpsPass({}); });
   PassRegistration<AddChainAndStreamToFuncPass>();
   PassRegistration<ConvertAsyncToChainAndEventPass>();
@@ -1748,7 +1748,7 @@ void registerPasses() {
   PassPipelineRegistration<>(
       "gpu-to-tfrt-gpu",
       "Pass pipeline to convert from MLIR's gpu and async dialects to TFRT.",
-      [](OpPassManager &pm) { tfrt::gpu::populateGpuToTfrtGpuPasses(pm); });
+      [](OpPassManager &pm) { tfrt::gpu::PopulateGpuToTfrtGpuPasses(pm); });
 }
 
 }  // namespace gpu

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // RUN: tfrt_gpu_opt %s \
-// RUN:   -test-streamify-conversion \
+// RUN:   -tfrt-streamify-ops=ops=wrap.op,tfrt.call \
 // RUN:   -allow-unregistered-dialect \
 // RUN: | FileCheck %s
 
@@ -61,39 +61,42 @@ func.func @test_wrap_streamify() {
 func.func private @returns_values() -> (f32, f32)
 func.func private @takes_argument(%arg0: f32)
 
+// Note on 'DISABLED' below: There is temporarily no pass in TFRT GPU that
+// exercises the memref conversion patterns. TODO(csigg): Enable checks again.
+
 // CHECK-LABEL: @test_fold_memref_view
 func.func @test_fold_memref_view(%arg0: memref<64xi8>) -> memref<4x4xf32> {
   %zero = arith.constant 0 : index
-  // CHECK-NOT: memref.view
-  // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
-  // CHECK: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<4x4xf32>
+  // DISABLED-NOT: memref.view
+  // DISABLED: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
+  // DISABLED: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<4x4xf32>
   %view = memref.view %arg0[%zero][] : memref<64xi8> to memref<4x4xf32>
-  // CHECK: return %[[memref]]
+  // DISABLED: return %[[memref]]
   func.return %view : memref<4x4xf32>
 }
 
 // CHECK-LABEL: @test_fold_memref_cast
 func.func @test_fold_memref_cast(%arg0: memref<64xi8>) -> memref<8x8xi8> {
-  // CHECK-NOT: memref.reinterpret_cast
-  // CHECK: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
-  // CHECK: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<8x8xi8>
+  // DISABLED-NOT: memref.reinterpret_cast
+  // DISABLED: %[[buffer:.*]] = builtin.unrealized_conversion_cast %arg0 : memref<64xi8> to !tfrt_gpu.buffer
+  // DISABLED: %[[memref:.*]] = builtin.unrealized_conversion_cast %[[buffer]] : !tfrt_gpu.buffer to memref<8x8xi8>
   %cast = memref.reinterpret_cast %arg0
     to offset: [0], sizes: [8, 8], strides: [8, 1]
     : memref<64xi8> to memref<8x8xi8>
-  // CHECK: return %[[memref]]
+  // DISABLED: return %[[memref]]
   func.return %cast : memref<8x8xi8>
 }
 
 // CHECK-LABEL: @test_rewrite_alloc
 func.func @test_rewrite_alloc() {
-  // CHECK: %[[memref:.*]] = gpu.alloc  () : memref<64xi8>
+  // DISABLED: %[[memref:.*]] = gpu.alloc  () : memref<64xi8>
   %memref = memref.alloc() : memref<64xi8>
-  // CHECK: "other.op"() : () -> ()
+  // DISABLED: "other.op"() : () -> ()
   "other.op"() : () -> ()
-  // CHECK: gpu.dealloc  %[[memref]] : memref<64xi8>
+  // DISABLED: gpu.dealloc  %[[memref]] : memref<64xi8>
   memref.dealloc %memref : memref<64xi8>
-  // CHECK: %[[tmp:.*]] = gpu.alloc  () : memref<64xi8>
+  // DISABLED: %[[tmp:.*]] = gpu.alloc  () : memref<64xi8>
   %temp = memref.alloca() : memref<64xi8>
-  // CHECK: return
+  // DISABLED: return
   func.return
 }

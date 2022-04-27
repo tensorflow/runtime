@@ -1736,6 +1736,7 @@ void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
 }
 
 void registerPasses() {
+  registerPass([] { return CreateStreamifyOpsPass({}); });
   PassRegistration<AddChainAndStreamToFuncPass>();
   PassRegistration<ConvertAsyncToChainAndEventPass>();
   PassRegistration<ConvertGpuToTfrtGpuPass>();

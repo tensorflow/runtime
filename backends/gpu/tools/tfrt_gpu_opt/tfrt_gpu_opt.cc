@@ -42,68 +42,6 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/test_kernels/opdefs/test_kernels.h"
 
-namespace {
-
-// Test pass to wrap tfrt_gpu ops in tfrt_gpu.streamify.
-struct TestStreamifyConversionPass
-    : public mlir::PassWrapper<TestStreamifyConversionPass,
-                               OperationPass<mlir::func::FuncOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestStreamifyConversionPass)
-
-  StringRef getArgument() const final { return "test-streamify-conversion"; }
-
-  void getDependentDialects(DialectRegistry &registry) const override {
-    tfrt::RegisterTFRTDialects(registry);
-    tfrt::RegisterTFRTCompiledDialects(registry);
-    registry.insert<tfrt::gpu::GpuDialect, mlir::arith::ArithmeticDialect,
-                    mlir::cf::ControlFlowDialect, mlir::gpu::GPUDialect,
-                    mlir::memref::MemRefDialect, mlir::func::FuncDialect,
-                    tfrt::compiler::TFRTDialect>();
-  }
-
-  void runOnOperation() override {
-    TypeConverter converter;
-    converter.addConversion([](Type type) { return type; });
-    auto buffer_type = tfrt::gpu::BufferType::get(&getContext());
-    converter.addConversion([&](BaseMemRefType) { return buffer_type; });
-    converter.addTargetMaterialization([](OpBuilder &builder, Type type,
-                                          ValueRange inputs,
-                                          Location loc) -> Value {
-      return builder.create<mlir::UnrealizedConversionCastOp>(loc, type, inputs)
-          .getResult(0);
-    });
-    converter.addSourceMaterialization([](OpBuilder &builder, Type type,
-                                          ValueRange inputs,
-                                          Location loc) -> Value {
-      return builder.create<mlir::UnrealizedConversionCastOp>(loc, type, inputs)
-          .getResult(0);
-    });
-
-    ConversionTarget wrap(getContext());
-    wrap.addLegalDialect("wrap");
-
-    RewritePatternSet patterns(&getContext());
-    tfrt::gpu::populateStreamifyConversionPatterns(patterns, converter, wrap);
-
-    ConversionTarget target(getContext());
-    target
-        .addLegalDialect<mlir::gpu::GPUDialect, tfrt::compiler::TFRTDialect>();
-    target.addLegalDialect("other");
-    target.addLegalOp<mlir::UnrealizedConversionCastOp>();
-    target.addLegalOp<tfrt::gpu::StreamifyOp>();
-    target.addDynamicallyLegalOp<mlir::func::FuncOp>(
-        [&](mlir::func::FuncOp op) {
-          return none_of(op.getBody().getOps(),
-                         [&](Operation &op) { return wrap.isLegal(&op); });
-        });
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
-      return signalPassFailure();
-  }
-};
-
-}  // namespace
-
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
@@ -112,7 +50,6 @@ int main(int argc, char **argv) {
                   mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
                   tfrt::test::TestDialect>();
-  PassRegistration<TestStreamifyConversionPass>();
   tfrt::gpu::registerPasses();
 
   return mlir::asMainReturnCode(

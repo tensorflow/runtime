@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <iterator>
+#include <string>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
@@ -23,6 +24,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/gpu/passes/passes.h"
@@ -49,20 +51,23 @@ void internal::StreamifyOpConversionSetChain(Value chain,
 
 namespace {
 
-// Wraps consecutive legal ops within a block into a
-// tfrt_gpu.streamify op.
-struct NestLegalOpsInStreamifyOpPattern
-    : public OpRewritePattern<func::FuncOp> {
-  NestLegalOpsInStreamifyOpPattern(MLIRContext *context,
-                                   ConversionTarget &target)
-      : OpRewritePattern(context), target(target) {}
+// Wraps consecutive ops of given names into a tfrt_gpu.streamify op.
+struct StreamifyOpsPattern : public OpRewritePattern<func::FuncOp> {
+  StreamifyOpsPattern(MLIRContext *context, ArrayRef<std::string> op_names)
+      : OpRewritePattern(context), target(*context) {
+    for (const std::string &op_name : op_names) {
+      target.setOpAction(OperationName(op_name, context),
+                         ConversionTarget::LegalizationAction::Illegal);
+    }
+  }
 
  private:
   LogicalResult matchAndRewrite(func::FuncOp func_op,
                                 PatternRewriter &rewriter) const override;
   LogicalResult matchAndRewriteBlock(Block *block,
                                      PatternRewriter &rewriter) const;
-  ConversionTarget &target;
+
+  ConversionTarget target;
 };
 
 // Folds a memref.view of !tfrt_gpu.buffer with zero byte_shift.
@@ -121,13 +126,13 @@ struct ConvertOpTypesPattern : public OpConversionPattern<OpTy> {
 
 }  // namespace
 
-LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewrite(
+LogicalResult StreamifyOpsPattern::matchAndRewrite(
     func::FuncOp func_op, PatternRewriter &rewriter) const {
   rewriter.startRootUpdate(func_op);
   LogicalResult result = failure();
   func_op.walk([&](Block *block) {
-    if (isa<StreamifyOp>(block->getParentOp())) return WalkResult::skip();
-    if (succeeded(matchAndRewriteBlock(block, rewriter)))
+    if (!isa<StreamifyOp>(block->getParentOp()) &&
+        succeeded(matchAndRewriteBlock(block, rewriter)))
       result = success();  // At least one op has been nested.
     return WalkResult::advance();
   });
@@ -136,24 +141,24 @@ LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewrite(
   return result;
 }
 
-// Iterate over ops in block, and whenever we transition from a legal to an
-// illegal op, wrap preceding legal ops in !tfrt_gpu.streamify.
-LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewriteBlock(
+// Iterate over ops in block, and whenever we transition from an illegal to a
+// legal op, wrap preceding illegal ops in !tfrt_gpu.streamify.
+LogicalResult StreamifyOpsPattern::matchAndRewriteBlock(
     Block *block, PatternRewriter &rewriter) const {
   LogicalResult result = failure();
-  Operation *legal_begin = nullptr;
+  Operation *illegal_begin = nullptr;
   for (Operation *op : llvm::make_pointer_range(block->getOperations())) {
-    if (target.isLegal(op)) {
-      if (!legal_begin)  // Start of legal op sequence.
-        legal_begin = op;
+    if (target.isIllegal(op)) {
+      if (!illegal_begin)  // Start of illegal op sequence.
+        illegal_begin = op;
       continue;
     }
-    if (!legal_begin)  // Continue in illegal op sequence.
+    if (!illegal_begin)  // Continue in legal op sequence.
       continue;
 
-    // Split block before first illegal 'op'.
+    // Split block before first legal 'op'.
     Block *epilogue = rewriter.splitBlock(block, op->getIterator());
-    auto op_range = make_range(legal_begin->getIterator(), block->end());
+    auto op_range = make_range(illegal_begin->getIterator(), block->end());
 
     // Collect results with uses outside of 'block'.
     SmallVector<Value, 4> results;
@@ -175,17 +180,17 @@ LogicalResult NestLegalOpsInStreamifyOpPattern::matchAndRewriteBlock(
     }
 
     // Create !tfrt_gpu.streamify op with those results.
-    rewriter.setInsertionPoint(legal_begin);
-    Location loc = legal_begin->getLoc();
+    rewriter.setInsertionPoint(illegal_begin);
+    Location loc = illegal_begin->getLoc();
     auto streamify_op = rewriter.create<StreamifyOp>(loc, results);
 
-    // Move legal ops into !tfrt_gpu.streamify body and merge blocks again.
+    // Move illegal ops into !tfrt_gpu.streamify body and merge blocks again.
     Block *body = streamify_op.getBody();
     body->getOperations().splice(body->begin(), block->getOperations(),
                                  op_range.begin(), op_range.end());
     rewriter.mergeBlocks(epilogue, block, streamify_op->getResults());
 
-    legal_begin = nullptr;  // Start of illegal op sequence.
+    illegal_begin = nullptr;  // Start of legal op sequence.
     result = success();
   }
   return result;
@@ -275,16 +280,47 @@ LogicalResult ConvertOpTypesPattern<OpTy>::matchAndRewrite(
   return success();
 }
 
-void populateStreamifyConversionPatterns(RewritePatternSet &patterns,
-                                         TypeConverter &converter,
-                                         ConversionTarget &target) {
-  // Wrap tfrt.call ops to provide chain and stream which may be added to the
-  // callee's arguments. This adds a chain and stream argument to all functions
-  // containing such tfrt.call. If this turns out to be a problem, we need to
-  // analyze the call graph and only wrap calls that execute ops implementing
-  // the AsyncOpInterface.
-  target.addLegalOp<compiler::CallOp, compiler::WhileOp, memref::LoadOp>();
+namespace {
 
+struct StreamifyOpsPass
+    : public mlir::PassWrapper<StreamifyOpsPass, OperationPass<func::FuncOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(StreamifyOpsPass)
+
+  StreamifyOpsPass() = default;
+  StreamifyOpsPass(const StreamifyOpsPass &) {}
+
+  ListOption<std::string> op_names = {*this, "ops",
+                                      llvm::cl::desc("illegal op names")};
+
+ private:
+  StringRef getArgument() const final { return "tfrt-streamify-ops"; }
+
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<compiler::TFRTDialect, GpuDialect>();
+  }
+
+  void runOnOperation() override;
+};
+
+}  // namespace
+
+void StreamifyOpsPass::runOnOperation() {
+  RewritePatternSet patterns(&getContext());
+  patterns.add<StreamifyOpsPattern>(&getContext(), op_names);
+  if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
+    return signalPassFailure();
+}
+
+std::unique_ptr<OperationPass<func::FuncOp>> CreateStreamifyOpsPass(
+    ArrayRef<std::string> op_names) {
+  auto pass = std::make_unique<StreamifyOpsPass>();
+  std::vector<std::string> &vector = pass->op_names;
+  llvm::copy(op_names, std::back_inserter(vector));
+  return pass;
+}
+
+void PopulateMemrefConversionPatterns(RewritePatternSet &patterns,
+                                      TypeConverter &converter) {
   populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
                                                                  converter);
   populateCallOpTypeConversionPattern(patterns, converter);
@@ -293,8 +329,6 @@ void populateStreamifyConversionPatterns(RewritePatternSet &patterns,
                ConvertOpTypesPattern<compiler::ReturnOp>,
                ConvertOpTypesPattern<compiler::WhileOp>>(converter,
                                                          patterns.getContext());
-
-  patterns.add<NestLegalOpsInStreamifyOpPattern>(patterns.getContext(), target);
 
   patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern,
                RewriteMemrefAllocPattern<memref::AllocOp>,

@@ -20,10 +20,12 @@
 #define TFRT_GPU_PASSES_PASSES_H_
 
 #include <memory>
+#include <string>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
@@ -83,11 +85,23 @@ mlir::StringRef GetGpuModuleAttrName();
 // the corresponding unrealized_conversion_cast materializers.
 mlir::TypeConverter CreateMemrefToTfrtGpuConverter();
 
-// Adds rewrite patterns that wraps consecutive legal ops as defined by
-// `target` into a tfrt_gpu.streamify op.
-void populateStreamifyConversionPatterns(mlir::RewritePatternSet& patterns,
-                                         mlir::TypeConverter& converter,
-                                         mlir::ConversionTarget& target);
+// Creates a pass which wraps ops into a tfrt_gpu.streamify op.
+std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>> CreateStreamifyOpsPass(
+    mlir::ArrayRef<std::string> op_names);
+
+// Creates a pass which wraps the template argument ops into a
+// tfrt_gpu.streamify op.
+template <typename... OpTs>
+std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>>
+CreateStreamifyOpsPass() {
+  std::string op_names[] = {
+      static_cast<std::string>(OpTs::getOperationName())...};
+  return CreateStreamifyOpsPass(op_names);
+}
+
+// Adds rewrite patterns which convert memref op to tfrt_gpu.
+void PopulateMemrefConversionPatterns(mlir::RewritePatternSet& patterns,
+                                      mlir::TypeConverter& converter);
 
 // Adds passes to convert from MLIR's gpu and async dialects to TFRT. Adds
 // !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments to functions.

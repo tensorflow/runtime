@@ -114,10 +114,41 @@ llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
 }  // namespace runtime
 
 //----------------------------------------------------------------------------//
-// Get compiled function results memory layout.
+// Get compiled function arguments and results memory layouts.
 //----------------------------------------------------------------------------//
 
-Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
+using ArgumentsMemoryLayout = Executable::ArgumentsMemoryLayout;
+using ResultsMemoryLayout = Executable::ResultsMemoryLayout;
+
+Expected<ArgumentsMemoryLayout> Executable::GetArgumentsMemoryLayout(
+    const FunctionType& signature) {
+  // Size of the arguments pointers array.
+  size_t num_args_ptrs = 0;
+
+  // Verify all operands types and record memory requirements.
+  for (unsigned i = 0; i < signature.num_operands(); ++i) {
+    auto* type = signature.operand(i);
+
+    // Kernel context passed as an opaque pointer.
+    if (auto* ctx = dyn_cast<KernelContextOperandType>(type)) {
+      ++num_args_ptrs;
+      continue;
+    }
+
+    // Memref passed as: 2 pointers + offset + rank * (size + stride)
+    if (auto* memref = llvm::dyn_cast<MemrefType>(type)) {
+      num_args_ptrs += 3 + 2 * memref->rank();
+      continue;
+    }
+
+    return MakeStringError("unknown operand #", i,
+                           " type memory layout: ", *type);
+  }
+
+  return ArgumentsMemoryLayout{num_args_ptrs};
+}
+
+Expected<ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
     const FunctionType& signature) {
   // Size of the memory block required for storing results, and offsets for
   // each function result.
@@ -189,21 +220,6 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
 // Executable CallFrame initialization.
 // -------------------------------------------------------------------------- //
 
-// Returns the number of call frame arguments required to pass the `memref` to
-// the compiled kernel.
-static size_t GetArgsCount(const MemrefDesc& memref) {
-  // Memref layout: 2 pointers + offset + rank * (size + stride)
-  return 3 + 2 * memref.sizes.size();
-}
-
-// Returns the number of call frame arguments required to pass all operands
-// to the compiled kernel.
-static size_t GetArgsCount(ArrayRef<MemrefDesc> operands) {
-  size_t n = 0;
-  for (const MemrefDesc& memref : operands) n += GetArgsCount(memref);
-  return n;
-}
-
 // Unpack `memref` argument into pointers to the data to be compatible with
 // compiled MLIR function ABI.
 static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
@@ -274,8 +290,8 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
     }
   }
 
-  size_t n_args_elems = 1 + GetArgsCount(operands);
-  call_frame->args.resize_for_overwrite(n_args_elems);
+  size_t num_args_ptrs = arguments_memory_layout_.num_args_ptrs;
+  call_frame->args.resize_for_overwrite(num_args_ptrs);
 
   // Add a placeholder for the kernel context as the first argument.
   call_frame->args[0] = nullptr;
@@ -288,7 +304,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   for (const MemrefDesc& desc : operands)
     AddMemrefArgument(desc, &offset, &call_frame->args);
 
-  assert(offset == n_args_elems &&
+  assert(offset == num_args_ptrs &&
          "reserved number of args must match the argument offset");
 
   // Allocate storage for results.
@@ -778,6 +794,11 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto runtime_signature = FunctionType::Convert(runtime_type);
   if (auto err = runtime_signature.takeError()) return std::move(err);
 
+  // Get the memory layout fo passing function arguments.
+  auto arguments_memory_layout =
+      Executable::GetArgumentsMemoryLayout(*runtime_signature);
+  if (auto err = arguments_memory_layout.takeError()) return std::move(err);
+
   // Get the memory layout for returning function results.
   auto results_memory_layout =
       Executable::GetResultsMemoryLayout(*runtime_signature);
@@ -858,7 +879,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   return Executable(
       ctx->name().str(), std::move(memory_mapper), std::move(*engine),
       *kernel_fn, std::move(*signature), std::move(*runtime_signature),
-      std::move(*results_memory_layout), specialization, time_to_compile);
+      std::move(*arguments_memory_layout), std::move(*results_memory_layout),
+      specialization, time_to_compile);
 }
 
 llvm::Error JitCompilationContext::Specialize(

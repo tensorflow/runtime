@@ -776,6 +776,7 @@ class Executable {
   using KernelFunctionPtr = void (*)(void**);
 
   // Forward declare types defined below.
+  struct ArgumentsMemoryLayout;
   struct ResultsMemoryLayout;
   struct CallFrame;
   struct ExecuteOpts;
@@ -786,6 +787,7 @@ class Executable {
              std::unique_ptr<mlir::ExecutionEngine> engine,
              KernelFunctionPtr fptr, FunctionType signature,
              FunctionType runtime_signature,
+             ArgumentsMemoryLayout arguments_memory_layout,
              ResultsMemoryLayout results_memory_layout,
              Optional<size_t> specialization,
              std::chrono::milliseconds time_to_compile)
@@ -795,6 +797,7 @@ class Executable {
         fptr_(fptr),
         signature_(std::move(signature)),
         runtime_signature_(std::move(runtime_signature)),
+        arguments_memory_layout_(std::move(arguments_memory_layout)),
         results_memory_layout_(std::move(results_memory_layout)),
         specialization_(specialization),
         time_to_compile_(time_to_compile) {
@@ -887,6 +890,12 @@ class Executable {
     llvm::StringRef error;
   };
 
+  // Requirements for passing arguments to the compiled function.
+  struct ArgumentsMemoryLayout {
+    // Currently we always pass arguments as an array of pointers.
+    size_t num_args_ptrs;
+  };
+
   // Requirements for the contiguous block of memory to store compiled function
   // results. When we invoke a compiled fuction we allocate a block of memory,
   // and pass pointers to pre-computed offsets as output arguments to the
@@ -933,10 +942,15 @@ class Executable {
     KernelContext* kernel_context;
   };
 
-  // Verifies that all types in the entrypoint function signature are supported
-  // at runtime and we know how to pass arguments and fetch results. Returns
-  // a pre-computed layout for the function results. If some of the operands
-  // or results are not supported returns an error.
+  // Verifies that all operands types in the entrypoint function signature are
+  // supported at run time . Returns a pre-computed layout for the function
+  // arguments. If some arguments are not supported returns an error.
+  static Expected<ArgumentsMemoryLayout> GetArgumentsMemoryLayout(
+      const FunctionType& signature);
+
+  // Verifies that all results types in the entrypoint function signature are
+  // supported at run time . Returns a pre-computed layout for the function
+  // results. If some results are not supported returns an error.
   static Expected<ResultsMemoryLayout> GetResultsMemoryLayout(
       const FunctionType& signature);
 
@@ -973,6 +987,7 @@ class Executable {
   // expected by the runtime.
   FunctionType runtime_signature_;
 
+  ArgumentsMemoryLayout arguments_memory_layout_;
   ResultsMemoryLayout results_memory_layout_;
 
   // Specialization id if this executable is a specialization, or an empty

@@ -1257,7 +1257,7 @@ extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
   ctx->call_frame->error = {error};
 }
 
-extern "C" void runtimeCustomCall(const char* callee, void** args) {
+extern "C" bool runtimeCustomCall(const char* callee, void** args) {
   assert(callee && "callee must be not null");
 
   // Default custom calls registry for the JitRt kernels.
@@ -1267,14 +1267,13 @@ extern "C" void runtimeCustomCall(const char* callee, void** args) {
     return registry;
   }();
 
-  // TODO(ezhulenev): Return failure if custom call is not registered.
   auto* custom_call = registry->Find(callee);
-  assert(custom_call && "unknown custom call");
+  if (custom_call == nullptr) return false;
 
-  // TODO(ezhulenev): Handle failures in custom calls.
   auto result = custom_call->call(args);
-  assert(mlir::succeeded(result) && "failed custom call");
-  (void)result;
+  if (mlir::failed(result)) return false;
+
+  return true;
 }
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {

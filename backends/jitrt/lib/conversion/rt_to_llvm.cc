@@ -113,7 +113,8 @@ struct RuntimeAPI {
   static FunctionType CustomCallFunctionType(MLIRContext *ctx) {
     auto callee = OpaquePointerType(ctx);
     auto args = CustomCallArgumentsType(ctx);
-    return FunctionType::get(ctx, {callee, args}, {});
+    auto i1 = IntegerType::get(ctx, 1);
+    return FunctionType::get(ctx, {callee, args}, {i1});
   }
 };
 
@@ -139,10 +140,15 @@ class RuntimeTypeConverter : public TypeConverter {
   RuntimeTypeConverter() {
     addConversion([](Type type) { return type; });
     addConversion(ConvertKernelContextType);
+    addConversion(ConvertStatusType);
   }
 
   static llvm::Optional<Type> ConvertKernelContextType(KernelContextType type) {
     return LLVM::LLVMPointerType::get(IntegerType::get(type.getContext(), 8));
+  }
+
+  static llvm::Optional<Type> ConvertStatusType(StatusType type) {
+    return IntegerType::get(type.getContext(), 1);
   }
 };
 
@@ -249,6 +255,23 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
     rewriter.replaceOpWithNewOp<CallOp>(op, kSetError, TypeRange(),
                                         ValueRange({kernel_context, err_ptr}));
 
+    return success();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Convert rt.is_ok to the corresponding runtime API call.
+//===----------------------------------------------------------------------===//
+
+class IsOkOpLowering : public OpConversionPattern<IsOkOp> {
+ public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      IsOkOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    // Just pass through the converted operand.
+    rewriter.replaceOp(op, adaptor.status());
     return success();
   }
 };
@@ -444,7 +467,8 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
     if (failed(args)) return op.emitOpError() << "failed to encode arguments";
 
     // Call runtime API to call the custom call target.
-    rewriter.replaceOpWithNewOp<CallOp>(op, kCustomCall, TypeRange(),
+    auto i1 = rewriter.getI1Type();
+    rewriter.replaceOpWithNewOp<CallOp>(op, kCustomCall, TypeRange(i1),
                                         ValueRange({callee, *args}));
 
     return success();
@@ -471,10 +495,11 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   // We use conversion to LLVM type to lower all runtime operands to LLVM types.
   LLVMTypeConverter llvm_converter(ctx);
   llvm_converter.addConversion(RuntimeTypeConverter::ConvertKernelContextType);
+  llvm_converter.addConversion(RuntimeTypeConverter::ConvertStatusType);
 
   // Lower from the runtime operations to the runtime API function calls.
-  patterns.add<SetOutputOpLowering, SetErrorOpLowering, CustomCallOpLowering>(
-      llvm_converter, ctx);
+  patterns.add<SetOutputOpLowering, SetErrorOpLowering, IsOkOpLowering,
+               CustomCallOpLowering>(llvm_converter, ctx);
 
   // Convert function signatures and call sites.
   mlir::populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns,

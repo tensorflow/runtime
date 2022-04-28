@@ -79,8 +79,11 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
   // CHECK: %[[C3:.*]] = arith.constant 3 : i32
   // CHECK: %[[ARGS:.*]] = llvm.alloca %[[C3]] x !llvm.ptr<i8>
 
-  // CHECK: call @runtimeCustomCall(%[[CALLEE]], %[[ARGS]])
-  rt.custom_call "f32_reduce"(%arg1) : (memref<?xf32>) -> ()
+  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CALLEE]], %[[ARGS]])
+  // CHECK: cf.assert %[[STATUS]], "oops"
+  %status = rt.custom_call "f32_reduce"(%arg1) : (memref<?xf32>) -> ()
+  %ok = rt.is_ok %status
+  cf.assert %ok, "oops"
 
   func.return
 }

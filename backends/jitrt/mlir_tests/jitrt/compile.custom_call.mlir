@@ -20,10 +20,14 @@ module @kernels attributes { tfrt.compiled } {
     %c1 = arith.constant 1 : index
     %0 = memref.dim %input, %c0 : memref<?x?xf32>
     %1 = memref.dim %input, %c1 : memref<?x?xf32>
-    %output = memref.alloc(%0, %1) : memref<?x?xf32>
 
-    rt.custom_call "testlib.times_two"(%input, %output)
+    // Reverse dimension order to test invalid custom call arguments below.
+    %output = memref.alloc(%1, %0) : memref<?x?xf32>
+
+    %status = rt.custom_call "testlib.times_two"(%input, %output)
       : (memref<?x?xf32>, memref<?x?xf32>) -> ()
+    %ok = rt.is_ok %status
+    cf.assert %ok, "failed to call custom call 'testlib.times_two'"
 
     func.return %output : memref<?x?xf32>
   }
@@ -55,4 +59,23 @@ func.func @compiled_custom_call() -> !tfrt.chain {
   %printed = tfrt.print.i1 %cmp, %cmp_ch
 
   tfrt.return %printed : !tfrt.chain
+}
+
+// CHECK: --- Running 'compiled_custom_call_error'
+func.func @compiled_custom_call_error() -> !t.tensor {
+  %ch0 = tfrt.new.chain
+
+  // Allocate and initialize input tensor.
+  %input = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 4 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
+
+  // Compile a kernel with a custom call.
+  %executable = jitrt.compile { kernel = @kernels::@main }
+
+  // Execute compiled kernel with tensor operands.
+  %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
+
+  // CHECK: returned <<error: compiled kernel run time error:
+  // CHECK-SAME: failed to call custom call 'testlib.times_two'>>
+  tfrt.return %output : !t.tensor
 }

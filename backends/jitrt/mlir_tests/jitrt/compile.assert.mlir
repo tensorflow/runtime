@@ -31,7 +31,7 @@ module @kernels attributes { tfrt.compiled } {
 }
 
 // CHECK: --- Running 'runtime_error'
-func.func @runtime_error() -> !tfrt.chain {
+func.func @runtime_error() -> !t.tensor {
   %ch0 = tfrt.new.chain
 
   // Allocate and initialize input tensor.
@@ -40,9 +40,10 @@ func.func @runtime_error() -> !tfrt.chain {
 
   %executable = jitrt.compile { kernel = @kernels::@main }
 
-  // expected-error @+1 {{Dimension 0 must have size 0}}
   %output = jitrt.execute %executable[%input_ready](%input)
               : (!t.tensor) -> (!t.tensor)
 
-  tfrt.return %ch0 : !tfrt.chain
+  // CHECK: returned <<error: compiled kernel run time error:
+  // CHECK-SAME: Dimension 0 must have size 0>>
+  tfrt.return %output : !t.tensor
 }

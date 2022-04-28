@@ -118,6 +118,20 @@ def SetErrorOp : RT_Op<"set_error"> {
 }
 
 //===----------------------------------------------------------------------===//
+// IsOkOp
+//===----------------------------------------------------------------------===//
+
+def IsOkOp : RT_Op<"is_ok"> {
+  let summary = "returns true if status is ok";
+  let description = "Checks if the runtime status is ok.";
+
+  let arguments = (ins StatusType:$status);
+  let results = (outs I1:$ok);
+
+  let assemblyFormat = "$status attr-dict";
+}
+
+//===----------------------------------------------------------------------===//
 // CustomCallOp
 //===----------------------------------------------------------------------===//
 
@@ -130,13 +144,18 @@ def CustomCallOp : RT_Op<"custom_call"> {
     on top of the JitRt, for example this can be used as an extension mechanism
     to register vendor specific kernels (e.g. call oneDNN convolution).
 
+    Returns `!rt.status` value which can be checked to see if the custom call
+    was successful.
+
     Example:
 
       ```mlir
       func @compute(%ctx: !rt.kernel_context, %arg0: memref<?xf32>,
                                               %arg1: memref<?xf32>) {
-        %0 = rt.custom_call "one_dnn.some_operation"(%arg0, %arg1)
-          : (memref<?xf32>, memref<?xf32>) -> !one_dnn.status
+        %status = rt.custom_call "one_dnn.some_operation"(%arg0, %arg1)
+          : (memref<?xf32>, memref<?xf32>) -> ()
+        %0 = rt.is_ok %status
+        cf.assert %0, "failed to call one_dnn custom call"
         return
       }
       ```
@@ -152,10 +171,13 @@ def CustomCallOp : RT_Op<"custom_call"> {
     Variadic<AnyType>:$operands
   );
 
-  let results = (outs Variadic<AnyType>);
+  let results = (outs
+    StatusType:$status,
+    Variadic<AnyType>:$results
+  );
 
   let assemblyFormat = [{
-    $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
+    $callee `(` $operands `)` attr-dict `:` functional-type($operands, $results)
   }];
 }
 

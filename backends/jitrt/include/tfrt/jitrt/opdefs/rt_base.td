@@ -44,11 +44,23 @@ class RT_Type<string name, string typeMnemonic> : TypeDef<RuntimeDialect,
   let mnemonic = typeMnemonic;
 }
 
+// -------------------------------------------------------------------------- //
+// Types for integrating JitRt kernels with the runtime.
+// -------------------------------------------------------------------------- //
+
 // This is an opaque handle to tfrt::jitrt::KernelContextType.
 def KernelContextType : RT_Type<"KernelContext", "kernel_context"> {
   let summary = "Kernel Context type";
   let description = [{
-    Opaque handle used for interacting with the TFRT run-time.
+    Opaque handle used for interacting with the JitRt runtime.
+  }];
+}
+
+// This is an opaque handle to tfrt::jitrt::StatusType.
+def StatusType : RT_Type<"Status", "status"> {
+  let summary = "Status type";
+  let description = [{
+    A status type returned from the JitRt runtime API intrinsics.
   }];
 }
 

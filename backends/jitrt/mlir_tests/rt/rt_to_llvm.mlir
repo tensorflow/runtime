@@ -57,3 +57,30 @@ func.func @set_error(%arg0: !rt.kernel_context) {
   rt.set_error %arg0, "Failed precondition #1"
   func.return
 }
+
+// -----
+
+// CHECK-DAG: llvm.mlir.global internal constant @[[REDUCE:.*]]("f32_reduce\00")
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
+// CHECK:   %[[ARG:.*]]: memref<?xf32>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
+  // CHECK: %[[DESC:.*]] = builtin.unrealized_conversion_cast %[[ARG]]
+  // CHECK-SAME: : memref<?xf32> to !llvm.struct
+
+  // CHECK: %[[CALLEE_ADDR:.*]] = llvm.mlir.addressof @[[REDUCE]]
+  // CHECK: %[[CALLEE:.*]] = llvm.bitcast %[[CALLEE_ADDR]]
+
+  // Arguments encoding:
+
+  // CHECK: llvm.mlir.undef : !llvm.struct<(i64, i64, ptr<i8>)>
+  // CHECK: %[[C3:.*]] = arith.constant 3 : i32
+  // CHECK: %[[ARGS:.*]] = llvm.alloca %[[C3]] x !llvm.ptr<i8>
+
+  // CHECK: call @runtimeCustomCall(%[[CALLEE]], %[[ARGS]])
+  rt.custom_call "f32_reduce"(%arg1) : (memref<?xf32>) -> ()
+
+  func.return
+}

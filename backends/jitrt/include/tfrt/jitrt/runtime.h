@@ -34,6 +34,7 @@ namespace runtime {
 //    model (errors do not crash the compiled binary).
 //  - Memory allocation and buffer forwarding that relies on fine grained
 //    information available only to the runtime (e.g. reference count).
+//  - Invoking custom calls registered with the JitRt runtime.
 //
 // JitRT compilation pipeline sets up passes to convert the regular functions
 // to the so called "kernels" integrated with the runtime using the API defined
@@ -54,6 +55,9 @@ extern "C" void *runtimeGetResultStorage(KernelContext *, int64_t);
 
 // Sets kernel context to an error state.
 extern "C" void runtimeSetError(KernelContext *, const char *);
+
+// Calls the custom call function registered with the runtime.
+extern "C" void runtimeCustomCall(const char *, void **args);
 
 }  // namespace runtime
 }  // namespace jitrt

@@ -139,6 +139,7 @@ tfrt_cc_library(
         ":async_runtime_api",
         ":async_values_cache",
         ":constraints",
+        ":custom_call",
         ":memory_mapper",
         ":rt_transforms",
         ":specialization",
@@ -289,6 +290,21 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "custom_call",
+    srcs = ["lib/custom_call.cc"],
+    hdrs = ["include/tfrt/jitrt/custom_call.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":types",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:mlir_c_runner_utils",
+        "@tf_runtime//:dtype",
+    ],
+)
+
+tfrt_cc_library(
     name = "symbolic_shape",
     srcs = ["lib/symbolic_shape.cc"],
     hdrs = ["include/tfrt/jitrt/symbolic_shape.h"],
@@ -325,6 +341,17 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "custom_calls_testlib",
+    srcs = ["lib/custom_calls/custom_call_testlib.cc"],
+    alwayslink_static_registration_src = "lib/custom_calls/custom_call_testlib_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":custom_call",
     ],
 )
 
@@ -505,6 +532,7 @@ tfrt_cc_library(
     deps = [
         ":rt_conversion_passes_inc_gen",
         ":rt_opdefs",
+        ":types",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:FuncDialect",

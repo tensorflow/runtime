@@ -37,3 +37,12 @@ func.func @set_error(%arg0: !rt.kernel_context) {
   rt.set_error %arg0, "Failed precondition"
   func.return
 }
+
+// CHECK-LABEL: func @custom_call(
+// CHECK:  %[[CTX:.*]]: !rt.kernel_context
+// CHECK:  %[[MEMREF:.*]]: memref<?xf32>
+func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) -> f32 {
+  // CHECK: rt.custom_call "f32_reduce"(%[[MEMREF]]) : (memref<?xf32>) -> f32
+  %0 = rt.custom_call "f32_reduce"(%arg1) : (memref<?xf32>) -> f32
+  func.return %0 : f32
+}

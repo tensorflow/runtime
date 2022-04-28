@@ -117,5 +117,46 @@ def SetErrorOp : RT_Op<"set_error"> {
   let assemblyFormat = "$ctx `,` $error attr-dict";
 }
 
+//===----------------------------------------------------------------------===//
+// CustomCallOp
+//===----------------------------------------------------------------------===//
+
+def CustomCallOp : RT_Op<"custom_call"> {
+  let summary = "calls a custom function registered with the runtime";
+
+  let description = [{
+    This operation calls a custom function registered with the runtime. This
+    mechanism allows to call any C++ function from the compiled kernel running
+    on top of the JitRt, for example this can be used as an extension mechanism
+    to register vendor specific kernels (e.g. call oneDNN convolution).
+
+    Example:
+
+      ```mlir
+      func @compute(%ctx: !rt.kernel_context, %arg0: memref<?xf32>,
+                                              %arg1: memref<?xf32>) {
+        %0 = rt.custom_call "one_dnn.some_operation"(%arg0, %arg1)
+          : (memref<?xf32>, memref<?xf32>) -> !one_dnn.status
+        return
+      }
+      ```
+
+    To avoid collisions users should group custom calls into libraries and put
+    them into namespaces (similar to MLIR dialects). In this example there is
+    an assumption that all OneDnn related custom calls will be registered with
+    a `one_dnn` prefix.
+  }];
+
+  let arguments = (ins
+    StrAttr:$callee,
+    Variadic<AnyType>:$operands
+  );
+
+  let results = (outs Variadic<AnyType>);
+
+  let assemblyFormat = [{
+    $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
+  }];
+}
 
 #endif // RT_OPS

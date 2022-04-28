@@ -222,7 +222,10 @@ static Error BlasTrsmBatch(
   const void** a_array = const_cast<const void**>(b_array + batchCount);
 
   auto side_mode = wrapper::BlasSideMode::FromOpaqueValue(*sideMode);
-  int32_t a_num_elements = side_mode == CUBLAS_SIDE_LEFT ? m * m : n * n;
+  int32_t a_num_elements = n * n;
+  if ((platform == wrapper::Platform::CUDA && side_mode == CUBLAS_SIDE_LEFT) ||
+      (platform == wrapper::Platform::ROCm && side_mode == rocblas_side_left))
+    a_num_elements = m * m;
   ptrdiff_t a_batch_stride_bytes = *data_type_size_bytes * a_num_elements;
   ptrdiff_t b_batch_stride_bytes = *data_type_size_bytes * m * n;
   const char* a_ptr = static_cast<const char*>(A.pointer().raw(platform));

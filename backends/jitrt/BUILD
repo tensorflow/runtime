@@ -146,6 +146,7 @@ tfrt_cc_library(
         ":support",
         ":symbolic_shape",
         ":types",
+        "@llvm-project//llvm:Core",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",

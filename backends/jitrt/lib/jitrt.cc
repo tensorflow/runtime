@@ -35,6 +35,8 @@
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
+#include "llvm/IR/PassTimingInfo.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
@@ -48,6 +50,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Support/Timing.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -625,6 +628,15 @@ static mlir::LogicalResult RunPipeline(
 
   mlir::PassManager pm(module.getContext());
   SetupPassDebugging(module.getContext(), pm);
+
+  // Instrument the pass manager to capture timing information.
+  mlir::DefaultTimingManager tm;
+  if (DebugJitrtCompile()) {
+    tm.setEnabled(true);
+    mlir::TimingScope timing = tm.getRootScope();
+    pm.enableTiming(timing);
+  }
+
   create_pipeline(pm);
 
   return pm.run(module);
@@ -814,6 +826,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   if (failed(RunCompilationPipeline(ctx->module(), ctx->options())))
     return ctx->Error("failed to run compilation pipeline");
 
+  if (DebugJitrtCompile()) llvm::TimePassesIsEnabled = true;
+
   // Prepare JIT target machine for code generation.
   auto builder = llvm::orc::JITTargetMachineBuilder::detectHost();
   if (!builder) return builder.takeError();
@@ -876,6 +890,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // materialized as addresses (entrypoint is an executable function pointer).
   auto time_to_compile = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - compilation_start);
+
+  if (DebugJitrtCompile()) llvm::reportAndResetTimings();
 
   return Executable(
       ctx->name().str(), std::move(memory_mapper), std::move(*engine),

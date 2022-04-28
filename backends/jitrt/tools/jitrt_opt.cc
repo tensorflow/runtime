@@ -20,12 +20,14 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/init_tfrt_dialects.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
+#include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTCompiledDialects(registry);
+  tfrt::jitrt::RegisterDefaultJitRtDialects(registry);
   tfrt::jitrt::registerRuntimeConversionPasses();
   tfrt::jitrt::registerCodegenTransformsPasses();
   tfrt::jitrt::registerRuntimeTransformsPasses();

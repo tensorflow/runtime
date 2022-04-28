@@ -352,6 +352,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":custom_call",
+        "@llvm-project//mlir:Support",
     ],
 )
 

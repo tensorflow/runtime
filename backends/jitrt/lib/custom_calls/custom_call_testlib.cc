@@ -16,14 +16,21 @@
 
 #include <utility>
 
+#include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
 
 namespace tfrt {
 namespace jitrt {
 
-static void TimesTwo(MemrefDesc input, MemrefDesc output) {
-  assert(input.dtype == DType::F32 && output.dtype == DType::F32);
-  assert(input.sizes == output.sizes);
+using mlir::failure;
+using mlir::LogicalResult;
+using mlir::success;
+
+static LogicalResult TimesTwo(MemrefDesc input, MemrefDesc output) {
+  // TODO(ezhulenev): Support all floating point dtypes.
+  if (input.dtype != output.dtype || input.sizes != output.sizes ||
+      input.dtype != DType::F32)
+    return failure();
 
   int64_t num_elements = 1;
   for (int64_t d : input.sizes) num_elements *= d;
@@ -33,6 +40,8 @@ static void TimesTwo(MemrefDesc input, MemrefDesc output) {
 
   for (int64_t i = 0; i < num_elements; ++i)
     output_data[i] = input_data[i] * 2.0;
+
+  return success();
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {

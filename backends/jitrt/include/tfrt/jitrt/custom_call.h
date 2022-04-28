@@ -49,7 +49,7 @@ class CustomCall {
   virtual ~CustomCall() = default;
 
   virtual llvm::StringRef name() const = 0;
-  virtual void call(void** args) = 0;
+  virtual mlir::LogicalResult call(void** args) = 0;
 
   static CustomCallBinding<> Bind(std::string callee);
 };
@@ -213,16 +213,17 @@ class CustomCallHandler : public CustomCall {
  public:
   llvm::StringRef name() const override { return callee_; }
 
-  void call(void** args) override {
+  mlir::LogicalResult call(void** args) override {
     // Decode arguments from the opaque pointers.
     auto decoded_args = internal::DecodeArgs(args);
-    assert(decoded_args.size() == kSize);
+    if (decoded_args.size() != kSize) return mlir::failure();
 
-    call(std::move(decoded_args), std::make_index_sequence<kSize>{});
+    return call(std::move(decoded_args), std::make_index_sequence<kSize>{});
   }
 
   template <std::size_t... Is>
-  void call(internal::DecodedArgs args, std::index_sequence<Is...>) {
+  mlir::LogicalResult call(internal::DecodedArgs args,
+                           std::index_sequence<Is...>) {
     // A helper structure to allow each decoder find the correct offset in the
     // arguments.
     internal::DecodingOffsets offsets;
@@ -236,7 +237,8 @@ class CustomCallHandler : public CustomCall {
     // Check that all of them were successfully decoded.
     std::array<bool, kSize> decoded = {
         mlir::succeeded(std::get<Is>(fn_args))...};
-    assert(llvm::all_of(decoded, [](bool succeeded) { return succeeded; }));
+    if (llvm::any_of(decoded, [](bool succeeded) { return !succeeded; }))
+      return mlir::failure();
 
     // Forward unpacked arguments to the callback.
     return fn_(std::move(*std::get<Is>(fn_args))...);

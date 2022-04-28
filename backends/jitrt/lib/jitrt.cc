@@ -1270,7 +1270,11 @@ extern "C" void runtimeCustomCall(const char* callee, void** args) {
   // TODO(ezhulenev): Return failure if custom call is not registered.
   auto* custom_call = registry->Find(callee);
   assert(custom_call && "unknown custom call");
-  custom_call->call(args);
+
+  // TODO(ezhulenev): Handle failures in custom calls.
+  auto result = custom_call->call(args);
+  assert(mlir::succeeded(result) && "failed custom call");
+  (void)result;
 }
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {

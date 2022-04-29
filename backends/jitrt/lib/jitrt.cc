@@ -31,6 +31,7 @@
 #include <memory>
 #include <numeric>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
@@ -231,17 +232,48 @@ static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
   assert(memref.sizes.size() == memref.strides.size());
 
   auto* storage = args->data() + *offset;
-  auto add_arg = [&](const void* p) {
-    *storage = const_cast<void*>(p);
-    ++storage;
-    ++*offset;
+
+  auto cast = [](const void* p) { return const_cast<void*>(p); };
+
+  // Packs memref with a rank not known at compile time.
+  auto pack_memref = [&](int64_t rank) {
+    storage[0] = cast(&memref.data);  // memref.basePtr
+    storage[1] = cast(&memref.data);  // memref.data
+    storage[2] = cast(&memref.offset);
+    for (int64_t d = 0; d < rank; ++d) {
+      storage[3 + d] = cast(&memref.sizes[d]);
+      storage[3 + rank + d] = cast(&memref.strides[d]);
+    }
+
+    // Move offsets to the next argument position.
+    *offset += 3 + rank * 2;
+    storage += 3 + rank * 2;
   };
 
-  add_arg(&memref.data);  // memref.basePtr
-  add_arg(&memref.data);  // memref.data
-  add_arg(&memref.offset);
-  for (const Index& size : memref.sizes) add_arg(&size);
-  for (const Index& stride : memref.strides) add_arg(&stride);
+  // Packs memref with a rank known at compile time.
+  auto pack_ranked_memref = [&](auto rank_tag) {
+    static constexpr int64_t rank = decltype(rank_tag)::value;
+    pack_memref(rank);
+  };
+
+  // Dispatch to lambda with a statically known rank parameter for the most
+  // common ranks. It allows to inline the nested lambda, and generate better
+  // code without for loops on a hot path.
+  int64_t rank = memref.sizes.size();
+  switch (rank) {
+    case 0:
+      return pack_ranked_memref(std::integral_constant<int64_t, 0>{});
+    case 1:
+      return pack_ranked_memref(std::integral_constant<int64_t, 1>{});
+    case 2:
+      return pack_ranked_memref(std::integral_constant<int64_t, 2>{});
+    case 3:
+      return pack_ranked_memref(std::integral_constant<int64_t, 3>{});
+    case 4:
+      return pack_ranked_memref(std::integral_constant<int64_t, 4>{});
+    default:
+      return pack_memref(rank);
+  }
 }
 
 // Always verify executable operands in debug mode.

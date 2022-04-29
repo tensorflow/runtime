@@ -138,7 +138,7 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
 
   for (size_t i : iteration_order) {
     bool has_static_sizes = resolver.has_operand_sizes(i);
-    ArrayRef<int64_t> runtime_sizes = operands[i].sizes;
+    ArrayRef<int64_t> runtime_sizes = operands[i].sizes();
 
     // Check that statically known rank matches the runtime rank.
     if (LLVM_UNLIKELY(has_static_sizes &&

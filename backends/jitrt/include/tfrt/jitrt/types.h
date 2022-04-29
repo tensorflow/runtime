@@ -216,8 +216,27 @@ Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type);
 // Types for passing compiled kernel arguments and passing back results.
 //----------------------------------------------------------------------------//
 
-struct MemrefDesc {
-  MemrefDesc() = default;
+class MemrefDesc {
+ public:
+  MemrefDesc(DType dtype, void* data, Index offset, ArrayRef<Index> sizes,
+             ArrayRef<Index> strides)
+      : rank_(sizes.size()), dtype_(dtype), data_(data), offset_(offset) {
+    assert(sizes.size() == strides.size() && "invalid sizes and strides pair");
+    sizes_and_strides_.reserve(2 * rank_);
+    sizes_and_strides_.append(sizes.begin(), sizes.end());
+    sizes_and_strides_.append(strides.begin(), strides.end());
+  }
+
+  // Constructs MemrefDesc of the given rank and calls `Fill` callback to
+  // initialize sizes and strides.
+  //
+  // Expected callback signature: void fill(MutableArrayRef<Index> sizes,
+  //                                        MutableArrayRef<Index> strides);
+  //
+  // We pass the fill callback as a template argument to be able to inline it
+  // at the call site, because MemrefDesc construction is on a hot path.
+  template <typename Fill>
+  MemrefDesc(unsigned rank, DType dtype, void* data, Index offset, Fill fill);
 
   // Ensure that MemrefDesc is always moved around instead of copying.
   MemrefDesc(const MemrefDesc&) = delete;
@@ -225,12 +244,46 @@ struct MemrefDesc {
   MemrefDesc(MemrefDesc&&) = default;
   MemrefDesc& operator=(MemrefDesc&&) = default;
 
-  DType dtype;
-  void* data;
-  Index offset;
-  llvm::SmallVector<Index, 4> sizes;
-  llvm::SmallVector<Index, 4> strides;
+  unsigned rank() const { return rank_; }
+  DType dtype() const { return dtype_; }
+
+  // IMPORTANT: Arguments are passed to compiled kernels as pointers to values,
+  // for this reason every method that is used in
+  // `Executable::InitializeCallFrame` returns a reference to data member, so we
+  // don't accidentally pass pointers to temporaries.
+
+  void* const& data() const { return data_; }
+  const Index& offset() const { return offset_; }
+
+  const Index& size(size_t index) const { return sizes_and_strides_[index]; }
+  const Index& stride(size_t index) const {
+    return sizes_and_strides_[rank_ + index];
+  }
+
+  ArrayRef<Index> sizes() const { return {sizes_and_strides_.data(), rank_}; }
+  ArrayRef<Index> strides() const {
+    return {sizes_and_strides_.data() + rank_, rank_};
+  }
+
+ private:
+  unsigned rank_;
+  DType dtype_;
+  void* data_;
+  Index offset_;
+  // We keep sizes and strides in a single container to save one potential
+  // memory allocation for memrefs of higher ranks, and to save one vector
+  // constructor/destructor call.
+  llvm::SmallVector<Index, 8> sizes_and_strides_;
 };
+
+template <typename Fill>
+MemrefDesc::MemrefDesc(unsigned rank, DType dtype, void* data, Index offset,
+                       Fill fill)
+    : rank_(rank), dtype_(dtype), data_(data), offset_(offset) {
+  sizes_and_strides_.resize(2 * rank_);
+  llvm::MutableArrayRef<Index> ref = sizes_and_strides_;
+  fill(ref.drop_back(rank_), ref.drop_front(rank_));
+}
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 

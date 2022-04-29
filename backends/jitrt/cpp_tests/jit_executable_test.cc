@@ -70,10 +70,7 @@ SmallVector<MemrefDesc> GetFakeMemrefs(SmallVector<SymbolicShape> shapes) {
   memrefs.reserve(shapes.size());
 
   for (auto& shape : shapes) {
-    MemrefDesc desc;
-    desc.dtype = DType::F32;
-    desc.sizes.insert(desc.sizes.begin(), shape.begin(), shape.end());
-    desc.strides.append(shape.size(), 0);  // we don't need real strides
+    MemrefDesc desc(DType::F32, nullptr, 0, shape, shape /* fake strides */);
     memrefs.push_back(std::move(desc));
   }
 

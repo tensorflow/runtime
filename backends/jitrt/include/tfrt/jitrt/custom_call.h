@@ -289,8 +289,6 @@ struct CustomCallArgDecoding<MemrefDesc> {
   }
 
   static mlir::FailureOr<MemrefDesc> Decode(mlir::TypeID type_id, void* value) {
-    MemrefDesc memref;
-
     // Check that encoded value holds the correct type id.
     if (type_id != mlir::TypeID::get<MemrefDesc>()) return mlir::failure();
 
@@ -303,51 +301,36 @@ struct CustomCallArgDecoding<MemrefDesc> {
 
     auto dtype = internal::TypeIdToDType(element_type_id);
     if (mlir::failed(dtype)) return mlir::failure();
-    memref.dtype = *dtype;
 
     // Unpack the StridedMemRefType into the MemrefDesc.
-    auto unpack_strided_memref = [&](auto rank_tag) {
+    auto unpack_strided_memref = [&](auto rank_tag) -> MemrefDesc {
       constexpr int rank = decltype(rank_tag)::value;
 
       using Descriptor = StridedMemRefType<float, rank>;
       auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
 
-      memref.data = descriptor->data;
-      memref.offset = descriptor->offset;
-
-      auto sizes = Sizes(descriptor);
-      memref.sizes.assign(sizes.begin(), sizes.end());
-
-      auto strides = Strides(descriptor);
-      memref.strides.assign(strides.begin(), strides.end());
+      return MemrefDesc(*dtype, descriptor->data, descriptor->offset,
+                        Sizes(descriptor), Strides(descriptor));
     };
 
     // Dispatch based on the memref rank.
     switch (encoded->rank) {
       case 0:
-        unpack_strided_memref(std::integral_constant<int, 0>{});
-        break;
+        return unpack_strided_memref(std::integral_constant<int, 0>{});
       case 1:
-        unpack_strided_memref(std::integral_constant<int, 1>{});
-        break;
+        return unpack_strided_memref(std::integral_constant<int, 1>{});
       case 2:
-        unpack_strided_memref(std::integral_constant<int, 2>{});
-        break;
+        return unpack_strided_memref(std::integral_constant<int, 2>{});
       case 3:
-        unpack_strided_memref(std::integral_constant<int, 3>{});
-        break;
+        return unpack_strided_memref(std::integral_constant<int, 3>{});
       case 4:
-        unpack_strided_memref(std::integral_constant<int, 4>{});
-        break;
+        return unpack_strided_memref(std::integral_constant<int, 4>{});
       case 5:
-        unpack_strided_memref(std::integral_constant<int, 5>{});
-        break;
+        return unpack_strided_memref(std::integral_constant<int, 5>{});
       default:
         assert(false && "unsupported memref rank");
         return mlir::failure();
     }
-
-    return memref;
   }
 };
 

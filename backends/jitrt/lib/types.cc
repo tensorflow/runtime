@@ -91,9 +91,9 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
     os << "]";
   };
 
-  os << "MemrefDesc: dtype: " << desc.dtype << " offset: " << desc.offset;
-  print_arr("sizes", desc.sizes);
-  print_arr("strides", desc.strides);
+  os << "MemrefDesc: dtype: " << desc.dtype() << " offset: " << desc.offset();
+  print_arr("sizes", desc.sizes());
+  print_arr("strides", desc.strides());
 
   return os;
 }
@@ -249,7 +249,7 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
     };
 
     os << "got ";
-    print_shaped({memref.sizes}, memref.dtype);
+    print_shaped({memref.sizes()}, memref.dtype());
     os << " vs expected ";
     print_shaped(sizes, element_type);
 
@@ -257,25 +257,25 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
   };
 
   // Check that memref data type is compatible with the operand element type.
-  if (LLVM_UNLIKELY(!AreCompatibleTypes(element_type, memref.dtype))) {
+  if (LLVM_UNLIKELY(!AreCompatibleTypes(element_type, memref.dtype()))) {
     return MakeStringError(
         "operand #", index,
         " type is not compatible with the expected element type: ",
-        memref.dtype, " vs ", element_type, " (", format_operands(), ")");
+        memref.dtype(), " vs ", element_type, " (", format_operands(), ")");
   }
 
   // Skip sizes verification if they are not available.
   if (!sizes.hasValue()) return Error::success();
 
   // Check that memref rank is the same as operand rank.
-  if (LLVM_UNLIKELY(memref.sizes.size() != sizes->size()))
+  if (LLVM_UNLIKELY(memref.rank() != sizes->size()))
     return MakeStringError(
         "operand #", index,
-        " rank does not match expected input rank: ", memref.sizes.size(),
-        " vs ", sizes->size(), " (", format_operands(), ")");
+        " rank does not match expected input rank: ", memref.rank(), " vs ",
+        sizes->size(), " (", format_operands(), ")");
 
   // Check that all statically known dimensions matches the memref dimensions.
-  for (const auto& pair : llvm::enumerate(llvm::zip(memref.sizes, *sizes))) {
+  for (const auto& pair : llvm::enumerate(llvm::zip(memref.sizes(), *sizes))) {
     Index operand_dim = std::get<0>(pair.value());
     Index expected_dim = std::get<1>(pair.value());
 

@@ -63,8 +63,8 @@ static llvm::SmallVector<MemrefDesc> GetFakeMemrefs(
   memrefs.reserve(shapes.size());
 
   for (auto& shape : shapes) {
-    MemrefDesc desc;
-    desc.sizes.insert(desc.sizes.begin(), shape.begin(), shape.end());
+    // Data type of the fake memrefs doesn't matter.
+    MemrefDesc desc(DType::F32, nullptr, 0, shape, shape /* fake strides */);
     memrefs.push_back(std::move(desc));
   }
 

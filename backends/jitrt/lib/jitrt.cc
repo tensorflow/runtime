@@ -209,13 +209,12 @@ Expected<ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
 
 Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
-    MemrefDesc memref;
-    memref.dtype = dht->dtype();
-    memref.data = const_cast<void*>(dht->data());
-    memref.offset = 0;
-    dht->shape().GetDimensions(&memref.sizes);
-    dht->shape().GetStrides(&memref.strides);
-    return {std::move(memref)};
+    return MemrefDesc(dht->shape().GetRank(), dht->dtype(),
+                      const_cast<void*>(dht->data()), 0,
+                      [&](auto sizes, auto strides) {
+                        dht->shape().GetDimensions(sizes);
+                        dht->shape().GetStrides(strides);
+                      });
   }
 
   return MakeStringError("unsupported tensor type: ", tensor.tensor_type());
@@ -229,20 +228,19 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
 // compiled MLIR function ABI.
 static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
                               llvm::SmallVectorImpl<void*>* args) {
-  assert(memref.sizes.size() == memref.strides.size());
-
+  // Write into the arguments data starting from the given offset.
   auto* storage = args->data() + *offset;
 
   auto cast = [](const void* p) { return const_cast<void*>(p); };
 
   // Packs memref with a rank not known at compile time.
   auto pack_memref = [&](int64_t rank) {
-    storage[0] = cast(&memref.data);  // memref.basePtr
-    storage[1] = cast(&memref.data);  // memref.data
-    storage[2] = cast(&memref.offset);
+    storage[0] = cast(&memref.data());  // memref.basePtr
+    storage[1] = cast(&memref.data());  // memref.data
+    storage[2] = cast(&memref.offset());
     for (int64_t d = 0; d < rank; ++d) {
-      storage[3 + d] = cast(&memref.sizes[d]);
-      storage[3 + rank + d] = cast(&memref.strides[d]);
+      storage[3 + d] = cast(&memref.size(d));
+      storage[3 + rank + d] = cast(&memref.stride(d));
     }
 
     // Move offsets to the next argument position.
@@ -259,8 +257,7 @@ static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
   // Dispatch to lambda with a statically known rank parameter for the most
   // common ranks. It allows to inline the nested lambda, and generate better
   // code without for loops on a hot path.
-  int64_t rank = memref.sizes.size();
-  switch (rank) {
+  switch (memref.rank()) {
     case 0:
       return pack_ranked_memref(std::integral_constant<int64_t, 0>{});
     case 1:
@@ -272,7 +269,7 @@ static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
     case 4:
       return pack_ranked_memref(std::integral_constant<int64_t, 4>{});
     default:
-      return pack_memref(rank);
+      return pack_memref(memref.rank());
   }
 }
 
@@ -496,10 +493,10 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   };
 
   for (const MemrefDesc& memref : operands) {
-    Index size_in_bytes = GetHostSize(memref.dtype);
-    for (Index size : memref.sizes) size_in_bytes *= size;
+    Index size_in_bytes = GetHostSize(memref.dtype());
+    for (Index size : memref.sizes()) size_in_bytes *= size;
 
-    uint8_t* data = static_cast<uint8_t*>(memref.data);
+    uint8_t* data = static_cast<uint8_t*>(memref.data());
     for (Index i = 0; i < size_in_bytes; ++i) {
       uint8_t value = data[i];
       do_not_optimize(value);
@@ -1125,11 +1122,11 @@ static llvm::hash_code CombineWithValueConstraineOperands(
     if (LLVM_LIKELY(constraints[i] != OperandConstraint::kValue)) continue;
 
     const MemrefDesc& operand = operands[i];
-    const auto* data = static_cast<uint8_t*>(operand.data);
-    size_t rank = operand.sizes.size();
+    const auto* data = static_cast<uint8_t*>(operand.data());
+    size_t rank = operand.rank();
     assert(rank == 0 || rank == 1);
-    size_t num_values = rank == 0 ? 1 : operand.sizes[0];
-    Index len = num_values * GetHostSize(operand.dtype);
+    size_t num_values = rank == 0 ? 1 : operand.size(0);
+    Index len = num_values * GetHostSize(operand.dtype());
     hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
   }
   return hash;

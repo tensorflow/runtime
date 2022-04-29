@@ -28,15 +28,15 @@ using mlir::success;
 
 static LogicalResult TimesTwo(MemrefDesc input, MemrefDesc output) {
   // TODO(ezhulenev): Support all floating point dtypes.
-  if (input.dtype != output.dtype || input.sizes != output.sizes ||
-      input.dtype != DType::F32)
+  if (input.dtype() != output.dtype() || input.sizes() != output.sizes() ||
+      input.dtype() != DType::F32)
     return failure();
 
   int64_t num_elements = 1;
-  for (int64_t d : input.sizes) num_elements *= d;
+  for (int64_t d : input.sizes()) num_elements *= d;
 
-  float* input_data = reinterpret_cast<float*>(input.data);
-  float* output_data = reinterpret_cast<float*>(output.data);
+  float* input_data = reinterpret_cast<float*>(input.data());
+  float* output_data = reinterpret_cast<float*>(output.data());
 
   for (int64_t i = 0; i < num_elements; ++i)
     output_data[i] = input_data[i] * 2.0;

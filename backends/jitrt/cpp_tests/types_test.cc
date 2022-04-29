@@ -16,6 +16,7 @@
 
 #include "tfrt/jitrt/types.h"
 
+#include <type_traits>
 #include <utility>
 
 #include "benchmark/benchmark.h"
@@ -38,18 +39,13 @@ static void BM_CreateMemrefDesc_1d(benchmark::State& state) {
   int64_t num_memrefs = state.range(0);
 
   for (auto _ : state) {
-    llvm::SmallVector<jitrt::MemrefDesc> memrefs;
-    memrefs.resize(num_memrefs);
+    std::vector<MemrefDesc> memrefs;
+    memrefs.reserve(num_memrefs);
 
     for (unsigned i = 0; i < num_memrefs; ++i) {
-      jitrt::MemrefDesc& memref = memrefs[i];
-      memref.dtype = tfrt::DType::I8;
-      memref.data = ptr;
-      memref.offset = 0;
-      memref.sizes.resize_for_overwrite(1);
-      memref.sizes[0] = size;
-      memref.strides.resize_for_overwrite(1);
-      memref.strides[0] = stride;
+      ArrayRef<Index> sizes = size;
+      ArrayRef<Index> strides = stride;
+      memrefs.emplace_back(tfrt::DType::I8, ptr, 0, sizes, strides);
     }
 
     benchmark::DoNotOptimize(memrefs);
@@ -63,16 +59,13 @@ BENCHMARK(BM_CreateMemrefDesc_1d)->Arg(1)->Arg(4)->Arg(8)->Arg(12)->Arg(16);
 // -------------------------------------------------------------------------- //
 
 static MemrefDesc GetFakeMemref(ArrayRef<int64_t> sizes) {
-  MemrefDesc memref;
-  memref.dtype = DType::F32;
-  memref.sizes.assign(sizes.begin(), sizes.end());
-  return memref;
+  return MemrefDesc(DType::F32, nullptr, 0, sizes, sizes /* fake strides*/);
 }
 
 static void BenchmarkVerifyMemrefOperand(benchmark::State& state,
                                          const MemrefDesc& memref) {
-  auto sizes = memref.sizes;
-  auto dtype = memref.dtype;
+  auto sizes = memref.sizes();
+  auto dtype = memref.dtype();
 
   for (auto _ : state) {
     if (auto err = VerifyMemrefOperand(0, dtype, {sizes}, memref)) break;

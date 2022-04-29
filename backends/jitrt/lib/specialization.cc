@@ -72,20 +72,22 @@ static llvm::Expected<mlir::Type> SpecializeOperandType(
 static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
                                                mlir::TensorType operand_type,
                                                const MemrefDesc& desc) {
-  size_t rank = desc.sizes.size();
+  size_t rank = desc.rank();
   if (rank != 0 && rank != 1) return {};
 
   llvm::SmallVector<mlir::Attribute> attributes;
-  size_t num_values = rank == 0 ? 1 : desc.sizes[0];
-  switch (desc.dtype) {
+  size_t num_values = rank == 0 ? 1 : desc.size(0);
+  switch (desc.dtype()) {
     case DType::I32: {
-      const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
+      const auto* data =
+          static_cast<TypeForDTypeKind<DType::I32>*>(desc.data());
       for (int i = 0; i < num_values; ++i) {
         attributes.push_back(builder.getI32IntegerAttr(data[i]));
       }
     } break;
     case DType::I64: {
-      const auto* data = static_cast<TypeForDTypeKind<DType::I64>*>(desc.data);
+      const auto* data =
+          static_cast<TypeForDTypeKind<DType::I64>*>(desc.data());
       for (int i = 0; i < num_values; ++i) {
         attributes.push_back(builder.getI64IntegerAttr(data[i]));
       }
@@ -96,7 +98,7 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
 
   // Update operand type to a ranked tensor type with statically known shape.
   auto element_type = operand_type.getElementType();
-  auto ranked_tensor = mlir::RankedTensorType::get(desc.sizes, element_type);
+  auto ranked_tensor = mlir::RankedTensorType::get(desc.sizes(), element_type);
 
   return mlir::DenseElementsAttr::get(ranked_tensor, attributes);
 }

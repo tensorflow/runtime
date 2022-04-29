@@ -16,6 +16,8 @@
 
 #include "tfrt/jitrt/types.h"
 
+#include <utility>
+
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
@@ -23,6 +25,38 @@
 
 namespace tfrt {
 namespace jitrt {
+
+// -------------------------------------------------------------------------- //
+// Benchmarks for constructing MemrefDesc.
+// -------------------------------------------------------------------------- //
+
+static void BM_CreateMemrefDesc_1d(benchmark::State& state) {
+  void* ptr = reinterpret_cast<void*>(0xDEADBEEF);
+  int64_t size = 123;
+  int64_t stride = 456;
+
+  int64_t num_memrefs = state.range(0);
+
+  for (auto _ : state) {
+    llvm::SmallVector<jitrt::MemrefDesc> memrefs;
+    memrefs.resize(num_memrefs);
+
+    for (unsigned i = 0; i < num_memrefs; ++i) {
+      jitrt::MemrefDesc& memref = memrefs[i];
+      memref.dtype = tfrt::DType::I8;
+      memref.data = ptr;
+      memref.offset = 0;
+      memref.sizes.resize_for_overwrite(1);
+      memref.sizes[0] = size;
+      memref.strides.resize_for_overwrite(1);
+      memref.strides[0] = stride;
+    }
+
+    benchmark::DoNotOptimize(memrefs);
+  }
+}
+
+BENCHMARK(BM_CreateMemrefDesc_1d)->Arg(1)->Arg(4)->Arg(8)->Arg(12)->Arg(16);
 
 // -------------------------------------------------------------------------- //
 // Run benchmarks for verifying operands.

@@ -446,21 +446,15 @@ class StaticReturnValueConverter : public ReturnValueConverterBase {
     Impl<Fns...> try_next;
   };
 
-  template <typename Fn>
-  struct Impl<Fn> {
+  template <>
+  struct Impl<> {
     LLVM_ATTRIBUTE_ALWAYS_INLINE
     mlir::LogicalResult operator()(ConversionContext& ctx,
                                    RemainingResults results,
                                    unsigned result_index, const Type* t,
                                    const Type* rt, void* ret) const {
-      auto converted = convert(ctx, results, result_index, t, rt, ret);
-      if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
-      results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
-                                               " (derived from: ", *t, ")"));
       return mlir::failure();
     }
-
-    Fn convert;
   };
 
   ConversionContext& context_;  // must outlive all pending result conversions

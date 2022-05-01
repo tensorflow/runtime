@@ -22,21 +22,6 @@
 
 namespace tfrt {
 
-size_t GetHostSize(DType dtype) {
-  return DispatchByDType(dtype,
-                         [](auto dtype_data) { return dtype_data.kByteSize; });
-}
-
-size_t GetHostAlignment(DType dtype) {
-  return DispatchByDType(dtype,
-                         [](auto dtype_data) { return dtype_data.kAlignment; });
-}
-
-bool IsTriviallyCopyable(DType dtype) {
-  return DispatchByDType(
-      dtype, [](auto dtype_data) { return dtype_data.kIsTriviallyCopyable; });
-}
-
 // Support printing of dtype enums.
 raw_ostream &operator<<(raw_ostream &os, DType dtype) {
   return os << DispatchByDType(

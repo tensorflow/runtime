@@ -185,6 +185,18 @@ decltype(auto) DispatchByDType(DType dtype, F &&f) {
   }
 }
 
+LLVM_ATTRIBUTE_ALWAYS_INLINE size_t GetHostSize(DType dtype) {
+  return DispatchByDType(dtype, [](auto d) { return d.kByteSize; });
+}
+
+LLVM_ATTRIBUTE_ALWAYS_INLINE size_t GetHostAlignment(DType dtype) {
+  return DispatchByDType(dtype, [](auto d) { return d.kAlignment; });
+}
+
+LLVM_ATTRIBUTE_ALWAYS_INLINE bool IsTriviallyCopyable(DType dtype) {
+  return DispatchByDType(dtype, [](auto d) { return d.kIsTriviallyCopyable; });
+}
+
 }  // namespace tfrt
 
 #endif  // TFRT_DTYPE_DTYPE_H_

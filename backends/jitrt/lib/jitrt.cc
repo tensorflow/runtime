@@ -660,9 +660,9 @@ static mlir::LogicalResult RunPipeline(
 
   // Instrument the pass manager to capture timing information.
   mlir::DefaultTimingManager tm;
+  mlir::TimingScope timing = tm.getRootScope();
   if (DebugJitrtCompile()) {
     tm.setEnabled(true);
-    mlir::TimingScope timing = tm.getRootScope();
     pm.enableTiming(timing);
   }
 

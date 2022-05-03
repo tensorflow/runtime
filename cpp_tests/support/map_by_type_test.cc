@@ -15,6 +15,7 @@
 // Tests related to MapByType
 #include "tfrt/support/map_by_type.h"
 
+#include "benchmark/benchmark.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -70,6 +71,17 @@ TEST(MapByTypeTest, Basic) {
   EXPECT_EQ(map.get<A>().v, 3);
 }
 
+TEST(MapByTypeTest, Construct) {
+  MapByType<MapTag> map;
+  map.insert_all(static_cast<int32_t>(1), static_cast<int64_t>(2));
+  EXPECT_TRUE(map.contains<int32_t>());
+  EXPECT_TRUE(map.contains<int64_t>());
+  EXPECT_FALSE(map.contains<float>());
+
+  EXPECT_EQ(map.get<int32_t>(), 1);
+  EXPECT_EQ(map.get<int64_t>(), 2);
+}
+
 TEST(MapByTypeTest, DestructorCount) {
   int destruct_count = 0;
   {
@@ -91,6 +103,33 @@ TEST(MapByTypeTest, DestructorCount) {
   }
   EXPECT_EQ(destruct_count, 1);
 }
+
+// -------------------------------------------------------------------------- //
+// Performance benchmarks are below.
+// -------------------------------------------------------------------------- //
+
+static void BM_Insert(benchmark::State& state) {
+  for (auto _ : state) {
+    MapByType<MapTag> map;
+    map.insert(static_cast<int32_t>(1));
+    map.insert(static_cast<int64_t>(1));
+    map.insert(static_cast<float>(1.0));
+    map.insert(static_cast<double>(1.0));
+    benchmark::DoNotOptimize(map);
+  }
+}
+
+static void BM_InsertAll(benchmark::State& state) {
+  for (auto _ : state) {
+    MapByType<MapTag> map;
+    map.insert_all(static_cast<int32_t>(1), static_cast<int64_t>(1),
+                   static_cast<float>(1.0), static_cast<double>(1.0));
+    benchmark::DoNotOptimize(map);
+  }
+}
+
+BENCHMARK(BM_Insert);
+BENCHMARK(BM_InsertAll);
 
 }  // namespace
 }  // namespace tfrt

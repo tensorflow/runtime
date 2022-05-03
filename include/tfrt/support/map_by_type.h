@@ -22,6 +22,7 @@
 
 #include <vector>
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm_derived/Support/unique_any.h"
 #include "tfrt/support/type_id.h"
 
@@ -76,6 +77,22 @@ class MapByType {
     return emplace<T>(std::forward<T>(t));
   }
 
+  template <typename... Ts>
+  void insert_all(Ts&&... values) {
+    static constexpr size_t n = sizeof...(Ts);
+    if (n == 0) return;
+
+    // Resize the `data_` to prepare the storage for inserted values.
+    std::array<size_t, n> ids = {getTypeId<Ts>()...};
+    data_.resize(1 + *std::max_element(ids.begin(), ids.end()));
+
+    // Insert all values into the map.
+    // TODO(ezhulenev): C++17: (insert<Ts>(std::forward<Ts>(values)), ...);
+    std::tuple<std::decay_t<Ts>&...> refs = {
+        insert<Ts>(std::forward<Ts>(values))...};
+    (void)refs;
+  }
+
   template <typename T>
   T& get() {
     return const_cast<T&>(static_cast<const MapByType*>(this)->get<T>());
@@ -127,7 +144,7 @@ class MapByType {
     return static_cast<Storage<T>*>(base)->value;
   }
 
-  std::vector<std::unique_ptr<StorageBase>> data_;
+  llvm::SmallVector<std::unique_ptr<StorageBase>> data_;
 };
 
 }  // namespace tfrt

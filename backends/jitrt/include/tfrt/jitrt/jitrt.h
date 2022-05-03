@@ -467,6 +467,17 @@ class StaticReturnValueConverter : public ReturnValueConverterBase {
   Impl<ConversionFns...> convert_;
 };
 
+template <typename ConversionContext>
+struct StaticReturnValueConverter<ConversionContext> {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  mlir::LogicalResult operator()(ConversionContext& ctx,
+                                 RemainingResults results,
+                                 unsigned result_index, const Type* t,
+                                 const Type* rt, void* ret) const {
+    return mlir::failure();
+  }
+};
+
 // -------------------------------------------------------------------------- //
 // Default conversion functions that do not require conversion context.
 // -------------------------------------------------------------------------- //

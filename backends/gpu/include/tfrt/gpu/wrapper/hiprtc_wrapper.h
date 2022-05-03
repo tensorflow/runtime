@@ -19,6 +19,7 @@
 #define TFRT_GPU_WRAPPER_HIPRTC_WRAPPER_H_
 
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/gpu/wrapper/hiprtc_stub.h"
 
 namespace tfrt {
@@ -32,17 +33,9 @@ struct ProgramDeleter{
   using pointer = hiprtcProgram;
   void operator()(hiprtcProgram prog) const;
 };
-template <typename D>
-using OwningResource = std::unique_ptr<typename D::pointer, D>;
 } // namespace internal 
 
 using OwningProgram = internal::OwningResource<internal::ProgramDeleter>;
-
-//llvm::Expected<OwningPogram> CreateProgram(const char* str){
-//  hiprtcProgram prog;
-//  RETURN_IF_ERROR(hiprtcCreate(&prog, str, "", 0, nullptr,nullptr));
-//  return OwningProgram(prog);
-//}
 
 llvm::Expected<LibraryVersion> HiprtcGetVersion();
 llvm::Error HiprtcAddNameExpression(hiprtcProgram prog,

@@ -33,6 +33,18 @@ using func::FuncOp;
 namespace tfrt {
 namespace compiler {
 
+namespace {
+void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
+                ArrayRef<Type> types,
+                SmallVector<OpAsmParser::Argument> &args) {
+  for (auto argAndType : llvm::zip(operands, types)) {
+    auto &arg = args.emplace_back();
+    arg.ssaName = std::get<0>(argAndType);
+    arg.type = std::get<1>(argAndType);
+  }
+}
+}  // namespace
+
 //===----------------------------------------------------------------------===//
 // CallOp
 //===----------------------------------------------------------------------===//
@@ -172,15 +184,17 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
                              result.operands))
     return failure();
 
+  SmallVector<OpAsmParser::Argument> body_args;
+  createArgs(body_operands, body_types, body_args);
   // Parse the body region.
   Region *then_region = result.addRegion();
-  if (parser.parseRegion(*then_region, body_operands, body_types,
+  if (parser.parseRegion(*then_region, body_args,
                          /*enableNameShadowing=*/true))
     return failure();
 
   Region *else_region = result.addRegion();
   if (succeeded(parser.parseOptionalKeyword("else"))) {
-    if (parser.parseRegion(*else_region, body_operands, body_types,
+    if (parser.parseRegion(*else_region, body_args,
                            /*enableNameShadowing=*/true))
       return failure();
   } else {
@@ -316,8 +330,10 @@ ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
     return failure();
 
   // Parse the body region.
+  SmallVector<OpAsmParser::Argument> loop_args;
+  createArgs(loop_operands, types, loop_args);
   Region *body = result.addRegion();
-  return parser.parseRegion(*body, loop_operands, types,
+  return parser.parseRegion(*body, loop_args,
                             /*enableNameShadowing=*/true);
 }
 
@@ -411,8 +427,10 @@ ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
   SmallVector<Type, 6> body_operands_types = {i32_type, i32_type};
   for (auto &type : types) body_operands_types.push_back(type);
 
+  SmallVector<OpAsmParser::Argument> body_args;
+  createArgs(body_operands, body_operands_types, body_args);
   Region *body = result.addRegion();
-  return parser.parseRegion(*body, body_operands, body_operands_types,
+  return parser.parseRegion(*body, body_args,
                             /*enableNameShadowing=*/true);
 }
 

@@ -28,6 +28,18 @@
 namespace tfrt {
 namespace test {
 
+namespace {
+void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
+                ArrayRef<Type> types,
+                SmallVector<OpAsmParser::Argument> &args) {
+  for (auto argAndType : llvm::zip(operands, types)) {
+    auto &arg = args.emplace_back();
+    arg.ssaName = std::get<0>(argAndType);
+    arg.type = std::get<1>(argAndType);
+  }
+}
+}  // namespace
+
 //===----------------------------------------------------------------------===//
 // TestDialect Dialect
 //===----------------------------------------------------------------------===//
@@ -85,11 +97,14 @@ ParseResult DoAsyncOp::parse(OpAsmParser &parser, OperationState &result) {
     return failure();
 
   // Parse the body region.
+  if (parser.resolveOperands(operands, types.getInputs(), type_loc,
+                             result.operands))
+    return failure();
+  SmallVector<OpAsmParser::Argument> args;
+  createArgs(operands, types.getInputs(), args);
   Region *body = result.addRegion();
-  return failure(parser.resolveOperands(operands, types.getInputs(), type_loc,
-                                        result.operands) ||
-                 parser.parseRegion(*body, operands, types.getInputs(),
-                                    /*enableNameShadowing=*/true));
+  return parser.parseRegion(*body, args,
+                            /*enableNameShadowing=*/true);
 }
 
 void DoAsyncOp::print(OpAsmPrinter &p) {
@@ -193,8 +208,9 @@ ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
   setDefaultAttrIfUnset("num_warmup_runs", 1);
 
   Region *target = result.addRegion();
-  return parser.parseRegion(*target, operands, types,
-                            /*enableNameShadowing=*/true);
+  SmallVector<OpAsmParser::Argument> args;
+  createArgs(operands, types, args);
+  return parser.parseRegion(*target, args, /*enableNameShadowing=*/true);
 }
 
 // Print the BenchmarkOp in the following format

@@ -86,6 +86,16 @@ static bool DebugJitrtCompile() {
 #endif
 }
 
+static bool EnablePassTiming() {
+  if (DebugJitrtCompile()) return true;
+
+#if defined(ENABLE_JITRT_PASS_TIMING)
+  return true;
+#else
+  return false;
+#endif
+}
+
 //----------------------------------------------------------------------------//
 // Register MLIR C Runner Utils symbols with JIT execution engine.
 //----------------------------------------------------------------------------//
@@ -660,9 +670,10 @@ static mlir::LogicalResult RunPipeline(
 
   // Instrument the pass manager to capture timing information.
   mlir::DefaultTimingManager tm;
-  mlir::TimingScope timing = tm.getRootScope();
-  if (DebugJitrtCompile()) {
+  mlir::TimingScope timing;
+  if (EnablePassTiming()) {
     tm.setEnabled(true);
+    timing = tm.getRootScope();
     pm.enableTiming(timing);
   }
 
@@ -855,7 +866,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   if (failed(RunCompilationPipeline(ctx->module(), ctx->options())))
     return ctx->Error("failed to run compilation pipeline");
 
-  if (DebugJitrtCompile()) llvm::TimePassesIsEnabled = true;
+  if (EnablePassTiming()) llvm::TimePassesIsEnabled = true;
 
   // Prepare JIT target machine for code generation.
   auto builder = llvm::orc::JITTargetMachineBuilder::detectHost();
@@ -920,7 +931,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto time_to_compile = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - compilation_start);
 
-  if (DebugJitrtCompile()) llvm::reportAndResetTimings();
+  if (EnablePassTiming()) llvm::reportAndResetTimings();
 
   return Executable(
       ctx->name().str(), std::move(memory_mapper), std::move(*engine),

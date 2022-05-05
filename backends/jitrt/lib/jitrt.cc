@@ -1313,9 +1313,9 @@ extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
   ctx->call_frame->error = {error};
 }
 
-extern "C" bool runtimeCustomCall(const char* callee, void** args,
-                                  void** attrs) {
-  assert(callee && args && attrs && "arguments must be not null");
+extern "C" bool runtimeCustomCall(KernelContext* ctx, const char* callee,
+                                  void** args, void** attrs) {
+  assert(ctx && callee && args && attrs && "all arguments must be not null");
 
   // Default custom calls registry for the JitRt kernels.
   static CustomCallRegistry* registry = []() {

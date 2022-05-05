@@ -119,11 +119,12 @@ struct RuntimeAPI {
   }
 
   static FunctionType CustomCallFunctionType(MLIRContext *ctx) {
+    auto kernel_context = OpaquePointerType(ctx);
     auto callee = OpaquePointerType(ctx);
     auto args = CustomCallArgumentsType(ctx);
     auto attrs = CustomCallAttributesType(ctx);
     auto i1 = IntegerType::get(ctx, 1);
-    return FunctionType::get(ctx, {callee, args, attrs}, {i1});
+    return FunctionType::get(ctx, {kernel_context, callee, args, attrs}, {i1});
   }
 };
 
@@ -617,8 +618,8 @@ static FailureOr<Value> EncodeArguments(ImplicitLocOpBuilder &b,
                                         ValueRange converted) {
   llvm::SmallVector<CustomCallArgEncoding::Encoded> encoded;
 
-  // Encode all arguments as a set of pointers.
-  for (auto tuple : llvm::zip(operands, converted)) {
+  // Encode all arguments as a set of pointers (skip the kernel context).
+  for (auto tuple : llvm::drop_begin(llvm::zip(operands, converted))) {
     auto encoded_arg = EncodeArgument(b, tuple);
     if (failed(encoded_arg)) return failure();
     encoded.push_back(*encoded_arg);
@@ -712,8 +713,9 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
 
     // Call runtime API to call the custom call target.
     auto i1 = rewriter.getI1Type();
-    rewriter.replaceOpWithNewOp<CallOp>(op, kCustomCall, TypeRange(i1),
-                                        ValueRange({callee, *args, *attrs}));
+    rewriter.replaceOpWithNewOp<CallOp>(
+        op, kCustomCall, TypeRange(i1),
+        ValueRange({adaptor.ctx(), callee, *args, *attrs}));
 
     return success();
   }

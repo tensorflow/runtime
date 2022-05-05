@@ -152,7 +152,7 @@ def CustomCallOp : RT_Op<"custom_call"> {
       ```mlir
       func @compute(%ctx: !rt.kernel_context, %arg0: memref<?xf32>,
                                               %arg1: memref<?xf32>) {
-        %status = rt.custom_call "one_dnn.some_operation"(%arg0, %arg1)
+        %status = rt.custom_call %ctx["one_dnn.some_operation"] (%arg0, %arg1)
           : (memref<?xf32>, memref<?xf32>) -> ()
         %0 = rt.is_ok %status
         cf.assert %0, "failed to call one_dnn custom call"
@@ -167,6 +167,7 @@ def CustomCallOp : RT_Op<"custom_call"> {
   }];
 
   let arguments = (ins
+    KernelContextType:$ctx,
     StrAttr:$callee,
     Variadic<AnyType>:$operands
   );
@@ -177,7 +178,8 @@ def CustomCallOp : RT_Op<"custom_call"> {
   );
 
   let assemblyFormat = [{
-    $callee `(` $operands `)` attr-dict `:` functional-type($operands, $results)
+    $ctx `[` $callee `]`  `(` $operands `)`
+    attr-dict `:` functional-type($operands, $results)
   }];
 }
 

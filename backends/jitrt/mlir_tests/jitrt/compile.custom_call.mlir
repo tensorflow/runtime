@@ -14,8 +14,11 @@
 
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
-module @kernels attributes { tfrt.compiled } {
-  func.func @multiply(%input: memref<?x?xf32>) -> memref<?x?xf32> {
+module @multiply attributes { tfrt.compiled } {
+  func.func private @multiply.cc(%arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>)
+    attributes { rt.custom_call = "testlib.multiply" }
+
+  func.func @main(%input: memref<?x?xf32>) -> memref<?x?xf32> {
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %0 = memref.dim %input, %c0 : memref<?x?xf32>
@@ -24,31 +27,29 @@ module @kernels attributes { tfrt.compiled } {
     // Reverse dimension order to test invalid custom call arguments below.
     %output = memref.alloc(%1, %0) : memref<?x?xf32>
 
-    %status = rt.custom_call "testlib.multiply"(%input, %output)
-      { cst = 2.0 : f32 }
+    func.call @multiply.cc(%input, %output) { cst = 2.0 : f32 }
       : (memref<?x?xf32>, memref<?x?xf32>) -> ()
-    %ok = rt.is_ok %status
-    cf.assert %ok, "failed to call custom call 'testlib.multiply'"
 
     func.return %output : memref<?x?xf32>
   }
+}
 
-  func.func @print_attrs() {
-    %status = rt.custom_call "testlib.print_attrs"()
-      {
-        i32 = 101 : i32,
-        i64 = 102 : i64,
-        f32 = 1.0 : f32,
-        f64 = 2.0 : f64,
-        i32_arr = dense<[101, 102, 103, 104]> : tensor<4xi32>,
-        i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
-        f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
-        f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
-        str = "some string"
-      }
-      : () -> ()
-    %ok = rt.is_ok %status
-    cf.assert %ok, "failed to call custom call 'testlib.print_attrs'"
+module @print_attrs attributes { tfrt.compiled } {
+  func.func private @print_attrs.cc()
+     attributes { rt.custom_call = "testlib.print_attrs" }
+
+  func.func @main() {
+    func.call @print_attrs.cc() {
+      i32 = 101 : i32,
+      i64 = 102 : i64,
+      f32 = 1.0 : f32,
+      f64 = 2.0 : f64,
+      i32_arr = dense<[101, 102, 103, 104]> : tensor<4xi32>,
+      i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
+      f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
+      f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      str = "some string"
+    } : () -> ()
 
     func.return
   }
@@ -67,7 +68,7 @@ func.func @compiled_custom_call() -> !tfrt.chain {
   %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch1 2.0 : f32
 
   // Compile a kernel with a custom call.
-  %executable = jitrt.compile { kernel = @kernels::@multiply }
+  %executable = jitrt.compile { kernel = @multiply::@main }
 
   // Execute compiled kernel with tensor operands.
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
@@ -91,13 +92,13 @@ func.func @compiled_custom_call_error() -> !t.tensor {
   %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
 
   // Compile a kernel with a custom call.
-  %executable = jitrt.compile { kernel = @kernels::@multiply }
+  %executable = jitrt.compile { kernel = @multiply::@main }
 
   // Execute compiled kernel with tensor operands.
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
 
   // CHECK: returned <<error: compiled kernel run time error:
-  // CHECK-SAME: failed to call custom call 'testlib.multiply'>>
+  // CHECK-SAME: custom call 'testlib.multiply' failed>>
   tfrt.return %output : !t.tensor
 }
 
@@ -114,7 +115,7 @@ func.func @compiled_custom_call_attrs() {
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: str: some string
-  %executable = jitrt.compile { kernel = @kernels::@print_attrs }
+  %executable = jitrt.compile { kernel = @print_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

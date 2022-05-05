@@ -41,9 +41,11 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 // CHECK-LABEL: func @custom_call(
 // CHECK:  %[[CTX:.*]]: !rt.kernel_context
 // CHECK:  %[[MEMREF:.*]]: memref<?xf32>
-func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) -> f32 {
-  // CHECK: rt.custom_call "f32_reduce"(%[[MEMREF]]) : (memref<?xf32>) -> f32
-  %status, %0 = rt.custom_call "f32_reduce"(%arg1) : (memref<?xf32>) -> f32
+func.func @custom_call(%ctx: !rt.kernel_context, %input: memref<?xf32>) -> f32 {
+  // CHECK: rt.custom_call %[[CTX]]["f32_reduce"] (%[[MEMREF]])
+  // CHECK-SAME: : (memref<?xf32>) -> f32
+  %status, %0 = rt.custom_call %ctx["f32_reduce"] (%input)
+                : (memref<?xf32>) -> f32
   %ok = rt.is_ok %status
   cf.assert %ok, "failed to call custom call"
   func.return %0 : f32

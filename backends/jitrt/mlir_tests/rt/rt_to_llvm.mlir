@@ -92,11 +92,12 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
   // CHECK: %[[C10:.*]] = arith.constant 10 : i32
   // CHECK: %[[ATTRS:.*]] = llvm.alloca %[[C10]] x !llvm.ptr<i8>
 
-  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CALLEE]],
+  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CTX]],
+  // CHECK-SAME:                                     %[[CALLEE]],
   // CHECK-SAME:                                     %[[ARGS]],
   // CHECK-SAME:                                     %[[ATTRS]])
   // CHECK: cf.assert %[[STATUS]], "oops"
-  %status = rt.custom_call "target"(%arg1)
+  %status = rt.custom_call %arg0["target"] (%arg1)
               {
                 init = 1.0 : f32,
                 strides = dense<[1, 2, 3, 4]> : tensor<4xi32>,

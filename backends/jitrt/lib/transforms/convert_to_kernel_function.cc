@@ -67,6 +67,9 @@ static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
     if (target) calls.push_back(op);
   });
 
+  // After converting to custom call we need to clean up all declarations.
+  llvm::DenseSet<FuncOp> erase_declarations;
+
   // Rewrite function calls to `rt.custom_call` operations.
   for (CallOp orig : calls) {
     ImplicitLocOpBuilder b(orig.getLoc(), orig);
@@ -80,7 +83,8 @@ static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
                    orig->getResultTypes().end());
 
     // Rewrite function call with a custom call, and check the return status.
-    auto call = b.create<CustomCallOp>(results, target, orig.getOperands());
+    auto call =
+        b.create<CustomCallOp>(results, kernel_ctx, target, orig.getOperands());
 
     // Copy optional attributes from the custom call function declaration.
     llvm::ArrayRef<llvm::StringRef> callee_attrs = callee.getAttributeNames();
@@ -99,7 +103,7 @@ static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
 
     b.create<AssertOp>(
         b.create<IsOkOp>(TypeRange(b.getI1Type()), call.status()),
-        b.getStringAttr("failed to execute the custom call"));
+        b.getStringAttr("custom call '" + target.strref() + "' failed"));
 
     // Forward users of the original results to custom call results.
     auto rets =
@@ -108,9 +112,15 @@ static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
       std::get<0>(ret).replaceAllUsesWith(std::get<1>(ret));
     });
 
+    // Keep track of custom call declaration to erase.
+    erase_declarations.insert(callee);
+
     // Erase the original function call operation.
     orig.erase();
   }
+
+  // Erase all converted custom calls declarations.
+  for (auto func : erase_declarations) func.erase();
 }
 
 static void ConvertReturnOperations(FuncOp func, Value kernel_ctx) {

@@ -63,6 +63,8 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 // CHECK-DAG: llvm.mlir.global internal constant @[[REDUCE:.*]]("target\00")
 // CHECK-DAG: llvm.mlir.global internal constant @[[INIT:.*]]("init\00")
 // CHECK-DAG: llvm.mlir.global internal constant @[[STRIDES:.*]]("strides\00")
+// CHECK-DAG: llvm.mlir.global internal constant @[[BLOB:.*]]("blob\00")
+// CHECK-DAG: llvm.mlir.global internal constant @[[DATA:.*]]("binary data\00")
 
 // CHECK: func @custom_call(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
@@ -85,9 +87,10 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
 
   // CHECK-DAG: llvm.mlir.addressof @[[INIT]] : !llvm.ptr<array<5 x i8>>
   // CHECK-DAG: llvm.mlir.addressof @[[STRIDES]] : !llvm.ptr<array<8 x i8>>
-  // CHECK: llvm.mlir.undef : !llvm.struct<(i64, array<4 x i32>)>
-  // CHECK: %[[C7:.*]] = arith.constant 7 : i32
-  // CHECK: %[[ATTRS:.*]] = llvm.alloca %[[C7]] x !llvm.ptr<i8>
+  // CHECK-DAG: llvm.mlir.addressof @[[BLOB]] : !llvm.ptr<array<5 x i8>>
+  // CHECK-DAG: llvm.mlir.addressof @[[DATA]] : !llvm.ptr<array<12 x i8>>
+  // CHECK: %[[C10:.*]] = arith.constant 10 : i32
+  // CHECK: %[[ATTRS:.*]] = llvm.alloca %[[C10]] x !llvm.ptr<i8>
 
   // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CALLEE]],
   // CHECK-SAME:                                     %[[ARGS]],
@@ -96,7 +99,8 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
   %status = rt.custom_call "target"(%arg1)
               {
                 init = 1.0 : f32,
-                strides = dense<[1, 2, 3, 4]> : tensor<4xi32>
+                strides = dense<[1, 2, 3, 4]> : tensor<4xi32>,
+                blob = "binary data"
               }
               : (memref<?xf32>) -> ()
 

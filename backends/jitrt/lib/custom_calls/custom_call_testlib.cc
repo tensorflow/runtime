@@ -27,6 +27,8 @@ using mlir::failure;
 using mlir::LogicalResult;
 using mlir::success;
 
+using llvm::StringRef;
+
 static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
   if (input.dtype() != output.dtype() || input.sizes() != output.sizes() ||
@@ -50,7 +52,7 @@ static LogicalResult PrintAttrs(int32_t i32, int64_t i64, float f32, double f64,
                                 ArrayRef<int32_t> i32_arr,
                                 ArrayRef<int64_t> i64_arr,
                                 ArrayRef<float> f32_arr,
-                                ArrayRef<double> f64_arr) {
+                                ArrayRef<double> f64_arr, StringRef str) {
   llvm::outs() << "i32: " << i32 << "\n";
   llvm::outs() << "i64: " << i64 << "\n";
   llvm::outs() << "f32: " << f32 << "\n";
@@ -65,6 +67,8 @@ static LogicalResult PrintAttrs(int32_t i32, int64_t i64, float f32, double f64,
   print_arr("i64", i64_arr);
   print_arr("f32", f32_arr);
   print_arr("f64", f64_arr);
+
+  llvm::outs() << "str: " << str << "\n";
 
   return success();
 }
@@ -85,6 +89,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<ArrayRef<int64_t>>("i64_arr")
                          .Attr<ArrayRef<float>>("f32_arr")
                          .Attr<ArrayRef<double>>("f64_arr")
+                         .Attr<StringRef>("str")
                          .To(PrintAttrs));
 }
 

@@ -423,6 +423,16 @@ struct CustomCallArgDecoding<MemrefDesc> {
 // -------------------------------------------------------------------------- //
 // Custom call attributes decoding.
 
+template <>
+struct CustomCallAttrDecoding<llvm::StringRef> {
+  static mlir::FailureOr<llvm::StringRef> Decode(llvm::StringRef name,
+                                                 mlir::TypeID type_id,
+                                                 void* value) {
+    if (type_id != mlir::TypeID::get<llvm::StringRef>()) return mlir::failure();
+    return llvm::StringRef(reinterpret_cast<const char*>(value));
+  }
+};
+
 #define JITRT_REGISTER_SCALAR_ATTR_DECODING(T)                            \
   template <>                                                             \
   struct CustomCallAttrDecoding<T> {                                      \
@@ -452,7 +462,6 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
                                                mlir::TypeID type_id,           \
                                                void* value) {                  \
       if (type_id != mlir::TypeID::get<ArrayRef<T>>()) return mlir::failure(); \
-                                                                               \
       auto* encoded = reinterpret_cast<EncodedMemref*>(value);                 \
       return ArrayRef<T>(&encoded->data, encoded->size);                       \
     }                                                                          \

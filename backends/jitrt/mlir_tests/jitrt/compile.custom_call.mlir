@@ -43,7 +43,8 @@ module @kernels attributes { tfrt.compiled } {
         i32_arr = dense<[101, 102, 103, 104]> : tensor<4xi32>,
         i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
         f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
-        f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>
+        f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+        str = "some string"
       }
       : () -> ()
     %ok = rt.is_ok %status
@@ -112,6 +113,7 @@ func.func @compiled_custom_call_attrs() {
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
+  // CHECK: str: some string
   %executable = jitrt.compile { kernel = @kernels::@print_attrs }
   jitrt.execute %executable[%ch0]() : () -> ()
 

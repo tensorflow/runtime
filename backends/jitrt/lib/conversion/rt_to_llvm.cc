@@ -456,7 +456,7 @@ static void StoreOpaquePtr(ImplicitLocOpBuilder &b, Value ptr, Value alloca,
 // Attributes encoding packs attribute name, data type and the value into the
 // stack allocated memory, and returns values pointing to the encoded data.
 struct CustomCallAttrEncoding {
-  // Prefix for globals storing custom call attribute name.
+  // Prefix for globals storing custom call attribute name or string value.
   static const constexpr char *kPrefix = "__rt_custom_call_attr";
 
   struct Encoded {
@@ -470,6 +470,18 @@ struct CustomCallAttrEncoding {
   virtual FailureOr<Encoded> Encode(ModuleOp module,
                                     ImplicitLocOpBuilder &builder,
                                     StringRef name, Attribute value) const = 0;
+};
+
+struct StringAttrEncoding : public CustomCallAttrEncoding {
+  FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
+                            StringRef name, Attribute value) const override {
+    Encoded encoded;
+    encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
+    encoded.type_id = PackTypeId(builder, TypeID::get<llvm::StringRef>());
+    encoded.value = CreateGlobalStrCst(module, builder,
+                                       value.cast<StringAttr>().str(), kPrefix);
+    return encoded;
+  }
 };
 
 struct ScalarAttrEncoding : public CustomCallAttrEncoding {
@@ -580,6 +592,10 @@ static FailureOr<CustomCallAttrEncoding::Encoded> EncodeAttribute(
     ModuleOp module, ImplicitLocOpBuilder &b, NamedAttribute attr) {
   StringRef name = attr.getName();
   Attribute value = attr.getValue();
+
+  // String attributes encoding.
+  if (value.isa<StringAttr>())
+    return StringAttrEncoding().Encode(module, b, name, value);
 
   // Scalar attributes encoding.
   if (IsSupportedScalarType(value.getType()))

@@ -302,10 +302,28 @@ class IsOkOpLowering : public OpConversionPattern<IsOkOp> {
 // -------------------------------------------------------------------------- //
 // Helper functions for packing attributes and values on the stack.
 
+static bool IsSupportedScalarType(Type type) {
+  auto is_supported_width = [](unsigned width, ArrayRef<unsigned> supported) {
+    return llvm::any_of(supported, [&](unsigned w) { return w == width; });
+  };
+
+  if (auto integer = type.dyn_cast<mlir::IntegerType>())
+    return is_supported_width(integer.getWidth(), {8, 32, 64});
+
+  if (auto fp = type.dyn_cast<mlir::FloatType>())
+    return is_supported_width(fp.getWidth(), {32, 64});
+
+  return false;
+}
+
 static TypeID RuntimeTypeId(Type type) {
+  if (type.isInteger(8)) return TypeID::get<int8_t>();
+  if (type.isInteger(32)) return TypeID::get<int32_t>();
+  if (type.isInteger(64)) return TypeID::get<int64_t>();
   if (type.isF32()) return TypeID::get<float>();
-  assert(false && "unsupported type");
-  return {};
+  if (type.isF64()) return TypeID::get<double>();
+  assert(false && "unsupported type id");
+  return TypeID::getFromOpaquePointer(reinterpret_cast<float *>(0xDEADBEEF));
 }
 
 // Packs TypeID on the stack. Returns `!llvm.ptr<i64>`.
@@ -381,7 +399,6 @@ struct ScalarAttrEncoding : public CustomCallAttrEncoding {
   FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
                             StringRef name, Attribute value) const override {
     Type type = value.getType();
-    assert(type.isIntOrFloat() && "expected float type");
 
     Encoded encoded;
     encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
@@ -471,7 +488,7 @@ static FailureOr<CustomCallAttrEncoding::Encoded> EncodeAttribute(
   StringRef name = attr.getName();
   Attribute value = attr.getValue();
 
-  if (value.getType().isIntOrFloat())
+  if (IsSupportedScalarType(value.getType()))
     return ScalarAttrEncoding().Encode(module, b, name, value);
 
   return failure();

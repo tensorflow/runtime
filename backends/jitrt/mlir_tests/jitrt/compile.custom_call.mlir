@@ -15,7 +15,7 @@
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 module @kernels attributes { tfrt.compiled } {
-  func.func @main(%input: memref<?x?xf32>) -> memref<?x?xf32> {
+  func.func @multiply(%input: memref<?x?xf32>) -> memref<?x?xf32> {
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %0 = memref.dim %input, %c0 : memref<?x?xf32>
@@ -32,6 +32,22 @@ module @kernels attributes { tfrt.compiled } {
 
     func.return %output : memref<?x?xf32>
   }
+
+  func.func @print_attrs() {
+    %status = rt.custom_call "testlib.print_attrs"()
+      {
+        i8  = 100 : i8,
+        i32 = 101 : i32,
+        i64 = 102 : i64,
+        f32 = 123.00 : f32,
+        f64 = 456.00 : f64
+      }
+      : () -> ()
+    %ok = rt.is_ok %status
+    cf.assert %ok, "failed to call custom call 'testlib.print_attrs'"
+
+    func.return
+  }
 }
 
 // CHECK: --- Running 'compiled_custom_call'
@@ -47,7 +63,7 @@ func.func @compiled_custom_call() -> !tfrt.chain {
   %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch1 2.0 : f32
 
   // Compile a kernel with a custom call.
-  %executable = jitrt.compile { kernel = @kernels::@main }
+  %executable = jitrt.compile { kernel = @kernels::@multiply }
 
   // Execute compiled kernel with tensor operands.
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
@@ -71,7 +87,7 @@ func.func @compiled_custom_call_error() -> !t.tensor {
   %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
 
   // Compile a kernel with a custom call.
-  %executable = jitrt.compile { kernel = @kernels::@main }
+  %executable = jitrt.compile { kernel = @kernels::@multiply }
 
   // Execute compiled kernel with tensor operands.
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
@@ -79,4 +95,19 @@ func.func @compiled_custom_call_error() -> !t.tensor {
   // CHECK: returned <<error: compiled kernel run time error:
   // CHECK-SAME: failed to call custom call 'testlib.multiply'>>
   tfrt.return %output : !t.tensor
+}
+
+// CHECK: --- Running 'compiled_custom_call_attrs'
+func.func @compiled_custom_call_attrs() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK:  i8: 100
+  // CHECK: i32: 101
+  // CHECK: i64: 102
+  // CHECK: f32: 1.230000e+02
+  // CHECK: f64: 4.560000e+02
+  %executable = jitrt.compile { kernel = @kernels::@print_attrs }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
 }

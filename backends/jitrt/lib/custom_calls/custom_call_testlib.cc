@@ -44,12 +44,31 @@ static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
   return success();
 }
 
+// A custom call for testing attributes encoding/decoding.
+static LogicalResult PrintAttrs(int8_t i8, int32_t i32, int64_t i64, float f32,
+                                double f64) {
+  llvm::outs() << "i8: " << static_cast<int32_t>(i8) << "\n";
+  llvm::outs() << "i32: " << i32 << "\n";
+  llvm::outs() << "i64: " << i64 << "\n";
+  llvm::outs() << "f32: " << f32 << "\n";
+  llvm::outs() << "f64: " << f64 << "\n";
+  return success();
+}
+
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("testlib.multiply")
-                         .Arg<MemrefDesc>()   // input
-                         .Arg<MemrefDesc>()   // output
-                         .Attr<float>("cst")  // cst
+                         .Arg<MemrefDesc>()  // input
+                         .Arg<MemrefDesc>()  // output
+                         .Attr<float>("cst")
                          .To(Multiply));
+
+  registry->Register(CustomCall::Bind("testlib.print_attrs")
+                         .Attr<int8_t>("i8")
+                         .Attr<int32_t>("i32")
+                         .Attr<int64_t>("i64")
+                         .Attr<float>("f32")
+                         .Attr<double>("f64")
+                         .To(PrintAttrs));
 }
 
 }  // namespace jitrt

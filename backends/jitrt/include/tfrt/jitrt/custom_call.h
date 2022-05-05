@@ -21,6 +21,7 @@
 #include <functional>
 #include <numeric>
 #include <string>
+#include <tuple>
 #include <utility>
 
 #include "llvm/ADT/DenseMap.h"
@@ -422,14 +423,23 @@ struct CustomCallArgDecoding<MemrefDesc> {
 // -------------------------------------------------------------------------- //
 // Custom call attributes decoding.
 
-template <>
-struct CustomCallAttrDecoding<float> {
-  static mlir::FailureOr<float> Decode(llvm::StringRef name,
-                                       mlir::TypeID type_id, void* value) {
-    if (type_id != mlir::TypeID::get<float>()) return mlir::failure();
-    return *reinterpret_cast<float*>(value);
+#define JITRT_REGISTER_SCALAR_ATTR_DECODING(T)                            \
+  template <>                                                             \
+  struct CustomCallAttrDecoding<T> {                                      \
+    static mlir::FailureOr<T> Decode(llvm::StringRef name,                \
+                                     mlir::TypeID type_id, void* value) { \
+      if (type_id != mlir::TypeID::get<T>()) return mlir::failure();      \
+      return *reinterpret_cast<T*>(value);                                \
+    }                                                                     \
   }
-};
+
+JITRT_REGISTER_SCALAR_ATTR_DECODING(int8_t);
+JITRT_REGISTER_SCALAR_ATTR_DECODING(int32_t);
+JITRT_REGISTER_SCALAR_ATTR_DECODING(int64_t);
+JITRT_REGISTER_SCALAR_ATTR_DECODING(float);
+JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
+
+#undef JITRT_REGISTER_SCALAR_ATTR_DECODING
 
 }  // namespace jitrt
 }  // namespace tfrt

@@ -47,6 +47,7 @@ namespace {
 using mlir::Attribute;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
+using mlir::DenseIntOrFPElementsAttr;
 using mlir::failure;
 using mlir::FailureOr;
 using mlir::FunctionType;
@@ -63,6 +64,7 @@ using mlir::OpBuilder;
 using mlir::OpConversionPattern;
 using mlir::OperationPass;
 using mlir::RewritePatternSet;
+using mlir::ShapedType;
 using mlir::StringAttr;
 using mlir::StringRef;
 using mlir::success;
@@ -308,7 +310,7 @@ static bool IsSupportedScalarType(Type type) {
   };
 
   if (auto integer = type.dyn_cast<mlir::IntegerType>())
-    return is_supported_width(integer.getWidth(), {8, 32, 64});
+    return is_supported_width(integer.getWidth(), {32, 64});
 
   if (auto fp = type.dyn_cast<mlir::FloatType>())
     return is_supported_width(fp.getWidth(), {32, 64});
@@ -316,14 +318,46 @@ static bool IsSupportedScalarType(Type type) {
   return false;
 }
 
-static TypeID RuntimeTypeId(Type type) {
-  if (type.isInteger(8)) return TypeID::get<int8_t>();
+static bool IsSupportedArrayType(ShapedType shape) {
+  return shape.getRank() == 1 && IsSupportedScalarType(shape.getElementType());
+  return false;
+}
+
+static TypeID ScalarRuntimeTypeId(Type type) {
   if (type.isInteger(32)) return TypeID::get<int32_t>();
   if (type.isInteger(64)) return TypeID::get<int64_t>();
   if (type.isF32()) return TypeID::get<float>();
   if (type.isF64()) return TypeID::get<double>();
+
   assert(false && "unsupported type id");
-  return TypeID::getFromOpaquePointer(reinterpret_cast<float *>(0xDEADBEEF));
+  return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
+}
+
+static TypeID ArrayRuntimeTypeId(Type shaped) {
+  auto type = shaped.cast<ShapedType>().getElementType();
+  assert(shaped.cast<ShapedType>().getRank() == 1 && "unsupported rank");
+
+  if (type.isInteger(32)) return TypeID::get<ArrayRef<int32_t>>();
+  if (type.isInteger(64)) return TypeID::get<ArrayRef<int64_t>>();
+  if (type.isF32()) return TypeID::get<ArrayRef<float>>();
+  if (type.isF64()) return TypeID::get<ArrayRef<double>>();
+
+  assert(false && "unsupported type id");
+  return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
+}
+
+// Overload set to create properly typed constants in the IR.
+static Value CreateConstant(ImplicitLocOpBuilder &b, int32_t value) {
+  return b.create<ConstantOp>(b.getI32IntegerAttr(value));
+}
+static Value CreateConstant(ImplicitLocOpBuilder &b, int64_t value) {
+  return b.create<ConstantOp>(b.getI64IntegerAttr(value));
+}
+static Value CreateConstant(ImplicitLocOpBuilder &b, float value) {
+  return b.create<ConstantOp>(b.getF32FloatAttr(value));
+}
+static Value CreateConstant(ImplicitLocOpBuilder &b, double value) {
+  return b.create<ConstantOp>(b.getF64FloatAttr(value));
 }
 
 // Packs TypeID on the stack. Returns `!llvm.ptr<i64>`.
@@ -339,17 +373,60 @@ static Value PackTypeId(ImplicitLocOpBuilder &b, TypeID type_id) {
   return mem;
 }
 
-// Packs MLIR type id on the stack. Returns `!llvm.ptr<i64>`.
-static Value PackTypeId(ImplicitLocOpBuilder &b, Type type) {
-  return PackTypeId(b, RuntimeTypeId(type));
-}
-
-// Packs attribute on the stack. Returns `!llvm.ptr<AttrType>`.
-static Value PackAttribute(ImplicitLocOpBuilder &b, Attribute value) {
+// Packs scalar attribute on the stack. Returns `!llvm.ptr<AttrType>`.
+static Value PackScalarAttribute(ImplicitLocOpBuilder &b, Attribute value) {
   Type ptr = LLVM::LLVMPointerType::get(value.getType());
   Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
   Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
   b.create<LLVM::StoreOp>(b.create<ConstantOp>(value), mem);
+
+  return mem;
+}
+
+// Packs array attribute on the stack. Returns `!llvm.ptr<EncodedArray>`.
+static Value PackArrayAttribute(ImplicitLocOpBuilder &b, Attribute value) {
+  MLIRContext *ctx = b.getContext();
+
+  // We only support dense attributes for now.
+  DenseIntOrFPElementsAttr dense = value.cast<DenseIntOrFPElementsAttr>();
+
+  // Get the array element type.
+  ShapedType shaped = value.getType().cast<ShapedType>();
+  Type element_type = shaped.getElementType();
+
+  // Encoded array type: !llvm.struct<(i64, !llvm.array<element_type>)>.
+  Type i64 = b.getI64Type();
+  Type arr = LLVM::LLVMArrayType::get(element_type, shaped.getNumElements());
+  Type type = LLVM::LLVMStructType::getLiteral(ctx, {i64, arr});
+
+  // Encode array attribute into the struct.
+  Value encoded = b.create<LLVM::UndefOp>(type);
+
+  // Store the size of the encoded array.
+  Value num_elements = CreateConstant(b, shaped.getNumElements());
+  encoded = b.create<LLVM::InsertValueOp>(type, encoded, num_elements,
+                                          b.getI64ArrayAttr(0));
+
+  // Store dense attribute values into the encoded struct.
+  auto encode_values = [&](auto type_tag) {
+    for (auto &pair : llvm::enumerate(dense.getValues<decltype(type_tag)>())) {
+      auto offset = b.getI64ArrayAttr({1, static_cast<int64_t>(pair.index())});
+      auto cst = CreateConstant(b, pair.value());
+      encoded = b.create<LLVM::InsertValueOp>(type, encoded, cst, offset);
+    }
+  };
+
+  // Dispatch based on the element type.
+  if (element_type.isInteger(32)) encode_values(int32_t{});
+  if (element_type.isInteger(64)) encode_values(int64_t{});
+  if (element_type.isF32()) encode_values(float{});
+  if (element_type.isF64()) encode_values(double{});
+
+  // Store encoded array into the stack-allocated memory.
+  Type ptr = LLVM::LLVMPointerType::get(type);
+  Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
+  Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
+  b.create<LLVM::StoreOp>(encoded, mem);
 
   return mem;
 }
@@ -402,8 +479,22 @@ struct ScalarAttrEncoding : public CustomCallAttrEncoding {
 
     Encoded encoded;
     encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
-    encoded.type_id = PackTypeId(builder, type);
-    encoded.value = PackAttribute(builder, value);
+    encoded.type_id = PackTypeId(builder, ScalarRuntimeTypeId(type));
+    encoded.value = PackScalarAttribute(builder, value);
+
+    return encoded;
+  }
+};
+
+struct ArrayAttrEncoding : public CustomCallAttrEncoding {
+  FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
+                            StringRef name, Attribute value) const override {
+    ShapedType type = value.getType().cast<ShapedType>();
+
+    Encoded encoded;
+    encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
+    encoded.type_id = PackTypeId(builder, ArrayRuntimeTypeId(type));
+    encoded.value = PackArrayAttribute(builder, value);
 
     return encoded;
   }
@@ -451,10 +542,12 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
     Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
     Type type = LLVM::LLVMStructType::getLiteral(ctx, {i64, i64, ptr});
 
+    TypeID runtime_type_id = ScalarRuntimeTypeId(memref_ty.getElementType());
+
     // Create values for filling encoded memref struct.
     Value type_id = b.create<ConstantOp>(
         b.getI64IntegerAttr(reinterpret_cast<std::uintptr_t>(
-            RuntimeTypeId(memref_ty.getElementType()).getAsOpaquePointer())));
+            runtime_type_id.getAsOpaquePointer())));
     Value rank = b.create<ConstantOp>(b.getI64IntegerAttr(memref_ty.getRank()));
     Value desc = b.create<LLVM::BitcastOp>(ptr, PackValue(b, descriptor));
 
@@ -488,8 +581,14 @@ static FailureOr<CustomCallAttrEncoding::Encoded> EncodeAttribute(
   StringRef name = attr.getName();
   Attribute value = attr.getValue();
 
+  // Scalar attributes encoding.
   if (IsSupportedScalarType(value.getType()))
     return ScalarAttrEncoding().Encode(module, b, name, value);
+
+  // Dense attributes encoding.
+  if (auto dense = value.dyn_cast<DenseIntOrFPElementsAttr>())
+    if (IsSupportedArrayType(dense.getType()))
+      return ArrayAttrEncoding().Encode(module, b, name, value);
 
   return failure();
 }
@@ -515,7 +614,7 @@ static FailureOr<Value> EncodeArguments(ImplicitLocOpBuilder &b,
   Value alloca = b.create<LLVM::AllocaOp>(args_type, alloca_size, 0);
 
   // Store the number of encoded arguments.
-  Value n_attr = PackAttribute(b, b.getI64IntegerAttr(encoded.size()));
+  Value n_attr = PackScalarAttribute(b, b.getI64IntegerAttr(encoded.size()));
   StoreOpaquePtr(b, n_attr, alloca, 0);
 
   // Store encoded arguments into the allocated storage.
@@ -554,7 +653,7 @@ static FailureOr<Value> EncodeAttributes(ModuleOp module,
   Value alloca = b.create<LLVM::AllocaOp>(attrs_type, alloca_size, 0);
 
   // Store the number of encoded attributes.
-  Value n_attr = PackAttribute(b, b.getI64IntegerAttr(encoded.size()));
+  Value n_attr = PackScalarAttribute(b, b.getI64IntegerAttr(encoded.size()));
   StoreOpaquePtr(b, n_attr, alloca, 0);
 
   // Store encoded attributes into the allocated storage.

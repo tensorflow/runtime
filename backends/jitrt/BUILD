@@ -354,6 +354,7 @@ tfrt_cc_library(
     deps = [
         ":custom_call",
         "@llvm-project//mlir:Support",
+        "@tf_runtime//:support",
     ],
 )
 

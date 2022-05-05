@@ -18,6 +18,7 @@
 
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/support/string_util.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -45,13 +46,26 @@ static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
 }
 
 // A custom call for testing attributes encoding/decoding.
-static LogicalResult PrintAttrs(int8_t i8, int32_t i32, int64_t i64, float f32,
-                                double f64) {
-  llvm::outs() << "i8: " << static_cast<int32_t>(i8) << "\n";
+static LogicalResult PrintAttrs(int32_t i32, int64_t i64, float f32, double f64,
+                                ArrayRef<int32_t> i32_arr,
+                                ArrayRef<int64_t> i64_arr,
+                                ArrayRef<float> f32_arr,
+                                ArrayRef<double> f64_arr) {
   llvm::outs() << "i32: " << i32 << "\n";
   llvm::outs() << "i64: " << i64 << "\n";
   llvm::outs() << "f32: " << f32 << "\n";
   llvm::outs() << "f64: " << f64 << "\n";
+
+  auto print_arr = [](llvm::StringRef type, auto arr) {
+    llvm::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ")
+                 << "\n";
+  };
+
+  print_arr("i32", i32_arr);
+  print_arr("i64", i64_arr);
+  print_arr("f32", f32_arr);
+  print_arr("f64", f64_arr);
+
   return success();
 }
 
@@ -63,11 +77,14 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .To(Multiply));
 
   registry->Register(CustomCall::Bind("testlib.print_attrs")
-                         .Attr<int8_t>("i8")
                          .Attr<int32_t>("i32")
                          .Attr<int64_t>("i64")
                          .Attr<float>("f32")
                          .Attr<double>("f64")
+                         .Attr<ArrayRef<int32_t>>("i32_arr")
+                         .Attr<ArrayRef<int64_t>>("i64_arr")
+                         .Attr<ArrayRef<float>>("f32_arr")
+                         .Attr<ArrayRef<double>>("f64_arr")
                          .To(PrintAttrs));
 }
 

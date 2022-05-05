@@ -433,13 +433,37 @@ struct CustomCallArgDecoding<MemrefDesc> {
     }                                                                     \
   }
 
-JITRT_REGISTER_SCALAR_ATTR_DECODING(int8_t);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(int32_t);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(int64_t);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(float);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_SCALAR_ATTR_DECODING
+
+#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                  \
+  template <>                                                                  \
+  struct CustomCallAttrDecoding<ArrayRef<T>> {                                 \
+    struct EncodedMemref {                                                     \
+      int64_t size;                                                            \
+      T data;                                                                  \
+    };                                                                         \
+                                                                               \
+    static mlir::FailureOr<ArrayRef<T>> Decode(llvm::StringRef name,           \
+                                               mlir::TypeID type_id,           \
+                                               void* value) {                  \
+      if (type_id != mlir::TypeID::get<ArrayRef<T>>()) return mlir::failure(); \
+                                                                               \
+      auto* encoded = reinterpret_cast<EncodedMemref*>(value);                 \
+      return ArrayRef<T>(&encoded->data, encoded->size);                       \
+    }                                                                          \
+  }
+
+JITRT_REGISTER_ARRAY_ATTR_DECODING(int32_t);
+JITRT_REGISTER_ARRAY_ATTR_DECODING(int64_t);
+JITRT_REGISTER_ARRAY_ATTR_DECODING(float);
+JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
+
+#undef JITRT_REGISTER_ARRAY_ATTR_DECODING
 
 }  // namespace jitrt
 }  // namespace tfrt

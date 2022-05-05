@@ -60,3 +60,27 @@ func.func @assert_to_error(%arg0: i1) attributes { jitrt.entrypoint } {
   cf.assert %arg0, "Failed precondition"
   func.return
 }
+
+// Custom call prototype declaration.
+// CHECK: func private @custom_call(memref<?xf32>)
+func.func private @custom_call(%arg0: memref<?xf32>) -> memref<?xf32>
+  attributes { rt.custom_call = "target", attr0 = 1 : i32, attr1 = 1.0 : f32 }
+
+// CHECK: func @function_call_to_custom_call(
+// CHECK:   %[[CTX:.*]]: !rt.kernel_context,
+// CHECK:   %[[ARG:.*]]: memref<?xf32>
+// )
+func.func @function_call_to_custom_call(%arg0: memref<?xf32>) -> memref<?xf32>
+  attributes { jitrt.entrypoint } {
+  // CHECK: %[[STATUS:.*]], %[[RES:.*]] = rt.custom_call "target"(%[[ARG]])
+  // CHECK: {attr0 = 2 : i32, attr1 = 1.000000e+00 : f32}
+  // CHECK: %[[IS_OK:.*]] = rt.is_ok %[[STATUS]]
+  // CHECK: cf.cond_br %[[IS_OK]], ^[[OK:.*]], ^[[ERR:.*]]
+  // CHECK: ^[[OK]]:
+  // CHECK:   rt.set_output %[[CTX]], 0, %[[RES]] : memref<?xf32>
+  // CHECK: ^[[ERR]]:
+  // CHECK:   rt.set_error %arg0, "failed to execute the custom call"
+  %0 = func.call @custom_call(%arg0) { attr0 = 2 : i32 }
+       : (memref<?xf32>) -> memref<?xf32>
+  return %0 : memref<?xf32>
+}

@@ -26,15 +26,25 @@ def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "mlir::ModuleOp"> {
      - kernel function accepts `!rt.kernel_context` as the first argument
      - all results returned via the `rt.set_result` operation
      - failed asserts set the kernel error via the `rt.set_error` operation
+     - function calls marked with `rt.custom_call` attribute (on the callee)
+       converted to the `rt.custom_call` operations
+
+    When converting function call to the custom call operation, custom call
+    attributes will be a union of custom call function declaration attributes,
+    and the call operation attributes. Function call attributes will override
+    any attributes defined by the custom call function declaration.
 
     Example:
 
       ```mlir
+      func @custom_call() -> memref<?xf32>
+        attributes { rt.custom_call = "custom_call", attr = <value> }
+
       func @compute(...) -> memref<?xf32> attributes { jitrt.entrypoint } {
         %0 = ... : i1
         assert %0, "Oops"
-        %1 = ... : memref<?xf32>
-        return %0
+        %1 = call @custom_call() { attr = <new_value> }: () -> memref<?xf32>
+        return %1
       }
       ```
 
@@ -43,13 +53,20 @@ def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "mlir::ModuleOp"> {
       ```mlir
       func @compute(%ctx: !rt.kernel_context, ...) {
         %0 = ... : i1
-        cond_br %0, ^ok, ^err
-      ^ok:
-        %1 = ... : memref<?xf32>
+        cond_br %0, ^ok0, ^err0
+      ^ok0:
+        %status, %1 = rt.custom_call %ctx, "custom_call"()
+                      { attr = <new value> } : () -> memref<?xf32>
+        %success = rt.is_ok %status : !rt.status
+        cond_br %success, ^ok1, ^err1
+      ^ok1:
         rt.set_output %ctx, 0, %1 : memref<xf32>
         return
-      ^err:
+      ^err0:
         rt.set_error %ctx, "Oops"
+        return;
+      ^err1:
+        rt.set_error %ctx, "Custom call failed"
         return;
       }
       ```

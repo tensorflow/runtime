@@ -29,10 +29,18 @@ namespace {
 using mlir::Block;
 using mlir::FunctionType;
 using mlir::ImplicitLocOpBuilder;
+using mlir::MLIRContext;
 using mlir::ModuleOp;
+using mlir::StringAttr;
+using mlir::SymbolTable;
+using mlir::Type;
+using mlir::TypeRange;
 using mlir::Value;
+
 using mlir::cf::AssertOp;
 using mlir::cf::CondBranchOp;
+
+using mlir::func::CallOp;
 using mlir::func::FuncOp;
 using mlir::func::ReturnOp;
 
@@ -45,6 +53,65 @@ class ConvertToKernelFunctionPass
 };
 
 }  // namespace
+
+static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
+  MLIRContext* ctx = func->getContext();
+
+  SymbolTable sym_table(func->getParentOfType<ModuleOp>());
+
+  // Collect function calls that have to be converted to custom calls.
+  llvm::SmallVector<CallOp> calls;
+  func.walk([&](CallOp op) {
+    auto callee = sym_table.lookup(op.getCallee());
+    auto target = callee->getAttrOfType<StringAttr>("rt.custom_call");
+    if (target) calls.push_back(op);
+  });
+
+  // Rewrite function calls to `rt.custom_call` operations.
+  for (CallOp orig : calls) {
+    ImplicitLocOpBuilder b(orig.getLoc(), orig);
+
+    auto callee = mlir::cast<FuncOp>(sym_table.lookup(orig.getCallee()));
+    auto target = callee->getAttrOfType<StringAttr>("rt.custom_call");
+
+    // Custom call intrinsic always returns the status flag.
+    llvm::SmallVector<Type> results = {StatusType::get(ctx)};
+    results.append(orig->getResultTypes().begin(),
+                   orig->getResultTypes().end());
+
+    // Rewrite function call with a custom call, and check the return status.
+    auto call = b.create<CustomCallOp>(results, target, orig.getOperands());
+
+    // Copy optional attributes from the custom call function declaration.
+    llvm::ArrayRef<llvm::StringRef> callee_attrs = callee.getAttributeNames();
+    for (auto& attr : callee->getAttrs()) {
+      if (attr.getName() == "rt.custom_call") continue;
+      if (llvm::find(callee_attrs, attr.getName()) == callee_attrs.end())
+        call->setAttr(attr.getName(), attr.getValue());
+    }
+
+    // Copy optional attributes from the call operation to the custom call.
+    llvm::ArrayRef<llvm::StringRef> orig_attrs = orig.getAttributeNames();
+    for (auto& attr : orig->getAttrs()) {
+      if (llvm::find(orig_attrs, attr.getName()) == orig_attrs.end())
+        call->setAttr(attr.getName(), attr.getValue());
+    }
+
+    b.create<AssertOp>(
+        b.create<IsOkOp>(TypeRange(b.getI1Type()), call.status()),
+        b.getStringAttr("failed to execute the custom call"));
+
+    // Forward users of the original results to custom call results.
+    auto rets =
+        llvm::zip(orig.getResults(), llvm::drop_begin(call.getResults()));
+    llvm::for_each(rets, [](auto ret) {
+      std::get<0>(ret).replaceAllUsesWith(std::get<1>(ret));
+    });
+
+    // Erase the original function call operation.
+    orig.erase();
+  }
+}
 
 static void ConvertReturnOperations(FuncOp func, Value kernel_ctx) {
   // Convert all returns to the Runtime API calls.
@@ -106,6 +173,7 @@ static void ConvertToKernelFunction(FuncOp func) {
   if (!func->hasAttr(kJitRtEntrypointAttrName)) return;
 
   Value kernel_ctx = PrependKernelContextArgument(func);
+  ConvertCustomCallOperations(func, kernel_ctx);
   ConvertReturnOperations(func, kernel_ctx);
   ConvertAssertOperations(func, kernel_ctx);
 

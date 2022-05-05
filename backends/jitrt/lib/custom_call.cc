@@ -26,6 +26,7 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
+#include "mlir/ExecutionEngine/CRunnerUtils.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -121,5 +122,72 @@ mlir::FailureOr<DType> TypeIdToDType(mlir::TypeID type_id) {
 }
 
 }  // namespace internal
+
+template <typename T, int rank>
+static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
+  return llvm::makeArrayRef(memref->sizes);
+}
+
+template <typename T>
+static ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
+  return {};
+}
+
+template <typename T, int rank>
+static ArrayRef<int64_t> Strides(StridedMemRefType<T, rank>* memref) {
+  return llvm::makeArrayRef(memref->strides);
+}
+
+template <typename T>
+static ArrayRef<int64_t> Strides(StridedMemRefType<T, 0>* memref) {
+  return {};
+}
+
+mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
+    mlir::TypeID type_id, void* value) {
+  // Check that encoded value holds the correct type id.
+  if (type_id != mlir::TypeID::get<MemrefDesc>()) return mlir::failure();
+
+  // Get the encoded memref from the opaque pointer.
+  auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+
+  // Get the memref element data type.
+  void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
+  mlir::TypeID element_type_id = mlir::TypeID::getFromOpaquePointer(opaque);
+
+  auto dtype = internal::TypeIdToDType(element_type_id);
+  if (mlir::failed(dtype)) return mlir::failure();
+
+  // Unpack the StridedMemRefType into the MemrefDesc.
+  auto unpack_strided_memref = [&](auto rank_tag) -> MemrefDesc {
+    constexpr int rank = decltype(rank_tag)::value;
+
+    using Descriptor = StridedMemRefType<float, rank>;
+    auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
+
+    return MemrefDesc(*dtype, descriptor->data, descriptor->offset,
+                      Sizes(descriptor), Strides(descriptor));
+  };
+
+  // Dispatch based on the memref rank.
+  switch (encoded->rank) {
+    case 0:
+      return unpack_strided_memref(std::integral_constant<int, 0>{});
+    case 1:
+      return unpack_strided_memref(std::integral_constant<int, 1>{});
+    case 2:
+      return unpack_strided_memref(std::integral_constant<int, 2>{});
+    case 3:
+      return unpack_strided_memref(std::integral_constant<int, 3>{});
+    case 4:
+      return unpack_strided_memref(std::integral_constant<int, 4>{});
+    case 5:
+      return unpack_strided_memref(std::integral_constant<int, 5>{});
+    default:
+      assert(false && "unsupported memref rank");
+      return mlir::failure();
+  }
+}
+
 }  // namespace jitrt
 }  // namespace tfrt

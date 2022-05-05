@@ -166,7 +166,7 @@ class RuntimeTypeConverter : public TypeConverter {
 // Creates a global string constant in the given module, and returns a value
 // corresponding to a pointer to the null terminated string.
 static Value CreateGlobalStrCst(ModuleOp module, ImplicitLocOpBuilder &builder,
-                                std::string str, StringRef prefix) {
+                                StringRef strref, StringRef prefix) {
   // Helper to create unique names for string constants.
   int unique_counter = 0;
 
@@ -177,6 +177,9 @@ static Value CreateGlobalStrCst(ModuleOp module, ImplicitLocOpBuilder &builder,
       str = llvm::formatv("{0}_{1}", prefix, unique_counter++);
     return str;
   };
+
+  // Create an std::string to get a null terminated sequence of characters.
+  std::string str = strref.str();
 
   // Create a string reference that captures the null terminator.
   StringRef ref(str.data(), str.size() + 1);
@@ -256,8 +259,8 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
     // Get the error message (pointer to a null terminated string).
     ImplicitLocOpBuilder builder(op.getLoc(), rewriter);
     ModuleOp module = op->getParentOfType<ModuleOp>();
-    auto err_ptr = CreateGlobalStrCst(module, builder, op.error().str(),
-                                      "__assert_failed");
+    auto err_ptr =
+        CreateGlobalStrCst(module, builder, op.error(), "__assert_failed");
 
     // Call runtime API to report the error.
     auto kernel_context = adaptor.ctx();
@@ -476,10 +479,10 @@ struct StringAttrEncoding : public CustomCallAttrEncoding {
   FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
                             StringRef name, Attribute value) const override {
     Encoded encoded;
-    encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
+    encoded.name = CreateGlobalStrCst(module, builder, name, kPrefix);
     encoded.type_id = PackTypeId(builder, TypeID::get<llvm::StringRef>());
-    encoded.value = CreateGlobalStrCst(module, builder,
-                                       value.cast<StringAttr>().str(), kPrefix);
+    encoded.value =
+        CreateGlobalStrCst(module, builder, value.cast<StringAttr>(), kPrefix);
     return encoded;
   }
 };
@@ -490,7 +493,7 @@ struct ScalarAttrEncoding : public CustomCallAttrEncoding {
     Type type = value.getType();
 
     Encoded encoded;
-    encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
+    encoded.name = CreateGlobalStrCst(module, builder, name, kPrefix);
     encoded.type_id = PackTypeId(builder, ScalarRuntimeTypeId(type));
     encoded.value = PackScalarAttribute(builder, value);
 
@@ -504,7 +507,7 @@ struct ArrayAttrEncoding : public CustomCallAttrEncoding {
     ShapedType type = value.getType().cast<ShapedType>();
 
     Encoded encoded;
-    encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
+    encoded.name = CreateGlobalStrCst(module, builder, name, kPrefix);
     encoded.type_id = PackTypeId(builder, ArrayRuntimeTypeId(type));
     encoded.value = PackArrayAttribute(builder, value);
 
@@ -696,8 +699,8 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
 
     // Get the custom call target (pointer to a null terminated string).
     ModuleOp module = op->getParentOfType<ModuleOp>();
-    auto callee = CreateGlobalStrCst(module, b, op.callee().str(),
-                                     "__rt_custom_call_callee");
+    auto callee =
+        CreateGlobalStrCst(module, b, op.callee(), "__rt_custom_call_callee");
 
     // Encode operation arguments as a runtime API arguments.
     auto args = EncodeArguments(b, op->getOperands(), adaptor.getOperands());

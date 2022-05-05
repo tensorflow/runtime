@@ -467,13 +467,15 @@ class StaticReturnValueConverter : public ReturnValueConverterBase {
   Impl<ConversionFns...> convert_;
 };
 
-template <typename ConversionContext>
-struct StaticReturnValueConverter<ConversionContext> {
+// No-op return value converter for compiled executables that do not return any
+// results. Run time errors will be reported through the CallFrame error flag.
+struct NoOpReturnValueConverter : public ReturnValueConverterBase {
+  NoOpReturnValueConverter() : ReturnValueConverterBase(RemainingResults({})) {}
+
   LLVM_ATTRIBUTE_ALWAYS_INLINE
-  mlir::LogicalResult operator()(ConversionContext& ctx,
-                                 RemainingResults results,
-                                 unsigned result_index, const Type* t,
-                                 const Type* rt, void* ret) const {
+  mlir::LogicalResult ReturnValue(unsigned, const Type*, const Type*,
+                                  void*) const final {
+    assert(false && "no-op return value converter must never be called");
     return mlir::failure();
   }
 };

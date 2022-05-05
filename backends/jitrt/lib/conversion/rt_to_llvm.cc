@@ -26,6 +26,7 @@ limitations under the License.
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
@@ -57,6 +58,7 @@ using mlir::LogicalResult;
 using mlir::MemRefType;
 using mlir::MLIRContext;
 using mlir::ModuleOp;
+using mlir::NamedAttribute;
 using mlir::OpBuilder;
 using mlir::OpConversionPattern;
 using mlir::OperationPass;
@@ -97,6 +99,10 @@ struct RuntimeAPI {
     return LLVM::LLVMPointerType::get(RuntimeAPI::OpaquePointerType(ctx));
   }
 
+  static LLVM::LLVMPointerType CustomCallAttributesType(MLIRContext *ctx) {
+    return LLVM::LLVMPointerType::get(RuntimeAPI::OpaquePointerType(ctx));
+  }
+
   static FunctionType GetResultStorageFunctionType(MLIRContext *ctx) {
     auto kernel_context = OpaquePointerType(ctx);
     auto i64 = IntegerType::get(ctx, 64);
@@ -113,8 +119,9 @@ struct RuntimeAPI {
   static FunctionType CustomCallFunctionType(MLIRContext *ctx) {
     auto callee = OpaquePointerType(ctx);
     auto args = CustomCallArgumentsType(ctx);
+    auto attrs = CustomCallAttributesType(ctx);
     auto i1 = IntegerType::get(ctx, 1);
-    return FunctionType::get(ctx, {callee, args}, {i1});
+    return FunctionType::get(ctx, {callee, args, attrs}, {i1});
   }
 };
 
@@ -286,6 +293,11 @@ class IsOkOpLowering : public OpConversionPattern<IsOkOp> {
 // passes them to the registered callback. Argument encoding/decoding must be
 // compatible, otherwise it's very easy to get a segfault because of an illegal
 // memory access.
+//
+// Attributes encoded into a separate opaque storage together with names, so
+// the runtime side can decode the attributes it needs. We don't rely on the
+// order, because it's not stable, and furthermore the operation might have
+// additional attributes that could be ignored by the runtime binding.
 
 // -------------------------------------------------------------------------- //
 // Helper functions for packing attributes and values on the stack.
@@ -307,6 +319,11 @@ static Value PackTypeId(ImplicitLocOpBuilder &b, TypeID type_id) {
   b.create<LLVM::StoreOp>(encoded_type_id, mem);
 
   return mem;
+}
+
+// Packs MLIR type id on the stack. Returns `!llvm.ptr<i64>`.
+static Value PackTypeId(ImplicitLocOpBuilder &b, Type type) {
+  return PackTypeId(b, RuntimeTypeId(type));
 }
 
 // Packs attribute on the stack. Returns `!llvm.ptr<AttrType>`.
@@ -338,6 +355,42 @@ static void StoreOpaquePtr(ImplicitLocOpBuilder &b, Value ptr, Value alloca,
   Value gep = b.create<LLVM::GEPOp>(alloca.getType(), alloca, ValueRange(idx));
   b.create<LLVM::StoreOp>(bitcasted, gep);
 }
+
+// -------------------------------------------------------------------------- //
+
+// Attributes encoding packs attribute name, data type and the value into the
+// stack allocated memory, and returns values pointing to the encoded data.
+struct CustomCallAttrEncoding {
+  // Prefix for globals storing custom call attribute name.
+  static const constexpr char *kPrefix = "__rt_custom_call_attr";
+
+  struct Encoded {
+    Value name;     // !llvm.ptr<i8>
+    Value type_id;  // !llvm.ptr<i64>
+    Value value;    // !llvm.ptr<AttrType>
+  };
+
+  virtual ~CustomCallAttrEncoding() = default;
+
+  virtual FailureOr<Encoded> Encode(ModuleOp module,
+                                    ImplicitLocOpBuilder &builder,
+                                    StringRef name, Attribute value) const = 0;
+};
+
+struct ScalarAttrEncoding : public CustomCallAttrEncoding {
+  FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
+                            StringRef name, Attribute value) const override {
+    Type type = value.getType();
+    assert(type.isIntOrFloat() && "expected float type");
+
+    Encoded encoded;
+    encoded.name = CreateGlobalStrCst(module, builder, name.str(), kPrefix);
+    encoded.type_id = PackTypeId(builder, type);
+    encoded.value = PackAttribute(builder, value);
+
+    return encoded;
+  }
+};
 
 // -------------------------------------------------------------------------- //
 
@@ -412,6 +465,18 @@ static FailureOr<CustomCallArgEncoding::Encoded> EncodeArgument(
   return failure();
 }
 
+// TODO(ezhulenev): Support dynamic encoding registration for attributes.
+static FailureOr<CustomCallAttrEncoding::Encoded> EncodeAttribute(
+    ModuleOp module, ImplicitLocOpBuilder &b, NamedAttribute attr) {
+  StringRef name = attr.getName();
+  Attribute value = attr.getValue();
+
+  if (value.getType().isIntOrFloat())
+    return ScalarAttrEncoding().Encode(module, b, name, value);
+
+  return failure();
+}
+
 static FailureOr<Value> EncodeArguments(ImplicitLocOpBuilder &b,
                                         ValueRange operands,
                                         ValueRange converted) {
@@ -448,6 +513,46 @@ static FailureOr<Value> EncodeArguments(ImplicitLocOpBuilder &b,
   return alloca;
 }
 
+static FailureOr<Value> EncodeAttributes(ModuleOp module,
+                                         ImplicitLocOpBuilder &b,
+                                         ArrayRef<NamedAttribute> attrs) {
+  llvm::SmallVector<CustomCallAttrEncoding::Encoded> encoded;
+
+  for (auto &attr : attrs) {
+    // Callee passed explicitly as a custom call argument.
+    if (attr.getName() == "callee") continue;
+
+    // Try to encode the attribute as a set of pointers.
+    auto encoded_attr = EncodeAttribute(module, b, attr);
+    if (failed(encoded_attr)) return failure();
+    encoded.push_back(*encoded_attr);
+  }
+
+  // In addition to encoded attributes we store the number of attributes.
+  int32_t attrs_size = 1 + encoded.size() * 3;
+
+  // Allocate storage for passing encoded attributes.
+  auto attrs_type = RuntimeAPI::CustomCallAttributesType(b.getContext());
+  auto alloca_size = b.create<ConstantOp>(b.getI32IntegerAttr(attrs_size));
+  Value alloca = b.create<LLVM::AllocaOp>(attrs_type, alloca_size, 0);
+
+  // Store the number of encoded attributes.
+  Value n_attr = PackAttribute(b, b.getI64IntegerAttr(encoded.size()));
+  StoreOpaquePtr(b, n_attr, alloca, 0);
+
+  // Store encoded attributes into the allocated storage.
+  for (auto &pair : llvm::enumerate(encoded)) {
+    CustomCallAttrEncoding::Encoded encoded = pair.value();
+    int64_t offset = 1 + pair.index() * 3;
+
+    StoreOpaquePtr(b, encoded.name, alloca, offset + 0);
+    StoreOpaquePtr(b, encoded.type_id, alloca, offset + 1);
+    StoreOpaquePtr(b, encoded.value, alloca, offset + 2);
+  }
+
+  return alloca;
+}
+
 class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
  public:
   using OpConversionPattern::OpConversionPattern;
@@ -466,10 +571,14 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
     auto args = EncodeArguments(b, op->getOperands(), adaptor.getOperands());
     if (failed(args)) return op.emitOpError() << "failed to encode arguments";
 
+    // Encode operation attributes as a runtime API argument.
+    auto attrs = EncodeAttributes(module, b, op->getAttrs());
+    if (failed(attrs)) return op.emitOpError() << "failed to encode attributes";
+
     // Call runtime API to call the custom call target.
     auto i1 = rewriter.getI1Type();
     rewriter.replaceOpWithNewOp<CallOp>(op, kCustomCall, TypeRange(i1),
-                                        ValueRange({callee, *args}));
+                                        ValueRange({callee, *args, *attrs}));
 
     return success();
   }

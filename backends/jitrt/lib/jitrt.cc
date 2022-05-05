@@ -1313,8 +1313,9 @@ extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
   ctx->call_frame->error = {error};
 }
 
-extern "C" bool runtimeCustomCall(const char* callee, void** args) {
-  assert(callee && "callee must be not null");
+extern "C" bool runtimeCustomCall(const char* callee, void** args,
+                                  void** attrs) {
+  assert(callee && args && attrs && "arguments must be not null");
 
   // Default custom calls registry for the JitRt kernels.
   static CustomCallRegistry* registry = []() {
@@ -1324,9 +1325,10 @@ extern "C" bool runtimeCustomCall(const char* callee, void** args) {
   }();
 
   auto* custom_call = registry->Find(callee);
+  assert(custom_call && "custom call not found");
   if (custom_call == nullptr) return false;
 
-  auto result = custom_call->call(args);
+  auto result = custom_call->call(args, attrs);
   if (mlir::failed(result)) return false;
 
   return true;

@@ -49,7 +49,7 @@ class CustomCall {
   virtual ~CustomCall() = default;
 
   virtual llvm::StringRef name() const = 0;
-  virtual mlir::LogicalResult call(void** args) = 0;
+  virtual mlir::LogicalResult call(void** args, void** attrs) = 0;
 
   static CustomCallBinding<> Bind(std::string callee);
 };
@@ -93,6 +93,15 @@ void RegisterStaticCustomCalls(CustomCallRegistry* custom_call_registry);
 void AddStaticCustomCallRegistration(
     CustomCallRegistry::RegistrationFunction registration);
 
+namespace internal {
+
+// A type tag to distinguish arguments from the attributes in the
+// `CustomCallBinding` variadic template argument.
+template <typename T>
+struct Attr {};
+
+}  // namespace internal
+
 // Custom call binding describes the function signature of the expected custom
 // call handler using its variadic template parameter.
 //
@@ -110,10 +119,16 @@ class CustomCallBinding {
     return {std::move(*this)};
   }
 
+  template <typename T>
+  CustomCallBinding<Ts..., internal::Attr<T>> Attr(std::string attr) && {
+    attrs_.push_back(std::move(attr));
+    return {std::move(*this)};
+  }
+
   template <typename Fn>
   std::unique_ptr<CustomCall> To(Fn fn) {
     return std::unique_ptr<CustomCall>(new CustomCallHandler<Fn, Ts...>(
-        std::forward<Fn>(fn), std::move(callee_)));
+        std::forward<Fn>(fn), std::move(callee_), std::move(attrs_)));
   }
 
  private:
@@ -127,11 +142,12 @@ class CustomCallBinding {
 
   template <typename... TTs>
   CustomCallBinding(CustomCallBinding<TTs...>&& other)  // NOLINT
-      : callee_(std::move(other.callee_)) {}
+      : callee_(std::move(other.callee_)), attrs_(std::move(other.attrs_)) {}
 
   CustomCallBinding(CustomCallBinding&) = delete;
 
-  std::string callee_;  // custom call target
+  std::string callee_;              // custom call target
+  std::vector<std::string> attrs_;  // names of bound attributes
 };
 
 inline CustomCallBinding<> CustomCall::Bind(std::string callee) {
@@ -150,6 +166,19 @@ inline CustomCallBinding<> CustomCall::Bind(std::string callee) {
 template <typename T>
 struct CustomCallArgDecoding;
 
+// Custom call attribute decoding must be defined by specializing this template.
+//
+// Example: decoding for the `MyType` attributes
+//
+//   template<>
+//   struct CustomCallAttrDecoding<MyType> {
+//    static mlir::FailureOr<MyType> Decode(llvm::StringRef name,
+//                                          mlir::TypeID type_id, void* value);
+//   }
+//
+template <typename T>
+struct CustomCallAttrDecoding;
+
 // -------------------------------------------------------------------------- //
 // A little bit of template metaprogramming to implement type safe binding
 // of custom calls to C++ functions. This is internal implementation details,
@@ -158,13 +187,31 @@ struct CustomCallArgDecoding;
 namespace internal {
 
 // TODO(ezhulenev): C++17 https://en.cppreference.com/w/cpp/types/is_invocable.
-template <typename F, typename... Args>
+template <class R, typename F, typename... Args>
 struct is_invocable
     : std::is_constructible<
-          std::function<void(Args...)>,
+          std::function<R(Args...)>,
           std::reference_wrapper<typename std::remove_reference<F>::type>> {};
 
+// A helper struct to extract the type of the handler argument.
+template <typename T>
+struct FnArgType {
+  using Type = T;
+};
+
+// Extracts the underlying type from the attribute type tag.
+template <typename T>
+struct FnArgType<internal::Attr<T>> {
+  using Type = T;
+};
+
 struct DecodedArg {
+  mlir::TypeID type_id;
+  void* value;
+};
+
+struct DecodedAttr {
+  llvm::StringRef name;
   mlir::TypeID type_id;
   void* value;
 };
@@ -172,23 +219,41 @@ struct DecodedArg {
 // Decodes arguments from the encoded data.
 llvm::SmallVector<DecodedArg> DecodeArgs(void** args);
 
-// When decoding input data we need to keep track of how many arguments we
-// decoded so far to index into the correct data strucuture.
+// Decodes attributes from the encoded data.
+llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs);
+
+// When decoding input data we need to keep track of how many arguments and
+// attributes we decoded so far to index into the correct data strucuture.
 struct DecodingOffsets {
   int64_t args = 0;
+  int64_t attrs = 0;
 };
 
 using DecodedArgs = llvm::SmallVector<DecodedArg>;  // NOLINT
+using DecodedAttrs = llvm::StringMap<DecodedAttr>;  // NOLINT
 
 template <typename T, std::size_t index>
 struct Decode {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args) {
+  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
+                                 ArrayRef<std::string> attr_names,
+                                 DecodedAttrs& attrs) {
     internal::DecodedArg arg = args[offsets.args++];
     return CustomCallArgDecoding<T>::Decode(arg.type_id, arg.value);
   }
 };
 
-// Decodes type id from the opaque argument pointer.
+template <typename T, std::size_t index>
+struct Decode<internal::Attr<T>, index> {
+  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
+                                 ArrayRef<std::string> attr_names,
+                                 DecodedAttrs& attrs) {
+    internal::DecodedAttr attr = attrs[attr_names[offsets.attrs++]];
+    return CustomCallAttrDecoding<T>::Decode(attr.name, attr.type_id,
+                                             attr.value);
+  }
+};
+
+// Decodes type id from the opaque argument/attribute pointer.
 mlir::TypeID DecodeTypeid(void* type_id);
 
 // Converts mlir TypeID to tfrt DType. Returns error if type is not supported.
@@ -207,32 +272,48 @@ template <typename Fn, typename... Ts>
 class CustomCallHandler : public CustomCall {
   static constexpr int64_t kSize = sizeof...(Ts);
 
-  static_assert(internal::is_invocable<Fn, Ts...>::value,
-                "incompatible custom call handler types");
+  template <typename T>
+  using FnArgType = typename internal::FnArgType<T>::Type;
+
+  static_assert(
+      internal::is_invocable<mlir::LogicalResult, Fn, FnArgType<Ts>...>::value,
+      "incompatible custom call handler types");
 
  public:
   llvm::StringRef name() const override { return callee_; }
 
-  mlir::LogicalResult call(void** args) override {
-    // Decode arguments from the opaque pointers.
+  mlir::LogicalResult call(void** args, void** attrs) override {
+    // Decode arguments and attributes from the opaque pointers.
     auto decoded_args = internal::DecodeArgs(args);
-    if (decoded_args.size() != kSize) return mlir::failure();
+    auto decoded_attrs = internal::DecodeAttrs(attrs);
 
-    return call(std::move(decoded_args), std::make_index_sequence<kSize>{});
+    // Check that all required attributes were passed to the custom call.
+    bool all_attrs = llvm::all_of(attrs_, [&](auto& attr) {
+      return decoded_attrs.find(attr) != decoded_attrs.end();
+    });
+    if (!all_attrs) return mlir::failure();
+
+    // Check that the number of passed arguments matches the signature. Each
+    // individual argument decoding will check the actual type.
+    if (decoded_args.size() != (kSize - attrs_.size())) return mlir::failure();
+
+    return call(std::move(decoded_args), std::move(decoded_attrs),
+                std::make_index_sequence<kSize>{});
   }
 
   template <std::size_t... Is>
   mlir::LogicalResult call(internal::DecodedArgs args,
+                           internal::DecodedAttrs attrs,
                            std::index_sequence<Is...>) {
     // A helper structure to allow each decoder find the correct offset in the
-    // arguments.
+    // arguments or attributes.
     internal::DecodingOffsets offsets;
 
     // Decode all arguments into mlir::FailureOr containers. It is guaranteed
     // that initializer list will be evaluated left-to-right, and we can rely
     // on correct offsets computation.
-    std::tuple<mlir::FailureOr<Ts>...> fn_args = {
-        internal::Decode<Ts, Is>::call(offsets, args)...};
+    std::tuple<mlir::FailureOr<FnArgType<Ts>>...> fn_args = {
+        internal::Decode<Ts, Is>::call(offsets, args, attrs_, attrs)...};
 
     // Check that all of them were successfully decoded.
     std::array<bool, kSize> decoded = {
@@ -248,15 +329,19 @@ class CustomCallHandler : public CustomCall {
   template <typename...>
   friend class CustomCallBinding;
 
-  CustomCallHandler(Fn fn, std::string callee)  // NOLINT
-      : fn_(std::move(fn)), callee_(std::move(callee)) {}
+  CustomCallHandler(Fn fn, std::string callee,
+                    std::vector<std::string> attrs)  // NOLINT
+      : fn_(std::move(fn)),
+        callee_(std::move(callee)),
+        attrs_(std::move(attrs)) {}
 
   Fn fn_;
   std::string callee_;
+  std::vector<std::string> attrs_;
 };
 
 // -------------------------------------------------------------------------- //
-// Custom call arguments decoding.
+// Custom arguments attributes decoding.
 
 template <>
 struct CustomCallArgDecoding<MemrefDesc> {
@@ -331,6 +416,18 @@ struct CustomCallArgDecoding<MemrefDesc> {
         assert(false && "unsupported memref rank");
         return mlir::failure();
     }
+  }
+};
+
+// -------------------------------------------------------------------------- //
+// Custom call attributes decoding.
+
+template <>
+struct CustomCallAttrDecoding<float> {
+  static mlir::FailureOr<float> Decode(llvm::StringRef name,
+                                       mlir::TypeID type_id, void* value) {
+    if (type_id != mlir::TypeID::get<float>()) return mlir::failure();
+    return *reinterpret_cast<float*>(value);
   }
 };
 

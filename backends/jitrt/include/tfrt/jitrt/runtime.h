@@ -58,7 +58,7 @@ extern "C" void runtimeSetError(KernelContext *, const char *);
 
 // Calls the custom call function registered with the runtime. Returns true
 // if the custom call was successful.
-extern "C" bool runtimeCustomCall(const char *, void **args);
+extern "C" bool runtimeCustomCall(const char *, void **args, void **attrs);
 
 }  // namespace runtime
 }  // namespace jitrt

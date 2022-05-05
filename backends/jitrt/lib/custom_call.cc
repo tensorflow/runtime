@@ -87,6 +87,27 @@ llvm::SmallVector<DecodedArg> DecodeArgs(void** args) {
   return decoded;
 }
 
+llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs) {
+  int64_t num_attrs = *reinterpret_cast<int64_t*>(attrs[0]);
+
+  llvm::StringMap<DecodedAttr> decoded;
+
+  for (int64_t i = 0; i < num_attrs; ++i) {
+    void** attr_base = attrs + 1 + i * 3;
+
+    DecodedAttr attr;
+    attr.name = reinterpret_cast<const char*>(attr_base[0]);
+    attr.type_id = DecodeTypeid(attr_base[1]);
+    attr.value = attr_base[2];
+
+    auto emplaced = decoded.try_emplace(attr.name.str(), attr);
+    assert(emplaced.second && "duplicate attribute");
+    (void)emplaced;
+  }
+
+  return decoded;
+}
+
 mlir::TypeID DecodeTypeid(void* type_id) {
   std::uintptr_t encoded_type_id = *reinterpret_cast<std::uintptr_t*>(type_id);
   void* opaque_type_id = reinterpret_cast<void*>(encoded_type_id);

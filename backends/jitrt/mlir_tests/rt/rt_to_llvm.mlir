@@ -61,6 +61,7 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 // -----
 
 // CHECK-DAG: llvm.mlir.global internal constant @[[REDUCE:.*]]("f32_reduce\00")
+// CHECK-DAG: llvm.mlir.global internal constant @[[INIT:.*]]("init\00")
 
 // CHECK: func @custom_call(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
@@ -74,14 +75,24 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
   // CHECK: %[[CALLEE:.*]] = llvm.bitcast %[[CALLEE_ADDR]]
 
   // Arguments encoding:
-
   // CHECK: llvm.mlir.undef : !llvm.struct<(i64, i64, ptr<i8>)>
   // CHECK: %[[C3:.*]] = arith.constant 3 : i32
   // CHECK: %[[ARGS:.*]] = llvm.alloca %[[C3]] x !llvm.ptr<i8>
 
-  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CALLEE]], %[[ARGS]])
+  // Attributes encoding:
+
+  // CHECK: llvm.mlir.addressof @[[INIT]] : !llvm.ptr<array<5 x i8>>
+  // CHECK: %[[C4:.*]] = arith.constant 4 : i32
+  // CHECK: %[[ATTRS:.*]] = llvm.alloca %[[C4]] x !llvm.ptr<i8>
+
+  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CALLEE]],
+  // CHECK-SAME:                                     %[[ARGS]],
+  // CHECK-SAME:                                     %[[ATTRS]])
   // CHECK: cf.assert %[[STATUS]], "oops"
-  %status = rt.custom_call "f32_reduce"(%arg1) : (memref<?xf32>) -> ()
+  %status = rt.custom_call "f32_reduce"(%arg1)
+              { init = 1.0 : f32  }
+              : (memref<?xf32>) -> ()
+
   %ok = rt.is_ok %status
   cf.assert %ok, "oops"
 

@@ -26,7 +26,7 @@ using mlir::failure;
 using mlir::LogicalResult;
 using mlir::success;
 
-static LogicalResult TimesTwo(MemrefDesc input, MemrefDesc output) {
+static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
   if (input.dtype() != output.dtype() || input.sizes() != output.sizes() ||
       input.dtype() != DType::F32)
@@ -39,16 +39,17 @@ static LogicalResult TimesTwo(MemrefDesc input, MemrefDesc output) {
   float* output_data = reinterpret_cast<float*>(output.data());
 
   for (int64_t i = 0; i < num_elements; ++i)
-    output_data[i] = input_data[i] * 2.0;
+    output_data[i] = input_data[i] * cst;
 
   return success();
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
-  registry->Register(CustomCall::Bind("testlib.times_two")
-                         .Arg<MemrefDesc>()  // input
-                         .Arg<MemrefDesc>()  // output
-                         .To(TimesTwo));
+  registry->Register(CustomCall::Bind("testlib.multiply")
+                         .Arg<MemrefDesc>()   // input
+                         .Arg<MemrefDesc>()   // output
+                         .Attr<float>("cst")  // cst
+                         .To(Multiply));
 }
 
 }  // namespace jitrt

@@ -24,10 +24,11 @@ module @kernels attributes { tfrt.compiled } {
     // Reverse dimension order to test invalid custom call arguments below.
     %output = memref.alloc(%1, %0) : memref<?x?xf32>
 
-    %status = rt.custom_call "testlib.times_two"(%input, %output)
+    %status = rt.custom_call "testlib.multiply"(%input, %output)
+      { cst = 2.0 : f32 }
       : (memref<?x?xf32>, memref<?x?xf32>) -> ()
     %ok = rt.is_ok %status
-    cf.assert %ok, "failed to call custom call 'testlib.times_two'"
+    cf.assert %ok, "failed to call custom call 'testlib.multiply'"
 
     func.return %output : memref<?x?xf32>
   }
@@ -76,6 +77,6 @@ func.func @compiled_custom_call_error() -> !t.tensor {
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
 
   // CHECK: returned <<error: compiled kernel run time error:
-  // CHECK-SAME: failed to call custom call 'testlib.times_two'>>
+  // CHECK-SAME: failed to call custom call 'testlib.multiply'>>
   tfrt.return %output : !t.tensor
 }

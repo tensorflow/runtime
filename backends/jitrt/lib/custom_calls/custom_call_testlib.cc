@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 
+#include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
 #include "tfrt/support/string_util.h"
@@ -55,15 +56,15 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
                                 ArrayRef<int64_t> i64_arr,
                                 ArrayRef<float> f32_arr,
                                 ArrayRef<double> f64_arr, StringRef str) {
-  llvm::outs() << caller << "\n";
+  tfrt::outs() << caller << "\n";
 
-  llvm::outs() << "i32: " << i32 << "\n";
-  llvm::outs() << "i64: " << i64 << "\n";
-  llvm::outs() << "f32: " << f32 << "\n";
-  llvm::outs() << "f64: " << f64 << "\n";
+  tfrt::outs() << "i32: " << i32 << "\n";
+  tfrt::outs() << "i64: " << i64 << "\n";
+  tfrt::outs() << "f32: " << f32 << "\n";
+  tfrt::outs() << "f64: " << f64 << "\n";
 
   auto print_arr = [](llvm::StringRef type, auto arr) {
-    llvm::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ")
+    tfrt::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ")
                  << "\n";
   };
 
@@ -72,9 +73,32 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
   print_arr("f32", f32_arr);
   print_arr("f64", f64_arr);
 
-  llvm::outs() << "str: " << str << "\n";
+  tfrt::outs() << "str: " << str << "\n";
 
   return success();
+}
+
+static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
+  tfrt::outs() << "Number of variadic arguments: " << args.size() << "\n";
+
+  for (unsigned i = 0; i < args.size(); ++i) {
+    tfrt::outs() << "arg[" << i << "]: ";
+
+    if (args.isa<MemrefDesc>(i)) {
+      tfrt::outs() << args.get<MemrefDesc>(i);
+    } else {
+      tfrt::outs() << "<unknown type>";
+    }
+
+    tfrt::outs() << "\n";
+  }
+  return success();
+}
+
+static LogicalResult PrintMemrefAndVariadicArgs(
+    MemrefDesc arg, CustomCall::RemainingArgs args) {
+  tfrt::outs() << "arg: " << arg << "\n";
+  return PrintVariadicArgs(args);
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
@@ -96,6 +120,15 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<ArrayRef<double>>("f64_arr")
                          .Attr<StringRef>("str")
                          .To(PrintAttrs));
+
+  registry->Register(CustomCall::Bind("testlib.variadic_args")
+                         .RemainingArgs()  // variadic args
+                         .To(PrintVariadicArgs));
+
+  registry->Register(CustomCall::Bind("testlib.memref_and_variadic_args")
+                         .Arg<MemrefDesc>()
+                         .RemainingArgs()  // variadic args
+                         .To(PrintMemrefAndVariadicArgs));
 }
 
 }  // namespace jitrt

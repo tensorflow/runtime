@@ -34,6 +34,7 @@ module @multiply attributes { tfrt.compiled } {
   }
 }
 
+// Prints all attributes passed to the custom call handler.
 module @print_attrs attributes { tfrt.compiled } {
   func.func private @print_attrs.cc()
      attributes { rt.custom_call = "testlib.print_attrs" }
@@ -50,6 +51,37 @@ module @print_attrs attributes { tfrt.compiled } {
       f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
       str = "some string"
     } : () -> ()
+
+    func.return
+  }
+}
+
+// Prints all arguments passed to the custom call handler. Intended for testing
+// custom call handlers with variadic arguments.
+module @variadic_args attributes { tfrt.compiled } {
+  func.func private @variadic_args.cc(%arg0: memref<?xf32>,
+                                      %arg1: memref<?xf32>)
+     attributes { rt.custom_call = "testlib.variadic_args" }
+
+  func.func private @memref_and_variadic_args.cc(%arg1: memref<?xf32>,
+                                                 %arg2: memref<?xf32>)
+    attributes { rt.custom_call = "testlib.memref_and_variadic_args" }
+
+  func.func @main() {
+    %c1 = arith.constant 1 : index
+    %c2 = arith.constant 2 : index
+
+    %i1 = memref.alloc(%c1) : memref<?xf32>
+    %i2 = memref.alloc(%c2) : memref<?xf32>
+
+    func.call @variadic_args.cc(%i1, %i2)
+      : (memref<?xf32>, memref<?xf32>) -> ()
+
+    func.call @memref_and_variadic_args.cc(%i1, %i2)
+      : ( memref<?xf32>, memref<?xf32>) -> ()
+
+    memref.dealloc %i1 : memref<?xf32>
+    memref.dealloc %i2 : memref<?xf32>
 
     func.return
   }
@@ -102,8 +134,8 @@ func.func @compiled_custom_call_error() -> !t.tensor {
   tfrt.return %output : !t.tensor
 }
 
-// CHECK: --- Running 'compiled_custom_call_attrs'
-func.func @compiled_custom_call_attrs() {
+// CHECK: --- Running 'compiled_custom_call_print_attrs'
+func.func @compiled_custom_call_print_attrs() {
   %ch0 = tfrt.new.chain
 
   // CHECK: Called from: jitrt.execute
@@ -117,6 +149,23 @@ func.func @compiled_custom_call_attrs() {
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: str: some string
   %executable = jitrt.compile { kernel = @print_attrs::@main }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_custom_call_variadic_args'
+func.func @compiled_custom_call_variadic_args() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK: Number of variadic arguments: 2
+  // CHECK: arg[0]: MemrefDesc: dtype: f32 offset: 0 sizes: [1] strides: [1]
+  // CHECK: arg[1]: MemrefDesc: dtype: f32 offset: 0 sizes: [2] strides: [1]
+
+  // CHECK: arg: MemrefDesc: dtype: f32 offset: 0 sizes: [1] strides: [1]
+  // CHECK: Number of variadic arguments: 1
+  // CHECK: arg[0]: MemrefDesc: dtype: f32 offset: 0 sizes: [2] strides: [1]
+  %executable = jitrt.compile { kernel = @variadic_args::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

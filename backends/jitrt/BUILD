@@ -356,6 +356,7 @@ tfrt_cc_library(
         ":custom_call",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

@@ -51,6 +51,9 @@ class CustomCall {
   // Container for passing data between JitRt user and the custom call handler.
   using UserData = MapByType<CustomCall>;
 
+  // A type for matching all remaining custom call arguments.
+  class RemainingArgs;
+
   virtual ~CustomCall() = default;
 
   virtual llvm::StringRef name() const = 0;
@@ -121,6 +124,39 @@ struct IsTagged<internal::Attr<T>> : std::true_type {};
 template <typename T>
 struct IsTagged<internal::UserData<T>> : std::true_type {};
 
+// Checks if remaining arguments are in the parameter pack.
+template <typename... Ts>
+struct HasRemainingArgs;
+
+template <typename T, typename... Ts>
+struct HasRemainingArgs<T, Ts...> {
+  static constexpr bool value =
+      std::is_same<CustomCall::RemainingArgs, T>::value ||
+      HasRemainingArgs<Ts...>::value;
+};
+
+template <>
+struct HasRemainingArgs<> : std::false_type {};
+
+// Decoded pair of an argument type and opaque value.
+struct DecodedArg {
+  mlir::TypeID type_id;
+  void* value;
+};
+
+// Decoded triple of an attribute name, type and opaque value.
+struct DecodedAttr {
+  llvm::StringRef name;
+  mlir::TypeID type_id;
+  void* value;
+};
+
+// Decodes arguments from the encoded data.
+llvm::SmallVector<DecodedArg> DecodeArgs(void** args);
+
+// Decodes attributes from the encoded data.
+llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs);
+
 }  // namespace internal
 
 // Custom call binding describes the function signature of the expected custom
@@ -137,6 +173,12 @@ class CustomCallBinding {
  public:
   template <typename T>
   CustomCallBinding<Ts..., T> Arg() && {
+    return {std::move(*this)};
+  }
+
+  CustomCallBinding<Ts..., CustomCall::RemainingArgs> RemainingArgs() && {
+    static_assert(!internal::HasRemainingArgs<Ts...>::value,
+                  "remaining arguments can be passed just once");
     return {std::move(*this)};
   }
 
@@ -205,6 +247,30 @@ struct CustomCallArgDecoding;
 template <typename T>
 struct CustomCallAttrDecoding;
 
+// CustomCall remaining arguments wraps the type-erased `DecodedArg` container,
+// and provides a type-safe API for accessing individual arguments.
+class CustomCall::RemainingArgs {
+ public:
+  explicit RemainingArgs(ArrayRef<internal::DecodedArg> args)
+      : args_(args.begin(), args.end()) {}
+
+  size_t size() const { return args_.size(); }
+
+  template <typename T>
+  bool isa(size_t index) const {
+    return args_[index].type_id == mlir::TypeID::get<T>();
+  }
+
+  template <typename T>
+  mlir::FailureOr<T> get(size_t index) const {
+    return CustomCallArgDecoding<T>::Decode(args_[index].type_id,
+                                            args_[index].value);
+  }
+
+ private:
+  llvm::SmallVector<internal::DecodedArg> args_;
+};
+
 // -------------------------------------------------------------------------- //
 // A little bit of template metaprogramming to implement type safe binding
 // of custom calls to C++ functions. This is internal implementation details,
@@ -248,23 +314,6 @@ struct NumArgs<T> {
   static constexpr int64_t value = !IsTagged<T>::value;
 };
 
-struct DecodedArg {
-  mlir::TypeID type_id;
-  void* value;
-};
-
-struct DecodedAttr {
-  llvm::StringRef name;
-  mlir::TypeID type_id;
-  void* value;
-};
-
-// Decodes arguments from the encoded data.
-llvm::SmallVector<DecodedArg> DecodeArgs(void** args);
-
-// Decodes attributes from the encoded data.
-llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs);
-
 // When decoding input data we need to keep track of how many arguments and
 // attributes we decoded so far to index into the correct data strucuture.
 struct DecodingOffsets {
@@ -272,25 +321,24 @@ struct DecodingOffsets {
   int64_t attrs = 0;
 };
 
-using DecodedArgs = llvm::SmallVector<DecodedArg>;  // NOLINT
-using DecodedAttrs = llvm::StringMap<DecodedAttr>;  // NOLINT
-
-template <typename T, std::size_t index>
+template <typename T, size_t index>
 struct Decode {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
+  static mlir::FailureOr<T> call(DecodingOffsets& offsets,
+                                 llvm::SmallVector<DecodedArg>& args,
                                  ArrayRef<std::string> attr_names,
-                                 DecodedAttrs& attrs,
+                                 llvm::StringMap<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
     internal::DecodedArg arg = args[offsets.args++];
     return CustomCallArgDecoding<T>::Decode(arg.type_id, arg.value);
   }
 };
 
-template <typename T, std::size_t index>
+template <typename T, size_t index>
 struct Decode<internal::Attr<T>, index> {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
+  static mlir::FailureOr<T> call(DecodingOffsets& offsets,
+                                 llvm::SmallVector<DecodedArg>& args,
                                  ArrayRef<std::string> attr_names,
-                                 DecodedAttrs& attrs,
+                                 llvm::StringMap<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
     internal::DecodedAttr attr = attrs[attr_names[offsets.attrs++]];
     return CustomCallAttrDecoding<T>::Decode(attr.name, attr.type_id,
@@ -298,14 +346,26 @@ struct Decode<internal::Attr<T>, index> {
   }
 };
 
-template <typename T, std::size_t index>
+template <typename T, size_t index>
 struct Decode<internal::UserData<T>, index> {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
+  static mlir::FailureOr<T> call(DecodingOffsets& offsets,
+                                 llvm::SmallVector<DecodedArg>& args,
                                  ArrayRef<std::string> attr_names,
-                                 DecodedAttrs& attrs,
+                                 llvm::StringMap<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
     if (!user_data || !user_data->contains<T>()) return mlir::failure();
     return user_data->get<T>();
+  }
+};
+
+template <size_t index>
+struct Decode<CustomCall::RemainingArgs, index> {
+  static mlir::FailureOr<CustomCall::RemainingArgs> call(
+      DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
+      ArrayRef<std::string> attr_names, llvm::StringMap<DecodedAttr>& attrs,
+      const CustomCall::UserData* user_data) {
+    auto remaining = llvm::ArrayRef<DecodedArg>(args).drop_front(offsets.args);
+    return CustomCall::RemainingArgs(remaining);
   }
 };
 
@@ -347,7 +407,11 @@ class CustomCallHandler : public CustomCall {
 
     // Check that the number of passed arguments matches the signature. Each
     // individual argument decoding will check the actual type.
-    if (decoded_args.size() != kNumArgs) return mlir::failure();
+    if (internal::HasRemainingArgs<Ts...>::value) {
+      if (decoded_args.size() < kNumArgs - 1) return mlir::failure();
+    } else {
+      if (decoded_args.size() != kNumArgs) return mlir::failure();
+    }
 
     // Check that all required attributes are passed to the custom call.
     bool all_attrs = llvm::all_of(attrs_, [&](auto& attr) {
@@ -359,9 +423,9 @@ class CustomCallHandler : public CustomCall {
                 std::make_index_sequence<kSize>{});
   }
 
-  template <std::size_t... Is>
-  mlir::LogicalResult call(internal::DecodedArgs args,
-                           internal::DecodedAttrs attrs,
+  template <size_t... Is>
+  mlir::LogicalResult call(llvm::SmallVector<internal::DecodedArg> args,
+                           llvm::StringMap<internal::DecodedAttr> attrs,
                            const UserData* user_data,
                            std::index_sequence<Is...>) {
     // A helper structure to allow each decoder find the correct offset in the

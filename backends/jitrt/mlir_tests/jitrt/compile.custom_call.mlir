@@ -106,6 +106,7 @@ func.func @compiled_custom_call_error() -> !t.tensor {
 func.func @compiled_custom_call_attrs() {
   %ch0 = tfrt.new.chain
 
+  // CHECK: Called from: jitrt.execute
   // CHECK: i32: 101
   // CHECK: i64: 102
   // CHECK: f32: 1.000000e+00

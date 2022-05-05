@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "tfrt/dtype/dtype.h"
@@ -152,8 +153,16 @@ static void ExecuteImpl(const Executable& executable,
   HostContext* host = exec_ctx.host();
   auto& runner_ctx = host->GetOrCreateSharedContext<AsyncTaskRunnerContext>();
 
+  // Pass a string for testing custom calls. JitRt kernels are for testing only,
+  // and the JitRt clients are expected to build their own versions of compile
+  // and execute operation, so we can use this one for testing JitRt features.
+  static const char* kCaller = "Called from: jitrt.execute";
+  CustomCall::UserData custom_call_data;
+  custom_call_data.insert(kCaller);
+
   Executable::ExecuteOpts opts;
   opts.async_task_runner = &runner_ctx.runner;
+  opts.custom_call_data = &custom_call_data;
 
   if (auto err = executable.Execute(memrefs, converter, opts)) return;
 

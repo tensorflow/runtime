@@ -33,6 +33,7 @@
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/types.h"
+#include "tfrt/support/map_by_type.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -47,10 +48,14 @@ class CustomCallBinding;
 
 class CustomCall {
  public:
+  // Container for passing data between JitRt user and the custom call handler.
+  using UserData = MapByType<CustomCall>;
+
   virtual ~CustomCall() = default;
 
   virtual llvm::StringRef name() const = 0;
-  virtual mlir::LogicalResult call(void** args, void** attrs) = 0;
+  virtual mlir::LogicalResult call(void** args, void** attrs,
+                                   const UserData* user_data) = 0;
 
   static CustomCallBinding<> Bind(std::string callee);
 };
@@ -96,10 +101,25 @@ void AddStaticCustomCallRegistration(
 
 namespace internal {
 
-// A type tag to distinguish arguments from the attributes in the
+// A type tag to distinguish arguments tied to the attributes in the
 // `CustomCallBinding` variadic template argument.
 template <typename T>
 struct Attr {};
+
+// A type tag to distinguish arguments tied to the user data in the
+// `CustomCallBinding` variadic template argument.
+template <typename T>
+struct UserData {};
+
+// A template for checking if type is a wrapped attribute or user data.
+template <typename>
+struct IsTagged : std::false_type {};
+
+template <typename T>
+struct IsTagged<internal::Attr<T>> : std::true_type {};
+
+template <typename T>
+struct IsTagged<internal::UserData<T>> : std::true_type {};
 
 }  // namespace internal
 
@@ -123,6 +143,11 @@ class CustomCallBinding {
   template <typename T>
   CustomCallBinding<Ts..., internal::Attr<T>> Attr(std::string attr) && {
     attrs_.push_back(std::move(attr));
+    return {std::move(*this)};
+  }
+
+  template <typename T>
+  CustomCallBinding<Ts..., internal::UserData<T>> UserData() && {
     return {std::move(*this)};
   }
 
@@ -206,6 +231,23 @@ struct FnArgType<internal::Attr<T>> {
   using Type = T;
 };
 
+// Extracts the underlying type from the user data type tag.
+template <typename T>
+struct FnArgType<internal::UserData<T>> {
+  using Type = T;
+};
+
+// A template for counting regular arguments in the Ts pack.
+template <typename T, typename... Ts>
+struct NumArgs {
+  static constexpr int64_t value = !IsTagged<T>::value + NumArgs<Ts...>::value;
+};
+
+template <typename T>
+struct NumArgs<T> {
+  static constexpr int64_t value = !IsTagged<T>::value;
+};
+
 struct DecodedArg {
   mlir::TypeID type_id;
   void* value;
@@ -237,7 +279,8 @@ template <typename T, std::size_t index>
 struct Decode {
   static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
                                  ArrayRef<std::string> attr_names,
-                                 DecodedAttrs& attrs) {
+                                 DecodedAttrs& attrs,
+                                 const CustomCall::UserData* user_data) {
     internal::DecodedArg arg = args[offsets.args++];
     return CustomCallArgDecoding<T>::Decode(arg.type_id, arg.value);
   }
@@ -247,10 +290,22 @@ template <typename T, std::size_t index>
 struct Decode<internal::Attr<T>, index> {
   static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
                                  ArrayRef<std::string> attr_names,
-                                 DecodedAttrs& attrs) {
+                                 DecodedAttrs& attrs,
+                                 const CustomCall::UserData* user_data) {
     internal::DecodedAttr attr = attrs[attr_names[offsets.attrs++]];
     return CustomCallAttrDecoding<T>::Decode(attr.name, attr.type_id,
                                              attr.value);
+  }
+};
+
+template <typename T, std::size_t index>
+struct Decode<internal::UserData<T>, index> {
+  static mlir::FailureOr<T> call(DecodingOffsets& offsets, DecodedArgs& args,
+                                 ArrayRef<std::string> attr_names,
+                                 DecodedAttrs& attrs,
+                                 const CustomCall::UserData* user_data) {
+    if (!user_data || !user_data->contains<T>()) return mlir::failure();
+    return user_data->get<T>();
   }
 };
 
@@ -272,6 +327,7 @@ mlir::FailureOr<DType> TypeIdToDType(mlir::TypeID type_id);
 template <typename Fn, typename... Ts>
 class CustomCallHandler : public CustomCall {
   static constexpr int64_t kSize = sizeof...(Ts);
+  static constexpr int64_t kNumArgs = internal::NumArgs<Ts...>::value;
 
   template <typename T>
   using FnArgType = typename internal::FnArgType<T>::Type;
@@ -283,28 +339,30 @@ class CustomCallHandler : public CustomCall {
  public:
   llvm::StringRef name() const override { return callee_; }
 
-  mlir::LogicalResult call(void** args, void** attrs) override {
+  mlir::LogicalResult call(void** args, void** attrs,
+                           const UserData* user_data) override {
     // Decode arguments and attributes from the opaque pointers.
     auto decoded_args = internal::DecodeArgs(args);
     auto decoded_attrs = internal::DecodeAttrs(attrs);
 
-    // Check that all required attributes were passed to the custom call.
+    // Check that the number of passed arguments matches the signature. Each
+    // individual argument decoding will check the actual type.
+    if (decoded_args.size() != kNumArgs) return mlir::failure();
+
+    // Check that all required attributes are passed to the custom call.
     bool all_attrs = llvm::all_of(attrs_, [&](auto& attr) {
       return decoded_attrs.find(attr) != decoded_attrs.end();
     });
     if (!all_attrs) return mlir::failure();
 
-    // Check that the number of passed arguments matches the signature. Each
-    // individual argument decoding will check the actual type.
-    if (decoded_args.size() != (kSize - attrs_.size())) return mlir::failure();
-
-    return call(std::move(decoded_args), std::move(decoded_attrs),
+    return call(std::move(decoded_args), std::move(decoded_attrs), user_data,
                 std::make_index_sequence<kSize>{});
   }
 
   template <std::size_t... Is>
   mlir::LogicalResult call(internal::DecodedArgs args,
                            internal::DecodedAttrs attrs,
+                           const UserData* user_data,
                            std::index_sequence<Is...>) {
     // A helper structure to allow each decoder find the correct offset in the
     // arguments or attributes.
@@ -314,7 +372,8 @@ class CustomCallHandler : public CustomCall {
     // that initializer list will be evaluated left-to-right, and we can rely
     // on correct offsets computation.
     std::tuple<mlir::FailureOr<FnArgType<Ts>>...> fn_args = {
-        internal::Decode<Ts, Is>::call(offsets, args, attrs_, attrs)...};
+        internal::Decode<Ts, Is>::call(offsets, args, attrs_, attrs,
+                                       user_data)...};
 
     // Check that all of them were successfully decoded.
     std::array<bool, kSize> decoded = {

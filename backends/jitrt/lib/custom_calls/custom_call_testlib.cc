@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <string>
 #include <utility>
 
 #include "mlir/Support/LogicalResult.h"
@@ -48,11 +49,14 @@ static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
 }
 
 // A custom call for testing attributes encoding/decoding.
-static LogicalResult PrintAttrs(int32_t i32, int64_t i64, float f32, double f64,
+static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
+                                float f32, double f64,
                                 ArrayRef<int32_t> i32_arr,
                                 ArrayRef<int64_t> i64_arr,
                                 ArrayRef<float> f32_arr,
                                 ArrayRef<double> f64_arr, StringRef str) {
+  llvm::outs() << caller << "\n";
+
   llvm::outs() << "i32: " << i32 << "\n";
   llvm::outs() << "i64: " << i64 << "\n";
   llvm::outs() << "f32: " << f32 << "\n";
@@ -81,6 +85,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .To(Multiply));
 
   registry->Register(CustomCall::Bind("testlib.print_attrs")
+                         .UserData<const char*>()
                          .Attr<int32_t>("i32")
                          .Attr<int64_t>("i64")
                          .Attr<float>("f32")

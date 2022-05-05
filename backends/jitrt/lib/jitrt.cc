@@ -122,6 +122,9 @@ struct KernelContext {
 
   // Tracks whether any of the outputs were set.
   bool has_set_outputs = false;
+
+  // User-defined data for custom call handlers.
+  CustomCall::UserData* custom_call_data;
 };
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
@@ -537,6 +540,7 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
   runtime::KernelContext kernel_context;
   kernel_context.results_memory_layout = &results_memory_layout_;
   kernel_context.call_frame = &call_frame;
+  kernel_context.custom_call_data = opts.custom_call_data;
 
   // Override the kernel context argument.
   runtime::KernelContext* kernel_context_ptr = &kernel_context;
@@ -1328,7 +1332,7 @@ extern "C" bool runtimeCustomCall(KernelContext* ctx, const char* callee,
   assert(custom_call && "custom call not found");
   if (custom_call == nullptr) return false;
 
-  auto result = custom_call->call(args, attrs);
+  auto result = custom_call->call(args, attrs, ctx->custom_call_data);
   if (mlir::failed(result)) return false;
 
   return true;

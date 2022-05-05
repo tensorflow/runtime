@@ -49,6 +49,7 @@
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
+#include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/memory_mapper.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
@@ -953,6 +954,10 @@ class Executable {
     // User-provided kernel context corresponding to the JIT executable.
     // Must outlive all async tasks launched by this executable.
     KernelContext* kernel_context;
+
+    // A container for passing arbitrary user-provided data to the custom call
+    // handlers. Must outlive all async tasks launched by this executable.
+    CustomCall::UserData* custom_call_data;
   };
 
   // Verifies that all operands types in the entrypoint function signature are

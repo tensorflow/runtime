@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s
+// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s --dump-input=always
 
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
@@ -60,53 +60,155 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 
 // -----
 
-// CHECK-DAG: llvm.mlir.global internal constant @[[REDUCE:.*]]("target\00")
-// CHECK-DAG: llvm.mlir.global internal constant @[[INIT:.*]]("init\00")
-// CHECK-DAG: llvm.mlir.global internal constant @[[STRIDES:.*]]("strides\00")
-// CHECK-DAG: llvm.mlir.global internal constant @[[BLOB:.*]]("blob\00")
-// CHECK-DAG: llvm.mlir.global internal constant @[[DATA:.*]]("binary data\00")
+// CHECK: global internal constant @__rt_num_attrs(0 : i64) : i64
+
+// CHECK: global internal constant @__rt_custom_call_attrs()
+// CHECK: {
+// CHECK:   llvm.mlir.undef : !llvm.array<1 x ptr<i8>>
+// CHECK:   llvm.mlir.addressof @__rt_num_attrs : !llvm.ptr<i64>
+// CHECK: }
+
+// CHECK: global internal constant @__rt_num_args(0 : i64) : i64
+// CHECK: global internal constant @__rt_custom_call_callee("target\00")
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context) {
+
+  // CHECK: %[[CALLEE_ADDR:.*]] = llvm.mlir.addressof @__rt_custom_call_callee
+  // CHECK: %[[CALLEE:.*]] = llvm.bitcast %[[CALLEE_ADDR]]
+
+  // CHECK: %[[C1:.*]] = arith.constant 1 : i32
+  // CHECK: %[[ARGS_ALLOCA:.*]] = llvm.alloca %c1_i32 x !llvm.array<1 x ptr<i8>>
+  // CHECK: %[[ARGS:.*]] = llvm.getelementptr %[[ARGS_ALLOCA]]
+
+  // CHECK: %[[ATTRS_ADDR:.*]] = llvm.mlir.addressof @__rt_custom_call_attrs
+  // CHECK: %[[ATTRS:.*]] = llvm.getelementptr %[[ATTRS_ADDR]]
+
+  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CTX]], %[[CALLEE]],
+  // CHECK-SAME:                                     %[[ARGS]], %[[ATTRS]])
+  // CHECK: cf.assert %[[STATUS]], "oops"
+  %status = rt.custom_call %arg0["target"] () : () -> ()
+  %ok = rt.is_ok %status
+  cf.assert %ok, "oops"
+  func.return
+}
+
+// -----
+
+// CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
+// CHECK: global internal constant @__rt_attr_value(1.230000e+02 : f32) : f32
+// CHECK: global internal constant @__rt_type_id({{.*}} : i64) : i64
+// CHECK: global internal constant @__rt_str("attr_name\00")
+
+// CHECK: global internal constant @__rt_attr_name()
+// CHECK-SAME: : !llvm.struct<(i64, ptr<array<10 x i8>>)> {
+// CHECK:   arith.constant 9 : i64
+// CHECK:   llvm.mlir.addressof @__rt_str : !llvm.ptr<array<10 x i8>>
+// CHECK: }
+
+// CHECK: global internal constant @__rt_custom_call_attrs()
+// CHECK-SAME: : !llvm.array<4 x ptr<i8>> {
+// CHECK:   llvm.mlir.addressof @__rt_attr_name
+// CHECK:   llvm.mlir.addressof @__rt_type_id : !llvm.ptr<i64>
+// CHECK:   llvm.mlir.addressof @__rt_attr_value : !llvm.ptr<f32>
+// CHECK: }
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] () { attr_name = 123.0 : f32 } : () -> ()
+  func.return
+}
+
+// -----
+
+// CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
+
+// CHECK: global internal constant @__rt_attr_value()
+// CHECK-SAME: : !llvm.struct<(i64, array<3 x i32>)> {
+// CHECK:   arith.constant 3 : i64
+// CHECK:   llvm.mlir.constant(dense<[1, 2, 3]> : tensor<3xi32>)
+// CHECK: }
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] ()
+    { attr_name = dense<[1, 2, 3]> : tensor<3xi32> } : () -> ()
+  func.return
+}
+
+// -----
+
+// CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
+// CHECK: global internal constant @[[STR:.*]]("attr_value\00")
+
+// CHECK: global internal constant @__rt_attr_value()
+// CHECK-SAME: : !llvm.struct<(i64, ptr<array<11 x i8>>)> {
+// CHECK:   arith.constant 10 : i64
+// CHECK:   llvm.mlir.addressof @[[STR]] : !llvm.ptr<array<11 x i8>>
+// CHECK: }
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] () { attr_name = "attr_value" } : () -> ()
+  func.return
+}
+
+// -----
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
+// CHECK:   %[[ARG:.*]]: f32
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : f32) {
+  // CHECK: %[[TYPE_ID:.*]] = llvm.mlir.addressof @__rt_type_id
+
+  // CHECK: %[[C1:.*]] = arith.constant 1 : i32
+  // CHECK: %[[MEM:.*]] = llvm.alloca %[[C1]] x f32
+  // CHECK: llvm.store %[[ARG]], %[[MEM]]
+
+  // CHECK: %[[N_ARGS:.*]] = llvm.mlir.addressof @__rt_num_args
+
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] (%arg1) : (f32) -> ()
+  func.return
+}
+
+// -----
 
 // CHECK: func @custom_call(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
 // CHECK:   %[[ARG:.*]]: memref<?xf32>
 // CHECK: )
-func.func @custom_call(%arg0: !rt.kernel_context, %arg1: memref<?xf32>) {
+func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?xf32>) {
+
   // CHECK: %[[DESC:.*]] = builtin.unrealized_conversion_cast %[[ARG]]
-  // CHECK-SAME: : memref<?xf32> to !llvm.struct
+  // CHECK-SAME: to !llvm.struct
 
-  // CHECK: %[[CALLEE_ADDR:.*]] = llvm.mlir.addressof @[[REDUCE]]
-  // CHECK: %[[CALLEE:.*]] = llvm.bitcast %[[CALLEE_ADDR]]
+  // CHECK: %[[TYPE_ID:.*]] = llvm.mlir.addressof @__rt_type_id
 
-  // Arguments encoding:
+  // CHECK: %[[C1:.*]] = arith.constant 1 : i32
+  // CHECK: %[[MEM:.*]] = llvm.alloca %[[C1]] x !llvm.struct
+  // CHECK: llvm.store %[[DESC]], %[[MEM]]
 
   // CHECK: llvm.mlir.undef : !llvm.struct<(i64, i64, ptr<i8>)>
-  // CHECK: %[[C3:.*]] = arith.constant 3 : i32
-  // CHECK: %[[ARGS:.*]] = llvm.alloca %[[C3]] x !llvm.ptr<i8>
+  // CHECK: llvm.insertvalue
+  // CHECK: llvm.insertvalue
+  // CHECK: llvm.insertvalue
 
-  // Attributes encoding:
+  // CHECK: %[[N_ARGS:.*]] = llvm.mlir.addressof @__rt_num_args
 
-  // CHECK-DAG: llvm.mlir.addressof @[[INIT]] : !llvm.ptr<array<5 x i8>>
-  // CHECK-DAG: llvm.mlir.addressof @[[STRIDES]] : !llvm.ptr<array<8 x i8>>
-  // CHECK-DAG: llvm.mlir.addressof @[[BLOB]] : !llvm.ptr<array<5 x i8>>
-  // CHECK-DAG: llvm.mlir.addressof @[[DATA]] : !llvm.ptr<array<12 x i8>>
-  // CHECK: %[[C10:.*]] = arith.constant 10 : i32
-  // CHECK: %[[ATTRS:.*]] = llvm.alloca %[[C10]] x !llvm.ptr<i8>
-
-  // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CTX]],
-  // CHECK-SAME:                                     %[[CALLEE]],
-  // CHECK-SAME:                                     %[[ARGS]],
-  // CHECK-SAME:                                     %[[ATTRS]])
-  // CHECK: cf.assert %[[STATUS]], "oops"
-  %status = rt.custom_call %arg0["target"] (%arg1)
-              {
-                init = 1.0 : f32,
-                strides = dense<[1, 2, 3, 4]> : tensor<4xi32>,
-                blob = "binary data"
-              }
-              : (memref<?xf32>) -> ()
-
-  %ok = rt.is_ok %status
-  cf.assert %ok, "oops"
-
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] (%arg1) : (memref<?xf32>) -> ()
   func.return
 }

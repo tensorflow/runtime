@@ -44,6 +44,8 @@ namespace tfrt {
 namespace jitrt {
 namespace {
 
+using llvm::DenseMap;
+
 using mlir::Attribute;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
@@ -162,48 +164,6 @@ class RuntimeTypeConverter : public TypeConverter {
   }
 };
 
-// -------------------------------------------------------------------------- //
-
-// Creates a global string constant in the given module, and returns a value
-// corresponding to a pointer to the null terminated string.
-static Value CreateGlobalStrCst(ModuleOp module, ImplicitLocOpBuilder &builder,
-                                StringRef strref, StringRef prefix) {
-  // Helper to create unique names for string constants.
-  int unique_counter = 0;
-
-  mlir::SymbolTable sym_table(module);
-  auto sym_name = [&]() -> std::string {
-    std::string str = prefix.str();
-    while (sym_table.lookup(str))
-      str = llvm::formatv("{0}_{1}", prefix, unique_counter++);
-    return str;
-  };
-
-  // Create an std::string to get a null terminated sequence of characters.
-  std::string str = strref.str();
-
-  // Create a string reference that captures the null terminator.
-  StringRef ref(str.data(), str.size() + 1);
-  auto str_type = LLVM::LLVMArrayType::get(builder.getI8Type(), ref.size());
-
-  // Create string constant at the start of the module.
-  auto str_constant = [&]() {
-    OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToStart(module.getBody());
-    return builder.create<LLVM::GlobalOp>(
-        str_type, /*isConstant=*/true, LLVM::Linkage::Internal, sym_name(),
-        StringAttr::get(module->getContext(), ref));
-  }();
-
-  // Get the pointer to the string constant that we'll pass to the runtime.
-  auto str_addr = builder.create<LLVM::AddressOfOp>(
-      LLVM::LLVMPointerType::get(str_type), str_constant.getSymName());
-  auto str_ptr = builder.create<LLVM::BitcastOp>(
-      LLVM::LLVMPointerType::get(builder.getI8Type()), str_addr);
-
-  return str_ptr;
-}
-
 //===----------------------------------------------------------------------===//
 // Convert rt.set_output to the corresponding runtime API call.
 //===----------------------------------------------------------------------===//
@@ -247,32 +207,6 @@ class SetOutputOpLowering : public OpConversionPattern<SetOutputOp> {
 };
 
 //===----------------------------------------------------------------------===//
-// Convert rt.set_error to the corresponding runtime API call.
-//===----------------------------------------------------------------------===//
-
-class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
- public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult matchAndRewrite(
-      SetErrorOp op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override {
-    // Get the error message (pointer to a null terminated string).
-    ImplicitLocOpBuilder builder(op.getLoc(), rewriter);
-    ModuleOp module = op->getParentOfType<ModuleOp>();
-    auto err_ptr =
-        CreateGlobalStrCst(module, builder, op.error(), "__assert_failed");
-
-    // Call runtime API to report the error.
-    auto kernel_context = adaptor.ctx();
-    rewriter.replaceOpWithNewOp<CallOp>(op, kSetError, TypeRange(),
-                                        ValueRange({kernel_context, err_ptr}));
-
-    return success();
-  }
-};
-
-//===----------------------------------------------------------------------===//
 // Convert rt.is_ok to the corresponding runtime API call.
 //===----------------------------------------------------------------------===//
 
@@ -293,20 +227,170 @@ class IsOkOpLowering : public OpConversionPattern<IsOkOp> {
 // Convert rt.custom_call to the corresponding runtime API call.
 //===----------------------------------------------------------------------===//
 
-// Arguments to the custom call API intrinsic encoded as an array of opaque
+// Arguments to the custom call API intrinsic are encoded as an array of opaque
 // pointers and at the runtime side available as `void**`. Runtime decodes
 // opaque pointers to the C++ data structures (see jitrt/custom_call.h), and
 // passes them to the registered callback. Argument encoding/decoding must be
 // compatible, otherwise it's very easy to get a segfault because of an illegal
 // memory access.
 //
-// Attributes encoded into a separate opaque storage together with names, so
-// the runtime side can decode the attributes it needs. We don't rely on the
-// order, because it's not stable, and furthermore the operation might have
-// additional attributes that could be ignored by the runtime binding.
+// Attributes are encoded into a separate opaque storage together with names, so
+// the runtime side can decode the attributes it needs and check that all
+// required attributes were passed to the custom call handler.
+//
+// Custom call attributes are encoded as module global constants, and at run
+// time we only need to pass a pointer to the constant section.
+//
+// Custom call arguments are encoded as an array of pointers allocated on the
+// stack. Each individual argument is also encoded on the stack, because
+// arguments are run time values and we can't encode them in the constant
+// section.
 
 // -------------------------------------------------------------------------- //
-// Helper functions for packing attributes and values on the stack.
+// A helper class to create global constants at the top of the module.
+
+namespace {
+class Globals {
+ public:
+  explicit Globals(ModuleOp module) : module_(module) {}
+
+  // Returns a unique symbol name for a given `symbol_base`.
+  std::string UniqueSymName(StringRef symbol_base);
+
+  // Creates a global null-terminated string constant.
+  LLVM::GlobalOp GetOrCreate(ImplicitLocOpBuilder &b, StringRef strref,
+                             StringRef symbol_base);
+
+  // Creates a global constant value from the attribute. Attribute type must be
+  // a valid type compatible with LLVM globals.
+  LLVM::GlobalOp GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
+                             StringRef symbol_base);
+
+  // Creates a global constant value of the given type from the attribute, using
+  // user-provided global constant initialization.
+  LLVM::GlobalOp GetOrCreate(
+      ImplicitLocOpBuilder &b, Attribute attr, Type type, StringRef symbol_base,
+      llvm::function_ref<void(ImplicitLocOpBuilder &, Attribute)> initialize);
+
+  // Returns the address of the global value.
+  static Value AddrOf(ImplicitLocOpBuilder &b, LLVM::GlobalOp global);
+
+  // Return the address of the global value casted to `!llvm.ptr<i8>`.
+  static Value OpaqueAddrOf(ImplicitLocOpBuilder &b, LLVM::GlobalOp global);
+
+  ModuleOp module() { return module_; }
+
+ private:
+  // Globals key: {attribute, encoded-type, sym-name}. We can only have global
+  // constants of one of the LLVM types, and there could be multiple ways to
+  // encode an attribute as an LLVM type, e.g. strings can be stored as null
+  // terminated array of bytes, or a pair of string size and and array of bytes.
+  using Key = std::tuple<Attribute, Type, StringRef>;
+
+  LLVM::GlobalOp Find(Key key);
+
+  ModuleOp module_;
+  DenseMap<Key, LLVM::GlobalOp> globals_;
+};
+}  // namespace
+
+std::string Globals::UniqueSymName(StringRef symbol_base) {
+  int cnt = 0;
+  std::string str = symbol_base.str();
+
+  mlir::SymbolTable sym_table(module_);
+  while (sym_table.lookup(str))
+    str = llvm::formatv("{0}_{1}", symbol_base, cnt++);
+
+  return str;
+}
+
+LLVM::GlobalOp Globals::Find(Key key) {
+  auto it = globals_.find(key);
+  if (it != globals_.end()) return it->second;
+  return nullptr;
+}
+
+LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, StringRef strref,
+                                    StringRef symbol_base) {
+  // Create an std::string to get a null terminated sequence of characters.
+  std::string str = strref.str();
+
+  // Create a string reference that captures the null terminator.
+  StringRef ref(str.data(), str.size() + 1);
+  auto arr = LLVM::LLVMArrayType::get(b.getI8Type(), ref.size());
+
+  OpBuilder::InsertionGuard guard(b);
+  b.setInsertionPointToStart(module_.getBody());
+
+  return b.create<LLVM::GlobalOp>(
+      arr, /*isConstant=*/true, LLVM::Linkage::Internal,
+      UniqueSymName(symbol_base), b.getStringAttr(ref));
+}
+
+LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
+                                    StringRef symbol_base) {
+  Key key(attr, attr.getType(), symbol_base);
+
+  // Check if global value already exists ...
+  if (auto global = Find(key)) return global;
+
+  // ... otherwise create a new one.
+  OpBuilder::InsertionGuard guard(b);
+  b.setInsertionPointToStart(module_.getBody());
+
+  auto global = b.create<LLVM::GlobalOp>(attr.getType(), /*isConstant=*/true,
+                                         LLVM::Linkage::Internal,
+                                         UniqueSymName(symbol_base), attr);
+  auto emplaced = globals_.try_emplace(key, global);
+  assert(emplaced.second && "must be a new global");
+
+  return emplaced.first->second;
+}
+
+LLVM::GlobalOp Globals::GetOrCreate(
+    ImplicitLocOpBuilder &b, Attribute attr, Type type, StringRef symbol_base,
+    llvm::function_ref<void(ImplicitLocOpBuilder &, Attribute)> initialize) {
+  Key key(attr, type, symbol_base);
+
+  // Check if global value already exists ...
+  if (auto global = Find(key)) return global;
+
+  // ... otherwise create a new one.
+  OpBuilder::InsertionGuard guard(b);
+  b.setInsertionPointToStart(module_.getBody());
+
+  // Create an uninitialized global.
+  auto global = b.create<LLVM::GlobalOp>(
+      type, /*isConstant=*/true, LLVM::Linkage::Internal,
+      UniqueSymName(symbol_base), Attribute());
+  auto emplaced = globals_.try_emplace(key, global);
+  assert(emplaced.second && "must be a new global");
+
+  // Call user-provided global initializer.
+  mlir::Region &region = global.getInitializerRegion();
+  mlir::Block *block = b.createBlock(&region);
+
+  b.setInsertionPointToStart(block);
+  initialize(b, attr);
+
+  return emplaced.first->second;
+}
+
+/*static*/ Value Globals::AddrOf(ImplicitLocOpBuilder &b,
+                                 LLVM::GlobalOp global) {
+  return b.create<LLVM::AddressOfOp>(
+      LLVM::LLVMPointerType::get(global.getType()), global.getSymName());
+}
+
+/*static*/ Value Globals::OpaqueAddrOf(ImplicitLocOpBuilder &b,
+                                       LLVM::GlobalOp global) {
+  return b.create<LLVM::BitcastOp>(LLVM::LLVMPointerType::get(b.getI8Type()),
+                                   AddrOf(b, global));
+}
+
+// -------------------------------------------------------------------------- //
+// Helper functions for encoding attributes and values for custom calls.
 
 static bool IsSupportedScalarType(Type type) {
   auto is_supported_width = [](unsigned width, ArrayRef<unsigned> supported) {
@@ -355,125 +439,86 @@ static TypeID ArrayRuntimeTypeId(Type shaped) {
   return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
 }
 
-// Overload set to create properly typed constants in the IR.
-static Value CreateConstant(ImplicitLocOpBuilder &b, int32_t value) {
-  return b.create<ConstantOp>(b.getI32IntegerAttr(value));
-}
-static Value CreateConstant(ImplicitLocOpBuilder &b, int64_t value) {
-  return b.create<ConstantOp>(b.getI64IntegerAttr(value));
-}
-static Value CreateConstant(ImplicitLocOpBuilder &b, float value) {
-  return b.create<ConstantOp>(b.getF32FloatAttr(value));
-}
-static Value CreateConstant(ImplicitLocOpBuilder &b, double value) {
-  return b.create<ConstantOp>(b.getF64FloatAttr(value));
+// Packs scalar attribute as a global constant. Returns `!llvm.ptr<AttrType>`.
+static Value PackScalarAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                 Attribute value, StringRef symbol_base) {
+  auto global = g.GetOrCreate(b, value, symbol_base);
+  return Globals::AddrOf(b, global);
 }
 
-// Packs TypeID on the stack. Returns `!llvm.ptr<i64>`.
-static Value PackTypeId(ImplicitLocOpBuilder &b, TypeID type_id) {
-  Type ptr = LLVM::LLVMPointerType::get(b.getI64Type());
-  Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
-  Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
-
-  Value encoded_type_id = b.create<ConstantOp>(b.getI64IntegerAttr(
-      reinterpret_cast<std::uintptr_t>(type_id.getAsOpaquePointer())));
-  b.create<LLVM::StoreOp>(encoded_type_id, mem);
-
-  return mem;
+// Packs TypeID as a global constant. Returns `!llvm.ptr<i64>`.
+static Value PackTypeId(Globals &g, ImplicitLocOpBuilder &b, TypeID type_id) {
+  auto i64 = reinterpret_cast<std::uintptr_t>(type_id.getAsOpaquePointer());
+  auto global = g.GetOrCreate(b, b.getI64IntegerAttr(i64), "__rt_type_id");
+  return Globals::AddrOf(b, global);
 }
 
-// Packs string on the stack. Returns `!llvm.ptr<EncodedStr>`. We always pass
-// string with the size to the runtime intrinsics, because computing the length
-// of null terminated string can be expensive, and we need it to construct
-// llvm::StringRef at run time.
-static Value PackString(ModuleOp module, ImplicitLocOpBuilder &b, StringRef str,
-                        StringRef prefix) {
+// Packs string as a module global constants. Returns `!llvm.ptr<EncodedStr>`.
+// We always pass string with the size to the runtime intrinsics, because
+// computing the length of null-terminated string can be expensive, and we need
+// it to construct llvm::StringRef at run time.
+static Value PackString(Globals &g, ImplicitLocOpBuilder &b, StringRef strref,
+                        StringRef symbol_base) {
   MLIRContext *ctx = b.getContext();
+  int64_t size = strref.size();
 
-  // Encoded string type: !llvm.struct<(i64, !llvm.ptr<i8>)>.
-  Type i64 = b.getI64Type();
-  Type i8_ptr = LLVM::LLVMPointerType::get(b.getI8Type());
-  Type type = LLVM::LLVMStructType::getLiteral(ctx, {i64, i8_ptr});
+  // Encoded string type: !llvm.struct<(i64, !llvm.ptr<array<i8 x len>>)>.
+  Type arr = LLVM::LLVMArrayType::get(b.getI8Type(), 1 + size);
+  Type ptr = LLVM::LLVMPointerType::get(arr);
+  Type type = LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), ptr});
 
-  // Encode string attribute into the struct.
-  Value encoded = b.create<LLVM::UndefOp>(type);
+  // Global constant initializer for the encoded string structure
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    // String size and pointer to a null-terminated string.
+    Value num_elements = ib.create<ConstantOp>(ib.getI64IntegerAttr(size));
+    Value str = Globals::AddrOf(ib, g.GetOrCreate(b, strref, "__rt_str"));
 
-  auto offset = [&](int64_t i) { return b.getI64ArrayAttr(i); };
+    // Store size and pointer into the struct.
+    Value encoded = ib.create<LLVM::UndefOp>(type);
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
+                                             ib.getI64ArrayAttr(0));
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, str,
+                                             ib.getI64ArrayAttr(1));
+    ib.create<LLVM::ReturnOp>(encoded);
+  };
 
-  // Store encoded string size.
-  Value size = CreateConstant(b, static_cast<int64_t>(str.size()));
-  encoded = b.create<LLVM::InsertValueOp>(type, encoded, size, offset(0));
-
-  // Store a pointer to a null terminated string constant.
-  Value null_terminated_str_ptr = CreateGlobalStrCst(module, b, str, prefix);
-  encoded = b.create<LLVM::InsertValueOp>(type, encoded,
-                                          null_terminated_str_ptr, offset(1));
-
-  // Store encoded string into the stack allocated memory.
-  Type ptr = LLVM::LLVMPointerType::get(type);
-  Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
-  Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
-  b.create<LLVM::StoreOp>(encoded, mem);
-
-  return mem;
+  auto value = b.getStringAttr(strref);
+  auto global = g.GetOrCreate(b, value, type, symbol_base, init);
+  return Globals::AddrOf(b, global);
 }
 
-// Packs scalar attribute on the stack. Returns `!llvm.ptr<AttrType>`.
-static Value PackScalarAttribute(ImplicitLocOpBuilder &b, Attribute value) {
-  Type ptr = LLVM::LLVMPointerType::get(value.getType());
-  Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
-  Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
-  b.create<LLVM::StoreOp>(b.create<ConstantOp>(value), mem);
-
-  return mem;
-}
-
-// Packs array attribute on the stack. Returns `!llvm.ptr<EncodedArray>`.
-static Value PackArrayAttribute(ImplicitLocOpBuilder &b, Attribute value) {
+// Packs array attribute as a global constant. Returns `!llvm.ptr<EncodedArr>`.
+static Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                Attribute value, StringRef symbol_base) {
   MLIRContext *ctx = b.getContext();
 
   // We only support dense attributes for now.
   DenseIntOrFPElementsAttr dense = value.cast<DenseIntOrFPElementsAttr>();
+  int64_t size = dense.getNumElements();
 
-  // Get the array element type.
-  ShapedType shaped = value.getType().cast<ShapedType>();
-  Type element_type = shaped.getElementType();
+  // Encoded array type: !llvm.struct<(i64, !llvm.array<element_type x size>)>.
+  Type element_type = dense.getElementType();
+  Type arr = LLVM::LLVMArrayType::get(element_type, size);
+  Type type = LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr});
 
-  // Encoded array type: !llvm.struct<(i64, !llvm.array<element_type>)>.
-  Type i64 = b.getI64Type();
-  Type arr = LLVM::LLVMArrayType::get(element_type, shaped.getNumElements());
-  Type type = LLVM::LLVMStructType::getLiteral(ctx, {i64, arr});
+  // Global constant initializer for the encoded array structure
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    // Array size and values.
+    Value num_elements = ib.create<ConstantOp>(b.getI64IntegerAttr(size));
+    Value values = b.create<LLVM::ConstantOp>(arr, dense);
 
-  // Encode array attribute into the struct.
-  Value encoded = b.create<LLVM::UndefOp>(type);
+    // Store size and values into the struct.
+    Value encoded = ib.create<LLVM::UndefOp>(type);
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
+                                             ib.getI64ArrayAttr(0));
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, values,
+                                             ib.getI64ArrayAttr(1));
 
-  // Store the size of the encoded array.
-  Value num_elements = CreateConstant(b, shaped.getNumElements());
-  encoded = b.create<LLVM::InsertValueOp>(type, encoded, num_elements,
-                                          b.getI64ArrayAttr(0));
-
-  // Store dense attribute values into the encoded struct.
-  auto encode_values = [&](auto type_tag) {
-    for (auto &pair : llvm::enumerate(dense.getValues<decltype(type_tag)>())) {
-      auto offset = b.getI64ArrayAttr({1, static_cast<int64_t>(pair.index())});
-      auto cst = CreateConstant(b, pair.value());
-      encoded = b.create<LLVM::InsertValueOp>(type, encoded, cst, offset);
-    }
+    ib.create<LLVM::ReturnOp>(encoded);
   };
 
-  // Dispatch based on the element type.
-  if (element_type.isInteger(32)) encode_values(int32_t{});
-  if (element_type.isInteger(64)) encode_values(int64_t{});
-  if (element_type.isF32()) encode_values(float{});
-  if (element_type.isF64()) encode_values(double{});
-
-  // Store encoded array into the stack-allocated memory.
-  Type ptr = LLVM::LLVMPointerType::get(type);
-  Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
-  Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
-  b.create<LLVM::StoreOp>(encoded, mem);
-
-  return mem;
+  auto global = g.GetOrCreate(b, value, type, symbol_base, init);
+  return Globals::AddrOf(b, global);
 }
 
 // Packs value on the stack. Returns `!llvm.ptr<ValueType>`.
@@ -486,73 +531,65 @@ static Value PackValue(ImplicitLocOpBuilder &b, Value value) {
   return mem;
 }
 
-// Stores pointer to packed argument or attribute into the allocated storage.
-static void StoreOpaquePtr(ImplicitLocOpBuilder &b, Value ptr, Value alloca,
-                           int64_t offset) {
-  auto args_ptr_ty = RuntimeAPI::OpaquePointerType(b.getContext());
-  Value bitcasted = b.createOrFold<LLVM::BitcastOp>(args_ptr_ty, ptr);
-  Value idx = b.create<ConstantOp>(b.getI32IntegerAttr(offset));
-  Value gep = b.create<LLVM::GEPOp>(alloca.getType(), alloca, ValueRange(idx));
-  b.create<LLVM::StoreOp>(bitcasted, gep);
-}
-
 // -------------------------------------------------------------------------- //
 
-// Attributes encoding packs attribute name, data type and the value into the
-// stack allocated memory, and returns values pointing to the encoded data.
+// Attributes encoding packs attribute name, data type and a value into the
+// module global constant, and returns values pointing to the encoded data.
 struct CustomCallAttrEncoding {
-  // Prefix for globals storing custom call attribute name or string value.
-  static const constexpr char *kPrefix = "__rt_custom_call_attr";
+  static constexpr char kAttrName[] = "__rt_attr_name";
+  static constexpr char kAttrValue[] = "__rt_attr_value";
 
   struct Encoded {
     Value name;     // !llvm.ptr<i8>
     Value type_id;  // !llvm.ptr<i64>
-    Value value;    // !llvm.ptr<AttrType>
+    Value value;    // !llvm.ptr<EncodedAttrType>
   };
 
   virtual ~CustomCallAttrEncoding() = default;
 
-  virtual FailureOr<Encoded> Encode(ModuleOp module,
-                                    ImplicitLocOpBuilder &builder,
+  virtual FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b,
                                     StringRef name, Attribute value) const = 0;
 };
 
 struct StringAttrEncoding : public CustomCallAttrEncoding {
-  FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
-                            StringRef name, Attribute value) const override {
+  FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b, StringRef name,
+                            Attribute value) const override {
     auto str = value.cast<StringAttr>();
 
     Encoded encoded;
-    encoded.name = PackString(module, builder, name, kPrefix);
-    encoded.type_id = PackTypeId(builder, TypeID::get<llvm::StringRef>());
-    encoded.value = PackString(module, builder, str, kPrefix);
+    encoded.name = PackString(g, b, name, kAttrName);
+    encoded.type_id = PackTypeId(g, b, TypeID::get<llvm::StringRef>());
+    encoded.value = PackString(g, b, str, kAttrValue);
     return encoded;
   }
 };
 
+constexpr char CustomCallAttrEncoding::kAttrName[];
+constexpr char CustomCallAttrEncoding::kAttrValue[];
+
 struct ScalarAttrEncoding : public CustomCallAttrEncoding {
-  FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
-                            StringRef name, Attribute value) const override {
+  FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b, StringRef name,
+                            Attribute value) const override {
     Type type = value.getType();
 
     Encoded encoded;
-    encoded.name = PackString(module, builder, name, kPrefix);
-    encoded.type_id = PackTypeId(builder, ScalarRuntimeTypeId(type));
-    encoded.value = PackScalarAttribute(builder, value);
+    encoded.name = PackString(g, b, name, kAttrName);
+    encoded.type_id = PackTypeId(g, b, ScalarRuntimeTypeId(type));
+    encoded.value = PackScalarAttribute(g, b, value, kAttrValue);
 
     return encoded;
   }
 };
 
 struct ArrayAttrEncoding : public CustomCallAttrEncoding {
-  FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
-                            StringRef name, Attribute value) const override {
+  FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b, StringRef name,
+                            Attribute value) const override {
     ShapedType type = value.getType().cast<ShapedType>();
 
     Encoded encoded;
-    encoded.name = PackString(module, builder, name, kPrefix);
-    encoded.type_id = PackTypeId(builder, ArrayRuntimeTypeId(type));
-    encoded.value = PackArrayAttribute(builder, value);
+    encoded.name = PackString(g, b, name, kAttrName);
+    encoded.type_id = PackTypeId(g, b, ArrayRuntimeTypeId(type));
+    encoded.value = PackArrayAttribute(g, b, value, kAttrValue);
 
     return encoded;
   }
@@ -560,7 +597,8 @@ struct ArrayAttrEncoding : public CustomCallAttrEncoding {
 
 // -------------------------------------------------------------------------- //
 
-// Encodes argument into stack allocated storage according to the ABI.
+// Encodes argument into stack allocated storage according to the ABI. If
+// argument is a constant, then it can be packed as a global constant.
 class CustomCallArgEncoding {
  public:
   struct Encoded {
@@ -570,17 +608,19 @@ class CustomCallArgEncoding {
 
   virtual ~CustomCallArgEncoding() = default;
 
-  virtual FailureOr<Encoded> Encode(ImplicitLocOpBuilder &b, Value value,
-                                    Value converted) const = 0;
+  virtual FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b,
+                                    Value value, Value converted) const = 0;
 };
 
 // Encodes scalar operands.
 class ScalarArgEncoding : public CustomCallArgEncoding {
  public:
-  FailureOr<Encoded> Encode(ImplicitLocOpBuilder &b, Value value,
+  FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b, Value value,
                             Value converted) const override {
+    Type type = converted.getType();
+
     Encoded encoded;
-    encoded.type_id = PackTypeId(b, ScalarRuntimeTypeId(converted.getType()));
+    encoded.type_id = PackTypeId(g, b, ScalarRuntimeTypeId(type));
     encoded.value = PackValue(b, converted);
 
     return encoded;
@@ -590,12 +630,12 @@ class ScalarArgEncoding : public CustomCallArgEncoding {
 // Encodes MemRef operands according to the MemrefView ABI.
 class MemrefArgEncoding : public CustomCallArgEncoding {
  public:
-  FailureOr<Encoded> Encode(ImplicitLocOpBuilder &b, Value value,
+  FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b, Value value,
                             Value converted) const override {
     auto memref_type = value.getType().cast<MemRefType>();
 
     Encoded encoded;
-    encoded.type_id = PackTypeId(b, TypeID::get<MemrefView>());
+    encoded.type_id = PackTypeId(g, b, TypeID::get<MemrefView>());
     encoded.value = PackValue(b, EncodeMemRef(b, memref_type, converted));
 
     return encoded;
@@ -634,95 +674,160 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
   }
 };
 
+// ------------------------------------------------------------------------- -//
+
 // TODO(ezhulenev): Support dynamic encoding registration for arguments.
 static FailureOr<CustomCallArgEncoding::Encoded> EncodeArgument(
-    ImplicitLocOpBuilder &b, std::tuple<Value, Value> value_and_converted) {
+    Globals &g, ImplicitLocOpBuilder &b,
+    std::tuple<Value, Value> value_and_converted) {
   Value value = std::get<0>(value_and_converted);
   Value converted = std::get<1>(value_and_converted);
 
   // Scalar arguments encoding.
   if (IsSupportedScalarType(value.getType()))
-    return ScalarArgEncoding().Encode(b, value, converted);
+    return ScalarArgEncoding().Encode(g, b, value, converted);
 
   // Memref arguments encoding.
   if (value.getType().isa<MemRefType>())
-    return MemrefArgEncoding().Encode(b, value, converted);
+    return MemrefArgEncoding().Encode(g, b, value, converted);
 
   return failure();
 }
 
 // TODO(ezhulenev): Support dynamic encoding registration for attributes.
 static FailureOr<CustomCallAttrEncoding::Encoded> EncodeAttribute(
-    ModuleOp module, ImplicitLocOpBuilder &b, NamedAttribute attr) {
+    Globals &g, ImplicitLocOpBuilder &b, NamedAttribute attr) {
   StringRef name = attr.getName();
   Attribute value = attr.getValue();
 
   // String attributes encoding.
   if (value.isa<StringAttr>())
-    return StringAttrEncoding().Encode(module, b, name, value);
+    return StringAttrEncoding().Encode(g, b, name, value);
 
   // Scalar attributes encoding.
   if (IsSupportedScalarType(value.getType()))
-    return ScalarAttrEncoding().Encode(module, b, name, value);
+    return ScalarAttrEncoding().Encode(g, b, name, value);
 
   // Dense attributes encoding.
   if (auto dense = value.dyn_cast<DenseIntOrFPElementsAttr>())
     if (IsSupportedShapedType(dense.getType()))
-      return ArrayAttrEncoding().Encode(module, b, name, value);
+      return ArrayAttrEncoding().Encode(g, b, name, value);
 
   // TODO(ezhulenev): Support `ArrayAttr` with scalar elements.
 
   return failure();
 }
 
-static FailureOr<Value> EncodeArguments(ImplicitLocOpBuilder &b,
-                                        ValueRange operands,
-                                        ValueRange converted) {
+static FailureOr<Value> EncodeArguments(
+    Globals &g, DenseMap<Value, CustomCallArgEncoding::Encoded> &encoded_args,
+    ImplicitLocOpBuilder &b, ValueRange operands, ValueRange converted) {
   llvm::SmallVector<CustomCallArgEncoding::Encoded> encoded;
 
   // Encode all arguments as a set of pointers (skip the kernel context).
   for (auto tuple : llvm::drop_begin(llvm::zip(operands, converted))) {
-    auto encoded_arg = EncodeArgument(b, tuple);
+    // Check if the value was already encoded.
+    auto it = encoded_args.find(std::get<0>(tuple));
+    if (it != encoded_args.end()) {
+      encoded.push_back(it->second);
+      continue;
+    }
+
+    // Otherwise encode it right after the converted value definition.
+    OpBuilder::InsertionGuard guard(b);
+    if (auto *defining_op = std::get<1>(tuple).getDefiningOp()) {
+      b.setInsertionPointAfter(defining_op);
+    } else {
+      b.setInsertionPointToStart(std::get<1>(tuple).getParentBlock());
+    }
+
+    auto encoded_arg = EncodeArgument(g, b, tuple);
     if (failed(encoded_arg)) return failure();
     encoded.push_back(*encoded_arg);
+    encoded_args.try_emplace(std::get<0>(tuple), *encoded_arg);
   }
 
-  // In addition to encoded arguments we store the number of arguments.
-  int32_t args_size = 1 + encoded.size() * 2;
+  // We store encoded arguments as `!llvm.array<ptr<i8> x len>`.
+  Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
+  Type type = LLVM::LLVMArrayType::get(ptr, 1 + encoded.size() * 2);
 
-  // Allocate storage for passing endoded attributes.
-  auto args_type = RuntimeAPI::CustomCallArgumentsType(b.getContext());
-  auto alloca_size = b.create<ConstantOp>(b.getI32IntegerAttr(args_size));
-  Value alloca = b.create<LLVM::AllocaOp>(args_type, alloca_size, 0);
+  // Prepare an array for encoding arguments.
+  Value arr = b.create<LLVM::UndefOp>(type);
+  auto insert_value = [&](Value value, int64_t offset) {
+    Value bcasted = b.createOrFold<LLVM::BitcastOp>(ptr, value);
+    arr = b.create<LLVM::InsertValueOp>(type, arr, bcasted,
+                                        b.getI64ArrayAttr(offset));
+  };
 
-  // Store the number of encoded arguments.
-  Value n_attr = PackScalarAttribute(b, b.getI64IntegerAttr(encoded.size()));
-  StoreOpaquePtr(b, n_attr, alloca, 0);
+  // Insert the number of encoded arguments.
+  Attribute num_args = b.getI64IntegerAttr(encoded.size());
+  insert_value(PackScalarAttribute(g, b, num_args, "__rt_num_args"), 0);
 
   // Store encoded arguments into the allocated storage.
   for (auto &pair : llvm::enumerate(encoded)) {
     CustomCallArgEncoding::Encoded encoded = pair.value();
     int64_t offset = 1 + pair.index() * 2;
 
-    StoreOpaquePtr(b, encoded.type_id, alloca, offset + 0);
-    StoreOpaquePtr(b, encoded.value, alloca, offset + 1);
+    insert_value(encoded.type_id, offset + 0);
+    insert_value(encoded.value, offset + 1);
   }
 
-  return alloca;
+  // Store constructed arguments array on the stack and return a pointer to it.
+  Value c1 = b.create<ConstantOp>(b.getI32IntegerAttr(1));
+  Value mem = b.create<LLVM::AllocaOp>(LLVM::LLVMPointerType::get(type), c1, 0);
+  b.create<LLVM::StoreOp>(arr, mem);
+
+  // Return a pointer to the first element of the arguments array.
+  Type ptr_ptr = mlir::LLVM::LLVMPointerType::get(ptr);
+  Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
+  Value gep = b.create<LLVM::GEPOp>(ptr_ptr, mem, ValueRange({c0, c0}));
+  return gep;
 }
 
-static FailureOr<Value> EncodeAttributes(ModuleOp module,
-                                         ImplicitLocOpBuilder &b,
+// Encodes attributes into the global constant (array of pointers to the
+// attributes data, which are also stored as global constants).
+static FailureOr<Value> EncodeAttributes(Globals &g, ImplicitLocOpBuilder &b,
                                          ArrayRef<NamedAttribute> attrs) {
   using EncodedAttr = std::pair<StringRef, CustomCallAttrEncoding::Encoded>;
-  llvm::SmallVector<EncodedAttr> encoded;
 
+  // Callee passed explicitly as a custom call argument.
+  auto skip = [](NamedAttribute attr) { return attr.getName() == "callee"; };
+
+  // In addition to encoded attribues we encode the number of attributes.
+  int64_t n_attrs = attrs.size() - llvm::count_if(attrs, skip);
+
+  // We store encoded attributes as `!llvm.array<ptr<i8> x len>`.
+  Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
+  Type type = LLVM::LLVMArrayType::get(ptr, 1 + n_attrs * 3);
+
+  // Prepare a global constant for storing encoded attributes.
+  LLVM::GlobalOp global = [&]() {
+    OpBuilder::InsertionGuard guard(b);
+    b.setInsertionPointToStart(g.module().getBody());
+    return b.create<LLVM::GlobalOp>(
+        type, /*isConstant=*/true, LLVM::Linkage::Internal,
+        g.UniqueSymName("__rt_custom_call_attrs"), Attribute());
+  }();
+
+  // Get a pointer to the first element of the array: !llvm.ptr<ptr<i8>>.
+  Type ptr_ptr = mlir::LLVM::LLVMPointerType::get(ptr);
+  Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
+  Value addr = Globals::AddrOf(b, global);
+  Value gep = b.create<LLVM::GEPOp>(ptr_ptr, addr, ValueRange({c0, c0}));
+
+  // Create a global constant initializer block.
+  mlir::Region &region = global.getInitializerRegion();
+  mlir::Block *block = b.createBlock(&region);
+
+  // Build attributes encoding inside the initializer block.
+  OpBuilder::InsertionGuard guard(b);
+  b.setInsertionPointToStart(block);
+
+  llvm::SmallVector<EncodedAttr> encoded;
   for (auto &attr : attrs) {
-    // Callee passed explicitly as a custom call argument.
-    if (attr.getName() == "callee") continue;
+    if (skip(attr)) continue;
 
     // Try to encode the attribute as a set of pointers.
-    auto encoded_attr = EncodeAttribute(module, b, attr);
+    auto encoded_attr = EncodeAttribute(g, b, attr);
     if (failed(encoded_attr)) return failure();
     encoded.emplace_back(attr.getName(), *encoded_attr);
   }
@@ -730,34 +835,45 @@ static FailureOr<Value> EncodeAttributes(ModuleOp module,
   // Sort encoded attributes in lexicographical order.
   llvm::sort(encoded, [](auto &a, auto &b) { return a.first < b.first; });
 
-  // In addition to encoded attributes we store the number of attributes.
-  int32_t attrs_size = 1 + encoded.size() * 3;
+  // Prepare an array for encoding attributes.
+  Value arr = b.create<LLVM::UndefOp>(type);
+  auto insert_value = [&](Value value, int64_t offset) {
+    Value bcasted = b.createOrFold<LLVM::BitcastOp>(ptr, value);
+    arr = b.create<LLVM::InsertValueOp>(type, arr, bcasted,
+                                        b.getI64ArrayAttr(offset));
+  };
 
-  // Allocate storage for passing encoded attributes.
-  auto attrs_type = RuntimeAPI::CustomCallAttributesType(b.getContext());
-  auto alloca_size = b.create<ConstantOp>(b.getI32IntegerAttr(attrs_size));
-  Value alloca = b.create<LLVM::AllocaOp>(attrs_type, alloca_size, 0);
+  // Insert the number of encoded attributes.
+  Attribute num_attrs = b.getI64IntegerAttr(n_attrs);
+  insert_value(PackScalarAttribute(g, b, num_attrs, "__rt_num_attrs"), 0);
 
-  // Store the number of encoded attributes.
-  Value n_attr = PackScalarAttribute(b, b.getI64IntegerAttr(encoded.size()));
-  StoreOpaquePtr(b, n_attr, alloca, 0);
-
-  // Store encoded attributes into the allocated storage.
+  // Insert encoded attributes into the allocated storage.
   for (auto &pair : llvm::enumerate(encoded)) {
     CustomCallAttrEncoding::Encoded encoded = pair.value().second;
     int64_t offset = 1 + pair.index() * 3;
 
-    StoreOpaquePtr(b, encoded.name, alloca, offset + 0);
-    StoreOpaquePtr(b, encoded.type_id, alloca, offset + 1);
-    StoreOpaquePtr(b, encoded.value, alloca, offset + 2);
+    insert_value(encoded.name, offset + 0);
+    insert_value(encoded.type_id, offset + 1);
+    insert_value(encoded.value, offset + 2);
   }
 
-  return alloca;
+  // Return attributes array from the global initializer block.
+  b.create<LLVM::ReturnOp>(arr);
+
+  // Return a pointer to the encoded attributes: `!llvm.ptr<ptr<i8>>` (void**).
+  return gep;
 }
 
 class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
  public:
   using OpConversionPattern::OpConversionPattern;
+
+  CustomCallOpLowering(
+      TypeConverter &converter, MLIRContext *ctx, Globals &globals,
+      DenseMap<Value, CustomCallArgEncoding::Encoded> &encoded_args)
+      : OpConversionPattern(converter, ctx),
+        globals_(globals),
+        encoded_args_(encoded_args) {}
 
   LogicalResult matchAndRewrite(
       CustomCallOp op, OpAdaptor adaptor,
@@ -765,16 +881,16 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
     ImplicitLocOpBuilder b(op.getLoc(), rewriter);
 
     // Get the custom call target (pointer to a null terminated string).
-    ModuleOp module = op->getParentOfType<ModuleOp>();
-    auto callee =
-        CreateGlobalStrCst(module, b, op.callee(), "__rt_custom_call_callee");
+    auto callee = Globals::OpaqueAddrOf(
+        b, globals_.GetOrCreate(b, op.callee(), "__rt_custom_call_callee"));
 
     // Encode operation arguments as a runtime API arguments.
-    auto args = EncodeArguments(b, op->getOperands(), adaptor.getOperands());
+    auto args = EncodeArguments(globals_, encoded_args_, b, op->getOperands(),
+                                adaptor.getOperands());
     if (failed(args)) return op.emitOpError() << "failed to encode arguments";
 
     // Encode operation attributes as a runtime API argument.
-    auto attrs = EncodeAttributes(module, b, op->getAttrs());
+    auto attrs = EncodeAttributes(globals_, b, op->getAttrs());
     if (failed(attrs)) return op.emitOpError() << "failed to encode attributes";
 
     // Call runtime API to call the custom call target.
@@ -785,6 +901,41 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
 
     return success();
   }
+
+ private:
+  Globals &globals_;
+  DenseMap<Value, CustomCallArgEncoding::Encoded> &encoded_args_;
+};
+
+//===----------------------------------------------------------------------===//
+// Convert rt.set_error to the corresponding runtime API call.
+//===----------------------------------------------------------------------===//
+
+class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
+ public:
+  SetErrorOpLowering(TypeConverter &converter, MLIRContext *ctx,
+                     Globals &globals)
+      : OpConversionPattern(converter, ctx), globals_(globals) {}
+
+  LogicalResult matchAndRewrite(
+      SetErrorOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    ImplicitLocOpBuilder b(op.getLoc(), rewriter);
+
+    // Get the error message (pointer to a null terminated string).
+    auto err = Globals::OpaqueAddrOf(
+        b, globals_.GetOrCreate(b, op.error(), "__assert_failed"));
+
+    // Call runtime API to report the error.
+    auto kernel_context = adaptor.ctx();
+    rewriter.replaceOpWithNewOp<CallOp>(op, kSetError, TypeRange(),
+                                        ValueRange({kernel_context, err}));
+
+    return success();
+  }
+
+ private:
+  Globals &globals_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -809,9 +960,17 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   llvm_converter.addConversion(RuntimeTypeConverter::ConvertKernelContextType);
   llvm_converter.addConversion(RuntimeTypeConverter::ConvertStatusType);
 
+  // A helper class to create unique global constants.
+  Globals globals(module);
+
+  // Keep a cache of encoded values to encode each unique value just once.
+  DenseMap<Value, CustomCallArgEncoding::Encoded> encoded_args;
+
   // Lower from the runtime operations to the runtime API function calls.
-  patterns.add<SetOutputOpLowering, SetErrorOpLowering, IsOkOpLowering,
-               CustomCallOpLowering>(llvm_converter, ctx);
+  patterns.add<SetOutputOpLowering, IsOkOpLowering>(llvm_converter, ctx);
+  patterns.add<SetErrorOpLowering>(llvm_converter, ctx, globals);
+  patterns.add<CustomCallOpLowering>(llvm_converter, ctx, globals,
+                                     encoded_args);
 
   // Convert function signatures and call sites.
   mlir::populateFunctionOpInterfaceTypeConversionPattern<FuncOp>(patterns,

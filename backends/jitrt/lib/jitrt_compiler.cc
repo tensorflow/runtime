@@ -145,6 +145,10 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(mlir::createMemRefToLLVMPass());
   pm.addPass(mlir::createConvertFuncToLLVMPass());
   pm.addPass(mlir::createReconcileUnrealizedCastsPass());
+
+  // Prepare module for translation to LLVM.
+  pm.addPass(mlir::createCanonicalizerPass());
+  pm.addPass(mlir::createCSEPass());
 }
 
 static void CreateJitRtCompilationPipeline(mlir::OpPassManager& pm) {

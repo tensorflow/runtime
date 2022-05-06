@@ -31,6 +31,12 @@ using mlir::success;
 
 using llvm::StringRef;
 
+// NoOp custom call for benchmarking arguments/attributes encoding.
+static LogicalResult NoOp(MemrefDesc, MemrefDesc, MemrefDesc, MemrefDesc,
+                          StringRef, float, double) {
+  return success();
+}
+
 static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
   if (input.dtype() != output.dtype() || input.sizes() != output.sizes() ||
@@ -112,6 +118,16 @@ static LogicalResult PrintMemrefAndVariadicArgs(
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
+  registry->Register(CustomCall::Bind("testlib.noop")
+                         .Arg<MemrefDesc>()
+                         .Arg<MemrefDesc>()
+                         .Arg<MemrefDesc>()
+                         .Arg<MemrefDesc>()
+                         .Attr<StringRef>("str")
+                         .Attr<float>("f32")
+                         .Attr<double>("f64")
+                         .To(NoOp));
+
   registry->Register(CustomCall::Bind("testlib.multiply")
                          .Arg<MemrefDesc>()  // input
                          .Arg<MemrefDesc>()  // output

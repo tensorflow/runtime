@@ -32,8 +32,8 @@ using mlir::success;
 using llvm::StringRef;
 
 // NoOp custom call for benchmarking arguments/attributes encoding.
-static LogicalResult NoOp(MemrefDesc, MemrefDesc, MemrefDesc, MemrefDesc,
-                          StringRef, float, double) {
+static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
+                          FlatMemrefView, StringRef, float, double) {
   return success();
 }
 
@@ -100,7 +100,8 @@ static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
     } else if (args.isa<double>(i)) {
       tfrt::outs() << "f64: " << args.get<double>(i);
     } else if (args.isa<MemrefDesc>(i)) {
-      tfrt::outs() << args.get<MemrefDesc>(i);
+      tfrt::outs() << args.get<MemrefDesc>(i) << " / "
+                   << args.get<FlatMemrefView>(i);
     } else {
       tfrt::outs() << "<unknown type>";
     }
@@ -119,10 +120,10 @@ static LogicalResult PrintMemrefAndVariadicArgs(
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("testlib.noop")
-                         .Arg<MemrefDesc>()
-                         .Arg<MemrefDesc>()
-                         .Arg<MemrefDesc>()
-                         .Arg<MemrefDesc>()
+                         .Arg<FlatMemrefView>()
+                         .Arg<FlatMemrefView>()
+                         .Arg<FlatMemrefView>()
+                         .Arg<FlatMemrefView>()
                          .Attr<StringRef>("str")
                          .Attr<float>("f32")
                          .Attr<double>("f64")

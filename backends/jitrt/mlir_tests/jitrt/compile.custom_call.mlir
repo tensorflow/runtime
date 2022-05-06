@@ -63,11 +63,11 @@ module @variadic_args attributes { tfrt.compiled } {
                                       %arg1: i64,
                                       %arg2: f32,
                                       %arg3: f64,
-                                      %arg4: memref<?xf32>,
+                                      %arg4: memref<?xi64>,
                                       %arg5: memref<?xf32>)
      attributes { rt.custom_call = "testlib.variadic_args" }
 
-  func.func private @memref_and_variadic_args.cc(%arg0: memref<?xf32>,
+  func.func private @memref_and_variadic_args.cc(%arg0: memref<?xi64>,
                                                  %arg1: i32,
                                                  %arg2: i64,
                                                  %arg3: f32,
@@ -83,18 +83,17 @@ module @variadic_args attributes { tfrt.compiled } {
     %arg1 = arith.constant 456 : i64
     %arg2 = arith.constant 1.0 : f32
     %arg3 = arith.constant 2.0 : f64
-    %arg4 = memref.alloc(%c1) : memref<?xf32>
+    %arg4 = memref.alloc(%c1) : memref<?xi64>
     %arg5 = memref.alloc(%c2) : memref<?xf32>
 
     func.call @variadic_args.cc(%arg0, %arg1, %arg2, %arg3, %arg4, %arg5)
-      : (i32, i64, f32, f64, memref<?xf32>, memref<?xf32>) -> ()
+      : (i32, i64, f32, f64, memref<?xi64>, memref<?xf32>) -> ()
 
     func.call @memref_and_variadic_args.cc(%arg4, %arg0, %arg1, %arg2, %arg3,
                                            %arg5)
-      : (memref<?xf32>, i32, i64, f32, f64, memref<?xf32>) -> ()
+      : (memref<?xi64>, i32, i64, f32, f64, memref<?xf32>) -> ()
 
-
-    memref.dealloc %arg4 : memref<?xf32>
+    memref.dealloc %arg4 : memref<?xi64>
     memref.dealloc %arg5 : memref<?xf32>
 
     func.return
@@ -177,16 +176,19 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK: arg[1]: i64: 456
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
-  // CHECK: arg[4]: MemrefDesc: dtype: f32 offset: 0 sizes: [1] strides: [1]
+  // CHECK: arg[4]: MemrefDesc: dtype: i64 offset: 0 sizes: [1] strides: [1]
+  // CHECK-SAME:    FlatMemrefView: dtype: i64 size_in_bytes: 8
   // CHECK: arg[5]: MemrefDesc: dtype: f32 offset: 0 sizes: [2] strides: [1]
+  // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
 
-  // CHECK: arg: MemrefDesc: dtype: f32 offset: 0 sizes: [1] strides: [1]
+  // CHECK: arg: MemrefDesc: dtype: i64 offset: 0 sizes: [1] strides: [1]
   // CHECK: Number of variadic arguments: 5
   // CHECK: arg[0]: i32: 123
   // CHECK: arg[1]: i64: 456
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
   // CHECK: arg[4]: MemrefDesc: dtype: f32 offset: 0 sizes: [2] strides: [1]
+  // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
   %executable = jitrt.compile { kernel = @variadic_args::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 

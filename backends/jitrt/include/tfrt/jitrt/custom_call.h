@@ -465,6 +465,17 @@ class CustomCallHandler : public CustomCall {
 // -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.
 
+// A flat view into the memref. If the memref shapes is not required for the
+// custom call, it's much cheaper to pass the flat view struct instead of
+// building a MemrefDesc.
+struct FlatMemrefView {
+  tfrt::DType dtype;
+  void* data;
+  int64_t size_in_bytes;
+};
+
+raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view);
+
 template <>
 struct CustomCallArgDecoding<MemrefDesc> {
   // Struct corresponding to the `rt-to-llvm` pass LLVM struct encoding the
@@ -476,6 +487,12 @@ struct CustomCallArgDecoding<MemrefDesc> {
   };
 
   static mlir::FailureOr<MemrefDesc> Decode(mlir::TypeID type_id, void* value);
+};
+
+template <>
+struct CustomCallArgDecoding<FlatMemrefView> {
+  static mlir::FailureOr<FlatMemrefView> Decode(mlir::TypeID type_id,
+                                                void* value);
 };
 
 #define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                             \

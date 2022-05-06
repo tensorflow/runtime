@@ -34,6 +34,11 @@ namespace jitrt {
 using mlir::failure;
 using mlir::TypeID;
 
+raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view) {
+  return os << "FlatMemrefView: dtype: " << view.dtype
+            << " size_in_bytes: " << view.size_in_bytes;
+}
+
 struct CustomCallRegistry::Impl {
   llvm::StringMap<std::unique_ptr<CustomCall>> custom_calls;
 };
@@ -196,6 +201,66 @@ mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
       assert(false && "unsupported memref rank");
       return failure();
   }
+}
+
+mlir::FailureOr<FlatMemrefView> CustomCallArgDecoding<FlatMemrefView>::Decode(
+    mlir::TypeID type_id, void* value) {
+  FlatMemrefView memref;
+
+  // Check that the encoded value holds the correct type id.
+  if (type_id != TypeID::get<MemrefDesc>()) return failure();
+
+  // Cast opaque memory to the encoded memref.
+  using EncodedMemref = CustomCallArgDecoding<MemrefDesc>::EncodedMemref;
+  auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+
+  // Get the memref element data type.
+  void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
+  TypeID element_type_id = TypeID::getFromOpaquePointer(opaque);
+
+  auto dtype = internal::ScalarTypeIdToDType(element_type_id);
+  if (mlir::failed(dtype)) return failure();
+  memref.dtype = *dtype;
+
+  // Unpack the StridedMemRefType into the FlatMemrefView.
+  auto unpack_strided_memref = [&](auto rank_tag) {
+    constexpr int rank = decltype(rank_tag)::value;
+
+    using Descriptor = StridedMemRefType<float, rank>;
+    auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
+
+    memref.data = descriptor->data;
+    memref.size_in_bytes =
+        std::accumulate(Sizes(descriptor).begin(), Sizes(descriptor).end(),
+                        GetHostSize(memref.dtype), std::multiplies<int64_t>());
+  };
+
+  // Dispatch based on the memref rank.
+  switch (encoded->rank) {
+    case 0:
+      unpack_strided_memref(std::integral_constant<int, 0>{});
+      break;
+    case 1:
+      unpack_strided_memref(std::integral_constant<int, 1>{});
+      break;
+    case 2:
+      unpack_strided_memref(std::integral_constant<int, 2>{});
+      break;
+    case 3:
+      unpack_strided_memref(std::integral_constant<int, 3>{});
+      break;
+    case 4:
+      unpack_strided_memref(std::integral_constant<int, 4>{});
+      break;
+    case 5:
+      unpack_strided_memref(std::integral_constant<int, 5>{});
+      break;
+    default:
+      assert(false && "unsupported memref rank");
+      return failure();
+  }
+
+  return memref;
 }
 
 }  // namespace jitrt

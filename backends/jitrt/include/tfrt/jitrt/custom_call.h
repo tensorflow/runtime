@@ -29,6 +29,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
+#include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
@@ -573,6 +574,78 @@ class CustomCallHandler : public CustomCall {
 // -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.
 
+namespace internal {
+LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::FailureOr<DType> ElementTypeIdToDType(
+    mlir::TypeID type_id) {
+  // f32 is by far the most popular data type in ML models, check it first!
+  if (LLVM_LIKELY(mlir::TypeID::get<float>() == type_id)) return DType::F32;
+
+  if (mlir::TypeID::get<uint8_t>() == type_id) return DType::UI8;
+  if (mlir::TypeID::get<uint32_t>() == type_id) return DType::UI32;
+  if (mlir::TypeID::get<uint64_t>() == type_id) return DType::UI64;
+  if (mlir::TypeID::get<int32_t>() == type_id) return DType::I32;
+  if (mlir::TypeID::get<int64_t>() == type_id) return DType::I64;
+  if (mlir::TypeID::get<double>() == type_id) return DType::F64;
+
+  assert(false && "unsupported data type");
+  return mlir::failure();
+}
+
+template <typename T, int rank>
+int64_t NumElements(StridedMemRefType<T, rank>* memref) {
+  int64_t num_elements = 1;
+  for (int d = 0; d < rank; ++d) num_elements *= memref->sizes[d];
+  return num_elements;
+}
+
+template <typename T>
+int64_t NumElements(StridedMemRefType<T, 0>* memref) {
+  return 0;
+}
+
+template <typename T, int rank>
+ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
+  return llvm::makeArrayRef(memref->sizes);
+}
+
+template <typename T>
+ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
+  return {};
+}
+
+template <typename T, int rank>
+ArrayRef<int64_t> Strides(StridedMemRefType<T, rank>* memref) {
+  return llvm::makeArrayRef(memref->strides);
+}
+
+template <typename T>
+ArrayRef<int64_t> Strides(StridedMemRefType<T, 0>* memref) {
+  return {};
+}
+
+template <typename T, template <int64_t> class Decoding>
+LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::FailureOr<T> DecodeMemref(
+    EncodedMemref* encoded) {
+  switch (encoded->rank) {
+    case 0:
+      return Decoding<0>::decode(encoded);
+    case 1:
+      return Decoding<1>::decode(encoded);
+    case 2:
+      return Decoding<2>::decode(encoded);
+    case 3:
+      return Decoding<3>::decode(encoded);
+    case 4:
+      return Decoding<4>::decode(encoded);
+    case 5:
+      return Decoding<5>::decode(encoded);
+    default:
+      assert(false && "unsupported memref rank");
+      return mlir::failure();
+  }
+}
+}  // namespace internal
+
 // A view into the memref argument. Corresponds to the MemrefView, however it
 // doesn't own the sizes/strides vectors, and cheap to pass around.
 struct MemrefView {
@@ -596,23 +669,79 @@ raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view);
 
 template <>
 struct CustomCallArgDecoding<MemrefView> {
-  static mlir::FailureOr<MemrefView> Decode(mlir::TypeID type_id, void* value);
+  using EncodedMemref = internal::EncodedMemref;
+
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  static mlir::FailureOr<MemrefView> Decode(mlir::TypeID type_id, void* value) {
+    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<MemrefView>()))
+      return mlir::failure();
+
+    auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+    return internal::DecodeMemref<MemrefView, Impl>(encoded);
+  }
+
+  template <int64_t rank>
+  struct Impl {
+    LLVM_ATTRIBUTE_ALWAYS_INLINE
+    static mlir::FailureOr<MemrefView> decode(EncodedMemref* encoded) {
+      using Descriptor = ::StridedMemRefType<float, rank>;
+
+      // Get the memref element data type.
+      void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
+      mlir::TypeID element_type_id = mlir::TypeID::getFromOpaquePointer(opaque);
+      auto dtype = internal::ElementTypeIdToDType(element_type_id);
+      if (LLVM_UNLIKELY(mlir::failed(dtype))) return mlir::failure();
+
+      auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
+      return MemrefView{*dtype, descriptor->data, descriptor->offset,
+                        internal::Sizes(descriptor),
+                        internal::Strides(descriptor)};
+    }
+  };
 };
 
 template <>
 struct CustomCallArgDecoding<FlatMemrefView> {
+  using EncodedMemref = internal::EncodedMemref;
+
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
   static mlir::FailureOr<FlatMemrefView> Decode(mlir::TypeID type_id,
-                                                void* value);
+                                                void* value) {
+    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<MemrefView>()))
+      return mlir::failure();
+
+    auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+    return internal::DecodeMemref<FlatMemrefView, Impl>(encoded);
+  }
+
+  template <int64_t rank>
+  struct Impl {
+    LLVM_ATTRIBUTE_ALWAYS_INLINE
+    static mlir::FailureOr<FlatMemrefView> decode(EncodedMemref* encoded) {
+      using Descriptor = ::StridedMemRefType<float, rank>;
+
+      // Get the memref element data type.
+      void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
+      mlir::TypeID element_type_id = mlir::TypeID::getFromOpaquePointer(opaque);
+      auto dtype = internal::ElementTypeIdToDType(element_type_id);
+      if (LLVM_UNLIKELY(mlir::failed(dtype))) return mlir::failure();
+
+      auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
+      int64_t size = GetHostSize(*dtype) * internal::NumElements(descriptor);
+      return FlatMemrefView{*dtype, descriptor->data, size};
+    }
+  };
 };
 
-#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                             \
-  template <>                                                             \
-  struct CustomCallArgDecoding<T> {                                       \
-    static mlir::FailureOr<T> Decode(mlir::TypeID type_id, void* value) { \
-      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<T>()))               \
-        return mlir::failure();                                           \
-      return *reinterpret_cast<T*>(value);                                \
-    }                                                                     \
+#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                      \
+  template <>                                                      \
+  struct CustomCallArgDecoding<T> {                                \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode( \
+        mlir::TypeID type_id, void* value) {                       \
+      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<T>()))        \
+        return mlir::failure();                                    \
+      return *reinterpret_cast<T*>(value);                         \
+    }                                                              \
   }
 
 JITRT_REGISTER_SCALAR_ARG_DECODING(int32_t);

@@ -31,6 +31,9 @@
 namespace tfrt {
 namespace jitrt {
 
+using mlir::failure;
+using mlir::TypeID;
+
 struct CustomCallRegistry::Impl {
   llvm::StringMap<std::unique_ptr<CustomCall>> custom_calls;
 };
@@ -109,16 +112,22 @@ llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs) {
   return decoded;
 }
 
-mlir::TypeID DecodeTypeid(void* type_id) {
+TypeID DecodeTypeid(void* type_id) {
   std::uintptr_t encoded_type_id = *reinterpret_cast<std::uintptr_t*>(type_id);
   void* opaque_type_id = reinterpret_cast<void*>(encoded_type_id);
-  return mlir::TypeID::getFromOpaquePointer(opaque_type_id);
+  return TypeID::getFromOpaquePointer(opaque_type_id);
 }
 
-mlir::FailureOr<DType> TypeIdToDType(mlir::TypeID type_id) {
-  if (mlir::TypeID::get<float>() == type_id) return DType::F32;
+mlir::FailureOr<DType> ScalarTypeIdToDType(TypeID type_id) {
+  if (TypeID::get<uint8_t>() == type_id) return DType::UI8;
+  if (TypeID::get<uint32_t>() == type_id) return DType::UI32;
+  if (TypeID::get<uint64_t>() == type_id) return DType::UI64;
+  if (TypeID::get<int32_t>() == type_id) return DType::I32;
+  if (TypeID::get<int64_t>() == type_id) return DType::I64;
+  if (TypeID::get<float>() == type_id) return DType::F32;
+  if (TypeID::get<double>() == type_id) return DType::F64;
   assert(false && "unsupported data type");
-  return mlir::failure();
+  return failure();
 }
 
 }  // namespace internal
@@ -146,17 +155,17 @@ static ArrayRef<int64_t> Strides(StridedMemRefType<T, 0>* memref) {
 mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
     mlir::TypeID type_id, void* value) {
   // Check that encoded value holds the correct type id.
-  if (type_id != mlir::TypeID::get<MemrefDesc>()) return mlir::failure();
+  if (type_id != mlir::TypeID::get<MemrefDesc>()) return failure();
 
   // Get the encoded memref from the opaque pointer.
   auto* encoded = reinterpret_cast<EncodedMemref*>(value);
 
   // Get the memref element data type.
   void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
-  mlir::TypeID element_type_id = mlir::TypeID::getFromOpaquePointer(opaque);
+  TypeID element_type_id = TypeID::getFromOpaquePointer(opaque);
 
-  auto dtype = internal::TypeIdToDType(element_type_id);
-  if (mlir::failed(dtype)) return mlir::failure();
+  auto dtype = internal::ScalarTypeIdToDType(element_type_id);
+  if (mlir::failed(dtype)) return failure();
 
   // Unpack the StridedMemRefType into the MemrefDesc.
   auto unpack_strided_memref = [&](auto rank_tag) -> MemrefDesc {
@@ -185,7 +194,7 @@ mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
       return unpack_strided_memref(std::integral_constant<int, 5>{});
     default:
       assert(false && "unsupported memref rank");
-      return mlir::failure();
+      return failure();
   }
 }
 

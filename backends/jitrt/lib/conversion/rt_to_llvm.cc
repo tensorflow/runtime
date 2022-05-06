@@ -328,8 +328,13 @@ static bool IsSupportedShapedType(ShapedType shape) {
 }
 
 static TypeID ScalarRuntimeTypeId(Type type) {
+  if (type.isUnsignedInteger(8)) return TypeID::get<uint8_t>();
+  if (type.isUnsignedInteger(32)) return TypeID::get<uint32_t>();
+  if (type.isUnsignedInteger(64)) return TypeID::get<uint64_t>();
+
   if (type.isInteger(32)) return TypeID::get<int32_t>();
   if (type.isInteger(64)) return TypeID::get<int64_t>();
+
   if (type.isF32()) return TypeID::get<float>();
   if (type.isF64()) return TypeID::get<double>();
 

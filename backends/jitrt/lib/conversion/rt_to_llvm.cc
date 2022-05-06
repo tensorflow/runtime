@@ -322,7 +322,7 @@ static bool IsSupportedScalarType(Type type) {
   return false;
 }
 
-static bool IsSupportedArrayType(ShapedType shape) {
+static bool IsSupportedShapedType(ShapedType shape) {
   return shape.getRank() == 1 && IsSupportedScalarType(shape.getElementType());
   return false;
 }
@@ -625,8 +625,10 @@ static FailureOr<CustomCallAttrEncoding::Encoded> EncodeAttribute(
 
   // Dense attributes encoding.
   if (auto dense = value.dyn_cast<DenseIntOrFPElementsAttr>())
-    if (IsSupportedArrayType(dense.getType()))
+    if (IsSupportedShapedType(dense.getType()))
       return ArrayAttrEncoding().Encode(module, b, name, value);
+
+  // TODO(ezhulenev): Support `ArrayAttr` with scalar elements.
 
   return failure();
 }

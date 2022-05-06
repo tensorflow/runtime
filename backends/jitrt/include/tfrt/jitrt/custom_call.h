@@ -459,6 +459,31 @@ class CustomCallHandler : public CustomCall {
 };
 
 // -------------------------------------------------------------------------- //
+// C structures corresponding to the `rt-to-llvm` pass LLVM structs encoding
+// various types of arguments/attributes.
+
+namespace internal {
+
+struct EncodedString {
+  int64_t size;
+  const char* data;
+};
+
+struct EncodedMemref {
+  int64_t element_type_id;
+  int64_t rank;
+  void* descriptor;
+};
+
+template <typename T>
+struct EncodedArray {
+  int64_t size;
+  T data;
+};
+
+}  // namespace internal
+
+// -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.
 
 // A flat view into the memref. If the memref shapes is not required for the
@@ -474,14 +499,6 @@ raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view);
 
 template <>
 struct CustomCallArgDecoding<MemrefDesc> {
-  // Struct corresponding to the `rt-to-llvm` pass LLVM struct encoding the
-  // memref information.
-  struct EncodedMemref {
-    int64_t element_type_id;
-    int64_t rank;
-    void* descriptor;
-  };
-
   static mlir::FailureOr<MemrefDesc> Decode(mlir::TypeID type_id, void* value);
 };
 
@@ -516,7 +533,8 @@ struct CustomCallAttrDecoding<llvm::StringRef> {
                                                  mlir::TypeID type_id,
                                                  void* value) {
     if (type_id != mlir::TypeID::get<llvm::StringRef>()) return mlir::failure();
-    return llvm::StringRef(reinterpret_cast<const char*>(value));
+    auto* encoded = reinterpret_cast<internal::EncodedString*>(value);
+    return llvm::StringRef(encoded->data, encoded->size);
   }
 };
 
@@ -540,16 +558,11 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
 #define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                  \
   template <>                                                                  \
   struct CustomCallAttrDecoding<ArrayRef<T>> {                                 \
-    struct EncodedMemref {                                                     \
-      int64_t size;                                                            \
-      T data;                                                                  \
-    };                                                                         \
-                                                                               \
     static mlir::FailureOr<ArrayRef<T>> Decode(llvm::StringRef name,           \
                                                mlir::TypeID type_id,           \
                                                void* value) {                  \
       if (type_id != mlir::TypeID::get<ArrayRef<T>>()) return mlir::failure(); \
-      auto* encoded = reinterpret_cast<EncodedMemref*>(value);                 \
+      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);     \
       return ArrayRef<T>(&encoded->data, encoded->size);                       \
     }                                                                          \
   }

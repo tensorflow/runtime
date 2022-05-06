@@ -100,12 +100,12 @@ llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs) {
   int64_t num_attrs = *reinterpret_cast<int64_t*>(attrs[0]);
 
   llvm::StringMap<DecodedAttr> decoded;
-
   for (int64_t i = 0; i < num_attrs; ++i) {
     void** attr_base = attrs + 1 + i * 3;
 
     DecodedAttr attr;
-    attr.name = reinterpret_cast<const char*>(attr_base[0]);
+    auto* name = reinterpret_cast<internal::EncodedString*>(attr_base[0]);
+    attr.name = llvm::StringRef(name->data, name->size);
     attr.type_id = DecodeTypeid(attr_base[1]);
     attr.value = attr_base[2];
 
@@ -162,8 +162,8 @@ mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
   // Check that encoded value holds the correct type id.
   if (type_id != mlir::TypeID::get<MemrefDesc>()) return failure();
 
-  // Get the encoded memref from the opaque pointer.
-  auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+  // Cast opaque memory to exected encoding.
+  auto* encoded = reinterpret_cast<internal::EncodedMemref*>(value);
 
   // Get the memref element data type.
   void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
@@ -211,8 +211,7 @@ mlir::FailureOr<FlatMemrefView> CustomCallArgDecoding<FlatMemrefView>::Decode(
   if (type_id != TypeID::get<MemrefDesc>()) return failure();
 
   // Cast opaque memory to the encoded memref.
-  using EncodedMemref = CustomCallArgDecoding<MemrefDesc>::EncodedMemref;
-  auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+  auto* encoded = reinterpret_cast<internal::EncodedMemref*>(value);
 
   // Get the memref element data type.
   void* opaque = reinterpret_cast<void*>(encoded->element_type_id);

@@ -382,6 +382,42 @@ static Value PackTypeId(ImplicitLocOpBuilder &b, TypeID type_id) {
   return mem;
 }
 
+// Packs string on the stack. Returns `!llvm.ptr<EncodedStr>`. We always pass
+// string with the size to the runtime intrinsics, because computing the length
+// of null terminated string can be expensive, and we need it to construct
+// llvm::StringRef at run time.
+static Value PackString(ModuleOp module, ImplicitLocOpBuilder &b, StringRef str,
+                        StringRef prefix) {
+  MLIRContext *ctx = b.getContext();
+
+  // Encoded string type: !llvm.struct<(i64, !llvm.ptr<i8>)>.
+  Type i64 = b.getI64Type();
+  Type i8_ptr = LLVM::LLVMPointerType::get(b.getI8Type());
+  Type type = LLVM::LLVMStructType::getLiteral(ctx, {i64, i8_ptr});
+
+  // Encode string attribute into the struct.
+  Value encoded = b.create<LLVM::UndefOp>(type);
+
+  auto offset = [&](int64_t i) { return b.getI64ArrayAttr(i); };
+
+  // Store encoded string size.
+  Value size = CreateConstant(b, static_cast<int64_t>(str.size()));
+  encoded = b.create<LLVM::InsertValueOp>(type, encoded, size, offset(0));
+
+  // Store a pointer to a null terminated string constant.
+  Value null_terminated_str_ptr = CreateGlobalStrCst(module, b, str, prefix);
+  encoded = b.create<LLVM::InsertValueOp>(type, encoded,
+                                          null_terminated_str_ptr, offset(1));
+
+  // Store encoded string into the stack allocated memory.
+  Type ptr = LLVM::LLVMPointerType::get(type);
+  Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
+  Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);
+  b.create<LLVM::StoreOp>(encoded, mem);
+
+  return mem;
+}
+
 // Packs scalar attribute on the stack. Returns `!llvm.ptr<AttrType>`.
 static Value PackScalarAttribute(ImplicitLocOpBuilder &b, Attribute value) {
   Type ptr = LLVM::LLVMPointerType::get(value.getType());
@@ -484,11 +520,12 @@ struct CustomCallAttrEncoding {
 struct StringAttrEncoding : public CustomCallAttrEncoding {
   FailureOr<Encoded> Encode(ModuleOp module, ImplicitLocOpBuilder &builder,
                             StringRef name, Attribute value) const override {
+    auto str = value.cast<StringAttr>();
+
     Encoded encoded;
-    encoded.name = CreateGlobalStrCst(module, builder, name, kPrefix);
+    encoded.name = PackString(module, builder, name, kPrefix);
     encoded.type_id = PackTypeId(builder, TypeID::get<llvm::StringRef>());
-    encoded.value =
-        CreateGlobalStrCst(module, builder, value.cast<StringAttr>(), kPrefix);
+    encoded.value = PackString(module, builder, str, kPrefix);
     return encoded;
   }
 };
@@ -499,7 +536,7 @@ struct ScalarAttrEncoding : public CustomCallAttrEncoding {
     Type type = value.getType();
 
     Encoded encoded;
-    encoded.name = CreateGlobalStrCst(module, builder, name, kPrefix);
+    encoded.name = PackString(module, builder, name, kPrefix);
     encoded.type_id = PackTypeId(builder, ScalarRuntimeTypeId(type));
     encoded.value = PackScalarAttribute(builder, value);
 
@@ -513,7 +550,7 @@ struct ArrayAttrEncoding : public CustomCallAttrEncoding {
     ShapedType type = value.getType().cast<ShapedType>();
 
     Encoded encoded;
-    encoded.name = CreateGlobalStrCst(module, builder, name, kPrefix);
+    encoded.name = PackString(module, builder, name, kPrefix);
     encoded.type_id = PackTypeId(builder, ArrayRuntimeTypeId(type));
     encoded.value = PackArrayAttribute(builder, value);
 

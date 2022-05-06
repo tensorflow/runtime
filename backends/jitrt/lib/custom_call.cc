@@ -91,13 +91,16 @@ void AddStaticCustomCallRegistration(
 }
 
 static mlir::FailureOr<DType> ScalarTypeIdToDType(TypeID type_id) {
+  // f32 is by far the most popular data type in ML models, check it first!
+  if (LLVM_LIKELY(TypeID::get<float>() == type_id)) return DType::F32;
+
   if (TypeID::get<uint8_t>() == type_id) return DType::UI8;
   if (TypeID::get<uint32_t>() == type_id) return DType::UI32;
   if (TypeID::get<uint64_t>() == type_id) return DType::UI64;
   if (TypeID::get<int32_t>() == type_id) return DType::I32;
   if (TypeID::get<int64_t>() == type_id) return DType::I64;
-  if (TypeID::get<float>() == type_id) return DType::F32;
   if (TypeID::get<double>() == type_id) return DType::F64;
+
   assert(false && "unsupported data type");
   return failure();
 }
@@ -120,6 +123,18 @@ static ArrayRef<int64_t> Strides(StridedMemRefType<T, rank>* memref) {
 template <typename T>
 static ArrayRef<int64_t> Strides(StridedMemRefType<T, 0>* memref) {
   return {};
+}
+
+template <typename T, int rank>
+static int64_t NumElements(StridedMemRefType<T, rank>* memref) {
+  int64_t num_elements = 1;
+  for (int d = 0; d < rank; ++d) num_elements *= memref->sizes[d];
+  return num_elements;
+}
+
+template <typename T>
+static int64_t NumElements(StridedMemRefType<T, 0>* memref) {
+  return 0;
 }
 
 mlir::FailureOr<MemrefView> CustomCallArgDecoding<MemrefView>::Decode(
@@ -170,8 +185,6 @@ mlir::FailureOr<MemrefView> CustomCallArgDecoding<MemrefView>::Decode(
 
 mlir::FailureOr<FlatMemrefView> CustomCallArgDecoding<FlatMemrefView>::Decode(
     mlir::TypeID type_id, void* value) {
-  FlatMemrefView memref;
-
   // Check that the encoded value holds the correct type id.
   if (type_id != TypeID::get<MemrefView>()) return failure();
 
@@ -184,47 +197,39 @@ mlir::FailureOr<FlatMemrefView> CustomCallArgDecoding<FlatMemrefView>::Decode(
 
   auto dtype = ScalarTypeIdToDType(element_type_id);
   if (mlir::failed(dtype)) return failure();
-  memref.dtype = *dtype;
 
   // Unpack the StridedMemRefType into the FlatMemrefView.
-  auto unpack_strided_memref = [&](auto rank_tag) {
+  auto unpack_strided_memref = [&](auto rank_tag) -> FlatMemrefView {
     constexpr int rank = decltype(rank_tag)::value;
 
     using Descriptor = StridedMemRefType<float, rank>;
     auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
 
+    FlatMemrefView memref;
+    memref.dtype = *dtype;
     memref.data = descriptor->data;
-    memref.size_in_bytes =
-        std::accumulate(Sizes(descriptor).begin(), Sizes(descriptor).end(),
-                        GetHostSize(memref.dtype), std::multiplies<int64_t>());
+    memref.size_in_bytes = GetHostSize(memref.dtype) * NumElements(descriptor);
+    return memref;
   };
 
   // Dispatch based on the memref rank.
   switch (encoded->rank) {
     case 0:
-      unpack_strided_memref(std::integral_constant<int, 0>{});
-      break;
+      return unpack_strided_memref(std::integral_constant<int, 0>{});
     case 1:
-      unpack_strided_memref(std::integral_constant<int, 1>{});
-      break;
+      return unpack_strided_memref(std::integral_constant<int, 1>{});
     case 2:
-      unpack_strided_memref(std::integral_constant<int, 2>{});
-      break;
+      return unpack_strided_memref(std::integral_constant<int, 2>{});
     case 3:
-      unpack_strided_memref(std::integral_constant<int, 3>{});
-      break;
+      return unpack_strided_memref(std::integral_constant<int, 3>{});
     case 4:
-      unpack_strided_memref(std::integral_constant<int, 4>{});
-      break;
+      return unpack_strided_memref(std::integral_constant<int, 4>{});
     case 5:
-      unpack_strided_memref(std::integral_constant<int, 5>{});
-      break;
+      return unpack_strided_memref(std::integral_constant<int, 5>{});
     default:
       assert(false && "unsupported memref rank");
       return failure();
   }
-
-  return memref;
 }
 
 }  // namespace jitrt

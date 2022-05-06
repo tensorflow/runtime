@@ -322,12 +322,11 @@ struct DecodingOffsets {
 
 template <typename T, size_t index>
 struct Decode {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets,
-                                 llvm::SmallVector<DecodedArg>& args,
-                                 ArrayRef<std::string> attrs_names,
-                                 ArrayRef<size_t> attrs_idx,
-                                 llvm::SmallVector<DecodedAttr>& attrs,
-                                 const CustomCall::UserData* user_data) {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
+      DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
+      ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
+      llvm::SmallVector<DecodedAttr>& attrs,
+      const CustomCall::UserData* user_data) {
     internal::DecodedArg arg = args[offsets.args++];
     return CustomCallArgDecoding<T>::Decode(arg.type_id, arg.value);
   }
@@ -335,12 +334,11 @@ struct Decode {
 
 template <typename T, size_t index>
 struct Decode<internal::Attr<T>, index> {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets,
-                                 llvm::SmallVector<DecodedArg>& args,
-                                 ArrayRef<std::string> attrs_names,
-                                 ArrayRef<size_t> attrs_idx,
-                                 llvm::SmallVector<DecodedAttr>& attrs,
-                                 const CustomCall::UserData* user_data) {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
+      DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
+      ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
+      llvm::SmallVector<DecodedAttr>& attrs,
+      const CustomCall::UserData* user_data) {
     // Find decoded attribute corresponding for the given attribute index.
     int64_t idx = offsets.attrs++;
     llvm::StringRef attr = attrs_names[idx];
@@ -362,12 +360,11 @@ struct Decode<internal::Attr<T>, index> {
 
 template <typename T, size_t index>
 struct Decode<internal::UserData<T>, index> {
-  static mlir::FailureOr<T> call(DecodingOffsets& offsets,
-                                 llvm::SmallVector<DecodedArg>& args,
-                                 ArrayRef<std::string> attrs_names,
-                                 ArrayRef<size_t> attrs_idx,
-                                 llvm::SmallVector<DecodedAttr>& attrs,
-                                 const CustomCall::UserData* user_data) {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
+      DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
+      ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
+      llvm::SmallVector<DecodedAttr>& attrs,
+      const CustomCall::UserData* user_data) {
     if (!user_data || !user_data->contains<T>()) return mlir::failure();
     return user_data->get<T>();
   }
@@ -375,11 +372,11 @@ struct Decode<internal::UserData<T>, index> {
 
 template <size_t index>
 struct Decode<CustomCall::RemainingArgs, index> {
-  static mlir::FailureOr<CustomCall::RemainingArgs> call(
-      DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
-      ArrayRef<std::string> attr_names, ArrayRef<size_t> attrs_idx,
-      llvm::SmallVector<DecodedAttr>& attrs,
-      const CustomCall::UserData* user_data) {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<CustomCall::RemainingArgs>
+  call(DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
+       ArrayRef<std::string> attr_names, ArrayRef<size_t> attrs_idx,
+       llvm::SmallVector<DecodedAttr>& attrs,
+       const CustomCall::UserData* user_data) {
     auto remaining = llvm::ArrayRef<DecodedArg>(args).drop_front(offsets.args);
     return CustomCall::RemainingArgs(remaining);
   }
@@ -434,10 +431,10 @@ class CustomCallHandler : public CustomCall {
   }
 
   template <size_t... Is>
-  mlir::LogicalResult call(llvm::SmallVector<internal::DecodedArg> args,
-                           llvm::SmallVector<internal::DecodedAttr> attrs,
-                           const UserData* user_data,
-                           std::index_sequence<Is...>) {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::LogicalResult call(
+      llvm::SmallVector<internal::DecodedArg> args,
+      llvm::SmallVector<internal::DecodedAttr> attrs, const UserData* user_data,
+      std::index_sequence<Is...>) {
     // A helper structure to allow each decoder find the correct offset in the
     // arguments or attributes.
     internal::DecodingOffsets offsets;
@@ -561,23 +558,22 @@ JITRT_REGISTER_SCALAR_ARG_DECODING(double);
 
 template <>
 struct CustomCallAttrDecoding<llvm::StringRef> {
-  static mlir::FailureOr<llvm::StringRef> Decode(llvm::StringRef name,
-                                                 mlir::TypeID type_id,
-                                                 void* value) {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<llvm::StringRef> Decode(
+      llvm::StringRef name, mlir::TypeID type_id, void* value) {
     if (type_id != mlir::TypeID::get<llvm::StringRef>()) return mlir::failure();
     auto* encoded = reinterpret_cast<internal::EncodedString*>(value);
     return llvm::StringRef(encoded->data, encoded->size);
   }
 };
 
-#define JITRT_REGISTER_SCALAR_ATTR_DECODING(T)                            \
-  template <>                                                             \
-  struct CustomCallAttrDecoding<T> {                                      \
-    static mlir::FailureOr<T> Decode(llvm::StringRef name,                \
-                                     mlir::TypeID type_id, void* value) { \
-      if (type_id != mlir::TypeID::get<T>()) return mlir::failure();      \
-      return *reinterpret_cast<T*>(value);                                \
-    }                                                                     \
+#define JITRT_REGISTER_SCALAR_ATTR_DECODING(T)                       \
+  template <>                                                        \
+  struct CustomCallAttrDecoding<T> {                                 \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode(   \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {   \
+      if (type_id != mlir::TypeID::get<T>()) return mlir::failure(); \
+      return *reinterpret_cast<T*>(value);                           \
+    }                                                                \
   }
 
 JITRT_REGISTER_SCALAR_ATTR_DECODING(int32_t);
@@ -590,9 +586,8 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
 #define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                  \
   template <>                                                                  \
   struct CustomCallAttrDecoding<ArrayRef<T>> {                                 \
-    static mlir::FailureOr<ArrayRef<T>> Decode(llvm::StringRef name,           \
-                                               mlir::TypeID type_id,           \
-                                               void* value) {                  \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode(   \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {             \
       if (type_id != mlir::TypeID::get<ArrayRef<T>>()) return mlir::failure(); \
       auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);     \
       return ArrayRef<T>(&encoded->data, encoded->size);                       \

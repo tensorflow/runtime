@@ -37,8 +37,8 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
+#include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/opdefs/rt_ops.h"
-#include "tfrt/jitrt/types.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -587,7 +587,7 @@ class ScalarArgEncoding : public CustomCallArgEncoding {
   }
 };
 
-// Encodes MemRef operands according to the MemrefDesc ABI.
+// Encodes MemRef operands according to the MemrefView ABI.
 class MemrefArgEncoding : public CustomCallArgEncoding {
  public:
   FailureOr<Encoded> Encode(ImplicitLocOpBuilder &b, Value value,
@@ -595,7 +595,7 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
     auto memref_type = value.getType().cast<MemRefType>();
 
     Encoded encoded;
-    encoded.type_id = PackTypeId(b, TypeID::get<MemrefDesc>());
+    encoded.type_id = PackTypeId(b, TypeID::get<MemrefView>());
     encoded.value = PackValue(b, EncodeMemRef(b, memref_type, converted));
 
     return encoded;

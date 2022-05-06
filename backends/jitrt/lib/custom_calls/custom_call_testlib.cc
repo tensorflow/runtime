@@ -37,17 +37,17 @@ static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
   return success();
 }
 
-static LogicalResult Multiply(MemrefDesc input, MemrefDesc output, float cst) {
+static LogicalResult Multiply(MemrefView input, MemrefView output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
-  if (input.dtype() != output.dtype() || input.sizes() != output.sizes() ||
-      input.dtype() != DType::F32)
+  if (input.dtype != output.dtype || input.sizes != output.sizes ||
+      input.dtype != DType::F32)
     return failure();
 
   int64_t num_elements = 1;
-  for (int64_t d : input.sizes()) num_elements *= d;
+  for (int64_t d : input.sizes) num_elements *= d;
 
-  float* input_data = reinterpret_cast<float*>(input.data());
-  float* output_data = reinterpret_cast<float*>(output.data());
+  float* input_data = reinterpret_cast<float*>(input.data);
+  float* output_data = reinterpret_cast<float*>(output.data);
 
   for (int64_t i = 0; i < num_elements; ++i)
     output_data[i] = input_data[i] * cst;
@@ -99,8 +99,8 @@ static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
       tfrt::outs() << "f32: " << args.get<float>(i);
     } else if (args.isa<double>(i)) {
       tfrt::outs() << "f64: " << args.get<double>(i);
-    } else if (args.isa<MemrefDesc>(i)) {
-      tfrt::outs() << args.get<MemrefDesc>(i) << " / "
+    } else if (args.isa<MemrefView>(i)) {
+      tfrt::outs() << args.get<MemrefView>(i) << " / "
                    << args.get<FlatMemrefView>(i);
     } else {
       tfrt::outs() << "<unknown type>";
@@ -113,7 +113,7 @@ static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
 }
 
 static LogicalResult PrintMemrefAndVariadicArgs(
-    MemrefDesc arg, CustomCall::RemainingArgs args) {
+    MemrefView arg, CustomCall::RemainingArgs args) {
   tfrt::outs() << "arg: " << arg << "\n";
   return PrintVariadicArgs(args);
 }
@@ -130,8 +130,8 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .To(NoOp));
 
   registry->Register(CustomCall::Bind("testlib.multiply")
-                         .Arg<MemrefDesc>()  // input
-                         .Arg<MemrefDesc>()  // output
+                         .Arg<MemrefView>()  // input
+                         .Arg<MemrefView>()  // output
                          .Attr<float>("cst")
                          .To(Multiply));
 
@@ -153,7 +153,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .To(PrintVariadicArgs));
 
   registry->Register(CustomCall::Bind("testlib.memref_and_variadic_args")
-                         .Arg<MemrefDesc>()
+                         .Arg<MemrefView>()
                          .RemainingArgs()  // variadic args
                          .To(PrintMemrefAndVariadicArgs));
 }

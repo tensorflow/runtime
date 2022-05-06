@@ -144,10 +144,10 @@ struct HasRemainingArgs<> : std::false_type {};
 // call handler using its variadic template parameter.
 //
 //   Custom call binding:
-//     CustomCallBinding<int32_t, MemrefDesc>
+//     CustomCallBinding<int32_t, MemrefView>
 //
 //   Function signature:
-//     LogicalResult MyHandle(int32_t algo, MemrefDesc memref);
+//     LogicalResult MyHandle(int32_t algo, MemrefView memref);
 //
 template <typename... Ts>
 class CustomCallBinding {
@@ -573,20 +573,30 @@ class CustomCallHandler : public CustomCall {
 // -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.
 
-// A flat view into the memref. If the memref shapes is not required for the
-// custom call, it's much cheaper to pass the flat view struct instead of
-// building a MemrefDesc.
+// A view into the memref argument. Corresponds to the MemrefView, however it
+// doesn't own the sizes/strides vectors, and cheap to pass around.
+struct MemrefView {
+  tfrt::DType dtype;
+  void* data;
+  int64_t offset;
+  ArrayRef<int64_t> sizes;
+  ArrayRef<int64_t> strides;
+};
+
+// A flat view into the memref argument. If the memref shapes is not required
+// for the custom call, it's cheaper to pass the flat view.
 struct FlatMemrefView {
   tfrt::DType dtype;
   void* data;
   int64_t size_in_bytes;
 };
 
+raw_ostream& operator<<(raw_ostream& os, const MemrefView& view);
 raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view);
 
 template <>
-struct CustomCallArgDecoding<MemrefDesc> {
-  static mlir::FailureOr<MemrefDesc> Decode(mlir::TypeID type_id, void* value);
+struct CustomCallArgDecoding<MemrefView> {
+  static mlir::FailureOr<MemrefView> Decode(mlir::TypeID type_id, void* value);
 };
 
 template <>

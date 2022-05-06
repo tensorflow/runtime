@@ -535,9 +535,9 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/jitrt/conversion/rt_passes.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
+        ":custom_call",
         ":rt_conversion_passes_inc_gen",
         ":rt_opdefs",
-        ":types",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:FuncDialect",

@@ -34,6 +34,23 @@ namespace jitrt {
 using mlir::failure;
 using mlir::TypeID;
 
+raw_ostream& operator<<(raw_ostream& os, const MemrefView& view) {
+  auto print_arr = [&](string_view name, ArrayRef<int64_t> arr) {
+    os << " " << name << ": [";
+    if (!arr.empty()) {
+      os << arr[0];
+      for (int i = 1; i < arr.size(); ++i) os << ", " << arr[i];
+    }
+    os << "]";
+  };
+
+  os << "MemrefView: dtype: " << view.dtype << " offset: " << view.offset;
+  print_arr("sizes", view.sizes);
+  print_arr("strides", view.strides);
+
+  return os;
+}
+
 raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view) {
   return os << "FlatMemrefView: dtype: " << view.dtype
             << " size_in_bytes: " << view.size_in_bytes;
@@ -105,10 +122,10 @@ static ArrayRef<int64_t> Strides(StridedMemRefType<T, 0>* memref) {
   return {};
 }
 
-mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
-    mlir::TypeID type_id, void* value) {
-  // Check that encoded value holds the correct type id.
-  if (type_id != mlir::TypeID::get<MemrefDesc>()) return failure();
+mlir::FailureOr<MemrefView> CustomCallArgDecoding<MemrefView>::Decode(
+    TypeID type_id, void* value) {
+  // Check that encoded value hold the correct type id.
+  if (type_id != TypeID::get<MemrefView>()) return failure();
 
   // Cast opaque memory to exected encoding.
   auto* encoded = reinterpret_cast<internal::EncodedMemref*>(value);
@@ -120,15 +137,15 @@ mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
   auto dtype = ScalarTypeIdToDType(element_type_id);
   if (mlir::failed(dtype)) return failure();
 
-  // Unpack the StridedMemRefType into the MemrefDesc.
-  auto unpack_strided_memref = [&](auto rank_tag) -> MemrefDesc {
+  // Unpack the StridedMemRefType into the MemrefView.
+  auto unpack_strided_memref = [&](auto rank_tag) -> MemrefView {
     constexpr int rank = decltype(rank_tag)::value;
 
     using Descriptor = StridedMemRefType<float, rank>;
     auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
 
-    return MemrefDesc(*dtype, descriptor->data, descriptor->offset,
-                      Sizes(descriptor), Strides(descriptor));
+    return MemrefView{*dtype, descriptor->data, descriptor->offset,
+                      Sizes(descriptor), Strides(descriptor)};
   };
 
   // Dispatch based on the memref rank.
@@ -156,7 +173,7 @@ mlir::FailureOr<FlatMemrefView> CustomCallArgDecoding<FlatMemrefView>::Decode(
   FlatMemrefView memref;
 
   // Check that the encoded value holds the correct type id.
-  if (type_id != TypeID::get<MemrefDesc>()) return failure();
+  if (type_id != TypeID::get<MemrefView>()) return failure();
 
   // Cast opaque memory to the encoded memref.
   auto* encoded = reinterpret_cast<internal::EncodedMemref*>(value);

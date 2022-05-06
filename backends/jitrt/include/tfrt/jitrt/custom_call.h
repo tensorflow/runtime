@@ -338,7 +338,9 @@ struct Decode<internal::Attr<T>, index> {
                                  ArrayRef<std::string> attr_names,
                                  llvm::StringMap<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
-    internal::DecodedAttr attr = attrs[attr_names[offsets.attrs++]];
+    auto it = attrs.find(attr_names[offsets.attrs++]);
+    if (it == attrs.end()) return mlir::failure();
+    internal::DecodedAttr attr = it->second;
     return CustomCallAttrDecoding<T>::Decode(attr.name, attr.type_id,
                                              attr.value);
   }
@@ -410,12 +412,6 @@ class CustomCallHandler : public CustomCall {
     } else {
       if (decoded_args.size() != kNumArgs) return mlir::failure();
     }
-
-    // Check that all required attributes are passed to the custom call.
-    bool all_attrs = llvm::all_of(attrs_, [&](auto& attr) {
-      return decoded_attrs.find(attr) != decoded_attrs.end();
-    });
-    if (!all_attrs) return mlir::failure();
 
     return call(std::move(decoded_args), std::move(decoded_attrs), user_data,
                 std::make_index_sequence<kSize>{});

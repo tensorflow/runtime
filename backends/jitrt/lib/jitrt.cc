@@ -556,9 +556,9 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
                                 CallFrame* call_frame) const {
   // If execution failed, forward error to all results.
   if (call_frame->is_error) {
-    results.ReturnErrors(MakeErrorAsyncValueRef(
-        StrCat("compiled kernel run time error: ", call_frame->error)));
-    return Error::success();
+    auto err = StrCat("compiled kernel run time error: ", call_frame->error);
+    results.ReturnErrors(MakeErrorAsyncValueRef(err));
+    return MakeStringError(std::move(err));
   }
 
   // Try to convert results using registered conversion functions.

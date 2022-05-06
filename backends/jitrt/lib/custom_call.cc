@@ -96,10 +96,12 @@ llvm::SmallVector<DecodedArg> DecodeArgs(void** args) {
   return decoded;
 }
 
-llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs) {
+llvm::SmallVector<DecodedAttr> DecodeAttrs(void** attrs) {
   int64_t num_attrs = *reinterpret_cast<int64_t*>(attrs[0]);
 
-  llvm::StringMap<DecodedAttr> decoded;
+  llvm::SmallVector<DecodedAttr> decoded;
+  decoded.reserve(num_attrs);
+
   for (int64_t i = 0; i < num_attrs; ++i) {
     void** attr_base = attrs + 1 + i * 3;
 
@@ -109,9 +111,7 @@ llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs) {
     attr.type_id = DecodeTypeid(attr_base[1]);
     attr.value = attr_base[2];
 
-    auto emplaced = decoded.try_emplace(attr.name.str(), attr);
-    assert(emplaced.second && "duplicate attribute");
-    (void)emplaced;
+    decoded.push_back(attr);
   }
 
   return decoded;

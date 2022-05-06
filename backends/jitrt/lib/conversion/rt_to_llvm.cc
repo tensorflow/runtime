@@ -714,7 +714,8 @@ static FailureOr<Value> EncodeArguments(ImplicitLocOpBuilder &b,
 static FailureOr<Value> EncodeAttributes(ModuleOp module,
                                          ImplicitLocOpBuilder &b,
                                          ArrayRef<NamedAttribute> attrs) {
-  llvm::SmallVector<CustomCallAttrEncoding::Encoded> encoded;
+  using EncodedAttr = std::pair<StringRef, CustomCallAttrEncoding::Encoded>;
+  llvm::SmallVector<EncodedAttr> encoded;
 
   for (auto &attr : attrs) {
     // Callee passed explicitly as a custom call argument.
@@ -723,8 +724,11 @@ static FailureOr<Value> EncodeAttributes(ModuleOp module,
     // Try to encode the attribute as a set of pointers.
     auto encoded_attr = EncodeAttribute(module, b, attr);
     if (failed(encoded_attr)) return failure();
-    encoded.push_back(*encoded_attr);
+    encoded.emplace_back(attr.getName(), *encoded_attr);
   }
+
+  // Sort encoded attributes in lexicographical order.
+  llvm::sort(encoded, [](auto &a, auto &b) { return a.first < b.first; });
 
   // In addition to encoded attributes we store the number of attributes.
   int32_t attrs_size = 1 + encoded.size() * 3;
@@ -740,7 +744,7 @@ static FailureOr<Value> EncodeAttributes(ModuleOp module,
 
   // Store encoded attributes into the allocated storage.
   for (auto &pair : llvm::enumerate(encoded)) {
-    CustomCallAttrEncoding::Encoded encoded = pair.value();
+    CustomCallAttrEncoding::Encoded encoded = pair.value().second;
     int64_t offset = 1 + pair.index() * 3;
 
     StoreOpaquePtr(b, encoded.name, alloca, offset + 0);

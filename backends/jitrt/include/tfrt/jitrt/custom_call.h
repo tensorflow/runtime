@@ -17,15 +17,16 @@
 #ifndef TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_CUSTOM_CALL_H_
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_CUSTOM_CALL_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <numeric>
 #include <string>
 #include <tuple>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
@@ -153,7 +154,7 @@ struct DecodedAttr {
 llvm::SmallVector<DecodedArg> DecodeArgs(void** args);
 
 // Decodes attributes from the encoded data.
-llvm::StringMap<DecodedAttr> DecodeAttrs(void** attrs);
+llvm::SmallVector<DecodedAttr> DecodeAttrs(void** attrs);
 
 }  // namespace internal
 
@@ -323,8 +324,9 @@ template <typename T, size_t index>
 struct Decode {
   static mlir::FailureOr<T> call(DecodingOffsets& offsets,
                                  llvm::SmallVector<DecodedArg>& args,
-                                 ArrayRef<std::string> attr_names,
-                                 llvm::StringMap<DecodedAttr>& attrs,
+                                 ArrayRef<std::string> attrs_names,
+                                 ArrayRef<size_t> attrs_idx,
+                                 llvm::SmallVector<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
     internal::DecodedArg arg = args[offsets.args++];
     return CustomCallArgDecoding<T>::Decode(arg.type_id, arg.value);
@@ -335,14 +337,26 @@ template <typename T, size_t index>
 struct Decode<internal::Attr<T>, index> {
   static mlir::FailureOr<T> call(DecodingOffsets& offsets,
                                  llvm::SmallVector<DecodedArg>& args,
-                                 ArrayRef<std::string> attr_names,
-                                 llvm::StringMap<DecodedAttr>& attrs,
+                                 ArrayRef<std::string> attrs_names,
+                                 ArrayRef<size_t> attrs_idx,
+                                 llvm::SmallVector<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
-    auto it = attrs.find(attr_names[offsets.attrs++]);
-    if (it == attrs.end()) return mlir::failure();
-    internal::DecodedAttr attr = it->second;
-    return CustomCallAttrDecoding<T>::Decode(attr.name, attr.type_id,
-                                             attr.value);
+    // Find decoded attribute corresponding for the given attribute index.
+    int64_t idx = offsets.attrs++;
+    llvm::StringRef attr = attrs_names[idx];
+
+    // Given that attributes are passed to the custom call handler
+    // lexicographically sorted by name, we can find the attribute we are
+    // looking for only between the `attrs_idx` offset and the end of the
+    // attributes array.
+    for (size_t i = attrs_idx[idx]; i < attrs.size(); ++i) {
+      if (attrs[i].name == attr)
+        return CustomCallAttrDecoding<T>::Decode(
+            attrs[i].name, attrs[i].type_id, attrs[i].value);
+    }
+
+    // Attribute we were looking for was not passed as an argument.
+    return mlir::failure();
   }
 };
 
@@ -350,8 +364,9 @@ template <typename T, size_t index>
 struct Decode<internal::UserData<T>, index> {
   static mlir::FailureOr<T> call(DecodingOffsets& offsets,
                                  llvm::SmallVector<DecodedArg>& args,
-                                 ArrayRef<std::string> attr_names,
-                                 llvm::StringMap<DecodedAttr>& attrs,
+                                 ArrayRef<std::string> attrs_names,
+                                 ArrayRef<size_t> attrs_idx,
+                                 llvm::SmallVector<DecodedAttr>& attrs,
                                  const CustomCall::UserData* user_data) {
     if (!user_data || !user_data->contains<T>()) return mlir::failure();
     return user_data->get<T>();
@@ -362,7 +377,8 @@ template <size_t index>
 struct Decode<CustomCall::RemainingArgs, index> {
   static mlir::FailureOr<CustomCall::RemainingArgs> call(
       DecodingOffsets& offsets, llvm::SmallVector<DecodedArg>& args,
-      ArrayRef<std::string> attr_names, llvm::StringMap<DecodedAttr>& attrs,
+      ArrayRef<std::string> attr_names, ArrayRef<size_t> attrs_idx,
+      llvm::SmallVector<DecodedAttr>& attrs,
       const CustomCall::UserData* user_data) {
     auto remaining = llvm::ArrayRef<DecodedArg>(args).drop_front(offsets.args);
     return CustomCall::RemainingArgs(remaining);
@@ -419,7 +435,7 @@ class CustomCallHandler : public CustomCall {
 
   template <size_t... Is>
   mlir::LogicalResult call(llvm::SmallVector<internal::DecodedArg> args,
-                           llvm::StringMap<internal::DecodedAttr> attrs,
+                           llvm::SmallVector<internal::DecodedAttr> attrs,
                            const UserData* user_data,
                            std::index_sequence<Is...>) {
     // A helper structure to allow each decoder find the correct offset in the
@@ -430,7 +446,7 @@ class CustomCallHandler : public CustomCall {
     // that initializer list will be evaluated left-to-right, and we can rely
     // on correct offsets computation.
     std::tuple<mlir::FailureOr<FnArgType<Ts>>...> fn_args = {
-        internal::Decode<Ts, Is>::call(offsets, args, attrs_, attrs,
+        internal::Decode<Ts, Is>::call(offsets, args, attrs_, attrs_idx_, attrs,
                                        user_data)...};
 
     // Check that all of them were successfully decoded.
@@ -451,11 +467,27 @@ class CustomCallHandler : public CustomCall {
                     std::vector<std::string> attrs)  // NOLINT
       : fn_(std::move(fn)),
         callee_(std::move(callee)),
-        attrs_(std::move(attrs)) {}
+        attrs_(std::move(attrs)),
+        attrs_idx_(attrs_.size()) {
+    // Sort attributes names.
+    std::vector<std::string> sorted = attrs_;
+    llvm::sort(sorted);
+
+    // Find index or every attribute in the sorted attributes vector.
+    for (size_t i = 0; i < attrs_.size(); ++i) {
+      const std::string& attr = attrs_[i];
+      attrs_idx_[i] = std::distance(sorted.begin(), llvm::find(sorted, attr));
+    }
+  }
 
   Fn fn_;
   std::string callee_;
   std::vector<std::string> attrs_;
+  // A mapping from the attribute index to its index in the lexicographically
+  // sorter vector of attribute names. Attributes passed in the custom call
+  // handler sorted by the name, we use this index to efficiently find the
+  // decoded attribute entry.
+  std::vector<size_t> attrs_idx_;
 };
 
 // -------------------------------------------------------------------------- //

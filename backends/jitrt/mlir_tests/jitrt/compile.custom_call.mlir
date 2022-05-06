@@ -49,7 +49,11 @@ module @print_attrs attributes { tfrt.compiled } {
       i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
       f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
       f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
-      str = "some string"
+      str = "some string",
+      aaa = "these are unused attributes to test",
+      mmm = "that custom call only decodes attributes",
+      xxx = "defined in the custom call binding and",
+      zzz = "ignores everything else"
     } : () -> ()
 
     func.return
@@ -161,6 +165,9 @@ func.func @compiled_custom_call_print_attrs() {
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: str: some string
+
+  // Check that attributes not in the custom call signature are ignored.
+  // CHECK-NOT: unused attributes to test
   %executable = jitrt.compile { kernel = @print_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 

@@ -532,6 +532,19 @@ class CustomCallArgEncoding {
                                     Value converted) const = 0;
 };
 
+// Encodes scalar operands.
+class ScalarArgEncoding : public CustomCallArgEncoding {
+ public:
+  FailureOr<Encoded> Encode(ImplicitLocOpBuilder &b, Value value,
+                            Value converted) const override {
+    Encoded encoded;
+    encoded.type_id = PackTypeId(b, ScalarRuntimeTypeId(converted.getType()));
+    encoded.value = PackValue(b, converted);
+
+    return encoded;
+  }
+};
+
 // Encodes MemRef operands according to the MemrefDesc ABI.
 class MemrefArgEncoding : public CustomCallArgEncoding {
  public:
@@ -585,6 +598,11 @@ static FailureOr<CustomCallArgEncoding::Encoded> EncodeArgument(
   Value value = std::get<0>(value_and_converted);
   Value converted = std::get<1>(value_and_converted);
 
+  // Scalar arguments encoding.
+  if (IsSupportedScalarType(value.getType()))
+    return ScalarArgEncoding().Encode(b, value, converted);
+
+  // Memref arguments encoding.
   if (value.getType().isa<MemRefType>())
     return MemrefArgEncoding().Encode(b, value, converted);
 

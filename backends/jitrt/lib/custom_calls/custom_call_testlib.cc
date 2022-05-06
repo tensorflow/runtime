@@ -74,6 +74,7 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
   print_arr("f64", f64_arr);
 
   tfrt::outs() << "str: " << str << "\n";
+  tfrt::outs().flush();
 
   return success();
 }
@@ -84,13 +85,22 @@ static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
   for (unsigned i = 0; i < args.size(); ++i) {
     tfrt::outs() << "arg[" << i << "]: ";
 
-    if (args.isa<MemrefDesc>(i)) {
+    if (args.isa<int32_t>(i)) {
+      tfrt::outs() << "i32: " << args.get<int32_t>(i);
+    } else if (args.isa<int64_t>(i)) {
+      tfrt::outs() << "i64: " << args.get<int64_t>(i);
+    } else if (args.isa<float>(i)) {
+      tfrt::outs() << "f32: " << args.get<float>(i);
+    } else if (args.isa<double>(i)) {
+      tfrt::outs() << "f64: " << args.get<double>(i);
+    } else if (args.isa<MemrefDesc>(i)) {
       tfrt::outs() << args.get<MemrefDesc>(i);
     } else {
       tfrt::outs() << "<unknown type>";
     }
 
     tfrt::outs() << "\n";
+    tfrt::outs().flush();
   }
   return success();
 }

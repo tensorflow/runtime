@@ -478,6 +478,22 @@ struct CustomCallArgDecoding<MemrefDesc> {
   static mlir::FailureOr<MemrefDesc> Decode(mlir::TypeID type_id, void* value);
 };
 
+#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                             \
+  template <>                                                             \
+  struct CustomCallArgDecoding<T> {                                       \
+    static mlir::FailureOr<T> Decode(mlir::TypeID type_id, void* value) { \
+      if (type_id != mlir::TypeID::get<T>()) return mlir::failure();      \
+      return *reinterpret_cast<T*>(value);                                \
+    }                                                                     \
+  }
+
+JITRT_REGISTER_SCALAR_ARG_DECODING(int32_t);
+JITRT_REGISTER_SCALAR_ARG_DECODING(int64_t);
+JITRT_REGISTER_SCALAR_ARG_DECODING(float);
+JITRT_REGISTER_SCALAR_ARG_DECODING(double);
+
+#undef JITRT_REGISTER_SCALAR_ARG_DECODING
+
 // -------------------------------------------------------------------------- //
 // Custom call attributes decoding.
 

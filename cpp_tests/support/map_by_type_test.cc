@@ -35,6 +35,8 @@ struct T2 {
 
 struct MapTag {};
 
+struct OptimizedMapTag {};
+
 TEST(MapByTypeTest, Basic) {
   MapByType<MapTag> map;
   EXPECT_FALSE(map.contains<int>());
@@ -71,12 +73,24 @@ TEST(MapByTypeTest, Basic) {
   EXPECT_EQ(map.get<A>().v, 3);
 }
 
-TEST(MapByTypeTest, Construct) {
+TEST(MapByTypeTest, InsertAll) {
   MapByType<MapTag> map;
   map.insert_all(static_cast<int32_t>(1), static_cast<int64_t>(2));
   EXPECT_TRUE(map.contains<int32_t>());
   EXPECT_TRUE(map.contains<int64_t>());
   EXPECT_FALSE(map.contains<float>());
+
+  EXPECT_EQ(map.get<int32_t>(), 1);
+  EXPECT_EQ(map.get<int64_t>(), 2);
+}
+
+TEST(MapByTypeTest, OptimizedMap) {
+  MapByType<OptimizedMapTag> map;
+  map.insert_all(static_cast<int32_t>(1), static_cast<int64_t>(2));
+  EXPECT_TRUE(map.contains<int32_t>());
+  EXPECT_TRUE(map.contains<int64_t>());
+  EXPECT_FALSE(map.contains<float>());
+  EXPECT_FALSE(map.contains<T1>());
 
   EXPECT_EQ(map.get<int32_t>(), 1);
   EXPECT_EQ(map.get<int64_t>(), 2);
@@ -128,8 +142,46 @@ static void BM_InsertAll(benchmark::State& state) {
   }
 }
 
+static void BM_InsertAndGet(benchmark::State& state) {
+  for (auto _ : state) {
+    MapByType<MapTag> map;
+    map.insert_all(static_cast<int32_t>(1), static_cast<int64_t>(1),
+                   static_cast<float>(1.0), static_cast<double>(1.0));
+    benchmark::DoNotOptimize(map);
+    benchmark::DoNotOptimize(map.getIfExists<int32_t>());
+    benchmark::DoNotOptimize(map.getIfExists<int64_t>());
+    benchmark::DoNotOptimize(map.getIfExists<float>());
+    benchmark::DoNotOptimize(map.getIfExists<double>());
+  }
+}
+
+static void BM_InsertAndGetOpt(benchmark::State& state) {
+  for (auto _ : state) {
+    MapByType<OptimizedMapTag> map;
+    map.insert_all(static_cast<int32_t>(1), static_cast<int64_t>(1),
+                   static_cast<float>(1.0), static_cast<double>(1.0));
+    benchmark::DoNotOptimize(map);
+    benchmark::DoNotOptimize(map.getIfExists<int32_t>());
+    benchmark::DoNotOptimize(map.getIfExists<int64_t>());
+    benchmark::DoNotOptimize(map.getIfExists<float>());
+    benchmark::DoNotOptimize(map.getIfExists<double>());
+  }
+}
+
 BENCHMARK(BM_Insert);
 BENCHMARK(BM_InsertAll);
+BENCHMARK(BM_InsertAndGet);
+BENCHMARK(BM_InsertAndGetOpt);
 
 }  // namespace
 }  // namespace tfrt
+
+TFRT_DECLARE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, int32_t);
+TFRT_DECLARE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, int64_t);
+TFRT_DECLARE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, float);
+TFRT_DECLARE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, double);
+
+TFRT_DEFINE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, int32_t);
+TFRT_DEFINE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, int64_t);
+TFRT_DEFINE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, float);
+TFRT_DEFINE_EXPLICIT_DENSE_TYPE_ID(tfrt::OptimizedMapTag, double);

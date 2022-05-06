@@ -73,57 +73,7 @@ void AddStaticCustomCallRegistration(
   GetCustomCallRegistrations()->push_back(registration);
 }
 
-namespace internal {
-
-// Decode arguments encoded by the `rt-to-llvm` pass. Decoding/encoding scheme
-// must be consistent between lowering to LLVM pass and this function.
-llvm::SmallVector<DecodedArg> DecodeArgs(void** args) {
-  int64_t num_args = *reinterpret_cast<int64_t*>(args[0]);
-
-  llvm::SmallVector<DecodedArg> decoded;
-  decoded.reserve(num_args);
-
-  for (int64_t i = 0; i < num_args; ++i) {
-    void** arg_base = args + 1 + i * 2;
-
-    DecodedArg arg;
-    arg.type_id = DecodeTypeid(arg_base[0]);
-    arg.value = arg_base[1];
-
-    decoded.push_back(arg);
-  }
-
-  return decoded;
-}
-
-llvm::SmallVector<DecodedAttr> DecodeAttrs(void** attrs) {
-  int64_t num_attrs = *reinterpret_cast<int64_t*>(attrs[0]);
-
-  llvm::SmallVector<DecodedAttr> decoded;
-  decoded.reserve(num_attrs);
-
-  for (int64_t i = 0; i < num_attrs; ++i) {
-    void** attr_base = attrs + 1 + i * 3;
-
-    DecodedAttr attr;
-    auto* name = reinterpret_cast<internal::EncodedString*>(attr_base[0]);
-    attr.name = llvm::StringRef(name->data, name->size);
-    attr.type_id = DecodeTypeid(attr_base[1]);
-    attr.value = attr_base[2];
-
-    decoded.push_back(attr);
-  }
-
-  return decoded;
-}
-
-TypeID DecodeTypeid(void* type_id) {
-  std::uintptr_t encoded_type_id = *reinterpret_cast<std::uintptr_t*>(type_id);
-  void* opaque_type_id = reinterpret_cast<void*>(encoded_type_id);
-  return TypeID::getFromOpaquePointer(opaque_type_id);
-}
-
-mlir::FailureOr<DType> ScalarTypeIdToDType(TypeID type_id) {
+static mlir::FailureOr<DType> ScalarTypeIdToDType(TypeID type_id) {
   if (TypeID::get<uint8_t>() == type_id) return DType::UI8;
   if (TypeID::get<uint32_t>() == type_id) return DType::UI32;
   if (TypeID::get<uint64_t>() == type_id) return DType::UI64;
@@ -134,8 +84,6 @@ mlir::FailureOr<DType> ScalarTypeIdToDType(TypeID type_id) {
   assert(false && "unsupported data type");
   return failure();
 }
-
-}  // namespace internal
 
 template <typename T, int rank>
 static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
@@ -169,7 +117,7 @@ mlir::FailureOr<MemrefDesc> CustomCallArgDecoding<MemrefDesc>::Decode(
   void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
   TypeID element_type_id = TypeID::getFromOpaquePointer(opaque);
 
-  auto dtype = internal::ScalarTypeIdToDType(element_type_id);
+  auto dtype = ScalarTypeIdToDType(element_type_id);
   if (mlir::failed(dtype)) return failure();
 
   // Unpack the StridedMemRefType into the MemrefDesc.
@@ -217,7 +165,7 @@ mlir::FailureOr<FlatMemrefView> CustomCallArgDecoding<FlatMemrefView>::Decode(
   void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
   TypeID element_type_id = TypeID::getFromOpaquePointer(opaque);
 
-  auto dtype = internal::ScalarTypeIdToDType(element_type_id);
+  auto dtype = ScalarTypeIdToDType(element_type_id);
   if (mlir::failed(dtype)) return failure();
   memref.dtype = *dtype;
 

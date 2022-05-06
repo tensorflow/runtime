@@ -120,7 +120,7 @@ static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
   }
 
   // Erase all converted custom calls declarations.
-  for (auto func : erase_declarations) func.erase();
+  for (auto func : erase_declarations) sym_table.erase(func);
 }
 
 static void ConvertReturnOperations(FuncOp func, Value kernel_ctx) {
@@ -179,8 +179,7 @@ static Value PrependKernelContextArgument(mlir::func::FuncOp func) {
 }
 
 static void ConvertToKernelFunction(FuncOp func) {
-  // Skip functions that are not JitRt entrypoints.
-  if (!func->hasAttr(kJitRtEntrypointAttrName)) return;
+  assert(func->hasAttr(kJitRtEntrypointAttrName));
 
   Value kernel_ctx = PrependKernelContextArgument(func);
   ConvertCustomCallOperations(func, kernel_ctx);
@@ -192,8 +191,14 @@ static void ConvertToKernelFunction(FuncOp func) {
 }
 
 void ConvertToKernelFunctionPass::runOnOperation() {
-  ModuleOp module = getOperation();
-  module.walk(ConvertToKernelFunction);
+  llvm::SmallVector<FuncOp> entry_points;
+
+  // Collect JitRt entrypoint functions.
+  getOperation().walk([&](FuncOp op) {
+    if (op->hasAttr(kJitRtEntrypointAttrName)) entry_points.push_back(op);
+  });
+
+  llvm::for_each(entry_points, ConvertToKernelFunction);
 }
 
 std::unique_ptr<mlir::OperationPass<ModuleOp>> CreateConvertToKernelFunction() {

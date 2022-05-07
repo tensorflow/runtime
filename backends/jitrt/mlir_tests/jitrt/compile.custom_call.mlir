@@ -193,18 +193,18 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK: arg[1]: i64: 456
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
-  // CHECK: arg[4]: MemrefView: dtype: i64 offset: 0 sizes: [1] strides: [1]
+  // CHECK: arg[4]: MemrefView: dtype: i64 offset: 0 sizes: [1]
   // CHECK-SAME:    FlatMemrefView: dtype: i64 size_in_bytes: 8
-  // CHECK: arg[5]: MemrefView: dtype: f32 offset: 0 sizes: [2] strides: [1]
+  // CHECK: arg[5]: MemrefView: dtype: f32 offset: 0 sizes: [2]
   // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
 
-  // CHECK: arg: MemrefView: dtype: i64 offset: 0 sizes: [1] strides: [1]
+  // CHECK: arg: MemrefView: dtype: i64 offset: 0 sizes: [1]
   // CHECK: Number of variadic arguments: 5
   // CHECK: arg[0]: i32: 123
   // CHECK: arg[1]: i64: 456
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
-  // CHECK: arg[4]: MemrefView: dtype: f32 offset: 0 sizes: [2] strides: [1]
+  // CHECK: arg[4]: MemrefView: dtype: f32 offset: 0 sizes: [2]
   // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
   %executable = jitrt.compile { kernel = @variadic_args::@main }
   jitrt.execute %executable[%ch0]() : () -> ()

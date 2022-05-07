@@ -43,7 +43,6 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefView& view) {
 
   os << "MemrefView: dtype: " << view.dtype << " offset: " << view.offset;
   print_arr("sizes", view.sizes);
-  print_arr("strides", view.strides);
 
   return os;
 }

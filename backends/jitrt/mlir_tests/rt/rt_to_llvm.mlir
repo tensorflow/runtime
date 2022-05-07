@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s
+// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s --dump-input=always
 
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
@@ -200,7 +200,7 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?xf32>) {
   // CHECK: %[[MEM:.*]] = llvm.alloca %[[C1]] x !llvm.struct
   // CHECK: llvm.store %[[DESC]], %[[MEM]]
 
-  // CHECK: llvm.mlir.undef : !llvm.struct<(i64, i64, ptr<i8>)>
+  // CHECK: llvm.mlir.undef : !llvm.struct<(i8, i8, ptr<i8>)>
   // CHECK: llvm.insertvalue
   // CHECK: llvm.insertvalue
   // CHECK: llvm.insertvalue

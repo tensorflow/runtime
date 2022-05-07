@@ -249,8 +249,8 @@ struct EncodedString {
 };
 
 struct EncodedMemref {
-  uintptr_t element_type_id;
-  int64_t rank;
+  uint8_t dtype;
+  uint8_t rank;
   void* descriptor;
 };
 
@@ -576,22 +576,6 @@ class CustomCallHandler : public CustomCall {
 // Custom arguments attributes decoding.
 
 namespace internal {
-LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::FailureOr<DType> ElementTypeIdToDType(
-    mlir::TypeID type_id) {
-  // f32 is by far the most popular data type in ML models, check it first!
-  if (LLVM_LIKELY(mlir::TypeID::get<Tagged<float>>() == type_id))
-    return DType::F32;
-
-  if (mlir::TypeID::get<Tagged<uint8_t>>() == type_id) return DType::UI8;
-  if (mlir::TypeID::get<Tagged<uint32_t>>() == type_id) return DType::UI32;
-  if (mlir::TypeID::get<Tagged<uint64_t>>() == type_id) return DType::UI64;
-  if (mlir::TypeID::get<Tagged<int32_t>>() == type_id) return DType::I32;
-  if (mlir::TypeID::get<Tagged<int64_t>>() == type_id) return DType::I64;
-  if (mlir::TypeID::get<Tagged<double>>() == type_id) return DType::F64;
-
-  assert(false && "unsupported data type");
-  return mlir::failure();
-}
 
 template <typename T, int rank>
 int64_t NumElements(StridedMemRefType<T, rank>* memref) {
@@ -612,16 +596,6 @@ ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
 
 template <typename T>
 ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
-  return {};
-}
-
-template <typename T, int rank>
-ArrayRef<int64_t> Strides(StridedMemRefType<T, rank>* memref) {
-  return llvm::makeArrayRef(memref->strides);
-}
-
-template <typename T>
-ArrayRef<int64_t> Strides(StridedMemRefType<T, 0>* memref) {
   return {};
 }
 
@@ -655,7 +629,6 @@ struct MemrefView {
   void* data;
   int64_t offset;
   ArrayRef<int64_t> sizes;
-  ArrayRef<int64_t> strides;
 };
 
 // A flat view into the memref argument. If the memref shapes is not required
@@ -687,17 +660,10 @@ struct CustomCallArgDecoding<MemrefView> {
     LLVM_ATTRIBUTE_ALWAYS_INLINE
     static mlir::FailureOr<MemrefView> decode(EncodedMemref* encoded) {
       using Descriptor = ::StridedMemRefType<float, rank>;
-
-      // Get the memref element data type.
-      void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
-      mlir::TypeID element_type_id = mlir::TypeID::getFromOpaquePointer(opaque);
-      auto dtype = internal::ElementTypeIdToDType(element_type_id);
-      if (LLVM_UNLIKELY(mlir::failed(dtype))) return mlir::failure();
-
+      DType dtype = static_cast<DType>(encoded->dtype);
       auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
-      return MemrefView{*dtype, descriptor->data, descriptor->offset,
-                        internal::Sizes(descriptor),
-                        internal::Strides(descriptor)};
+      return MemrefView{dtype, descriptor->data, descriptor->offset,
+                        internal::Sizes(descriptor)};
     }
   };
 };
@@ -721,16 +687,10 @@ struct CustomCallArgDecoding<FlatMemrefView> {
     LLVM_ATTRIBUTE_ALWAYS_INLINE
     static mlir::FailureOr<FlatMemrefView> decode(EncodedMemref* encoded) {
       using Descriptor = ::StridedMemRefType<float, rank>;
-
-      // Get the memref element data type.
-      void* opaque = reinterpret_cast<void*>(encoded->element_type_id);
-      mlir::TypeID element_type_id = mlir::TypeID::getFromOpaquePointer(opaque);
-      auto dtype = internal::ElementTypeIdToDType(element_type_id);
-      if (LLVM_UNLIKELY(mlir::failed(dtype))) return mlir::failure();
-
+      DType dtype = static_cast<DType>(encoded->dtype);
       auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
-      int64_t size = GetHostSize(*dtype) * internal::NumElements(descriptor);
-      return FlatMemrefView{*dtype, descriptor->data, size};
+      int64_t size = GetHostSize(dtype) * internal::NumElements(descriptor);
+      return FlatMemrefView{dtype, descriptor->data, size};
     }
   };
 };

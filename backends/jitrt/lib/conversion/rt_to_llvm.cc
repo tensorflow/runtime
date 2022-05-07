@@ -437,6 +437,21 @@ static TypeID ScalarRuntimeTypeId(Type type) {
   return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
 }
 
+static DType ScalarDType(Type type) {
+  if (type.isUnsignedInteger(8)) return DType::UI8;
+  if (type.isUnsignedInteger(32)) return DType::UI32;
+  if (type.isUnsignedInteger(64)) return DType::UI64;
+
+  if (type.isInteger(32)) return DType::I32;
+  if (type.isInteger(64)) return DType::I64;
+
+  if (type.isF32()) return DType::F32;
+  if (type.isF64()) return DType::F64;
+
+  assert(false && "unsupported type id");
+  return DType::Invalid;
+}
+
 static TypeID ArrayRuntimeTypeId(Type shaped) {
   auto type = shaped.cast<ShapedType>().getElementType();
   assert(shaped.cast<ShapedType>().getRank() == 1 && "unsupported rank");
@@ -655,31 +670,30 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
   }
 
  private:
-  // Encodes memref as the LLVM structure value: type id (i64), rank (i64) and a
+  // Encodes memref as the LLVM structure value: dtype (i8), rank (i8) and a
   // pointer to the strided memref descriptor (ptr<i8>).
   Value EncodeMemRef(ImplicitLocOpBuilder &b, MemRefType memref_ty,
                      Value descriptor) const {
     MLIRContext *ctx = b.getContext();
 
-    // Encoded memref type: !llvm.struct<(i64, i64, ptr<i8>)>.
-    Type i64 = b.getI64Type();
+    // Encoded memref type: !llvm.struct<(i8, i8, ptr<i8>)>.
+    Type i8 = b.getI8Type();
     Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
-    Type type = LLVM::LLVMStructType::getLiteral(ctx, {i64, i64, ptr});
+    Type type = LLVM::LLVMStructType::getLiteral(ctx, {i8, i8, ptr});
 
-    TypeID runtime_type_id = ScalarRuntimeTypeId(memref_ty.getElementType());
+    DType element_dtype = ScalarDType(memref_ty.getElementType());
 
     // Create values for filling encoded memref struct.
-    Value type_id = b.create<ConstantOp>(
-        b.getI64IntegerAttr(reinterpret_cast<std::uintptr_t>(
-            runtime_type_id.getAsOpaquePointer())));
-    Value rank = b.create<ConstantOp>(b.getI64IntegerAttr(memref_ty.getRank()));
+    Value dtype = b.create<ConstantOp>(
+        b.getI8IntegerAttr(static_cast<uint8_t>(element_dtype)));
+    Value rank = b.create<ConstantOp>(b.getI8IntegerAttr(memref_ty.getRank()));
     Value desc = b.create<LLVM::BitcastOp>(ptr, PackValue(b, descriptor));
 
     auto offset = [&](int64_t i) { return b.getI64ArrayAttr(i); };
 
     // Create undef value for encoded memref.
     Value memref = b.create<LLVM::UndefOp>(type);
-    memref = b.create<LLVM::InsertValueOp>(type, memref, type_id, offset(0));
+    memref = b.create<LLVM::InsertValueOp>(type, memref, dtype, offset(0));
     memref = b.create<LLVM::InsertValueOp>(type, memref, rank, offset(1));
     memref = b.create<LLVM::InsertValueOp>(type, memref, desc, offset(2));
 

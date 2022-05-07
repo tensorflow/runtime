@@ -147,6 +147,66 @@ class MapByType {
   llvm::SmallVector<std::unique_ptr<StorageBase>> data_;
 };
 
+// Optimized MapByType container for storing pointers to data.
+//
+// In contrast to the MapByType the `const T` and `T` are different keys,
+// because the data is not owned by this container, and we can't just cast const
+// pointer to the non-const pointer.
+template <typename IdSet>
+class PtrMapByType {
+ public:
+  template <typename T>
+  T* insert(T* value) {
+    size_t id = getTypeId<T>();
+    if (id >= data_.size()) data_.resize(id + 1);
+    data_[id] = const_cast<std::decay_t<T>*>(value);
+    return value;
+  }
+
+  template <typename... Ts>
+  void insert_all(Ts*... values) {
+    static constexpr size_t n = sizeof...(Ts);
+    if (n == 0) return;
+
+    // Resize the `data_` to prepare the storage for inserted values.
+    std::array<size_t, n> ids = {getTypeId<Ts>()...};
+    data_.resize(1 + *std::max_element(ids.begin(), ids.end()), nullptr);
+
+    // Insert all values into the map.
+    // TODO(ezhulenev): C++17: (insert<Ts>(std::forward<Ts>(values)), ...);
+    std::tuple<Ts*...> ptrs = {insert<Ts>(values)...};
+    (void)ptrs;
+  }
+
+  template <typename T>
+  T* get() const {
+    size_t id = getTypeId<T>();
+    assert(id < data_.size());
+    return reinterpret_cast<T*>(data_[id]);
+  }
+
+  template <typename T>
+  T* getIfExists() const {
+    size_t id = getTypeId<T>();
+    return LLVM_LIKELY(id < data_.size()) ? reinterpret_cast<T*>(data_[id])
+                                          : nullptr;
+  }
+
+  template <typename T>
+  bool contains() const {
+    size_t id = getTypeId<T>();
+    return id < data_.size() && data_[id] != nullptr;
+  }
+
+ private:
+  template <typename T>
+  static size_t getTypeId() {
+    return DenseTypeId<IdSet>::template get<T>();
+  }
+
+  llvm::SmallVector<void*> data_;
+};
+
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_MAP_BY_TYPE_H_

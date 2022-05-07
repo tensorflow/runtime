@@ -118,6 +118,28 @@ TEST(MapByTypeTest, DestructorCount) {
   EXPECT_EQ(destruct_count, 1);
 }
 
+TEST(PtrMapByTypeTest, Basic) {
+  PtrMapByType<MapTag> map;
+  EXPECT_FALSE(map.contains<int32_t>());
+
+  int32_t i32 = 1;
+  map.insert(&i32);
+
+  EXPECT_TRUE(map.contains<int32_t>());
+  EXPECT_FALSE(map.contains<const int>());
+  EXPECT_EQ(*map.get<int32_t>(), 1);
+
+  EXPECT_EQ(map.getIfExists<int64_t>(), nullptr);
+  EXPECT_EQ(*map.getIfExists<int32_t>(), 1);
+  EXPECT_EQ(map.getIfExists<int32_t>(), &i32);
+
+  const int32_t ci32 = 2;
+  map.insert(&ci32);
+
+  EXPECT_TRUE(map.contains<const int32_t>());
+  EXPECT_EQ(*map.get<const int32_t>(), 2);
+}
+
 // -------------------------------------------------------------------------- //
 // Performance benchmarks are below.
 // -------------------------------------------------------------------------- //
@@ -168,10 +190,46 @@ static void BM_InsertAndGetOpt(benchmark::State& state) {
   }
 }
 
+static void BM_InsertAndGetPtrs(benchmark::State& state) {
+  int32_t i32 = 1;
+  int64_t i64 = 1;
+  float f32 = 1.0;
+  double f64 = 1.0;
+
+  for (auto _ : state) {
+    PtrMapByType<MapTag> map;
+    map.insert_all(&i32, &i64, &f32, &f64);
+    benchmark::DoNotOptimize(map);
+    benchmark::DoNotOptimize(map.getIfExists<int32_t>());
+    benchmark::DoNotOptimize(map.getIfExists<int64_t>());
+    benchmark::DoNotOptimize(map.getIfExists<float>());
+    benchmark::DoNotOptimize(map.getIfExists<double>());
+  }
+}
+
+static void BM_InsertAndGetOptPtrs(benchmark::State& state) {
+  int32_t i32 = 1;
+  int64_t i64 = 1;
+  float f32 = 1.0;
+  double f64 = 1.0;
+
+  for (auto _ : state) {
+    PtrMapByType<OptimizedMapTag> map;
+    map.insert_all(&i32, &i64, &f32, &f64);
+    benchmark::DoNotOptimize(map);
+    benchmark::DoNotOptimize(map.getIfExists<int32_t>());
+    benchmark::DoNotOptimize(map.getIfExists<int64_t>());
+    benchmark::DoNotOptimize(map.getIfExists<float>());
+    benchmark::DoNotOptimize(map.getIfExists<double>());
+  }
+}
+
 BENCHMARK(BM_Insert);
 BENCHMARK(BM_InsertAll);
 BENCHMARK(BM_InsertAndGet);
 BENCHMARK(BM_InsertAndGetOpt);
+BENCHMARK(BM_InsertAndGetPtrs);
+BENCHMARK(BM_InsertAndGetOptPtrs);
 
 }  // namespace
 }  // namespace tfrt

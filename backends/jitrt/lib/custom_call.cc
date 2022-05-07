@@ -26,7 +26,6 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
-#include "mlir/ExecutionEngine/CRunnerUtils.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -41,7 +40,7 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefView& view) {
     os << "]";
   };
 
-  os << "MemrefView: dtype: " << view.dtype << " offset: " << view.offset;
+  os << "MemrefView: dtype: " << view.dtype;
   print_arr("sizes", view.sizes);
 
   return os;

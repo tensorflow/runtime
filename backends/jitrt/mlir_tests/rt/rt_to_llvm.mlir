@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s --dump-input=always
+// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s
 
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
@@ -187,28 +187,31 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : f32) {
 
 // CHECK: func @custom_call(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
-// CHECK:   %[[ARG:.*]]: memref<?xf32>
+// CHECK:   %[[ARG:.*]]: memref<?x256xf32>
 // CHECK: )
-func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?xf32>) {
+func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?x256xf32>) {
 
   // CHECK: %[[DESC:.*]] = builtin.unrealized_conversion_cast %[[ARG]]
   // CHECK-SAME: to !llvm.struct
 
   // CHECK: %[[TYPE_ID:.*]] = llvm.inttoptr
 
-  // CHECK: %[[C1:.*]] = arith.constant 1 : i32
-  // CHECK: %[[MEM:.*]] = llvm.alloca %[[C1]] x !llvm.struct
-  // CHECK: llvm.store %[[DESC]], %[[MEM]]
+  // CHECK: llvm.mlir.undef : !llvm.array<2 x i64>
+  // CHECK-NEXT: llvm.extractvalue %[[DESC]][3, 0]
+  // CHECK-NEXT: llvm.insertvalue
+  // CHECK-NEXT: arith.constant 256 : i64
+  // CHECK-NEXT: %[[SIZES:.*]] = llvm.insertvalue
 
-  // CHECK: llvm.mlir.undef : !llvm.struct<(i8, i8, ptr<i8>)>
+  // llvm.mlir.undef : !llvm.struct<(i8, i8, ptr<i8>, array<2 x i64>)>
   // CHECK: llvm.insertvalue
   // CHECK: llvm.insertvalue
   // CHECK: llvm.insertvalue
+  // CHECK: llvm.insertvalue %[[SIZES]]
 
   // CHECK: %[[N_ARGS:.*]] = llvm.mlir.addressof @__rt_num_args
 
   // CHECK: call @runtimeCustomCall
-  rt.custom_call %arg0["target"] (%arg1) : (memref<?xf32>) -> ()
+  rt.custom_call %arg0["target"] (%arg1) : (memref<?x256xf32>) -> ()
   func.return
 }
 

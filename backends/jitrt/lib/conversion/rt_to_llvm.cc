@@ -58,6 +58,7 @@ using mlir::IntegerType;
 using mlir::LLVMTypeConverter;
 using mlir::Location;
 using mlir::LogicalResult;
+using mlir::MemRefDescriptor;
 using mlir::MemRefType;
 using mlir::MLIRContext;
 using mlir::ModuleOp;
@@ -670,16 +671,25 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
   }
 
  private:
-  // Encodes memref as the LLVM structure value: dtype (i8), rank (i8) and a
-  // pointer to the strided memref descriptor (ptr<i8>).
+  // Encodes memref as LLVM struct value:
+  //
+  //   { i8: dtype, i8: rank, ptr<i8>: data, array<rank x i64>: sizes }
+  //
+  // This is a type erased version of the MLIR memref descriptor without base
+  // pointer, offset and strides.
   Value EncodeMemRef(ImplicitLocOpBuilder &b, MemRefType memref_ty,
                      Value descriptor) const {
     MLIRContext *ctx = b.getContext();
+    Location loc = b.getLoc();
 
-    // Encoded memref type: !llvm.struct<(i8, i8, ptr<i8>)>.
+    // Encoded memref type: !llvm.struct<(i8, i8, ptr<i8>, array<rank x i64>)>.
     Type i8 = b.getI8Type();
     Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
-    Type type = LLVM::LLVMStructType::getLiteral(ctx, {i8, i8, ptr});
+    Type arr = LLVM::LLVMArrayType::get(b.getI64Type(), memref_ty.getRank());
+    Type type = LLVM::LLVMStructType::getLiteral(ctx, {i8, i8, ptr, arr});
+
+    // Helper to unpack MLIR strided memref descriptor value.
+    MemRefDescriptor desc(descriptor);
 
     DType element_dtype = ScalarDType(memref_ty.getElementType());
 
@@ -687,15 +697,26 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
     Value dtype = b.create<ConstantOp>(
         b.getI8IntegerAttr(static_cast<uint8_t>(element_dtype)));
     Value rank = b.create<ConstantOp>(b.getI8IntegerAttr(memref_ty.getRank()));
-    Value desc = b.create<LLVM::BitcastOp>(ptr, PackValue(b, descriptor));
+    Value data = b.create<LLVM::BitcastOp>(ptr, desc.alignedPtr(b, loc));
 
     auto offset = [&](int64_t i) { return b.getI64ArrayAttr(i); };
 
-    // Create undef value for encoded memref.
+    // Build encoded memref sizes: !llvm.array<rank x i64>
+    Value sizes = b.create<LLVM::UndefOp>(arr);
+    for (unsigned i = 0; i < memref_ty.getRank(); ++i) {
+      int64_t dim_size = memref_ty.getDimSize(i);
+      Value dim = ShapedType::isDynamic(dim_size)
+                      ? desc.size(b, loc, i)
+                      : b.create<ConstantOp>(b.getI64IntegerAttr(dim_size));
+      sizes = b.create<LLVM::InsertValueOp>(arr, sizes, dim, offset(i));
+    }
+
+    // Construct encoded memref value.
     Value memref = b.create<LLVM::UndefOp>(type);
     memref = b.create<LLVM::InsertValueOp>(type, memref, dtype, offset(0));
     memref = b.create<LLVM::InsertValueOp>(type, memref, rank, offset(1));
-    memref = b.create<LLVM::InsertValueOp>(type, memref, desc, offset(2));
+    memref = b.create<LLVM::InsertValueOp>(type, memref, data, offset(2));
+    memref = b.create<LLVM::InsertValueOp>(type, memref, sizes, offset(3));
 
     return memref;
   }

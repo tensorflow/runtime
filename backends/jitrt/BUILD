@@ -300,7 +300,6 @@ tfrt_cc_library(
         ":types",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:mlir_c_runner_utils",
         "@tf_runtime//:dtype",
         "@tf_runtime//:support",
     ],

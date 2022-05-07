@@ -29,7 +29,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
-#include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
@@ -294,13 +293,14 @@ struct EncodedString {
 struct EncodedMemref {
   uint8_t dtype;
   uint8_t rank;
-  void* descriptor;
+  void* data;
+  int64_t dims[];
 };
 
 template <typename T>
 struct EncodedArray {
   int64_t size;
-  T data;
+  T data[];
 };
 
 }  // namespace internal
@@ -632,59 +632,11 @@ class CustomCallHandler : public CustomCall {
 // -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.
 
-namespace internal {
-
-template <typename T, int rank>
-int64_t NumElements(StridedMemRefType<T, rank>* memref) {
-  int64_t num_elements = 1;
-  for (int d = 0; d < rank; ++d) num_elements *= memref->sizes[d];
-  return num_elements;
-}
-
-template <typename T>
-int64_t NumElements(StridedMemRefType<T, 0>* memref) {
-  return 0;
-}
-
-template <typename T, int rank>
-ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
-  return llvm::makeArrayRef(memref->sizes);
-}
-
-template <typename T>
-ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
-  return {};
-}
-
-template <typename T, template <int64_t> class Decoding>
-LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::FailureOr<T> DecodeMemref(
-    EncodedMemref* encoded) {
-  switch (encoded->rank) {
-    case 0:
-      return Decoding<0>::decode(encoded);
-    case 1:
-      return Decoding<1>::decode(encoded);
-    case 2:
-      return Decoding<2>::decode(encoded);
-    case 3:
-      return Decoding<3>::decode(encoded);
-    case 4:
-      return Decoding<4>::decode(encoded);
-    case 5:
-      return Decoding<5>::decode(encoded);
-    default:
-      assert(false && "unsupported memref rank");
-      return mlir::failure();
-  }
-}
-}  // namespace internal
-
 // A view into the memref argument. Corresponds to the MemrefView, however it
 // doesn't own the sizes/strides vectors, and cheap to pass around.
 struct MemrefView {
   tfrt::DType dtype;
   void* data;
-  int64_t offset;
   ArrayRef<int64_t> sizes;
 };
 
@@ -709,20 +661,9 @@ struct CustomCallArgDecoding<MemrefView, checks> {
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
-    return internal::DecodeMemref<MemrefView, Impl>(encoded);
+    DType dtype = static_cast<DType>(encoded->dtype);
+    return MemrefView{dtype, encoded->data, {encoded->dims, encoded->rank}};
   }
-
-  template <int64_t rank>
-  struct Impl {
-    LLVM_ATTRIBUTE_ALWAYS_INLINE
-    static mlir::FailureOr<MemrefView> decode(EncodedMemref* encoded) {
-      using Descriptor = ::StridedMemRefType<float, rank>;
-      DType dtype = static_cast<DType>(encoded->dtype);
-      auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
-      return MemrefView{dtype, descriptor->data, descriptor->offset,
-                        internal::Sizes(descriptor)};
-    }
-  };
 };
 
 template <CustomCall::RuntimeChecks checks>
@@ -736,32 +677,23 @@ struct CustomCallArgDecoding<FlatMemrefView, checks> {
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
-    return internal::DecodeMemref<FlatMemrefView, Impl>(encoded);
+    DType dtype = static_cast<DType>(encoded->dtype);
+    int64_t size_in_bytes = GetHostSize(dtype);
+    for (int d = 0; d < encoded->rank; ++d) size_in_bytes *= encoded->dims[d];
+    return FlatMemrefView{dtype, encoded->data, size_in_bytes};
   }
-
-  template <int64_t rank>
-  struct Impl {
-    LLVM_ATTRIBUTE_ALWAYS_INLINE
-    static mlir::FailureOr<FlatMemrefView> decode(EncodedMemref* encoded) {
-      using Descriptor = ::StridedMemRefType<float, rank>;
-      DType dtype = static_cast<DType>(encoded->dtype);
-      auto* descriptor = reinterpret_cast<Descriptor*>(encoded->descriptor);
-      int64_t size = GetHostSize(dtype) * internal::NumElements(descriptor);
-      return FlatMemrefView{dtype, descriptor->data, size};
-    }
-  };
 };
 
-#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                                \
-  template <CustomCall::RuntimeChecks checks>                                \
-  struct CustomCallArgDecoding<T, checks> {                                  \
-    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode(           \
-        mlir::TypeID type_id, void* value) {                                 \
-      if (LLVM_UNLIKELY(!CustomCall::CheckType<Tagged<T>>(checks, type_id))) \
-        return mlir::failure();                                              \
-                                                                             \
-      return *reinterpret_cast<T*>(value);                                   \
-    }                                                                        \
+#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                      \
+  template <CustomCall::RuntimeChecks checks>                      \
+  struct CustomCallArgDecoding<T, checks> {                        \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode( \
+        mlir::TypeID type_id, void* value) {                       \
+      if (!CustomCall::CheckType<Tagged<T>>(checks, type_id))      \
+        return mlir::failure();                                    \
+                                                                   \
+      return *reinterpret_cast<T*>(value);                         \
+    }                                                              \
   }
 
 JITRT_REGISTER_SCALAR_ARG_DECODING(int32_t);
@@ -816,7 +748,7 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
         return mlir::failure();                                              \
                                                                              \
       auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);   \
-      return ArrayRef<T>(&encoded->data, encoded->size);                     \
+      return ArrayRef<T>(encoded->data, encoded->size);                      \
     }                                                                        \
   }
 

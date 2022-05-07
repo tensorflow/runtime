@@ -423,15 +423,15 @@ static bool IsSupportedShapedType(ShapedType shape) {
 }
 
 static TypeID ScalarRuntimeTypeId(Type type) {
-  if (type.isUnsignedInteger(8)) return TypeID::get<uint8_t>();
-  if (type.isUnsignedInteger(32)) return TypeID::get<uint32_t>();
-  if (type.isUnsignedInteger(64)) return TypeID::get<uint64_t>();
+  if (type.isUnsignedInteger(8)) return TypeID::get<Tagged<uint8_t>>();
+  if (type.isUnsignedInteger(32)) return TypeID::get<Tagged<uint32_t>>();
+  if (type.isUnsignedInteger(64)) return TypeID::get<Tagged<uint64_t>>();
 
-  if (type.isInteger(32)) return TypeID::get<int32_t>();
-  if (type.isInteger(64)) return TypeID::get<int64_t>();
+  if (type.isInteger(32)) return TypeID::get<Tagged<int32_t>>();
+  if (type.isInteger(64)) return TypeID::get<Tagged<int64_t>>();
 
-  if (type.isF32()) return TypeID::get<float>();
-  if (type.isF64()) return TypeID::get<double>();
+  if (type.isF32()) return TypeID::get<Tagged<float>>();
+  if (type.isF64()) return TypeID::get<Tagged<double>>();
 
   assert(false && "unsupported type id");
   return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
@@ -441,10 +441,10 @@ static TypeID ArrayRuntimeTypeId(Type shaped) {
   auto type = shaped.cast<ShapedType>().getElementType();
   assert(shaped.cast<ShapedType>().getRank() == 1 && "unsupported rank");
 
-  if (type.isInteger(32)) return TypeID::get<ArrayRef<int32_t>>();
-  if (type.isInteger(64)) return TypeID::get<ArrayRef<int64_t>>();
-  if (type.isF32()) return TypeID::get<ArrayRef<float>>();
-  if (type.isF64()) return TypeID::get<ArrayRef<double>>();
+  if (type.isInteger(32)) return TypeID::get<Tagged<ArrayRef<int32_t>>>();
+  if (type.isInteger(64)) return TypeID::get<Tagged<ArrayRef<int64_t>>>();
+  if (type.isF32()) return TypeID::get<Tagged<ArrayRef<float>>>();
+  if (type.isF64()) return TypeID::get<Tagged<ArrayRef<double>>>();
 
   assert(false && "unsupported type id");
   return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
@@ -571,7 +571,7 @@ struct StringAttrEncoding : public CustomCallAttrEncoding {
 
     Encoded encoded;
     encoded.name = PackString(g, b, name, kAttrName);
-    encoded.type_id = PackTypeId(g, b, TypeID::get<llvm::StringRef>());
+    encoded.type_id = PackTypeId(g, b, TypeID::get<Tagged<llvm::StringRef>>());
     encoded.value = PackString(g, b, str, kAttrValue);
     return encoded;
   }
@@ -648,7 +648,7 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
     auto memref_type = value.getType().cast<MemRefType>();
 
     Encoded encoded;
-    encoded.type_id = PackTypeId(g, b, TypeID::get<MemrefView>());
+    encoded.type_id = PackTypeId(g, b, TypeID::get<Tagged<MemrefView>>());
     encoded.value = PackValue(b, EncodeMemRef(b, memref_type, converted));
 
     return encoded;

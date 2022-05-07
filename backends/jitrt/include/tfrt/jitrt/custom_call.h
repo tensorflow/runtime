@@ -117,13 +117,13 @@ struct UserData {};
 
 // A template for checking if type is a wrapped attribute or user data.
 template <typename>
-struct IsTagged : std::false_type {};
+struct IsWrapped : std::false_type {};
 
 template <typename T>
-struct IsTagged<internal::Attr<T>> : std::true_type {};
+struct IsWrapped<internal::Attr<T>> : std::true_type {};
 
 template <typename T>
-struct IsTagged<internal::UserData<T>> : std::true_type {};
+struct IsWrapped<internal::UserData<T>> : std::true_type {};
 
 // Checks if remaining arguments are in the parameter pack.
 template <typename... Ts>
@@ -228,6 +228,14 @@ struct CustomCallArgDecoding;
 //
 template <typename T>
 struct CustomCallAttrDecoding;
+
+// A type tag to declare MLIR TypeID specializations for types passed to the
+// custom calls. We don't want to declare specializations for scalar types
+// directly in this translation unit, so we rely on a tag to wrap them.
+//
+// See explicit TypeID declarations at the end of this file.
+template <typename T>
+struct Tagged {};
 
 // -------------------------------------------------------------------------- //
 // C structures corresponding to the `rt-to-llvm` pass LLVM structs encoding
@@ -342,7 +350,7 @@ class CustomCall::RemainingArgs {
 
   template <typename T>
   bool isa(size_t index) const {
-    return args_[index + offset_].type_id == mlir::TypeID::get<T>();
+    return args_[index + offset_].type_id == mlir::TypeID::get<Tagged<T>>();
   }
 
   template <typename T>
@@ -391,12 +399,12 @@ struct FnArgType<internal::UserData<T>> {
 // A template for counting regular arguments in the Ts pack.
 template <typename T, typename... Ts>
 struct NumArgs {
-  static constexpr int64_t value = !IsTagged<T>::value + NumArgs<Ts...>::value;
+  static constexpr int64_t value = !IsWrapped<T>::value + NumArgs<Ts...>::value;
 };
 
 template <typename T>
 struct NumArgs<T> {
-  static constexpr int64_t value = !IsTagged<T>::value;
+  static constexpr int64_t value = !IsWrapped<T>::value;
 };
 
 // When decoding input data we need to keep track of how many arguments and
@@ -576,14 +584,15 @@ namespace internal {
 LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::FailureOr<DType> ElementTypeIdToDType(
     mlir::TypeID type_id) {
   // f32 is by far the most popular data type in ML models, check it first!
-  if (LLVM_LIKELY(mlir::TypeID::get<float>() == type_id)) return DType::F32;
+  if (LLVM_LIKELY(mlir::TypeID::get<Tagged<float>>() == type_id))
+    return DType::F32;
 
-  if (mlir::TypeID::get<uint8_t>() == type_id) return DType::UI8;
-  if (mlir::TypeID::get<uint32_t>() == type_id) return DType::UI32;
-  if (mlir::TypeID::get<uint64_t>() == type_id) return DType::UI64;
-  if (mlir::TypeID::get<int32_t>() == type_id) return DType::I32;
-  if (mlir::TypeID::get<int64_t>() == type_id) return DType::I64;
-  if (mlir::TypeID::get<double>() == type_id) return DType::F64;
+  if (mlir::TypeID::get<Tagged<uint8_t>>() == type_id) return DType::UI8;
+  if (mlir::TypeID::get<Tagged<uint32_t>>() == type_id) return DType::UI32;
+  if (mlir::TypeID::get<Tagged<uint64_t>>() == type_id) return DType::UI64;
+  if (mlir::TypeID::get<Tagged<int32_t>>() == type_id) return DType::I32;
+  if (mlir::TypeID::get<Tagged<int64_t>>() == type_id) return DType::I64;
+  if (mlir::TypeID::get<Tagged<double>>() == type_id) return DType::F64;
 
   assert(false && "unsupported data type");
   return mlir::failure();
@@ -671,7 +680,7 @@ struct CustomCallArgDecoding<MemrefView> {
 
   LLVM_ATTRIBUTE_ALWAYS_INLINE
   static mlir::FailureOr<MemrefView> Decode(mlir::TypeID type_id, void* value) {
-    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<MemrefView>()))
+    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<Tagged<MemrefView>>()))
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
@@ -705,7 +714,7 @@ struct CustomCallArgDecoding<FlatMemrefView> {
   LLVM_ATTRIBUTE_ALWAYS_INLINE
   static mlir::FailureOr<FlatMemrefView> Decode(mlir::TypeID type_id,
                                                 void* value) {
-    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<MemrefView>()))
+    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<Tagged<MemrefView>>()))
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
@@ -731,15 +740,15 @@ struct CustomCallArgDecoding<FlatMemrefView> {
   };
 };
 
-#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                      \
-  template <>                                                      \
-  struct CustomCallArgDecoding<T> {                                \
-    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode( \
-        mlir::TypeID type_id, void* value) {                       \
-      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<T>()))        \
-        return mlir::failure();                                    \
-      return *reinterpret_cast<T*>(value);                         \
-    }                                                              \
+#define JITRT_REGISTER_SCALAR_ARG_DECODING(T)                       \
+  template <>                                                       \
+  struct CustomCallArgDecoding<T> {                                 \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode(  \
+        mlir::TypeID type_id, void* value) {                        \
+      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<Tagged<T>>())) \
+        return mlir::failure();                                     \
+      return *reinterpret_cast<T*>(value);                          \
+    }                                                               \
   }
 
 JITRT_REGISTER_SCALAR_ARG_DECODING(int32_t);
@@ -756,22 +765,22 @@ template <>
 struct CustomCallAttrDecoding<llvm::StringRef> {
   LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<llvm::StringRef> Decode(
       llvm::StringRef name, mlir::TypeID type_id, void* value) {
-    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<llvm::StringRef>()))
+    if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<Tagged<llvm::StringRef>>()))
       return mlir::failure();
     auto* encoded = reinterpret_cast<internal::EncodedString*>(value);
     return llvm::StringRef(encoded->data, encoded->size);
   }
 };
 
-#define JITRT_REGISTER_SCALAR_ATTR_DECODING(T)                     \
-  template <>                                                      \
-  struct CustomCallAttrDecoding<T> {                               \
-    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode( \
-        llvm::StringRef name, mlir::TypeID type_id, void* value) { \
-      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<T>()))        \
-        return mlir::failure();                                    \
-      return *reinterpret_cast<T*>(value);                         \
-    }                                                              \
+#define JITRT_REGISTER_SCALAR_ATTR_DECODING(T)                      \
+  template <>                                                       \
+  struct CustomCallAttrDecoding<T> {                                \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode(  \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {  \
+      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<Tagged<T>>())) \
+        return mlir::failure();                                     \
+      return *reinterpret_cast<T*>(value);                          \
+    }                                                               \
   }
 
 JITRT_REGISTER_SCALAR_ATTR_DECODING(int32_t);
@@ -781,16 +790,16 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_SCALAR_ATTR_DECODING
 
-#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                \
-  template <>                                                                \
-  struct CustomCallAttrDecoding<ArrayRef<T>> {                               \
-    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode( \
-        llvm::StringRef name, mlir::TypeID type_id, void* value) {           \
-      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<ArrayRef<T>>()))        \
-        return mlir::failure();                                              \
-      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);   \
-      return ArrayRef<T>(&encoded->data, encoded->size);                     \
-    }                                                                        \
+#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                 \
+  template <>                                                                 \
+  struct CustomCallAttrDecoding<ArrayRef<T>> {                                \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode(  \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {            \
+      if (LLVM_UNLIKELY(type_id != mlir::TypeID::get<Tagged<ArrayRef<T>>>())) \
+        return mlir::failure();                                               \
+      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);    \
+      return ArrayRef<T>(&encoded->data, encoded->size);                      \
+    }                                                                         \
   }
 
 JITRT_REGISTER_ARRAY_ATTR_DECODING(int32_t);
@@ -800,7 +809,35 @@ JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_ARRAY_ATTR_DECODING
 
+// Declare/define an explicit specialialization for mlir::TypeID for types used
+// by the custom calls. This forces the compiler to emit a strong definition for
+// a class and controls which translation unit and shared object will actually
+// have it.
+//
+// See mlir::TypeID for more documentation.
+//
+// Because custom calls do not "own" the types passed across the function
+// boundary, we declare/define specializations for tagged types to avoid
+// potential conflicts with other libraries.
+#define JITRT_DECLARE_EXPLICIT_TYPE_ID(T) \
+  MLIR_DECLARE_EXPLICIT_TYPE_ID(::tfrt::jitrt::Tagged<T>)
+
+#define JITRT_DEFINE_EXPLICIT_TYPE_ID(T) \
+  MLIR_DEFINE_EXPLICIT_TYPE_ID(::tfrt::jitrt::Tagged<T>)
+
 }  // namespace jitrt
 }  // namespace tfrt
+
+JITRT_DECLARE_EXPLICIT_TYPE_ID(llvm::StringRef);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::FlatMemrefView);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::MemrefView);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(int32_t);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(int64_t);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(float);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(double);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(ArrayRef<int32_t>);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(ArrayRef<int64_t>);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(ArrayRef<float>);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(ArrayRef<double>);
 
 #endif  // TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_CUSTOM_CALL_H_

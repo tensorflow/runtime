@@ -89,3 +89,15 @@ void AddStaticCustomCallRegistration(
 
 }  // namespace jitrt
 }  // namespace tfrt
+
+JITRT_DEFINE_EXPLICIT_TYPE_ID(llvm::StringRef);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::FlatMemrefView);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::MemrefView);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(int32_t);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(int64_t);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(float);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(double);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(ArrayRef<int32_t>);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(ArrayRef<int64_t>);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(ArrayRef<float>);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(ArrayRef<double>);

@@ -456,9 +456,9 @@ struct Decode<internal::UserData<T>> {
       DecodingOffsets& offsets, internal::DecodedArgs args,
       ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
       internal::DecodedAttrs attrs, const CustomCall::UserData* user_data) {
-    if (LLVM_UNLIKELY(!user_data || !user_data->contains<T>()))
-      return mlir::failure();
-    return user_data->get<T>();
+    const T* data = user_data ? user_data->getIfExists<T>() : nullptr;
+    if (LLVM_UNLIKELY(!data)) return mlir::failure();
+    return *data;
   }
 };
 

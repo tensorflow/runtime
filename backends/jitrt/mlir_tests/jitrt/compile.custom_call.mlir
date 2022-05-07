@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
+// RUN: bef_executor %s.bef
+// | FileCheck %s --dump-input=always
 
 module @multiply attributes { tfrt.compiled } {
   func.func private @multiply.cc(%arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>)
@@ -54,6 +55,29 @@ module @print_attrs attributes { tfrt.compiled } {
       mmm = "that custom call only decodes attributes",
       xxx = "defined in the custom call binding and",
       zzz = "ignores everything else"
+    } : () -> ()
+
+    func.return
+  }
+}
+
+// Check that direct custom call handler for "testlib.print_attrs" skips
+// attributes names checks.
+module @direct_print_attrs attributes { tfrt.compiled } {
+  func.func private @print_attrs.cc()
+     attributes { rt.direct_custom_call = "testlib.print_attrs" }
+
+  func.func @main() {
+    func.call @print_attrs.cc() {
+      invalid_attr_name_i32 = 101 : i32,
+      invalid_attr_name_i64 = 102 : i64,
+      invalid_attr_name_f32 = 1.0 : f32,
+      invalid_attr_name_f64 = 2.0 : f64,
+      invalid_attr_name_i32_arr = dense<[101, 102, 103, 104]> : tensor<4xi32>,
+      invalid_attr_name_i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
+      invalid_attr_name_f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
+      invalid_attr_name_f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      invalid_attr_name_str = "some string"
     } : () -> ()
 
     func.return
@@ -179,6 +203,27 @@ func.func @compiled_custom_call_print_attrs() {
   // Check that attributes not in the custom call signature are ignored.
   // CHECK-NOT: unused attributes to test
   %executable = jitrt.compile { kernel = @print_attrs::@main }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_custom_call_direct_print_attrs'
+func.func @compiled_custom_call_direct_print_attrs() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK: Called from: jitrt.execute
+  // CHECK: i32: 101
+  // CHECK: i64: 102
+  // CHECK: f32: 1.000000e+00
+  // CHECK: f64: 2.000000e+00
+  // CHECK: i32[4] 101, 102, 103, 104
+  // CHECK: i64[4] 105, 106, 107, 108
+  // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
+  // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
+  // CHECK: str: some string
+
+  %executable = jitrt.compile { kernel = @direct_print_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

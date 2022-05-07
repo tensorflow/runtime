@@ -145,8 +145,29 @@ static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
                                 .Attr<StringRef>("str")
                                 .Attr<float>("f32")
                                 .Attr<double>("f64")
-                                .To(NoOp)
+                                .To<CustomCall::RuntimeChecks::kNone>(NoOp)
                                 .release();
+
+  return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
+}
+
+// Direct PrintAttrs custom call for testing disabled attributes checks.
+static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
+                             void** attrs) {
+  static CustomCall* call =
+      CustomCall::Bind("testlib.print_attrs")
+          .UserData<const char*>()
+          .Attr<int32_t>("i32")
+          .Attr<int64_t>("i64")
+          .Attr<float>("f32")
+          .Attr<double>("f64")
+          .Attr<ArrayRef<int32_t>>("i32_arr")
+          .Attr<ArrayRef<int64_t>>("i64_arr")
+          .Attr<ArrayRef<float>>("f32_arr")
+          .Attr<ArrayRef<double>>("f64_arr")
+          .Attr<StringRef>("str")
+          .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
+          .release();
 
   return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
 }
@@ -202,6 +223,7 @@ llvm::orc::SymbolMap CustomCallsTestlibSymbolMap(
 
   bind("testlib.direct_call", &DirectCustomCall);
   bind("testlib.noop", &DirectNoOp);
+  bind("testlib.print_attrs", &DirectPrintAttrs);
 
   return symbol_map;
 }

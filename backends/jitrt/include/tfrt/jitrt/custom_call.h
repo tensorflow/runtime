@@ -581,18 +581,20 @@ class CustomCallHandler : public CustomCall {
     // arguments or attributes.
     internal::DecodingOffsets offsets;
 
+    // Check if all arguments and attributes were decoded.
+    bool all_decoded = true;
+    auto check_all_decoded = [&](auto result) {
+      all_decoded &= mlir::succeeded(result);
+      return std::move(result);
+    };
+
     // Decode all arguments into mlir::FailureOr containers. It is guaranteed
     // that initializer list will be evaluated left-to-right, and we can rely
     // on correct offsets computation.
     std::tuple<mlir::FailureOr<FnArgType<Ts>>...> fn_args = {
-        internal::Decode<Ts, checks>::call(offsets, args, attrs_, attrs_idx_,
-                                           attrs, user_data)...};
-
-    // Check that all of them were successfully decoded.
-    std::array<bool, kSize> decoded = {
-        mlir::succeeded(std::get<Is>(fn_args))...};
-    if (LLVM_UNLIKELY(llvm::any_of(decoded, [](bool ok) { return !ok; })))
-      return mlir::failure();
+        check_all_decoded(internal::Decode<Ts, checks>::call(
+            offsets, args, attrs_, attrs_idx_, attrs, user_data))...};
+    if (LLVM_UNLIKELY(!all_decoded)) return mlir::failure();
 
     // Forward unpacked arguments to the callback.
     return fn_(std::move(*std::get<Is>(fn_args))...);

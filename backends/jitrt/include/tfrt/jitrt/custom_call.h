@@ -261,9 +261,7 @@ namespace internal {
 
 // Decodes type id from the opaque argument/attribute pointer.
 LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::TypeID DecodeTypeid(void* type_id) {
-  std::uintptr_t encoded_type_id = *reinterpret_cast<std::uintptr_t*>(type_id);
-  void* opaque_type_id = reinterpret_cast<void*>(encoded_type_id);
-  return mlir::TypeID::getFromOpaquePointer(opaque_type_id);
+  return mlir::TypeID::getFromOpaquePointer(type_id);
 }
 
 // Decoded pair of an argument type and opaque value.

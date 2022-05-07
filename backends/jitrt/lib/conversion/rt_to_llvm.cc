@@ -457,11 +457,13 @@ static Value PackScalarAttribute(Globals &g, ImplicitLocOpBuilder &b,
   return Globals::AddrOf(b, global);
 }
 
-// Packs TypeID as a global constant. Returns `!llvm.ptr<i64>`.
+// Packs TypeID as `i64` constant value and casts it to the `!llvm.ptr<i8>`,
+// because type id internally is implemented as an opaque pointer.
 static Value PackTypeId(Globals &g, ImplicitLocOpBuilder &b, TypeID type_id) {
   auto i64 = reinterpret_cast<std::uintptr_t>(type_id.getAsOpaquePointer());
-  auto global = g.GetOrCreate(b, b.getI64IntegerAttr(i64), "__rt_type_id");
-  return Globals::AddrOf(b, global);
+  auto cst = b.create<ConstantOp>(b.getI64IntegerAttr(i64));
+  auto ptr = LLVM::LLVMPointerType::get(b.getI8Type());
+  return b.create<LLVM::IntToPtrOp>(ptr, cst);
 }
 
 // Packs string as a module global constants. Returns `!llvm.ptr<EncodedStr>`.

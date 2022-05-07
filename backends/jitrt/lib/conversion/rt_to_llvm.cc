@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "mlir/Conversion/LLVMCommon/Pattern.h"
+#include "mlir/Conversion/LLVMCommon/MemRefBuilder.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -46,6 +46,7 @@ namespace {
 
 using llvm::DenseMap;
 
+using mlir::ArrayAttr;
 using mlir::Attribute;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
@@ -142,7 +143,17 @@ struct RuntimeAPI {
 // Adds function declaration if it doesn't already exist.
 static void AddDeclaration(ModuleOp module, StringRef name, FunctionType type) {
   auto b = ImplicitLocOpBuilder::atBlockEnd(module.getLoc(), module.getBody());
-  if (!module.lookupSymbol(name)) b.create<FuncOp>(name, type).setPrivate();
+  if (module.lookupSymbol(name)) return;
+
+  MLIRContext *ctx = module.getContext();
+  FuncOp func = b.create<FuncOp>(name, type);
+  func.setPrivate();
+
+  // TODO(ezhulenev): Add per-argument nocapture attributes, and do not add
+  // global `readonly` once custom calls support returning results.
+  func->setAttr("passthrough",
+                ArrayAttr::get(ctx, {StringAttr::get(ctx, "readonly"),
+                                     StringAttr::get(ctx, "nounwind")}));
 }
 
 // Adds Runtime C API declarations to the module.

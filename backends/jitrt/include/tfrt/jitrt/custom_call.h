@@ -249,7 +249,7 @@ struct EncodedString {
 };
 
 struct EncodedMemref {
-  int64_t element_type_id;
+  uintptr_t element_type_id;
   int64_t rank;
   void* descriptor;
 };
@@ -266,11 +266,6 @@ struct EncodedArray {
 // Helpers for decoding opaque arguments and attributes memory.
 
 namespace internal {
-
-// Decodes type id from the opaque argument/attribute pointer.
-LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::TypeID DecodeTypeid(void* type_id) {
-  return mlir::TypeID::getFromOpaquePointer(type_id);
-}
 
 // Decoded pair of an argument type and opaque value.
 struct DecodedArg {
@@ -297,7 +292,7 @@ class DecodedArgs {
     void** arg_base = args_ + 1 + i * 2;
 
     DecodedArg arg;
-    arg.type_id = DecodeTypeid(arg_base[0]);
+    arg.type_id = mlir::TypeID::getFromOpaquePointer(arg_base[0]);
     arg.value = arg_base[1];
 
     return arg;
@@ -322,7 +317,7 @@ class DecodedAttrs {
     DecodedAttr attr;
     auto* name = reinterpret_cast<internal::EncodedString*>(attr_base[0]);
     attr.name = llvm::StringRef(name->data, name->size);
-    attr.type_id = DecodeTypeid(attr_base[1]);
+    attr.type_id = mlir::TypeID::getFromOpaquePointer(attr_base[1]);
     attr.value = attr_base[2];
 
     return attr;

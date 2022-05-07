@@ -26,11 +26,16 @@ namespace tfrt {
 namespace jitrt {
 namespace {
 
+using llvm::StringRef;
+
 using mlir::Block;
+using mlir::dyn_cast;
 using mlir::FunctionType;
 using mlir::ImplicitLocOpBuilder;
+using mlir::isa_and_nonnull;
 using mlir::MLIRContext;
 using mlir::ModuleOp;
+using mlir::Operation;
 using mlir::StringAttr;
 using mlir::SymbolTable;
 using mlir::Type;
@@ -59,64 +64,77 @@ static void ConvertCustomCallOperations(FuncOp func, Value kernel_ctx) {
 
   SymbolTable sym_table(func->getParentOfType<ModuleOp>());
 
+  struct CustomCall {
+    CallOp call;
+    FuncOp callee;
+    StringRef target;
+    bool direct;
+  };
+
   // Collect function calls that have to be converted to custom calls.
-  llvm::SmallVector<CallOp> calls;
+  llvm::SmallVector<CustomCall> custom_calls;
   func.walk([&](CallOp op) {
-    auto callee = sym_table.lookup(op.getCallee());
-    auto target = callee->getAttrOfType<StringAttr>("rt.custom_call");
-    if (target) calls.push_back(op);
+    if (auto callee = dyn_cast<FuncOp>(sym_table.lookup(op.getCallee()))) {
+      // Check if the call is an indirect custom call ...
+      StringAttr target = callee->getAttrOfType<StringAttr>("rt.custom_call");
+      if (target) custom_calls.push_back({op, callee, target.strref(), false});
+
+      // ... or a direct custom call.
+      target = callee->getAttrOfType<StringAttr>("rt.direct_custom_call");
+      if (target) custom_calls.push_back({op, callee, target.strref(), true});
+    }
   });
 
   // After converting to custom call we need to clean up all declarations.
   llvm::DenseSet<FuncOp> erase_declarations;
 
   // Rewrite function calls to `rt.custom_call` operations.
-  for (CallOp orig : calls) {
-    ImplicitLocOpBuilder b(orig.getLoc(), orig);
-
-    auto callee = mlir::cast<FuncOp>(sym_table.lookup(orig.getCallee()));
-    auto target = callee->getAttrOfType<StringAttr>("rt.custom_call");
+  for (CustomCall custom_call : custom_calls) {
+    ImplicitLocOpBuilder b(custom_call.call.getLoc(), custom_call.call);
 
     // Custom call intrinsic always returns the status flag.
     llvm::SmallVector<Type> results = {StatusType::get(ctx)};
-    results.append(orig->getResultTypes().begin(),
-                   orig->getResultTypes().end());
+    results.append(custom_call.call->getResultTypes().begin(),
+                   custom_call.call->getResultTypes().end());
 
     // Rewrite function call with a custom call, and check the return status.
-    auto call =
-        b.create<CustomCallOp>(results, kernel_ctx, target, orig.getOperands());
+    auto call = b.create<CustomCallOp>(results, kernel_ctx, custom_call.target,
+                                       custom_call.direct,
+                                       custom_call.call.getOperands());
 
     // Copy optional attributes from the custom call function declaration.
-    llvm::ArrayRef<llvm::StringRef> callee_attrs = callee.getAttributeNames();
-    for (auto& attr : callee->getAttrs()) {
-      if (attr.getName() == "rt.custom_call") continue;
+    llvm::ArrayRef<llvm::StringRef> callee_attrs =
+        custom_call.callee.getAttributeNames();
+    for (auto& attr : custom_call.callee->getAttrs()) {
+      if (isa_and_nonnull<RuntimeDialect>(attr.getNameDialect())) continue;
       if (llvm::find(callee_attrs, attr.getName()) == callee_attrs.end())
         call->setAttr(attr.getName(), attr.getValue());
     }
 
     // Copy optional attributes from the call operation to the custom call.
-    llvm::ArrayRef<llvm::StringRef> orig_attrs = orig.getAttributeNames();
-    for (auto& attr : orig->getAttrs()) {
+    llvm::ArrayRef<llvm::StringRef> orig_attrs =
+        custom_call.call.getAttributeNames();
+    for (auto& attr : custom_call.call->getAttrs()) {
       if (llvm::find(orig_attrs, attr.getName()) == orig_attrs.end())
         call->setAttr(attr.getName(), attr.getValue());
     }
 
     b.create<AssertOp>(
         b.create<IsOkOp>(TypeRange(b.getI1Type()), call.status()),
-        b.getStringAttr("custom call '" + target.strref() + "' failed"));
+        b.getStringAttr("custom call '" + custom_call.target + "' failed"));
 
     // Forward users of the original results to custom call results.
-    auto rets =
-        llvm::zip(orig.getResults(), llvm::drop_begin(call.getResults()));
+    auto rets = llvm::zip(custom_call.call.getResults(),
+                          llvm::drop_begin(call.getResults()));
     llvm::for_each(rets, [](auto ret) {
       std::get<0>(ret).replaceAllUsesWith(std::get<1>(ret));
     });
 
     // Keep track of custom call declaration to erase.
-    erase_declarations.insert(callee);
+    erase_declarations.insert(custom_call.callee);
 
     // Erase the original function call operation.
-    orig.erase();
+    custom_call.call.erase();
   }
 
   // Erase all converted custom calls declarations.

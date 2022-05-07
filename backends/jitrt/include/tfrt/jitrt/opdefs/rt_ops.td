@@ -164,11 +164,26 @@ def CustomCallOp : RT_Op<"custom_call"> {
     them into namespaces (similar to MLIR dialects). In this example there is
     an assumption that all OneDnn related custom calls will be registered with
     a `one_dnn` prefix.
+
+    Indirect custom calls are resolved at runtime using the custom calls registry,
+    which incurs additional overheads because the custom call handler has to
+    be looked up by name (expensive string map lookup).
+
+    Direct custom calls are linked to the custom call handler when compiling the
+    JitRt executable, and the user must pass a runtime symbol map (see
+    compilation options in JitRt header) that binds custom call callees to the
+    function pointers implementing the custom call API:
+
+      ```
+      bool OneDnnSomeOpImpl(tfrt::jitrt::runtime::KernelContext* ctx,
+                            void** args, void** attrs);
+      ```
   }];
 
   let arguments = (ins
     KernelContextType:$ctx,
     StrAttr:$callee,
+    UnitAttr:$direct,
     Variadic<AnyType>:$operands
   );
 
@@ -178,7 +193,7 @@ def CustomCallOp : RT_Op<"custom_call"> {
   );
 
   let assemblyFormat = [{
-    $ctx `[` $callee `]`  `(` $operands `)`
+    (`direct` $direct^)? $ctx `[` $callee `]`  `(` $operands `)`
     attr-dict `:` functional-type($operands, $results)
   }];
 }

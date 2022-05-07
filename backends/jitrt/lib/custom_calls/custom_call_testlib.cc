@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
+#include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
+
 #include <string>
 #include <utility>
 
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/runtime.h"
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {
@@ -118,6 +122,35 @@ static LogicalResult PrintMemrefAndVariadicArgs(
   return PrintVariadicArgs(args);
 }
 
+// Custom call handler for testing direct custom call compilation.
+static bool DirectCustomCall(runtime::KernelContext* ctx, void** args,
+                             void** attrs) {
+  internal::DecodedArgs decoded_args(args);
+  internal::DecodedAttrs decoded_attrs(attrs);
+  CustomCall::UserData* user_data = Executable::GetUserData(ctx);
+  auto caller = user_data->getIfExists<const char*>();
+  tfrt::outs() << "Direct custom call: num_args=" << decoded_args.size()
+               << "; num_attrs=" << decoded_attrs.size()
+               << "; str=" << (caller ? *caller : "<unknown>") << "\n";
+  return true;
+}
+
+// Direct NoOp custom call for benchmarking arguments/attributes encoding.
+static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
+  static CustomCall* call = CustomCall::Bind("testlib.noop")
+                                .Arg<FlatMemrefView>()
+                                .Arg<FlatMemrefView>()
+                                .Arg<FlatMemrefView>()
+                                .Arg<FlatMemrefView>()
+                                .Attr<StringRef>("str")
+                                .Attr<float>("f32")
+                                .Attr<double>("f64")
+                                .To(NoOp)
+                                .release();
+
+  return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
+}
+
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("testlib.noop")
                          .Arg<FlatMemrefView>()
@@ -156,6 +189,21 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Arg<MemrefView>()
                          .RemainingArgs()  // variadic args
                          .To(PrintMemrefAndVariadicArgs));
+}
+
+llvm::orc::SymbolMap CustomCallsTestlibSymbolMap(
+    llvm::orc::MangleAndInterner mangle) {
+  llvm::orc::SymbolMap symbol_map;
+
+  auto bind = [&](llvm::StringRef name, auto symbol_ptr) {
+    symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
+        llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
+  };
+
+  bind("testlib.direct_call", &DirectCustomCall);
+  bind("testlib.noop", &DirectNoOp);
+
+  return symbol_map;
 }
 
 }  // namespace jitrt

@@ -128,21 +128,32 @@ struct RuntimeAPI {
     auto i1 = IntegerType::get(ctx, 1);
     return FunctionType::get(ctx, {kernel_context, callee, args, attrs}, {i1});
   }
+
+  static FunctionType DirectCustomCallFunctionType(MLIRContext *ctx) {
+    auto kernel_context = OpaquePointerType(ctx);
+    auto args = CustomCallArgumentsType(ctx);
+    auto attrs = CustomCallAttributesType(ctx);
+    auto i1 = IntegerType::get(ctx, 1);
+    return FunctionType::get(ctx, {kernel_context, args, attrs}, {i1});
+  }
 };
+
+// Adds function declaration if it doesn't already exist.
+static void AddDeclaration(ModuleOp module, StringRef name, FunctionType type) {
+  auto b = ImplicitLocOpBuilder::atBlockEnd(module.getLoc(), module.getBody());
+  if (!module.lookupSymbol(name)) b.create<FuncOp>(name, type).setPrivate();
+}
 
 // Adds Runtime C API declarations to the module.
 static void AddRuntimeApiDeclarations(ModuleOp module) {
-  auto b = ImplicitLocOpBuilder::atBlockEnd(module.getLoc(), module.getBody());
-
-  auto addDecl = [&](StringRef name, FunctionType type) {
-    if (module.lookupSymbol(name)) return;
-    b.create<FuncOp>(name, type).setPrivate();
+  auto add = [&](StringRef name, FunctionType type) {
+    AddDeclaration(module, name, type);
   };
 
   MLIRContext *ctx = module.getContext();
-  addDecl(kGetResultStorage, RuntimeAPI::GetResultStorageFunctionType(ctx));
-  addDecl(kSetError, RuntimeAPI::SetErrorFunctionType(ctx));
-  addDecl(kCustomCall, RuntimeAPI::CustomCallFunctionType(ctx));
+  add(kGetResultStorage, RuntimeAPI::GetResultStorageFunctionType(ctx));
+  add(kSetError, RuntimeAPI::SetErrorFunctionType(ctx));
+  add(kCustomCall, RuntimeAPI::CustomCallFunctionType(ctx));
 }
 
 // -------------------------------------------------------------------------- //
@@ -789,8 +800,10 @@ static FailureOr<Value> EncodeAttributes(Globals &g, ImplicitLocOpBuilder &b,
                                          ArrayRef<NamedAttribute> attrs) {
   using EncodedAttr = std::pair<StringRef, CustomCallAttrEncoding::Encoded>;
 
-  // Callee passed explicitly as a custom call argument.
-  auto skip = [](NamedAttribute attr) { return attr.getName() == "callee"; };
+  // Skip attributes passed explicitly as a custom call argument.
+  auto skip = [](NamedAttribute attr) {
+    return attr.getName() == "callee" || attr.getName() == "direct";
+  };
 
   // In addition to encoded attribues we encode the number of attributes.
   int64_t n_attrs = attrs.size() - llvm::count_if(attrs, skip);
@@ -814,12 +827,13 @@ static FailureOr<Value> EncodeAttributes(Globals &g, ImplicitLocOpBuilder &b,
   Value addr = Globals::AddrOf(b, global);
   Value gep = b.create<LLVM::GEPOp>(ptr_ptr, addr, ValueRange({c0, c0}));
 
+  OpBuilder::InsertionGuard guard(b);
+
   // Create a global constant initializer block.
   mlir::Region &region = global.getInitializerRegion();
   mlir::Block *block = b.createBlock(&region);
 
   // Build attributes encoding inside the initializer block.
-  OpBuilder::InsertionGuard guard(b);
   b.setInsertionPointToStart(block);
 
   llvm::SmallVector<EncodedAttr> encoded;
@@ -880,10 +894,6 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
       ConversionPatternRewriter &rewriter) const override {
     ImplicitLocOpBuilder b(op.getLoc(), rewriter);
 
-    // Get the custom call target (pointer to a null terminated string).
-    auto callee = Globals::OpaqueAddrOf(
-        b, globals_.GetOrCreate(b, op.callee(), "__rt_custom_call_callee"));
-
     // Encode operation arguments as a runtime API arguments.
     auto args = EncodeArguments(globals_, encoded_args_, b, op->getOperands(),
                                 adaptor.getOperands());
@@ -893,11 +903,25 @@ class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {
     auto attrs = EncodeAttributes(globals_, b, op->getAttrs());
     if (failed(attrs)) return op.emitOpError() << "failed to encode attributes";
 
-    // Call runtime API to call the custom call target.
-    auto i1 = rewriter.getI1Type();
-    rewriter.replaceOpWithNewOp<CallOp>(
-        op, kCustomCall, TypeRange(i1),
-        ValueRange({adaptor.ctx(), callee, *args, *attrs}));
+    if (op.direct()) {
+      // Call custom call target directly.
+      auto type = RuntimeAPI::DirectCustomCallFunctionType(op.getContext());
+      AddDeclaration(op->getParentOfType<ModuleOp>(), op.callee(), type);
+
+      rewriter.replaceOpWithNewOp<CallOp>(
+          op, op.callee(), TypeRange(rewriter.getI1Type()),
+          ValueRange({adaptor.ctx(), *args, *attrs}));
+
+    } else {
+      // Otherwise pass the custom call callee to the generic custom call API.
+      auto callee = Globals::OpaqueAddrOf(
+          b, globals_.GetOrCreate(b, op.callee(), "__rt_custom_call_callee"));
+
+      // Call runtime API to call the custom call target.
+      rewriter.replaceOpWithNewOp<CallOp>(
+          op, kCustomCall, TypeRange(rewriter.getI1Type()),
+          ValueRange({adaptor.ctx(), callee, *args, *attrs}));
+    }
 
     return success();
   }

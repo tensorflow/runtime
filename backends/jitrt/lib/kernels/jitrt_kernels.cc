@@ -36,6 +36,7 @@
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
+#include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/error_util.h"
@@ -86,6 +87,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
     CompilationOptions opts;
     opts.register_dialects = RegisterDefaultJitRtDialects;
+    opts.runtime_symbol_map = CustomCallsTestlibSymbolMap;
     opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
       CreateDefaultJitRtCompilationPipeline(pm, copts);
     };

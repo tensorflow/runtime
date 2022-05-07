@@ -50,3 +50,11 @@ func.func @custom_call(%ctx: !rt.kernel_context, %input: memref<?xf32>) -> f32 {
   cf.assert %ok, "failed to call custom call"
   func.return %0 : f32
 }
+
+// CHECK-LABEL: func @direct_custom_call(
+// CHECK:  %[[CTX:.*]]: !rt.kernel_context
+func.func @direct_custom_call(%ctx: !rt.kernel_context) {
+  // CHECK: rt.custom_call direct %[[CTX]]["f32_reduce"] () : () -> ()
+  %status = rt.custom_call direct %ctx["f32_reduce"] () : () -> ()
+  func.return
+}

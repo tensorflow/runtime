@@ -68,6 +68,11 @@ class Tensor;
 
 namespace jitrt {
 
+// Forward declare types enabling compiled kernel <-> runtime integration.
+namespace runtime {
+struct KernelContext;
+}  // namespace runtime
+
 // Compiled module example:
 //
 //   module @kernel attributes { tfrt.compiled } {
@@ -971,6 +976,9 @@ class Executable {
   // results. If some results are not supported returns an error.
   static Expected<ResultsMemoryLayout> GetResultsMemoryLayout(
       const FunctionType& signature);
+
+  // Returns the user data passed via the ExecuteOpts to the compiled kernel.
+  static CustomCall::UserData* GetUserData(runtime::KernelContext* ctx);
 
  private:
   std::string name_;  // name of the compiled kernel module

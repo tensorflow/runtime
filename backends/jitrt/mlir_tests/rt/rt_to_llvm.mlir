@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s --dump-input=always
+// RUN: jitrt_opt %s --split-input-file --rt-to-llvm | FileCheck %s
 
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
@@ -60,6 +60,7 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 
 // -----
 
+// CHECK: global internal constant @__rt_custom_call_callee("target\00")
 // CHECK: global internal constant @__rt_num_attrs(0 : i64) : i64
 
 // CHECK: global internal constant @__rt_custom_call_attrs()
@@ -69,15 +70,11 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 // CHECK: }
 
 // CHECK: global internal constant @__rt_num_args(0 : i64) : i64
-// CHECK: global internal constant @__rt_custom_call_callee("target\00")
 
 // CHECK: func @custom_call(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )
 func.func @custom_call(%arg0: !rt.kernel_context) {
-
-  // CHECK: %[[CALLEE_ADDR:.*]] = llvm.mlir.addressof @__rt_custom_call_callee
-  // CHECK: %[[CALLEE:.*]] = llvm.bitcast %[[CALLEE_ADDR]]
 
   // CHECK: %[[C1:.*]] = arith.constant 1 : i32
   // CHECK: %[[ARGS_ALLOCA:.*]] = llvm.alloca %c1_i32 x !llvm.array<1 x ptr<i8>>
@@ -85,6 +82,9 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 
   // CHECK: %[[ATTRS_ADDR:.*]] = llvm.mlir.addressof @__rt_custom_call_attrs
   // CHECK: %[[ATTRS:.*]] = llvm.getelementptr %[[ATTRS_ADDR]]
+
+  // CHECK: %[[CALLEE_ADDR:.*]] = llvm.mlir.addressof @__rt_custom_call_callee
+  // CHECK: %[[CALLEE:.*]] = llvm.bitcast %[[CALLEE_ADDR]]
 
   // CHECK: %[[STATUS:.*]] = call @runtimeCustomCall(%[[CTX]], %[[CALLEE]],
   // CHECK-SAME:                                     %[[ARGS]], %[[ATTRS]])
@@ -212,3 +212,19 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?xf32>) {
   rt.custom_call %arg0["target"] (%arg1) : (memref<?xf32>) -> ()
   func.return
 }
+
+// -----
+
+// CHECK: func @direct_custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @direct_custom_call(%arg0: !rt.kernel_context) {
+  // CHECK: call @target
+  // CHECK: call @target
+  rt.custom_call direct %arg0["target"] () : () -> ()
+  rt.custom_call direct %arg0["target"] () : () -> ()
+  func.return
+}
+
+// CHECK: func private @target(!llvm.ptr<i8>, !llvm.ptr<ptr<i8>>,
+// CHECK-SAME:                 !llvm.ptr<ptr<i8>>) -> i1

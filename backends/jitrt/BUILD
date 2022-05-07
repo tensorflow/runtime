@@ -349,11 +349,14 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "custom_calls_testlib",
     srcs = ["lib/custom_calls/custom_call_testlib.cc"],
+    hdrs = ["include/tfrt/jitrt/custom_calls/custom_call_testlib.h"],
     alwayslink_static_registration_src = "lib/custom_calls/custom_call_testlib_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":custom_call",
+        ":jitrt",
+        "@llvm-project//llvm:OrcJIT",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
@@ -366,6 +369,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/jitrt_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":custom_calls_testlib",
         ":jitrt",
         ":jitrt_compiler",
         "@tf_runtime//:dtype",

@@ -27,7 +27,8 @@ def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "mlir::ModuleOp"> {
      - all results returned via the `rt.set_result` operation
      - failed asserts set the kernel error via the `rt.set_error` operation
      - function calls marked with `rt.custom_call` attribute (on the callee)
-       converted to the `rt.custom_call` operations
+       converted to the `rt.custom_call` operations (or `rt.direct_custom_call`
+       attribute for direct custom calls)
 
     When converting function call to the custom call operation, custom call
     attributes will be a union of custom call function declaration attributes,

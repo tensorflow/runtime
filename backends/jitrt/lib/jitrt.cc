@@ -586,6 +586,10 @@ std::chrono::milliseconds Executable::time_to_compile() const {
   return time_to_compile_;
 }
 
+CustomCall::UserData* Executable::GetUserData(runtime::KernelContext* ctx) {
+  return ctx->custom_call_data;
+}
+
 //----------------------------------------------------------------------------//
 // Default calling convention for kernels compiled for JitRt.
 //----------------------------------------------------------------------------//

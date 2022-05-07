@@ -104,6 +104,16 @@ module @variadic_args attributes { tfrt.compiled } {
   }
 }
 
+module @direct_custom_call attributes { tfrt.compiled } {
+  func.func private @custom_call.cc()
+     attributes { rt.direct_custom_call = "testlib.direct_call" }
+
+  func.func @main() {
+    func.call @custom_call.cc() : () -> ()
+    func.return
+  }
+}
+
 // CHECK: --- Running 'compiled_custom_call'
 func.func @compiled_custom_call() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
@@ -197,6 +207,18 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK: arg[4]: MemrefView: dtype: f32 offset: 0 sizes: [2] strides: [1]
   // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
   %executable = jitrt.compile { kernel = @variadic_args::@main }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_direct_custom_call'
+func.func @compiled_direct_custom_call() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK: Direct custom call: num_args=0; num_attrs=0
+  // CHECK-SAME: str=Called from: jitrt.execute
+  %executable = jitrt.compile { kernel = @direct_custom_call::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

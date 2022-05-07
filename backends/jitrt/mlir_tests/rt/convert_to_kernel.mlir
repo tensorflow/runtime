@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: jitrt_opt %s --rt-to-kernel-function | FileCheck %s
+// RUN: jitrt_opt %s --rt-to-kernel-function | FileCheck %s --dump-input=always
 
 // CHECK: func @single_result(
 // CHECK:   %[[CTX:.*]]: !rt.kernel_context,
@@ -83,4 +83,20 @@ func.func @function_call_to_custom_call(%arg0: memref<?xf32>) -> memref<?xf32>
   %0 = func.call @custom_call(%arg0) { attr0 = 2 : i32 }
        : (memref<?xf32>) -> memref<?xf32>
   return %0 : memref<?xf32>
+}
+
+// Direct custom call prototype declaration.
+// CHECK-NOT: func private @direct_custom_call(memref<?xf32>)
+func.func private @direct_custom_call(%arg0: memref<?xf32>)
+  attributes { rt.direct_custom_call = "target" }
+
+// CHECK: func @function_call_to_direct_custom_call(
+// CHECK:   %[[CTX:.*]]: !rt.kernel_context,
+// CHECK:   %[[ARG:.*]]: memref<?xf32>
+// )
+func.func @function_call_to_direct_custom_call(%arg0: memref<?xf32>)
+  attributes { jitrt.entrypoint } {
+  // CHECK: rt.custom_call direct %[[CTX]]["target"]
+  func.call @direct_custom_call(%arg0) : (memref<?xf32>) -> ()
+  return
 }

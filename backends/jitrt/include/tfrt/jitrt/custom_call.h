@@ -96,7 +96,7 @@ class CustomCall {
 
   virtual llvm::StringRef name() const = 0;
   virtual mlir::LogicalResult call(void** args, void** attrs,
-                                   const UserData* user_data) = 0;
+                                   const UserData* user_data) const = 0;
 
   static CustomCallBinding<> Bind(std::string callee);
 };
@@ -220,9 +220,10 @@ class CustomCallBinding {
   }
 
   template <RuntimeChecks checks = RuntimeChecks::kDefault, typename Fn>
-  std::unique_ptr<CustomCall> To(Fn fn) {
-    return std::unique_ptr<CustomCall>(new CustomCallHandler<checks, Fn, Ts...>(
-        std::forward<Fn>(fn), std::move(callee_), std::move(attrs_)));
+  std::unique_ptr<CustomCallHandler<checks, Fn, Ts...>> To(Fn fn) {
+    return std::unique_ptr<CustomCallHandler<checks, Fn, Ts...>>(
+        new CustomCallHandler<checks, Fn, Ts...>(
+            std::forward<Fn>(fn), std::move(callee_), std::move(attrs_)));
   }
 
  private:
@@ -553,10 +554,10 @@ class CustomCallHandler : public CustomCall {
       "incompatible custom call handler types");
 
  public:
-  llvm::StringRef name() const override { return callee_; }
+  llvm::StringRef name() const final { return callee_; }
 
   mlir::LogicalResult call(void** args, void** attrs,
-                           const UserData* user_data) override {
+                           const UserData* user_data) const final {
     // Decode arguments and attributes from the opaque pointers.
     internal::DecodedArgs decoded_args(args);
     internal::DecodedAttrs decoded_attrs(attrs);
@@ -587,7 +588,7 @@ class CustomCallHandler : public CustomCall {
   template <size_t... Is>
   LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::LogicalResult call(
       internal::DecodedArgs args, internal::DecodedAttrs attrs,
-      const UserData* user_data, std::index_sequence<Is...>) {
+      const UserData* user_data, std::index_sequence<Is...>) const {
     // A helper structure to allow each decoder find the correct offset in the
     // arguments or attributes.
     internal::DecodingOffsets offsets;

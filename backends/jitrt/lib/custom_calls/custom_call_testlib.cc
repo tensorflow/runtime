@@ -137,16 +137,19 @@ static bool DirectCustomCall(runtime::KernelContext* ctx, void** args,
 
 // Direct NoOp custom call for benchmarking arguments/attributes encoding.
 static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
-  static CustomCall* call = CustomCall::Bind("testlib.noop")
-                                .Arg<FlatMemrefView>()
-                                .Arg<FlatMemrefView>()
-                                .Arg<FlatMemrefView>()
-                                .Arg<FlatMemrefView>()
-                                .Attr<StringRef>("str")
-                                .Attr<float>("f32")
-                                .Attr<double>("f64")
-                                .To<CustomCall::RuntimeChecks::kNone>(NoOp)
-                                .release();
+  auto noop = [](FlatMemrefView, FlatMemrefView, FlatMemrefView, FlatMemrefView,
+                 StringRef, float, double) { return success(); };
+
+  static auto* call = CustomCall::Bind("testlib.noop")
+                          .Arg<FlatMemrefView>()
+                          .Arg<FlatMemrefView>()
+                          .Arg<FlatMemrefView>()
+                          .Arg<FlatMemrefView>()
+                          .Attr<StringRef>("str")
+                          .Attr<float>("f32")
+                          .Attr<double>("f64")
+                          .To<CustomCall::RuntimeChecks::kNone>(noop)
+                          .release();
 
   return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
 }
@@ -154,20 +157,19 @@ static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
 // Direct PrintAttrs custom call for testing disabled attributes checks.
 static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
                              void** attrs) {
-  static CustomCall* call =
-      CustomCall::Bind("testlib.print_attrs")
-          .UserData<const char*>()
-          .Attr<int32_t>("i32")
-          .Attr<int64_t>("i64")
-          .Attr<float>("f32")
-          .Attr<double>("f64")
-          .Attr<ArrayRef<int32_t>>("i32_arr")
-          .Attr<ArrayRef<int64_t>>("i64_arr")
-          .Attr<ArrayRef<float>>("f32_arr")
-          .Attr<ArrayRef<double>>("f64_arr")
-          .Attr<StringRef>("str")
-          .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
-          .release();
+  static auto* call = CustomCall::Bind("testlib.print_attrs")
+                          .UserData<const char*>()
+                          .Attr<int32_t>("i32")
+                          .Attr<int64_t>("i64")
+                          .Attr<float>("f32")
+                          .Attr<double>("f64")
+                          .Attr<ArrayRef<int32_t>>("i32_arr")
+                          .Attr<ArrayRef<int64_t>>("i64_arr")
+                          .Attr<ArrayRef<float>>("f32_arr")
+                          .Attr<ArrayRef<double>>("f64_arr")
+                          .Attr<StringRef>("str")
+                          .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
+                          .release();
 
   return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
 }

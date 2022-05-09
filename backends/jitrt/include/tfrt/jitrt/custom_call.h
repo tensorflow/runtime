@@ -24,6 +24,7 @@
 #include <numeric>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
@@ -45,7 +46,7 @@ class CustomCallBinding;
 class CustomCall {
  public:
   // Container for passing data between JitRt user and the custom call handler.
-  using UserData = MapByType<CustomCall>;
+  using UserData = PtrMapByType<CustomCall>;
 
   // A type for matching all remaining custom call arguments.
   class RemainingArgs;
@@ -214,6 +215,7 @@ class CustomCallBinding {
 
   template <typename T>
   CustomCallBinding<Ts..., internal::UserData<T>> UserData() && {
+    static_assert(std::is_pointer<T>::value, "user data must be a pointer");
     return {std::move(*this)};
   }
 
@@ -504,13 +506,18 @@ struct Decode<internal::UserData<T>, checks> {
       DecodingOffsets& offsets, internal::DecodedArgs args,
       ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
       internal::DecodedAttrs attrs, const CustomCall::UserData* user_data) {
-    if (!CustomCall::CheckUserData(checks)) return user_data->get<T>();
+    using UserDataT = std::remove_pointer_t<T>;
 
-    // Check that the user data was passed to the custom call handler, and that
-    // it containts the type we are looking for.
-    const T* data = user_data ? user_data->getIfExists<T>() : nullptr;
-    if (LLVM_UNLIKELY(!data)) return mlir::failure();
-    return *data;
+    if (!CustomCall::CheckUserData(checks)) return user_data->get<UserDataT>();
+
+    // TODO(ezhulenev): Add an option to request nullable user data, because
+    // right now we do not distinguish between a user data pointer that doesn't
+    // exist, and a null pointer passed by the user.
+
+    // Get the requested value if user data was passed to the custom call.
+    auto* ptr = user_data ? user_data->getIfExists<UserDataT>() : nullptr;
+    if (LLVM_UNLIKELY(!ptr)) return mlir::failure();
+    return ptr;
   }
 };
 

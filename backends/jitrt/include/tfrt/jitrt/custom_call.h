@@ -67,11 +67,11 @@ class CustomCall {
     // it will happily proceed ignoring the name mismatch.
     kTypes = 1,
 
-    // Do not check arguments and attributes types, and do not check that the
-    // user data was passed to the custom call. This is the most dangerous
-    // option, because it blindly reinterprets opaque memory passed to the
-    // handler, and can easily lead to segfaults if the data doesn't match the
-    // expected custom call signature.
+    // Do not check the number of arguments and attributes and their types, and
+    // do not check that the user data was passed to the custom call. This is
+    // the most dangerous option, because it blindly reinterprets opaque memory
+    // passed to the handler, and can easily lead to segfaults if the data
+    // doesn't match the expected custom call signature.
     kNone = 2
   };
 
@@ -561,20 +561,24 @@ class CustomCallHandler : public CustomCall {
     internal::DecodedArgs decoded_args(args);
     internal::DecodedAttrs decoded_attrs(attrs);
 
-    // Check that the number of passed arguments matches the signature. Each
-    // individual argument decoding will check the actual type.
-    if (internal::HasRemainingArgs<Ts...>::value) {
-      if (LLVM_UNLIKELY(decoded_args.size() < kNumArgs - 1))
-        return mlir::failure();
-    } else {
-      if (LLVM_UNLIKELY(decoded_args.size() != kNumArgs))
+    // If all runtime checks are disabled we are just reinterpreting opaque
+    // `args` and `attrs` memory acording to the requested handler signature.
+    if (checks != RuntimeChecks::kNone) {
+      // Check that the number of passed arguments matches the signature. Each
+      // individual argument decoding will check the actual type.
+      if (internal::HasRemainingArgs<Ts...>::value) {
+        if (LLVM_UNLIKELY(decoded_args.size() < kNumArgs - 1))
+          return mlir::failure();
+      } else {
+        if (LLVM_UNLIKELY(decoded_args.size() != kNumArgs))
+          return mlir::failure();
+      }
+
+      // Check that we have enough attributes passed to the custom call. Each
+      // individual attribute decoding will check the name and the type.
+      if (LLVM_UNLIKELY(decoded_attrs.size() < attrs_.size()))
         return mlir::failure();
     }
-
-    // Check that we have enough attributes passed to the custom call. Each
-    // individual attribute decoding will check the name and the type.
-    if (LLVM_UNLIKELY(decoded_attrs.size() < attrs_.size()))
-      return mlir::failure();
 
     return call(decoded_args, decoded_attrs, user_data,
                 std::make_index_sequence<kSize>{});

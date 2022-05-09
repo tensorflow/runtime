@@ -28,6 +28,7 @@
 #endif
 
 #include <chrono>  // NOLINT(build/c++11)
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -623,8 +624,14 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
     case DType::F32:
       rank_dispatch(float{});
       break;
+    case DType::F64:
+      rank_dispatch(double{});
+      break;
     case DType::UI8:
       rank_dispatch(uint8_t{});
+      break;
+    case DType::UI16:
+      rank_dispatch(uint16_t{});
       break;
     case DType::UI32:
       rank_dispatch(uint32_t{});
@@ -638,11 +645,20 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
     case DType::I8:
       rank_dispatch(int8_t{});
       break;
+    case DType::I16:
+      rank_dispatch(int16_t{});
+      break;
     case DType::I32:
       rank_dispatch(int32_t{});
       break;
     case DType::I64:
       rank_dispatch(int64_t{});
+      break;
+    case DType::Complex64:
+      rank_dispatch(std::complex<float>{});
+      break;
+    case DType::Complex128:
+      rank_dispatch(std::complex<double>{});
       break;
     default:
       results.MakeErrorAt(
@@ -755,14 +771,41 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
     case DType::F32:
       rank_dispatch(float{});
       break;
+    case DType::F64:
+      rank_dispatch(double{});
+      break;
     case DType::I1:
       rank_dispatch(bool{});
+      break;
+    case DType::I8:
+      rank_dispatch(int8_t{});
+      break;
+    case DType::I16:
+      rank_dispatch(int16_t{});
       break;
     case DType::I32:
       rank_dispatch(int32_t{});
       break;
     case DType::I64:
       rank_dispatch(int64_t{});
+      break;
+    case DType::UI8:
+      rank_dispatch(uint8_t{});
+      break;
+    case DType::UI16:
+      rank_dispatch(uint16_t{});
+      break;
+    case DType::UI32:
+      rank_dispatch(uint32_t{});
+      break;
+    case DType::UI64:
+      rank_dispatch(uint64_t{});
+      break;
+    case DType::Complex64:
+      rank_dispatch(std::complex<float>{});
+      break;
+    case DType::Complex128:
+      rank_dispatch(std::complex<double>{});
       break;
     default:
       results.MakeErrorAt(

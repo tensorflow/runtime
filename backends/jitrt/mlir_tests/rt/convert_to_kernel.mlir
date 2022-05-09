@@ -82,7 +82,7 @@ func.func @function_call_to_custom_call(%arg0: memref<?xf32>) -> memref<?xf32>
   // CHECK:   rt.set_error %arg0, "custom call 'target' failed"
   %0 = func.call @custom_call(%arg0) { attr0 = 2 : i32 }
        : (memref<?xf32>) -> memref<?xf32>
-  return %0 : memref<?xf32>
+  func.return %0 : memref<?xf32>
 }
 
 // Direct custom call prototype declaration.
@@ -98,5 +98,5 @@ func.func @function_call_to_direct_custom_call(%arg0: memref<?xf32>)
   attributes { jitrt.entrypoint } {
   // CHECK: rt.custom_call direct %[[CTX]]["target"]
   func.call @direct_custom_call(%arg0) : (memref<?xf32>) -> ()
-  return
+  func.return
 }

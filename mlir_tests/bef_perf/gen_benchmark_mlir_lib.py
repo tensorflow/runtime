@@ -44,7 +44,7 @@ def generate_benchmark_mlir(func_name, body):
   body = _indent_lines(body, indentation=4)
 
   return """
-func @{func_name}() {{
+func.func @{func_name}() {{
   tfrt_test.benchmark "{func_name}"()
     duration_secs = 10,
     max_count = 1000000,

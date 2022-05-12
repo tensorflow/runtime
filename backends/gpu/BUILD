@@ -101,7 +101,8 @@ tfrt_cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
-        # No HIP shared object dependencies, they are dynamically loaded.
+        # No HIP dependencies, the functions are dynamically loaded from shared
+        # object (.so) files at runtime.
         ":symbol_loader",
         "@cuda_headers",
         "@tf_runtime//third_party/hip:stub_inc",
@@ -132,7 +133,8 @@ tfrt_cc_library(
         "lib/wrapper/nccl_stub.cc",
     ],
     visibility = ["//visibility:private"],
-    # No CUDA shared object dependencies, they are dynamically loaded.
+    # No CUDA dependencies, the functions are dynamically loaded from shared
+    # object (.so) files at runtime.
     deps = [
         ":symbol_loader",
         "@cuda_headers",

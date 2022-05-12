@@ -20,15 +20,20 @@
 
 set -eux
 
+if [ "$#" -ne 1 ]; then
+  echo "Usage: root-tfrt/path/to/generate.sh --config=<gcc|clang|msvc>"
+  exit
+fi
+
 # Build the tools and generate the HIP header.
-bazel build --nocheck_visibility \
+bazel build --nocheck_visibility $@ \
   //backends/gpu/tools/stub_codegen:header_codegen \
   //backends/gpu/tools/stub_codegen:impl_codegen
 
 # Generate header and implementation files.
 HDR_PATH="third_party/hip/%s_stub.h.inc"
 SRC_PATH="third_party/hip/%s_stub.cc.inc"
-for API in "hip" "rocblas" "rocsolver" "miopen" "hipfft"; do
+for API in "hip" "rocblas" "rocsolver" "miopen" "hipfft" "hiprtc"; do
    ./bazel-bin/backends/gpu/tools/stub_codegen/header_codegen \
        $(dirname $0)/$API.json | clang-format > $(printf $HDR_PATH $API)
    ./bazel-bin/backends/gpu/tools/stub_codegen/impl_codegen \

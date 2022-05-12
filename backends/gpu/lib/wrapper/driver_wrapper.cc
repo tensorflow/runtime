@@ -19,6 +19,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
+#include "tfrt/gpu/wrapper/hiprtc_wrapper.h"
 #include "tfrt/support/logging.h"
 #include "wrapper_detail.h"
 
@@ -845,6 +846,17 @@ llvm::Error MemsetD32Async(CurrentContext current, Pointer<void> dst,
   }
 }
 
+static llvm::Expected<OwningModule> CompileProgram(CurrentContext current,
+                                                   const void* src) {
+  auto program = HiprtcCreateProgram(static_cast<const char*>(src));
+  if (!program) return program.takeError();
+  if (auto err = HiprtcCompileProgram(program->get(), /*options=*/{}))
+    return std::move(err);
+  auto code = HiprtcGetCode(program->get());
+  if (!code) return code.takeError();
+  return HipModuleLoadData(current, code->data());
+}
+
 llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
                                             const void* image) {
   auto platform = current.platform();
@@ -852,6 +864,7 @@ llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
     case Platform::CUDA:
       return CuModuleLoadData(current, image);
     case Platform::ROCm:
+      if (auto program = CompileProgram(current, image)) return program;
       return HipModuleLoadData(current, image);
     default:
       return InvalidPlatform(platform);

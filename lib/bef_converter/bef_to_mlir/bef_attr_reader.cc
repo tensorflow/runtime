@@ -234,7 +234,7 @@ mlir::Attribute BefAttrReader::ReadDenseAttribute(size_t offset) {
     // TODO(tfrt-dev): Improve the error reporting in bef_to_mlir.
     assert(is_valid);
     (void)is_valid;
-    return mlir::DenseElementsAttr::getFromRawBuffer(type, raw_data, is_splat);
+    return mlir::DenseElementsAttr::getFromRawBuffer(type, raw_data);
   }
 
   llvm::SmallVector<mlir::Attribute, 8> elements;

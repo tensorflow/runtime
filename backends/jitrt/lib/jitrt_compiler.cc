@@ -22,6 +22,7 @@
 
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
+#include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
 #include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVMPass.h"
 #include "mlir/Conversion/LLVMCommon/LoweringOptions.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
@@ -144,6 +145,7 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
   pm.addPass(mlir::createMemRefToLLVMPass());
   pm.addPass(mlir::createConvertFuncToLLVMPass());
+  pm.addPass(mlir::createConvertComplexToLLVMPass());
   pm.addPass(mlir::createReconcileUnrealizedCastsPass());
 
   // Prepare module for translation to LLVM.

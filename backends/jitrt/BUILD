@@ -190,6 +190,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:ArmSVEToLLVMIRTranslation",
         "@llvm-project//mlir:AsyncToLLVM",
         "@llvm-project//mlir:AsyncTransforms",
+        "@llvm-project//mlir:ComplexToLLVM",
         "@llvm-project//mlir:ControlFlowOps",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:LLVMCommonConversion",

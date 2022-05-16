@@ -544,7 +544,7 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
 
   // Override the kernel context argument.
   runtime::KernelContext* kernel_context_ptr = &kernel_context;
-  assert(!call_frame.args.empty() && "call frame arguments must be non-empty");
+  assert(call_frame.args.size() == arguments_memory_layout_.num_args_ptrs);
   assert(call_frame.args[0] == nullptr && "expected to see a placeholder");
   call_frame.args[0] = &kernel_context_ptr;
 

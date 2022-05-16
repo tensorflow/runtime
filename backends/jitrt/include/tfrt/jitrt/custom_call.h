@@ -556,8 +556,8 @@ class CustomCallHandler : public CustomCall {
  public:
   llvm::StringRef name() const final { return callee_; }
 
-  mlir::LogicalResult call(void** args, void** attrs,
-                           const UserData* user_data) const final {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::LogicalResult call(
+      void** args, void** attrs, const UserData* user_data) const final {
     // Decode arguments and attributes from the opaque pointers.
     internal::DecodedArgs decoded_args(args);
     internal::DecodedAttrs decoded_attrs(attrs);

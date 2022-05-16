@@ -415,11 +415,12 @@ ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
   }
 
   // ... and additional body operands.
-  parser.resolveOperands(operands, types, type_loc, result.operands);
+  if (parser.resolveOperands(operands, types, type_loc, result.operands))
+    return failure();
 
   // Parallel for returns chain when all parallel blocks are completed.
   auto chain_type = compiler::ChainType::get(result.getContext());
-  parser.addTypesToList(chain_type, result.types);
+  if (parser.addTypesToList(chain_type, result.types)) return failure();
 
   // Parallel for body operands and types.
   SmallVector<OpAsmParser::UnresolvedOperand, 6> body_operands = {start, end};
@@ -522,11 +523,12 @@ ParseResult ParallelCallI32Op::parse(OpAsmParser &parser,
   }
 
   // ... and additional body operands.
-  parser.resolveOperands(operands, types, type_loc, result.operands);
+  if (parser.resolveOperands(operands, types, type_loc, result.operands))
+    return failure();
 
   // Parallel for returns chain when all parallel blocks are completed.
   auto chain_type = compiler::ChainType::get(result.getContext());
-  parser.addTypesToList(chain_type, result.types);
+  if (parser.addTypesToList(chain_type, result.types)) return failure();
 
   return success();
 }

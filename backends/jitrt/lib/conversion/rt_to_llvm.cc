@@ -149,11 +149,9 @@ static void AddDeclaration(ModuleOp module, StringRef name, FunctionType type) {
   FuncOp func = b.create<FuncOp>(name, type);
   func.setPrivate();
 
-  // TODO(ezhulenev): Add per-argument nocapture attributes, and do not add
-  // global `readonly` once custom calls support returning results.
+  // TODO(ezhulenev): Add per-argument nocapture attributes?
   func->setAttr("passthrough",
-                ArrayAttr::get(ctx, {StringAttr::get(ctx, "readonly"),
-                                     StringAttr::get(ctx, "nounwind")}));
+                ArrayAttr::get(ctx, {StringAttr::get(ctx, "nounwind")}));
 }
 
 // Adds Runtime C API declarations to the module.
@@ -454,6 +452,7 @@ static DType ScalarDType(Type type) {
   if (type.isUnsignedInteger(32)) return DType::UI32;
   if (type.isUnsignedInteger(64)) return DType::UI64;
 
+  if (type.isInteger(1)) return DType::I1;
   if (type.isInteger(32)) return DType::I32;
   if (type.isInteger(64)) return DType::I64;
 

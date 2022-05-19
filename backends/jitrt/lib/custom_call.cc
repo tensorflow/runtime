@@ -30,19 +30,23 @@
 namespace tfrt {
 namespace jitrt {
 
+static void PrintArr(raw_ostream& os, string_view name, ArrayRef<int64_t> arr) {
+  os << " " << name << ": [";
+  auto i64_to_string = [](int64_t v) { return std::to_string(v); };
+  os << llvm::join(llvm::map_range(arr, i64_to_string), ", ");
+  os << "]";
+}
+
+raw_ostream& operator<<(raw_ostream& os, const StridedMemrefView& view) {
+  os << "StridedMemrefView: dtype: " << view.dtype;
+  PrintArr(os, "sizes", view.sizes);
+  PrintArr(os, "strides", view.strides);
+  return os;
+}
+
 raw_ostream& operator<<(raw_ostream& os, const MemrefView& view) {
-  auto print_arr = [&](string_view name, ArrayRef<int64_t> arr) {
-    os << " " << name << ": [";
-    if (!arr.empty()) {
-      os << arr[0];
-      for (int i = 1; i < arr.size(); ++i) os << ", " << arr[i];
-    }
-    os << "]";
-  };
-
   os << "MemrefView: dtype: " << view.dtype;
-  print_arr("sizes", view.sizes);
-
+  PrintArr(os, "sizes", view.sizes);
   return os;
 }
 
@@ -89,8 +93,9 @@ void AddStaticCustomCallRegistration(
 }  // namespace tfrt
 
 JITRT_DEFINE_EXPLICIT_TYPE_ID(llvm::StringRef);
-JITRT_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::FlatMemrefView);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::StridedMemrefView);
 JITRT_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::MemrefView);
+JITRT_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::FlatMemrefView);
 JITRT_DEFINE_EXPLICIT_TYPE_ID(int32_t);
 JITRT_DEFINE_EXPLICIT_TYPE_ID(int64_t);
 JITRT_DEFINE_EXPLICIT_TYPE_ID(float);

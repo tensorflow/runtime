@@ -55,6 +55,7 @@ using mlir::DenseIntOrFPElementsAttr;
 using mlir::failure;
 using mlir::FailureOr;
 using mlir::FunctionType;
+using mlir::getStridesAndOffset;
 using mlir::ImplicitLocOpBuilder;
 using mlir::IntegerType;
 using mlir::LLVMTypeConverter;
@@ -681,15 +682,21 @@ class ScalarArgEncoding : public CustomCallArgEncoding {
   }
 };
 
-// Encodes MemRef operands according to the MemrefView ABI.
+// Encodes MemRef operands according to the (Strided)MemrefView ABI.
 class MemrefArgEncoding : public CustomCallArgEncoding {
  public:
   FailureOr<Encoded> Encode(Globals &g, ImplicitLocOpBuilder &b, Value value,
                             Value converted) const override {
     auto memref_type = value.getType().cast<MemRefType>();
 
+    // If memref has non-identity layout we use `StridedMemrefView` to
+    // distinguish it from the default row-major memref.
+    auto type_id = memref_type.getLayout().isIdentity()
+                       ? TypeID::get<Tagged<MemrefView>>()
+                       : TypeID::get<Tagged<StridedMemrefView>>();
+
     Encoded encoded;
-    encoded.type_id = PackTypeId(g, b, TypeID::get<Tagged<MemrefView>>());
+    encoded.type_id = PackTypeId(g, b, type_id);
     encoded.value = PackValue(b, EncodeMemRef(b, memref_type, converted));
 
     return encoded;
@@ -698,19 +705,24 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
  private:
   // Encodes memref as LLVM struct value:
   //
-  //   { i8: dtype, i8: rank, ptr<i8>: data, array<rank x i64>: sizes }
+  //   { i8: dtype, i8: rank, ptr<i8>: data,
+  //     array<2*rank x i64>: sizes_and_strides }
   //
   // This is a type erased version of the MLIR memref descriptor without base
-  // pointer, offset and strides.
+  // pointer. We pack sizes and strides as a single array member, so that on
+  // the runtime side we can read it back using C flexible array member.
   Value EncodeMemRef(ImplicitLocOpBuilder &b, MemRefType memref_ty,
                      Value descriptor) const {
     MLIRContext *ctx = b.getContext();
     Location loc = b.getLoc();
 
-    // Encoded memref type: !llvm.struct<(i8, i8, ptr<i8>, array<rank x i64>)>.
+    // Encode sizes together with strides as a single array.
+    int64_t sizes_and_strides_size = 2 * memref_ty.getRank();
+
+    // Encoded memref type: !llvm.struct<(i8, i8, ptr<i8>, array<... x i64>)>.
     Type i8 = b.getI8Type();
     Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
-    Type arr = LLVM::LLVMArrayType::get(b.getI64Type(), memref_ty.getRank());
+    Type arr = LLVM::LLVMArrayType::get(b.getI64Type(), sizes_and_strides_size);
     Type type = LLVM::LLVMStructType::getLiteral(ctx, {i8, i8, ptr, arr});
 
     // Helper to unpack MLIR strided memref descriptor value.
@@ -725,15 +737,33 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
     Value data = b.create<LLVM::BitcastOp>(ptr, desc.alignedPtr(b, loc));
 
     auto offset = [&](int64_t i) { return b.getI64ArrayAttr(i); };
+    auto i64 = [&](int64_t i) { return b.getI64IntegerAttr(i); };
 
-    // Build encoded memref sizes: !llvm.array<rank x i64>
-    Value sizes = b.create<LLVM::UndefOp>(arr);
+    // Get the statically known strides and offset from the memref type.
+    llvm::SmallVector<int64_t> strides;
+    int64_t memref_offset;
+    if (failed(getStridesAndOffset(memref_ty, strides, memref_offset)))
+      strides.resize(memref_ty.getRank(), ShapedType::kDynamicStrideOrOffset);
+
+    // Build encoded memref sizes + strides: !llvm.array<... x i64>
+    Value payload = b.create<LLVM::UndefOp>(arr);
     for (unsigned i = 0; i < memref_ty.getRank(); ++i) {
       int64_t dim_size = memref_ty.getDimSize(i);
+      int64_t stride_size = strides[i];
+
       Value dim = ShapedType::isDynamic(dim_size)
                       ? desc.size(b, loc, i)
-                      : b.create<ConstantOp>(b.getI64IntegerAttr(dim_size));
-      sizes = b.create<LLVM::InsertValueOp>(arr, sizes, dim, offset(i));
+                      : b.create<ConstantOp>(i64(dim_size));
+
+      Value stride = ShapedType::isDynamic(stride_size)
+                         ? desc.stride(b, loc, i)
+                         : b.create<ConstantOp>(i64(stride_size));
+
+      auto size_pos = offset(i);
+      auto stride_pos = offset(memref_ty.getRank() + i);
+
+      payload = b.create<LLVM::InsertValueOp>(arr, payload, dim, size_pos);
+      payload = b.create<LLVM::InsertValueOp>(arr, payload, stride, stride_pos);
     }
 
     // Construct encoded memref value.
@@ -741,7 +771,7 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
     memref = b.create<LLVM::InsertValueOp>(type, memref, dtype, offset(0));
     memref = b.create<LLVM::InsertValueOp>(type, memref, rank, offset(1));
     memref = b.create<LLVM::InsertValueOp>(type, memref, data, offset(2));
-    memref = b.create<LLVM::InsertValueOp>(type, memref, sizes, offset(3));
+    memref = b.create<LLVM::InsertValueOp>(type, memref, payload, offset(3));
 
     return memref;
   }

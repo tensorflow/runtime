@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef
-// | FileCheck %s --dump-input=always
+// RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 module @multiply attributes { tfrt.compiled } {
   func.func private @multiply.cc(%arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>)
@@ -87,20 +86,23 @@ module @direct_print_attrs attributes { tfrt.compiled } {
 // Prints all arguments passed to the custom call handler. Intended for testing
 // custom call handlers with variadic arguments.
 module @variadic_args attributes { tfrt.compiled } {
-  func.func private @variadic_args.cc(%arg0: i32,
-                                      %arg1: i64,
-                                      %arg2: f32,
-                                      %arg3: f64,
-                                      %arg4: memref<?xi64>,
-                                      %arg5: memref<?xf32>)
-     attributes { rt.custom_call = "testlib.variadic_args" }
+  func.func private @variadic_args.cc(
+      %arg0: i32,
+      %arg1: i64,
+      %arg2: f32,
+      %arg3: f64,
+      %arg4: memref<?xi64>,
+      %arg5: memref<?xf32>,
+      %arg6: memref<16x3xf32, affine_map<(d0, d1) -> (d0 + d1 * 16)>>)
+    attributes { rt.custom_call = "testlib.variadic_args" }
 
-  func.func private @memref_and_variadic_args.cc(%arg0: memref<?xi64>,
-                                                 %arg1: i32,
-                                                 %arg2: i64,
-                                                 %arg3: f32,
-                                                 %arg4: f64,
-                                                 %arg5: memref<?xf32>)
+  func.func private @memref_and_variadic_args.cc(
+      %arg0: memref<?xi64>,
+      %arg1: i32,
+      %arg2: i64,
+      %arg3: f32,
+      %arg4: f64,
+      %arg5: memref<?xf32>)
     attributes { rt.custom_call = "testlib.memref_and_variadic_args" }
 
   func.func @main() {
@@ -113,9 +115,15 @@ module @variadic_args attributes { tfrt.compiled } {
     %arg3 = arith.constant 2.0 : f64
     %arg4 = memref.alloc(%c1) : memref<?xi64>
     %arg5 = memref.alloc(%c2) : memref<?xf32>
+    %arg6 = memref.alloc() : memref<3x16xf32>
 
-    func.call @variadic_args.cc(%arg0, %arg1, %arg2, %arg3, %arg4, %arg5)
-      : (i32, i64, f32, f64, memref<?xi64>, memref<?xf32>) -> ()
+    %mem = memref.reinterpret_cast %arg6
+      to offset: [0], sizes: [16, 3], strides: [1, 16] : memref<3x16xf32>
+      to memref<16x3xf32, affine_map<(d0, d1) -> (d0 + d1 * 16)>>
+
+    func.call @variadic_args.cc(%arg0, %arg1, %arg2, %arg3, %arg4, %arg5, %mem)
+      : (i32, i64, f32, f64, memref<?xi64>, memref<?xf32>,
+         memref<16x3xf32, affine_map<(d0, d1) -> (d0 + d1 * 16)>>) -> ()
 
     func.call @memref_and_variadic_args.cc(%arg4, %arg0, %arg1, %arg2, %arg3,
                                            %arg5)
@@ -123,6 +131,7 @@ module @variadic_args attributes { tfrt.compiled } {
 
     memref.dealloc %arg4 : memref<?xi64>
     memref.dealloc %arg5 : memref<?xf32>
+    memref.dealloc %arg6 : memref<3x16xf32>
 
     func.return
   }
@@ -233,15 +242,22 @@ func.func @compiled_custom_call_direct_print_attrs() {
 func.func @compiled_custom_call_variadic_args() {
   %ch0 = tfrt.new.chain
 
-  // CHECK: Number of variadic arguments: 6
+  // CHECK: Number of variadic arguments: 7
   // CHECK: arg[0]: i32: 123
   // CHECK: arg[1]: i64: 456
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
-  // CHECK: arg[4]: MemrefView: dtype: i64 sizes: [1]
+
+  // CHECK: arg[4]: StridedMemrefView: dtype: i64 sizes: [1] strides: [1]
+  // CHECK-SAME:    MemrefView: dtype: i64 sizes: [1]
   // CHECK-SAME:    FlatMemrefView: dtype: i64 size_in_bytes: 8
-  // CHECK: arg[5]: MemrefView: dtype: f32 sizes: [2]
+
+  // CHECK: arg[5]: StridedMemrefView: dtype: f32 sizes: [2] strides: [1]
+  // CHECK-SAME:    MemrefView: dtype: f32 sizes: [2]
   // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
+
+  // CHECK: arg[6]: StridedMemrefView: {{.*}} sizes: [16, 3] strides: [1, 16]
+  // CHECK-SAME:    None / None
 
   // CHECK: arg: MemrefView: dtype: i64 sizes: [1]
   // CHECK: Number of variadic arguments: 5
@@ -249,7 +265,9 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK: arg[1]: i64: 456
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
-  // CHECK: arg[4]: MemrefView: dtype: f32 sizes: [2]
+
+  // CHECK: arg[4]: StridedMemrefView: dtype: f32 sizes: [2] strides: [1]
+  // CHECK-SAME:    MemrefView: dtype: f32 sizes: [2]
   // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
   %executable = jitrt.compile { kernel = @variadic_args::@main }
   jitrt.execute %executable[%ch0]() : () -> ()

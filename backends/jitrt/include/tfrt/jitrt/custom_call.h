@@ -646,24 +646,55 @@ class CustomCallHandler : public CustomCall {
 // -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.
 
-// A view into the memref argument. Corresponds to the MemrefView, however it
-// doesn't own the sizes/strides vectors, and cheap to pass around.
+// A view into the memref argument. Corresponds to the MemrefDesc, however it
+// doesn't own the sizes/strides vectors, and cheap to pass around. Memrefs with
+// non-identity layouts can be decoded only as a StridedMemrefView.
+struct StridedMemrefView {
+  tfrt::DType dtype;
+  void* data;
+  ArrayRef<int64_t> sizes;
+  ArrayRef<int64_t> strides;
+};
+
+// A view into the memref argument with an identity (row major) layout.
 struct MemrefView {
   tfrt::DType dtype;
   void* data;
   ArrayRef<int64_t> sizes;
 };
 
-// A flat view into the memref argument. If the memref shapes is not required
-// for the custom call, it's cheaper to pass the flat view.
+// A flat view into memref argument with an identity (row major) layout. If the
+// memref shape and strides are not required for the custom call, it's cheaper
+// to pass the flat view.
 struct FlatMemrefView {
   tfrt::DType dtype;
   void* data;
   int64_t size_in_bytes;
 };
 
+raw_ostream& operator<<(raw_ostream& os, const StridedMemrefView& view);
 raw_ostream& operator<<(raw_ostream& os, const MemrefView& view);
 raw_ostream& operator<<(raw_ostream& os, const FlatMemrefView& view);
+
+template <CustomCall::RuntimeChecks checks>
+struct CustomCallArgDecoding<StridedMemrefView, checks> {
+  using EncodedMemref = internal::EncodedMemref;
+
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  static mlir::FailureOr<StridedMemrefView> Decode(mlir::TypeID type_id,
+                                                   void* value) {
+    if (!(CustomCall::CheckType<Tagged<MemrefView>>(checks, type_id) ||
+          CustomCall::CheckType<Tagged<StridedMemrefView>>(checks, type_id)))
+      return mlir::failure();
+
+    auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+    DType dtype = static_cast<DType>(encoded->dtype);
+    return StridedMemrefView{dtype,
+                             encoded->data,
+                             {encoded->dims, encoded->rank},
+                             {encoded->dims + encoded->rank, encoded->rank}};
+  }
+};
 
 template <CustomCall::RuntimeChecks checks>
 struct CustomCallArgDecoding<MemrefView, checks> {
@@ -793,8 +824,9 @@ JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
 }  // namespace tfrt
 
 JITRT_DECLARE_EXPLICIT_TYPE_ID(llvm::StringRef);
-JITRT_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::FlatMemrefView);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::StridedMemrefView);
 JITRT_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::MemrefView);
+JITRT_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::FlatMemrefView);
 JITRT_DECLARE_EXPLICIT_TYPE_ID(int32_t);
 JITRT_DECLARE_EXPLICIT_TYPE_ID(int64_t);
 JITRT_DECLARE_EXPLICIT_TYPE_ID(float);

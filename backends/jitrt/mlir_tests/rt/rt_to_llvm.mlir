@@ -196,10 +196,14 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?x256xf32>) {
 
   // CHECK: %[[TYPE_ID:.*]] = llvm.inttoptr
 
-  // CHECK: llvm.mlir.undef : !llvm.array<2 x i64>
+  // CHECK: llvm.mlir.undef : !llvm.array<4 x i64>
   // CHECK-NEXT: llvm.extractvalue %[[DESC]][3, 0]
+  // CHECK-NEXT: arith.constant 256 : i64
+  // CHECK-NEXT: llvm.insertvalue
   // CHECK-NEXT: llvm.insertvalue
   // CHECK-NEXT: arith.constant 256 : i64
+  // CHECK-NEXT: arith.constant 1 : i64
+  // CHECK-NEXT: llvm.insertvalue
   // CHECK-NEXT: %[[SIZES:.*]] = llvm.insertvalue
 
   // llvm.mlir.undef : !llvm.struct<(i8, i8, ptr<i8>, array<2 x i64>)>

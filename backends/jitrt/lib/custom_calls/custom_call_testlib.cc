@@ -103,8 +103,9 @@ static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
       tfrt::outs() << "f32: " << args.get<float>(i);
     } else if (args.isa<double>(i)) {
       tfrt::outs() << "f64: " << args.get<double>(i);
-    } else if (args.isa<MemrefView>(i)) {
-      tfrt::outs() << args.get<MemrefView>(i) << " / "
+    } else if (args.isa<StridedMemrefView>(i) || args.isa<MemrefView>(i)) {
+      tfrt::outs() << args.get<StridedMemrefView>(i) << " / "
+                   << args.get<MemrefView>(i) << " / "
                    << args.get<FlatMemrefView>(i);
     } else {
       tfrt::outs() << "<unknown type>";
@@ -128,10 +129,10 @@ static bool DirectCustomCall(runtime::KernelContext* ctx, void** args,
   internal::DecodedArgs decoded_args(args);
   internal::DecodedAttrs decoded_attrs(attrs);
   CustomCall::UserData* user_data = Executable::GetUserData(ctx);
-  auto caller = user_data->getIfExists<const char*>();
+  const char* caller = user_data->getIfExists<const char>();
   tfrt::outs() << "Direct custom call: num_args=" << decoded_args.size()
                << "; num_attrs=" << decoded_attrs.size()
-               << "; str=" << (caller ? *caller : "<unknown>") << "\n";
+               << "; str=" << (caller ? caller : "<unknown>") << "\n";
   return true;
 }
 

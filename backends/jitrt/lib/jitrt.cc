@@ -44,15 +44,12 @@
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/Timing.h"
-#include "mlir/Target/LLVMIR/Export.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/diagnostic.h"
@@ -61,6 +58,7 @@
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/support.h"
@@ -130,6 +128,26 @@ struct KernelContext {
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
 
 }  // namespace runtime
+
+//----------------------------------------------------------------------------//
+// Construct a symbols binding for JitRt executable.
+//----------------------------------------------------------------------------//
+
+ExecutionEngine::SymbolsBinding JiRtSymbolsBinding(
+    ExecutionEngine::SymbolsBinding runtime_symbol_map) {
+  return ExecutionEngine::BindAll({
+      // Register MLIR C Runner API intrinsics (defined in CRunnerUtils).
+      CRunnerUtilsSymbolMap,
+      // Register Async Runtime API intrinsics.
+      AsyncRuntimeApiSymbolMap,
+      // Register memory allocation functions (malloc, free, ...).
+      AsyncRuntimeMemoryAllocationSymbolMap,
+      // Register Runtime API intrinsics (host runtime integration).
+      runtime::RuntimeApiSymbolMap,
+      // Register any user-defined API passed via the compilation options.
+      std::move(runtime_symbol_map),
+  });
+}
 
 //----------------------------------------------------------------------------//
 // Get compiled function arguments and results memory layouts.
@@ -586,8 +604,65 @@ std::chrono::milliseconds Executable::time_to_compile() const {
   return time_to_compile_;
 }
 
+std::unique_ptr<llvm::MemoryBuffer> Executable::obj_file() const {
+  return engine_->obj_file();
+}
+
 CustomCall::UserData* Executable::GetUserData(runtime::KernelContext* ctx) {
   return ctx->custom_call_data;
+}
+
+//----------------------------------------------------------------------------//
+// Load AOT compiled executable from an object file.
+//----------------------------------------------------------------------------//
+
+/*static*/ Expected<Executable> Executable::LoadFromObjFile(
+    llvm::StringRef name, std::unique_ptr<llvm::MemoryBuffer> obj_file,
+    llvm::StringRef entrypoint, FunctionType signature,
+    FunctionType runtime_signature,
+    ExecutionEngine::SymbolsBinding runtime_symbol_map,
+    llvm::StringRef memory_region_name) {
+  // Escape slashes, substituting them with double underscores.
+  // The profiler's UI might interpret slashes as callchain separators,
+  // whereas we want the region name to be shown in full.
+  auto escape_region_name = [](llvm::StringRef str) {
+    return llvm::join(llvm::split(str, '/'), "__");
+  };
+
+  std::string mapper_name = llvm::formatv(
+      "/jitrt_aot{0}{1}:@{2}::@{3}", memory_region_name.empty() ? "" : ":",
+      escape_region_name(memory_region_name), name, entrypoint);
+
+  // Custom memory mapper to tag memory allocated for JitRt executables.
+  std::unique_ptr<JitRtMemoryMapper> memory_mapper =
+      JitRtMemoryMapper::Create(std::move(mapper_name));
+
+  // Register symbols required for running JitRt Executable.
+  ExecutionEngine::SymbolsBinding symbols =
+      JiRtSymbolsBinding(std::move(runtime_symbol_map));
+
+  // Construct options for the JitRt execution engine.
+  ExecutionEngine::AotOptions options;
+  options.section_memory_mapper = memory_mapper.get();
+  options.symbols_binding = std::move(symbols);
+
+  auto engine = ExecutionEngine::CreateFromObjFile(std::move(obj_file),
+                                                   entrypoint, options);
+
+  // Get the memory layout fo passing function arguments.
+  auto arguments_memory_layout = GetArgumentsMemoryLayout(runtime_signature);
+  if (auto err = arguments_memory_layout.takeError()) return std::move(err);
+
+  // Get the memory layout for returning function results.
+  auto results_memory_layout = GetResultsMemoryLayout(runtime_signature);
+  if (auto err = results_memory_layout.takeError()) return std::move(err);
+
+  return Executable(name.str(), std::move(memory_mapper), std::move(*engine),
+                    std::move(signature), std::move(runtime_signature),
+                    std::move(*arguments_memory_layout),
+                    std::move(*results_memory_layout),
+                    /*specialization=*/llvm::None,
+                    /*time_to_compile*/ std::chrono::milliseconds(0));
 }
 
 //----------------------------------------------------------------------------//
@@ -708,7 +783,7 @@ static mlir::LogicalResult RunSpecializationPipeline(
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 
-namespace {
+namespace internal {
 // JitCompilationContext manages parsing, specialization and compilation of a
 // single compiled module. It owns the MLIR context where the module is created,
 // and handlers to capture all diagnostics messages.
@@ -780,7 +855,9 @@ class JitCompilationContext {
   mlir::func::FuncOp entrypoint_;  // can be null if failed to parse the module
   bool specialized_;
 };
-}  // namespace
+}  // namespace internal
+
+using JitCompilationContext = internal::JitCompilationContext;
 
 // Creates a new MLIR Context and registers all the dialects that are expected
 // in the compiled module.
@@ -883,19 +960,6 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto target_machine = builder->createTargetMachine();
   if (!target_machine) return target_machine.takeError();
 
-  // Link with shared libraries for symbol resolution.
-  llvm::SmallVector<llvm::StringRef, 4> libs;
-
-  // Additional LLVM passes to run.
-  auto transformer = mlir::makeOptimizingTransformer(
-      /*optLevel=*/2, /*sizeLevel=*/0, target_machine->get());
-
-  // Build MLIR execution engine.
-  mlir::ExecutionEngineOptions engine_options;
-  engine_options.transformer = transformer;
-  engine_options.jitCodeGenOptLevel = ctx->options().jit_code_opt_level;
-  engine_options.sharedLibPaths = libs;
-
   // Escape slashes, substituting them with double underscores.
   // The profiler's UI might interpret slashes as callchain separators,
   // whereas we want the region name to be shown in full.
@@ -911,28 +975,25 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
       escape_region_name(memory_region_name), module_name, entrypoint,
       specialization.hasValue() ? "specialized" : "default");
 
+  // Custom memory mapper to tag memory allocated for JitRt executables.
   std::unique_ptr<JitRtMemoryMapper> memory_mapper =
       JitRtMemoryMapper::Create(std::move(mapper_name));
-  engine_options.sectionMemoryMapper = memory_mapper.get();
-  auto engine = mlir::ExecutionEngine::create(ctx->module(), engine_options);
+
+  // Register symbols required for running JitRt Executable.
+  ExecutionEngine::SymbolsBinding symbols =
+      JiRtSymbolsBinding(ctx->options().runtime_symbol_map);
+
+  // Construct options for the JitRt execution engine.
+  ExecutionEngine::JitOptions engine_options;
+  engine_options.opt_level = ctx->options().jit_code_opt_level;
+  engine_options.section_memory_mapper = memory_mapper.get();
+  engine_options.target_machine = target_machine->get();
+  engine_options.symbols_binding = std::move(symbols);
+
+  // Compile input module to the native function.
+  auto engine = ExecutionEngine::CreateFromSource(ctx->module(), entrypoint,
+                                                  std::move(engine_options));
   if (auto err = engine.takeError()) return std::move(err);
-
-  // Register MLIR C Runner API intrinsics (defined in CRunnerUtils).
-  (*engine)->registerSymbols(CRunnerUtilsSymbolMap);
-  // Register Async Runtime API intrinsics.
-  (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
-  // Register Runtime API intrinsics (host runtime integration).
-  (*engine)->registerSymbols(runtime::RuntimeApiSymbolMap);
-  // Register memory allocation functions (malloc, free, ...).
-  (*engine)->registerSymbols(AsyncRuntimeMemoryAllocationSymbolMap);
-  // Register any user-defined API passed via the compilation options.
-  if (ctx->options().runtime_symbol_map)
-    (*engine)->registerSymbols(ctx->options().runtime_symbol_map);
-
-  // Trigger compilation by looking up the entrypoint function in the engine.
-  Expected<Executable::KernelFunctionPtr> kernel_fn =
-      (*engine)->lookupPacked(entrypoint);
-  if (auto err = kernel_fn.takeError()) return std::move(err);
 
   // At this point compilation is completed, and all symbols in the LLVM module
   // materialized as addresses (entrypoint is an executable function pointer).
@@ -943,7 +1004,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 
   return Executable(
       ctx->name().str(), std::move(memory_mapper), std::move(*engine),
-      *kernel_fn, std::move(*signature), std::move(*runtime_signature),
+      std::move(*signature), std::move(*runtime_signature),
       std::move(*arguments_memory_layout), std::move(*results_memory_layout),
       specialization, time_to_compile);
 }

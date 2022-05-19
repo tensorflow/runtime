@@ -126,6 +126,23 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "execution_engine",
+    srcs = ["lib/execution_engine.cc"],
+    hdrs = ["include/tfrt/jitrt/execution_engine.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:ExecutionEngine",
+        "@llvm-project//llvm:OrcJIT",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ExecutionEngineUtils",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:ToLLVMIRTranslation",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
     name = "jitrt",
     srcs = ["lib/jitrt.cc"],
     hdrs = [
@@ -140,6 +157,7 @@ tfrt_cc_library(
         ":async_values_cache",
         ":constraints",
         ":custom_call",
+        ":execution_engine",
         ":memory_mapper",
         ":rt_transforms",
         ":specialization",
@@ -151,7 +169,6 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:ExecutionEngine",
-        "@llvm-project//mlir:ExecutionEngineUtils",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:LLVMCommonConversion",
@@ -159,7 +176,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:ToLLVMIRTranslation",
         "@llvm-project//mlir:Transforms",
         "@llvm-project//mlir:mlir_c_runner_utils",
         "@tf_runtime//:dtype",

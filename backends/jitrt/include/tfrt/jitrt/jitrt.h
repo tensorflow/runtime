@@ -51,6 +51,7 @@
 #include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/memory_mapper.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
@@ -184,11 +185,6 @@ struct CompilationOptions {
   using CallingConvention =
       std::function<mlir::FunctionType(mlir::FunctionType)>;
 
-  // Runtime symbol map allows to pass user-defined bindings for symbols at JIT
-  // compilation time (e.g. to implement custom C APIs).
-  using RuntimeSymbolMap =
-      std::function<llvm::orc::SymbolMap(llvm::orc::MangleAndInterner)>;
-
   // Returns a calling convention that only adds the kernel context argument.
   static CallingConvention DefaultCallingConvention();
 
@@ -209,10 +205,11 @@ struct CompilationOptions {
   };
 
   // LLVM optimization level when JIT compiling a kernel.
-  Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
+  llvm::CodeGenOpt::Level jit_code_opt_level = llvm::CodeGenOpt::Level::Default;
 
-  // User-defined bindings for symbols.
-  RuntimeSymbolMap runtime_symbol_map;
+  // Runtime symbol map allows to pass user-defined bindings for symbols at JIT
+  // compilation time (e.g. to implement custom C APIs).
+  ExecutionEngine::SymbolsBinding runtime_symbol_map;
 
   // What level of specialization is enabled at runtime.
   Specialization specialization = Specialization::kAlways;
@@ -832,39 +829,18 @@ Error ReturnErrors(const ReturnValueConverterBase& results, Error error);
 // Result of compiling MLIR module to executable kernel function.
 //----------------------------------------------------------------------------//
 
+namespace internal {
+class JitCompilationContext;
+}  // namespace internal
+
 class Executable {
  public:
-  // Pointer to a compiled kernel function.
-  using KernelFunctionPtr = void (*)(void**);
-
   // Forward declare types defined below.
   struct ArgumentsMemoryLayout;
   struct ResultsMemoryLayout;
   struct CallFrame;
   struct ExecuteOpts;
   struct KernelContext;
-
-  Executable(llvm::StringRef name,
-             std::unique_ptr<JitRtMemoryMapper> memory_mapper,
-             std::unique_ptr<mlir::ExecutionEngine> engine,
-             KernelFunctionPtr fptr, FunctionType signature,
-             FunctionType runtime_signature,
-             ArgumentsMemoryLayout arguments_memory_layout,
-             ResultsMemoryLayout results_memory_layout,
-             Optional<size_t> specialization,
-             std::chrono::milliseconds time_to_compile)
-      : name_(name.str()),
-        memory_mapper_(std::move(memory_mapper)),
-        engine_(std::move(engine)),
-        fptr_(fptr),
-        signature_(std::move(signature)),
-        runtime_signature_(std::move(runtime_signature)),
-        arguments_memory_layout_(std::move(arguments_memory_layout)),
-        results_memory_layout_(std::move(results_memory_layout)),
-        specialization_(specialization),
-        time_to_compile_(time_to_compile) {
-    assert(fptr_ != nullptr && "kernel function must be not null");
-  }
 
   // Initializes call frame by adding all operands as pointers to the arguments
   // vector. Also allocates storage for the returned values.
@@ -923,6 +899,11 @@ class Executable {
   unsigned num_results() const;
 
   std::chrono::milliseconds time_to_compile() const;
+
+  // Get the object file behind this executable (on linux for example, it will
+  // be https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+  // executable). Can be null.
+  std::unique_ptr<llvm::MemoryBuffer> obj_file() const;
 
   // CallFrame provides a pointer-stable storage for packed function arguments
   // and storage for returned values.
@@ -1008,6 +989,16 @@ class Executable {
     CustomCall::UserData* custom_call_data;
   };
 
+  // Loads executable from an object file. It is the caller responsibility to
+  // guarantee that signatures do match the compiled function in the object
+  // file, otherwise it will surely lead to crash.
+  static Expected<Executable> LoadFromObjFile(
+      llvm::StringRef name, std::unique_ptr<llvm::MemoryBuffer> obj_file,
+      llvm::StringRef entrypoint, FunctionType signature,
+      FunctionType runtime_signature,
+      ExecutionEngine::SymbolsBinding runtime_symbol_map = {},
+      llvm::StringRef memory_region_name = "");
+
   // Verifies that all operands types in the entrypoint function signature are
   // supported at run time . Returns a pre-computed layout for the function
   // arguments. If some arguments are not supported returns an error.
@@ -1024,13 +1015,39 @@ class Executable {
   static CustomCall::UserData* GetUserData(runtime::KernelContext* ctx);
 
  private:
+  friend class internal::JitCompilationContext;
+
+  Executable(llvm::StringRef name,
+             std::unique_ptr<JitRtMemoryMapper> memory_mapper,
+             std::unique_ptr<ExecutionEngine> engine, FunctionType signature,
+             FunctionType runtime_signature,
+             ArgumentsMemoryLayout arguments_memory_layout,
+             ResultsMemoryLayout results_memory_layout,
+             Optional<size_t> specialization,
+             std::chrono::milliseconds time_to_compile)
+      : name_(name.str()),
+        memory_mapper_(std::move(memory_mapper)),
+        engine_(std::move(engine)),
+        fptr_(engine_->entrypoint()),
+        signature_(std::move(signature)),
+        runtime_signature_(std::move(runtime_signature)),
+        arguments_memory_layout_(std::move(arguments_memory_layout)),
+        results_memory_layout_(std::move(results_memory_layout)),
+        specialization_(specialization),
+        time_to_compile_(time_to_compile) {
+    assert(fptr_ != nullptr && "kernel function must be not null");
+  }
+
   std::string name_;  // name of the compiled kernel module
 
   // Called by `engine_`'s destructor; must appear before it.
   std::unique_ptr<JitRtMemoryMapper> memory_mapper_;
 
-  std::unique_ptr<mlir::ExecutionEngine> engine_;
-  KernelFunctionPtr fptr_;  // compiled function owned by the `engine_`
+  // JitRt execution engine owns the LLVM ORC jit compilation stack.
+  std::unique_ptr<ExecutionEngine> engine_;
+
+  // Compiled function owned by the `engine_`.
+  ExecutionEngine::EntrypointFunctionPtr fptr_;
 
   // Signature of the compiled module entrypoint function before lowering to
   // the runtime dialects (see JitExecutable `signature_` for more details).

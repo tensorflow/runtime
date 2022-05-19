@@ -48,6 +48,7 @@ using llvm::DenseMap;
 
 using mlir::ArrayAttr;
 using mlir::Attribute;
+using mlir::ComplexType;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
 using mlir::DenseIntOrFPElementsAttr;
@@ -448,16 +449,30 @@ static TypeID ScalarRuntimeTypeId(Type type) {
 }
 
 static DType ScalarDType(Type type) {
+  // Unsigned integer types.
   if (type.isUnsignedInteger(8)) return DType::UI8;
+  if (type.isUnsignedInteger(16)) return DType::UI16;
   if (type.isUnsignedInteger(32)) return DType::UI32;
   if (type.isUnsignedInteger(64)) return DType::UI64;
 
+  // Signed integer types.
   if (type.isInteger(1)) return DType::I1;
+  if (type.isInteger(8)) return DType::I8;
+  if (type.isInteger(16)) return DType::I16;
   if (type.isInteger(32)) return DType::I32;
   if (type.isInteger(64)) return DType::I64;
 
+  // Floating point types.
+  if (type.isF16()) return DType::F16;
   if (type.isF32()) return DType::F32;
   if (type.isF64()) return DType::F64;
+  if (type.isBF16()) return DType::BF16;
+
+  // Complex types.
+  if (auto complex = type.dyn_cast<ComplexType>()) {
+    if (complex.getElementType().isF32()) return DType::Complex64;
+    if (complex.getElementType().isF64()) return DType::Complex128;
+  }
 
   assert(false && "unsupported type id");
   return DType::Invalid;

@@ -37,6 +37,8 @@ def RuntimeDialect : Dialect {
   let cppNamespace = "::tfrt::jitrt";
 
   let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+
+  let useDefaultTypePrinterParser = 1;
 }
 
 class RT_Type<string name, string typeMnemonic> : TypeDef<RuntimeDialect,

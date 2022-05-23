@@ -94,6 +94,15 @@ static bool EnablePassTiming() {
 #endif
 }
 
+// Escape slashes, substituting them with double underscores to get a memory
+// region name for the JitRtMemoryMapper.
+//
+// The profiler's UI might interpret slashes as callchain separators,
+// whereas we want the region name to be shown in full.
+static std::string EscapeMemRegionName(llvm::StringRef memory_region_name) {
+  return llvm::join(llvm::split(memory_region_name, '/'), "__");
+}
+
 //----------------------------------------------------------------------------//
 // Register MLIR C Runner Utils symbols with JIT execution engine.
 //----------------------------------------------------------------------------//
@@ -622,16 +631,10 @@ CustomCall::UserData* Executable::GetUserData(runtime::KernelContext* ctx) {
     FunctionType runtime_signature,
     ExecutionEngine::SymbolsBinding runtime_symbol_map,
     llvm::StringRef memory_region_name) {
-  // Escape slashes, substituting them with double underscores.
-  // The profiler's UI might interpret slashes as callchain separators,
-  // whereas we want the region name to be shown in full.
-  auto escape_region_name = [](llvm::StringRef str) {
-    return llvm::join(llvm::split(str, '/'), "__");
-  };
-
+  // Memory region name to mmap executable code.
   std::string mapper_name = llvm::formatv(
       "/jitrt_aot{0}{1}:@{2}::@{3}", memory_region_name.empty() ? "" : ":",
-      escape_region_name(memory_region_name), name, entrypoint);
+      EscapeMemRegionName(memory_region_name), name, entrypoint);
 
   // Custom memory mapper to tag memory allocated for JitRt executables.
   std::unique_ptr<JitRtMemoryMapper> memory_mapper =
@@ -649,7 +652,7 @@ CustomCall::UserData* Executable::GetUserData(runtime::KernelContext* ctx) {
   auto engine = ExecutionEngine::CreateFromObjFile(std::move(obj_file),
                                                    entrypoint, options);
 
-  // Get the memory layout fo passing function arguments.
+  // Get the memory layout for passing function arguments.
   auto arguments_memory_layout = GetArgumentsMemoryLayout(runtime_signature);
   if (auto err = arguments_memory_layout.takeError()) return std::move(err);
 
@@ -932,7 +935,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto runtime_signature = FunctionType::Convert(runtime_type);
   if (auto err = runtime_signature.takeError()) return std::move(err);
 
-  // Get the memory layout fo passing function arguments.
+  // Get the memory layout for passing function arguments.
   auto arguments_memory_layout =
       Executable::GetArgumentsMemoryLayout(*runtime_signature);
   if (auto err = arguments_memory_layout.takeError()) return std::move(err);
@@ -960,19 +963,13 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto target_machine = builder->createTargetMachine();
   if (!target_machine) return target_machine.takeError();
 
-  // Escape slashes, substituting them with double underscores.
-  // The profiler's UI might interpret slashes as callchain separators,
-  // whereas we want the region name to be shown in full.
-  auto escape_region_name = [](llvm::StringRef str) {
-    return llvm::join(llvm::split(str, '/'), "__");
-  };
-
   // Name of the compiled module if available.
   auto module_name = ctx->module().getSymName().getValueOr("<unknown>");
 
+  // Memory region name to mmap executable code.
   std::string mapper_name = llvm::formatv(
       "/jitrt{0}{1}:@{2}::@{3}:{4}", memory_region_name.empty() ? "" : ":",
-      escape_region_name(memory_region_name), module_name, entrypoint,
+      EscapeMemRegionName(memory_region_name), module_name, entrypoint,
       specialization.hasValue() ? "specialized" : "default");
 
   // Custom memory mapper to tag memory allocated for JitRt executables.

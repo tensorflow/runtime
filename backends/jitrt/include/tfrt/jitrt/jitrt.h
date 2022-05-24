@@ -37,7 +37,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/PassManager.h"

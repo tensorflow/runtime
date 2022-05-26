@@ -130,3 +130,8 @@ Furthermore static information about reduction axis allows to lower mean
 operation to Linalg generic operation. Dynamic reduction axis is not
 representable in Linalg, and would require multi-versioning and dynamic dispatch
 at runtime.
+
+### End To End Example
+
+See `tfrt/backends/jitrt/cpp_tests/end_to_end_example_test.cc` test for and end
+to end compilation and execution example using C++ APIs.

@@ -390,6 +390,7 @@ class CustomCall::RemainingArgs {
   }
 
   size_t size() const { return args_.size() - offset_; }
+  bool empty() const { return size() == 0; }
 
   template <typename T>
   bool isa(size_t index) const {

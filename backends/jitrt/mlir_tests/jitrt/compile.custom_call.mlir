@@ -15,22 +15,32 @@
 // RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 module @multiply attributes { tfrt.compiled } {
-  func.func private @multiply.cc(%arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>)
+  func.func private @multiply.cc(%arg0: memref<?x?xf32>,
+                                 %arg1: memref<?x?xf32>)
     attributes { rt.custom_call = "testlib.multiply" }
 
-  func.func @main(%input: memref<?x?xf32>) -> memref<?x?xf32> {
+  func.func private @multiply.x3.cc(%arg0: memref<?x?xf32>,
+                                    %arg1: memref<?x?xf32>)
+    attributes { rt.custom_call = "testlib.multiply.x3" }
+
+  func.func @main(%input: memref<?x?xf32>) -> (memref<?x?xf32>,
+                                               memref<?x?xf32>) {
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %0 = memref.dim %input, %c0 : memref<?x?xf32>
     %1 = memref.dim %input, %c1 : memref<?x?xf32>
 
     // Reverse dimension order to test invalid custom call arguments below.
-    %output = memref.alloc(%1, %0) : memref<?x?xf32>
+    %out0 = memref.alloc(%1, %0) : memref<?x?xf32>
+    %out1 = memref.alloc(%1, %0) : memref<?x?xf32>
 
-    func.call @multiply.cc(%input, %output) { cst = 2.0 : f32 }
+    func.call @multiply.cc(%input, %out0) { cst = 2.0 : f32 }
       : (memref<?x?xf32>, memref<?x?xf32>) -> ()
 
-    func.return %output : memref<?x?xf32>
+    func.call @multiply.x3.cc(%input, %out1)
+      : (memref<?x?xf32>, memref<?x?xf32>) -> ()
+
+    func.return %out0, %out1 : memref<?x?xf32>, memref<?x?xf32>
   }
 }
 
@@ -155,24 +165,31 @@ func.func @compiled_custom_call() -> !tfrt.chain {
   %input = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 16 : i64]
   %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
 
-  // Allocate and initialize expected tensor.
+  // Allocate tensor for the expected values.
   %expected = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 16 : i64]
-  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch1 2.0 : f32
 
   // Compile a kernel with a custom call.
   %executable = jitrt.compile { kernel = @multiply::@main }
 
   // Execute compiled kernel with tensor operands.
-  %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
+  %output0, %output1 = jitrt.execute %executable[%ch1](%input)
+    : (!t.tensor) -> (!t.tensor, !t.tensor)
 
   // Wait for the execution completion and compare result with expected.
-  %cmp, %cmp_ch = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch1 2.0 : f32
+  %cmp0, %cmp0_ch = "tfrt_dht.tensor_allclose.f32"(%expected, %output0, %ch2)
+    : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
+
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %expected, %cmp0_ch 3.0 : f32
+  %cmp1, %cmp1_ch = "tfrt_dht.tensor_allclose.f32"(%expected, %output1, %ch3)
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  %printed = tfrt.print.i1 %cmp, %cmp_ch
+  // CHECK: int1 = 1
+  %printed0 = tfrt.print.i1 %cmp0, %cmp1_ch
+  %printed1 = tfrt.print.i1 %cmp0, %printed0
 
-  tfrt.return %printed : !tfrt.chain
+  tfrt.return %printed1 : !tfrt.chain
 }
 
 // CHECK: --- Running 'compiled_custom_call_error'

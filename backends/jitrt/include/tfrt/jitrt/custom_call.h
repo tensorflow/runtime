@@ -156,6 +156,11 @@ struct Attr {};
 template <typename T>
 struct UserData {};
 
+// A type tag to distinguish arguments tied to the constant values in the
+// `CustomCallBinding` variadic template argument.
+template <typename T>
+struct Value {};
+
 // A template for checking if type is a wrapped attribute or user data.
 template <typename>
 struct IsWrapped : std::false_type {};
@@ -165,6 +170,9 @@ struct IsWrapped<internal::Attr<T>> : std::true_type {};
 
 template <typename T>
 struct IsWrapped<internal::UserData<T>> : std::true_type {};
+
+template <typename T>
+struct IsWrapped<internal::Value<T>> : std::true_type {};
 
 // Checks if remaining arguments are in the parameter pack.
 template <typename... Ts>
@@ -219,11 +227,18 @@ class CustomCallBinding {
     return {std::move(*this)};
   }
 
+  template <typename T>
+  CustomCallBinding<Ts..., internal::Value<T>> Value(T value) && {
+    values_.push_back(std::move(value));
+    return {std::move(*this)};
+  }
+
   template <RuntimeChecks checks = RuntimeChecks::kDefault, typename Fn>
   std::unique_ptr<CustomCallHandler<checks, Fn, Ts...>> To(Fn fn) {
     return std::unique_ptr<CustomCallHandler<checks, Fn, Ts...>>(
         new CustomCallHandler<checks, Fn, Ts...>(
-            std::forward<Fn>(fn), std::move(callee_), std::move(attrs_)));
+            std::forward<Fn>(fn), std::move(callee_), std::move(attrs_),
+            std::move(values_)));
   }
 
  private:
@@ -237,12 +252,16 @@ class CustomCallBinding {
 
   template <typename... TTs>
   CustomCallBinding(CustomCallBinding<TTs...>&& other)  // NOLINT
-      : callee_(std::move(other.callee_)), attrs_(std::move(other.attrs_)) {}
+      : callee_(std::move(other.callee_)),
+        attrs_(std::move(other.attrs_)),
+        values_(std::move(other.values_)) {}
 
   CustomCallBinding(CustomCallBinding&) = delete;
 
   std::string callee_;              // custom call target
   std::vector<std::string> attrs_;  // names of bound attributes
+  // TODO(ezhulenev): Use std::any once C++17 is available.
+  std::vector<llvm::Any> values_;  // values bound to arguments
 };
 
 inline CustomCallBinding<> CustomCall::Bind(std::string callee) {
@@ -440,6 +459,12 @@ struct FnArgType<internal::UserData<T>> {
   using Type = T;
 };
 
+// Extracts the underlying type from the value type tag.
+template <typename T>
+struct FnArgType<internal::Value<T>> {
+  using Type = T;
+};
+
 // A template for counting regular arguments in the Ts pack.
 template <typename T, typename... Ts>
 struct NumArgs {
@@ -456,6 +481,7 @@ struct NumArgs<T> {
 struct DecodingOffsets {
   int64_t args = 0;
   int64_t attrs = 0;
+  int64_t values = 0;
 };
 
 template <typename T, CustomCall::RuntimeChecks checks>
@@ -463,7 +489,8 @@ struct Decode {
   LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
       DecodingOffsets& offsets, internal::DecodedArgs args,
       ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
-      internal::DecodedAttrs attrs, const CustomCall::UserData* user_data) {
+      internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
+      const CustomCall::UserData* user_data) {
     internal::DecodedArg arg = args[offsets.args++];
     return CustomCallArgDecoding<T, checks>::Decode(arg.type_id, arg.value);
   }
@@ -474,7 +501,8 @@ struct Decode<internal::Attr<T>, checks> {
   LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
       DecodingOffsets& offsets, internal::DecodedArgs args,
       ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
-      internal::DecodedAttrs attrs, const CustomCall::UserData* user_data) {
+      internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
+      const CustomCall::UserData* user_data) {
     // Find decoded attribute corresponding for the given attribute index.
     int64_t idx = offsets.attrs++;
 
@@ -507,7 +535,8 @@ struct Decode<internal::UserData<T>, checks> {
   LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
       DecodingOffsets& offsets, internal::DecodedArgs args,
       ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
-      internal::DecodedAttrs attrs, const CustomCall::UserData* user_data) {
+      internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
+      const CustomCall::UserData* user_data) {
     using UserDataT = std::remove_pointer_t<T>;
 
     if (!CustomCall::CheckUserData(checks)) return user_data->get<UserDataT>();
@@ -523,12 +552,24 @@ struct Decode<internal::UserData<T>, checks> {
   }
 };
 
+template <typename T, CustomCall::RuntimeChecks checks>
+struct Decode<internal::Value<T>, checks> {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> call(
+      DecodingOffsets& offsets, internal::DecodedArgs args,
+      ArrayRef<std::string> attrs_names, ArrayRef<size_t> attrs_idx,
+      internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
+      const CustomCall::UserData* user_data) {
+    return llvm::any_cast<T>(values[offsets.values++]);
+  }
+};
+
 template <CustomCall::RuntimeChecks checks>
 struct Decode<CustomCall::RemainingArgs, checks> {
   LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<CustomCall::RemainingArgs>
   call(DecodingOffsets& offsets, internal::DecodedArgs args,
        ArrayRef<std::string> attr_names, ArrayRef<size_t> attrs_idx,
-       internal::DecodedAttrs attrs, const CustomCall::UserData* user_data) {
+       internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
+       const CustomCall::UserData* user_data) {
     return CustomCall::RemainingArgs(args, offsets.args);
   }
 };
@@ -606,7 +647,7 @@ class CustomCallHandler : public CustomCall {
     // on correct offsets computation.
     std::tuple<mlir::FailureOr<FnArgType<Ts>>...> fn_args = {
         check_all_decoded(internal::Decode<Ts, checks>::call(
-            offsets, args, attrs_, attrs_idx_, attrs, user_data))...};
+            offsets, args, attrs_, attrs_idx_, attrs, values_, user_data))...};
     if (LLVM_UNLIKELY(!all_decoded)) return mlir::failure();
 
     // Forward unpacked arguments to the callback.
@@ -617,11 +658,12 @@ class CustomCallHandler : public CustomCall {
   template <typename...>
   friend class CustomCallBinding;
 
-  CustomCallHandler(Fn fn, std::string callee,
-                    std::vector<std::string> attrs)  // NOLINT
+  CustomCallHandler(Fn fn, std::string callee, std::vector<std::string> attrs,
+                    std::vector<llvm::Any> values)
       : fn_(std::move(fn)),
         callee_(std::move(callee)),
         attrs_(std::move(attrs)),
+        values_(std::move(values)),
         attrs_idx_(attrs_.size()) {
     // Sort attributes names.
     std::vector<std::string> sorted = attrs_;
@@ -637,6 +679,7 @@ class CustomCallHandler : public CustomCall {
   Fn fn_;
   std::string callee_;
   std::vector<std::string> attrs_;
+  std::vector<llvm::Any> values_;
   // A mapping from the attribute index to its index in the lexicographically
   // sorter vector of attribute names. Attributes passed in the custom call
   // handler sorted by the name, we use this index to efficiently find the

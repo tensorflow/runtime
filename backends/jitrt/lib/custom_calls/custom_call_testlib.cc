@@ -192,6 +192,12 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<float>("cst")
                          .To(Multiply));
 
+  registry->Register(CustomCall::Bind("testlib.multiply.x3")
+                         .Arg<MemrefView>()  // input
+                         .Arg<MemrefView>()  // output
+                         .Value(3.0)         // cst
+                         .To(Multiply));
+
   registry->Register(CustomCall::Bind("testlib.print_attrs")
                          .UserData<const char*>()
                          .Attr<int32_t>("i32")

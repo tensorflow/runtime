@@ -421,7 +421,7 @@ static bool IsSupportedScalarType(Type type) {
   };
 
   if (auto integer = type.dyn_cast<mlir::IntegerType>())
-    return is_supported_width(integer.getWidth(), {32, 64});
+    return is_supported_width(integer.getWidth(), {1, 32, 64});
 
   if (auto fp = type.dyn_cast<mlir::FloatType>())
     return is_supported_width(fp.getWidth(), {32, 64});
@@ -439,6 +439,7 @@ static TypeID ScalarRuntimeTypeId(Type type) {
   if (type.isUnsignedInteger(32)) return TypeID::get<Tagged<uint32_t>>();
   if (type.isUnsignedInteger(64)) return TypeID::get<Tagged<uint64_t>>();
 
+  if (type.isInteger(1)) return TypeID::get<Tagged<bool>>();
   if (type.isInteger(32)) return TypeID::get<Tagged<int32_t>>();
   if (type.isInteger(64)) return TypeID::get<Tagged<int64_t>>();
 

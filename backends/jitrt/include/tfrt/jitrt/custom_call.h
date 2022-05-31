@@ -75,6 +75,26 @@ class CustomCall {
     kNone = 2
   };
 
+  // Allows to bind custom calls to handlers with optional arguments without
+  // spelling the full type.
+  //
+  // Example:
+  //
+  //   LogicalResult MyCustomCall(Optional<int32_t> version);
+  //
+  //   CustomCall::Bind("api").Value(CustomCall::None).To(MyCustomCall);
+  //
+  // Works around the fact that llvm::Optional can't store an instance of
+  // llvm::NoneType (llvm::Optional<llvm::NoneType> has ambiguous constructor).
+  struct NoneType {
+    template <typename T>
+    operator llvm::Optional<T>() const {  // NOLINT
+      return llvm::None;
+    }
+  };
+
+  static constexpr NoneType None = {};  // NOLINT
+
   static constexpr bool CheckNames(RuntimeChecks checks) {
     return checks == RuntimeChecks::kDefault;
   }
@@ -821,6 +841,7 @@ struct CustomCallAttrDecoding<llvm::StringRef, checks> {
     }                                                              \
   }
 
+JITRT_REGISTER_SCALAR_ATTR_DECODING(bool);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(int32_t);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(int64_t);
 JITRT_REGISTER_SCALAR_ATTR_DECODING(float);

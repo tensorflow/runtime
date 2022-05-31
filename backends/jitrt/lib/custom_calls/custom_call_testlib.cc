@@ -22,6 +22,7 @@
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/support/string_util.h"
@@ -86,6 +87,13 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
   tfrt::outs() << "str: " << str << "\n";
   tfrt::outs().flush();
 
+  return success();
+}
+
+// TODO(b/234085769): Add support for custom enum attributes to the rt_to_llvm
+// lowering pass and to the custom call decoding.
+static LogicalResult PrintDialectAttrs(EnumType enum_value) {
+  tfrt::outs() << "Enum: " << stringifyEnumType(enum_value) << "\n";
   return success();
 }
 
@@ -176,6 +184,9 @@ static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
+  // TODO(ezhulenev): Add a custom call binding for dialect attrs printing.
+  (void)PrintDialectAttrs;
+
   registry->Register(CustomCall::Bind("testlib.noop")
                          .Arg<FlatMemrefView>()
                          .Arg<FlatMemrefView>()

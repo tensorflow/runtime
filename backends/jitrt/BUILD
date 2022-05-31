@@ -363,8 +363,55 @@ tfrt_cc_library(
     ],
 )
 
+td_library(
+    name = "custom_call_testlib_td_files",
+    srcs = [
+        "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
+        "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.td",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
+    deps = [
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
+gentbl_cc_library(
+    name = "custom_call_testlib_enums_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            ["-gen-enum-decls"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc",
+        ),
+        (
+            ["-gen-enum-defs"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
+    deps = [":custom_call_testlib_td_files"],
+)
+
+cc_library(
+    name = "custom_call_testlib_enums",
+    srcs = [
+        "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc",
+        "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc",
+        "lib/custom_calls/custom_call_testlib_enums.cc",
+    ],
+    hdrs = ["include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
+    deps = [
+        ":custom_call_testlib_enums_inc_gen",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
 tfrt_cc_library(
-    name = "custom_calls_testlib",
+    name = "custom_call_testlib",
     srcs = ["lib/custom_calls/custom_call_testlib.cc"],
     hdrs = ["include/tfrt/jitrt/custom_calls/custom_call_testlib.h"],
     alwayslink_static_registration_src = "lib/custom_calls/custom_call_testlib_registration.cc",
@@ -372,6 +419,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":custom_call",
+        ":custom_call_testlib_enums",
         ":jitrt",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//mlir:Support",
@@ -386,7 +434,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/jitrt_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":custom_calls_testlib",
+        ":custom_call_testlib",
         ":jitrt",
         ":jitrt_compiler",
         "@tf_runtime//:dtype",

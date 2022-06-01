@@ -21,12 +21,18 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
+#include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 
 namespace tfrt {
 namespace jitrt {
 
+CustomCallArgEncodingSet DefaultArgEncodings();
+CustomCallAttrEncodingSet DefaultAttrEncodings();
+
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-CreateConvertRuntimeToLLVMPass();
+CreateConvertRuntimeToLLVMPass(
+    CustomCallArgEncodingSet arg_encoding = DefaultArgEncodings(),
+    CustomCallAttrEncodingSet attr_encoding = DefaultAttrEncodings());
 
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/conversion/rt_gen_passes.h.inc"

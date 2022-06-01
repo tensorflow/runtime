@@ -599,12 +599,27 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "custom_call_to_llvm",
+    srcs = ["lib/conversion/custom_call_to_llvm.cc"],
+    hdrs = ["include/tfrt/jitrt/conversion/custom_call_to_llvm.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        ":custom_call",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMDialect",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "rt_conversion",
     srcs = ["lib/conversion/rt_to_llvm.cc"],
     hdrs = ["include/tfrt/jitrt/conversion/rt_passes.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":custom_call",
+        ":custom_call_to_llvm",
         ":rt_conversion_passes_inc_gen",
         ":rt_opdefs",
         "@llvm-project//llvm:Support",

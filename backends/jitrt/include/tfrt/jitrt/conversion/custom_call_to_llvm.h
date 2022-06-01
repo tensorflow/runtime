@@ -153,6 +153,35 @@ class CustomCallAttrEncodingSet {
 };
 
 // -------------------------------------------------------------------------- //
+// A set of helper functions for packing attributes and values.
+// -------------------------------------------------------------------------- //
+
+// Packs TypeID as `i64` constant value and casts it to the `!llvm.ptr<i8>`,
+// because type id internally is implemented as an opaque pointer.
+mlir::Value PackTypeId(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                       mlir::TypeID type_id);
+
+// Packs string as a module global constants. Returns `!llvm.ptr<EncodedStr>`.
+// We always pass string with the size to the runtime intrinsics, because
+// computing the length of null-terminated string can be expensive, and we need
+// it to construct llvm::StringRef at run time.
+mlir::Value PackString(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                       llvm::StringRef strref, llvm::StringRef symbol_base);
+
+// Packs scalar attribute as a global constant. Returns `!llvm.ptr<AttrType>`.
+mlir::Value PackScalarAttribute(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                mlir::Attribute value,
+                                mlir::StringRef symbol_base);
+
+// Packs array attribute as a global constant. Returns `!llvm.ptr<EncodedArr>`.
+mlir::Value PackArrayAttribute(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                               mlir::Attribute value,
+                               llvm::StringRef symbol_base);
+
+// Packs value on the stack. Returns `!llvm.ptr<ValueType>`.
+mlir::Value PackValue(mlir::ImplicitLocOpBuilder &b, mlir::Value value);
+
+// -------------------------------------------------------------------------- //
 // A helper class to create global constants in the module.
 // -------------------------------------------------------------------------- //
 
@@ -206,6 +235,61 @@ class Globals {
 
   mlir::ModuleOp module_;
   llvm::DenseMap<Key, mlir::LLVM::GlobalOp> globals_;
+};
+
+// -------------------------------------------------------------------------- //
+// Custom call attributes encoding.
+// -------------------------------------------------------------------------- //
+
+struct StringAttrEncoding : public CustomCallAttrEncoding {
+  mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute) const final;
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::StringRef, mlir::Attribute) const final;
+};
+
+struct ScalarAttrEncoding : public CustomCallAttrEncoding {
+  mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute) const final;
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::StringRef, mlir::Attribute) const final;
+};
+
+struct ArrayAttrEncoding : public CustomCallAttrEncoding {
+  mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute) const final;
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::StringRef, mlir::Attribute) const final;
+};
+
+// -------------------------------------------------------------------------- //
+// Custom call arguments encoding.
+// -------------------------------------------------------------------------- //
+
+// Encodes scalar operands.
+class ScalarArgEncoding : public CustomCallArgEncoding {
+ public:
+  mlir::LogicalResult Match(mlir::Value, mlir::Value) const final;
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::Value, mlir::Value) const final;
+};
+
+// Encodes MemRef operands according to the (Strided)MemrefView ABI.
+class MemrefArgEncoding : public CustomCallArgEncoding {
+ public:
+  mlir::LogicalResult Match(mlir::Value, mlir::Value) const final;
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::Value, mlir::Value) const final;
+
+ private:
+  // Encodes memref as LLVM struct value:
+  //
+  //   { i8: dtype, i8: rank, ptr<i8>: data,
+  //     array<2*rank x i64>: sizes_and_strides }
+  //
+  // This is a type erased version of the MLIR memref descriptor without base
+  // pointer. We pack sizes and strides as a single array member, so that on
+  // the runtime side we can read it back using C flexible array member.
+  mlir::Value EncodeMemRef(mlir::ImplicitLocOpBuilder &b,
+                           mlir::MemRefType memref_ty,
+                           mlir::Value descriptor) const;
 };
 
 }  // namespace jitrt

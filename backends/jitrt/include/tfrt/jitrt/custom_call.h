@@ -27,13 +27,15 @@
 #include <type_traits>
 #include <utility>
 
+#include "llvm/ADT/Any.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/types.h"
 #include "tfrt/support/map_by_type.h"
 
 namespace tfrt {

@@ -394,6 +394,24 @@ gentbl_cc_library(
     deps = [":custom_call_testlib_td_files"],
 )
 
+gentbl_cc_library(
+    name = "custom_call_testlib_attrs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            ["-gen-attrdef-decls"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.h.inc",
+        ),
+        (
+            ["-gen-attrdef-defs"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
+    deps = [":custom_call_testlib_td_files"],
+)
+
 cc_library(
     name = "custom_call_testlib_enums",
     srcs = [
@@ -407,6 +425,7 @@ cc_library(
     deps = [
         ":custom_call_testlib_enums_inc_gen",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
     ],
 )
 
@@ -419,9 +438,12 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":custom_call",
+        ":custom_call_testlib_attrs_inc_gen",
         ":custom_call_testlib_enums",
         ":jitrt",
         "@llvm-project//llvm:OrcJIT",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
@@ -606,7 +628,9 @@ tfrt_cc_library(
     deps = [
         ":custom_call",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMCommonConversion",
         "@llvm-project//mlir:LLVMDialect",
         "@llvm-project//mlir:Support",
     ],

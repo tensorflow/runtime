@@ -31,12 +31,9 @@ class OpAttrsRef;
 class TensorHandle;
 
 // This struct encapsulates the data needed to represent an op invocation,
-// essentially a bundle of information passed to CoreRuntime::Execute.  This is
-// an internal implementation detail of Device and AggregateOpHandler, it isn't
-// intended to be used by normal clients of the CoreRuntime API.
-//
-// This struct is intentionally non-copyable and non-movable because it contains
-// MutableArrayRef's and string_views that often point into the caller's stack.
+// essentially a bundle of information passed to CoreRuntime::Execute.  This
+// is an internal implementation detail of Device and AggregateOpHandler, it
+// isn't intended to be used by normal clients of the CoreRuntime API.
 struct OpInvocation {
   // This is the name of the op to invoke, e.g. "tf.Add".
   string_view op_name;
@@ -61,13 +58,6 @@ struct OpInvocation {
   // pointer, and then write the result chain which completes when the op side
   // effects are done.
   AsyncValueRef<Chain>* chain;
-
-  // Non-copyable and non-movable because this includes unsafe pointers to the
-  // caller stack.
-  OpInvocation(const OpInvocation&) = delete;
-  OpInvocation(OpInvocation&&) = delete;
-  OpInvocation& operator=(const OpInvocation&) = delete;
-  OpInvocation& operator=(OpInvocation&&) = delete;
 };
 
 // TODO(b/161062314): Assess whether to use this struct consistently for
@@ -90,13 +80,6 @@ struct CompositeOpInvocation {
   // pointer, and then write the result chain which completes when the op side
   // effects are done.
   AsyncValueRef<Chain>* chain;
-
-  // Non-copyable and non-movable because this includes unsafe pointers to the
-  // caller stack.
-  CompositeOpInvocation(const CompositeOpInvocation&) = delete;
-  CompositeOpInvocation(CompositeOpInvocation&&) = delete;
-  CompositeOpInvocation& operator=(const CompositeOpInvocation&) = delete;
-  CompositeOpInvocation& operator=(CompositeOpInvocation&&) = delete;
 };
 
 }  // namespace tfrt

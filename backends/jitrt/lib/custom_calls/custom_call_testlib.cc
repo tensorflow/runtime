@@ -81,10 +81,33 @@ void TestlibDialect::printAttribute(Attribute attr,
 
 // Explicitly register attributes decoding for enums passed to the custom calls.
 JITRT_REGISTER_ENUM_ATTR_DECODING(EnumType);
+JITRT_REGISTER_ENUM_ATTR_DECODING(RuntimeEnumType);
 
 // Explicitly register attributes encoding for enums passed to the custom calls.
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet& encoding) {
   encoding.Add<EnumAttrEncoding<EnumTypeAttr, EnumType>>();
+  encoding.Add<EnumAttrEncoding<EnumType2Attr, EnumType2, RuntimeEnumType>>(
+      [](EnumType2 enum_value) {
+        switch (enum_value) {
+          case EnumType2::Foo:
+            return RuntimeEnumType::kFoo;
+          case EnumType2::Bar:
+            return RuntimeEnumType::kBar;
+          case EnumType2::Baz:
+            return RuntimeEnumType::kBaz;
+        }
+      });
+}
+
+static std::string StringifyEnumType(RuntimeEnumType value) {
+  switch (value) {
+    case RuntimeEnumType::kFoo:
+      return "RuntimeFoo";
+    case RuntimeEnumType::kBar:
+      return "RuntimeBar";
+    case RuntimeEnumType::kBaz:
+      return "RuntimeBaz";
+  }
 }
 
 // NoOp custom call for benchmarking arguments/attributes encoding.
@@ -141,10 +164,11 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
   return success();
 }
 
-// TODO(b/234085769): Add support for custom enum attributes to the rt_to_llvm
-// lowering pass and to the custom call decoding.
-static LogicalResult PrintDialectAttrs(EnumType enum_value) {
-  tfrt::outs() << "Enum: " << stringifyEnumType(enum_value) << "\n";
+static LogicalResult PrintDialectAttrs(EnumType enum_value,
+                                       RuntimeEnumType runtime_enum_value) {
+  tfrt::outs() << "Enum: " << stringifyEnumType(enum_value) << "\n"
+               << "Runtime Enum: " << StringifyEnumType(runtime_enum_value)
+               << "\n";
   return success();
 }
 
@@ -272,6 +296,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
 
   registry->Register(CustomCall::Bind("testlib.print_dialect_attrs")
                          .Attr<EnumType>("enum")
+                         .Attr<RuntimeEnumType>("runtime_enum")
                          .To(PrintDialectAttrs));
 
   registry->Register(CustomCall::Bind("testlib.variadic_args")

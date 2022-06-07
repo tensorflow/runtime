@@ -77,7 +77,8 @@ module @print_dialect_attrs attributes { tfrt.compiled } {
 
   func.func @main() {
     func.call @print_dialect_attrs.cc() {
-      enum = #testlib.enum_type<Baz>
+      enum = #testlib.enum_type<Baz>,
+      runtime_enum = #testlib.another_enum_type<Bar>
     } : () -> ()
 
     func.return
@@ -253,6 +254,7 @@ func.func @compiled_custom_call_print_dialect_attrs() {
   %ch0 = tfrt.new.chain
 
   // CHECK: Enum: Baz
+  // CHECK: Runtime Enum: RuntimeBar
   %executable = jitrt.compile { kernel = @print_dialect_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 

@@ -37,4 +37,17 @@ def TESTLIB_EnumTypeAttr : EnumAttr<TestlibDialect, TESTLIB_EnumType,
   let assemblyFormat = "`<` $value `>`";
 }
 
+// Define another enum type to test enum conversion at the custom call boundary.
+def TESTLIB_EnumType2 : I32EnumAttr<"EnumType2",
+    "Another Custom Call Testlib Enum Type.",
+    [TESTLIB_FOO, TESTLIB_BAR, TESTLIB_BAZ]> {
+  let genSpecializedAttr = 0;
+  let cppNamespace = "::tfrt::jitrt";
+}
+
+def TESTLIB_EnumType2Attr : EnumAttr<TestlibDialect, TESTLIB_EnumType2,
+                                     "another_enum_type"> {
+  let assemblyFormat = "`<` $value `>`";
+}
+
 #endif // CUSTOM_CALL_TESTLIB_ENUMS

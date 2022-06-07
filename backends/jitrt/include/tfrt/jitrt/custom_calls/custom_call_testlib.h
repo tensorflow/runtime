@@ -48,6 +48,11 @@ class TestlibDialect : public mlir::Dialect {
 llvm::orc::SymbolMap CustomCallsTestlibSymbolMap(
     llvm::orc::MangleAndInterner mangle);
 
+// Declare runtime enums corresponding to compile time enums to test
+// attributes enum conversion.
+enum class RuntimeEnumType : uint32_t { kFoo, kBar, kBaz };
+
+// Populate encoding for custom dialect attributes (enums and structs).
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet &encoding);
 
 }  // namespace jitrt

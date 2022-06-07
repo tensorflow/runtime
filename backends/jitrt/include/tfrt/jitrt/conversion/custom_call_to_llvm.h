@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <type_traits>
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -149,6 +150,16 @@ class CustomCallAttrEncodingSet {
     return *this;
   }
 
+  template <typename... Ts, typename ConstructorArg,
+            typename... ConstructorArgs,
+            typename = std::enable_if_t<sizeof...(Ts) != 0>>
+  CustomCallAttrEncodingSet &Add(ConstructorArg &&arg,
+                                 ConstructorArgs &&...args) {
+    (void)std::initializer_list<int>{
+        0, (encodings_.emplace_back(std::make_shared<Ts>(arg, args...)), 0)...};
+    return *this;
+  }
+
  private:
   std::vector<std::shared_ptr<CustomCallAttrEncoding>> encodings_;
 };
@@ -261,15 +272,25 @@ struct ArrayAttrEncoding : public CustomCallAttrEncoding {
 };
 
 // Custom call attribute encoding that encodes enums using their underlying
-// scalar type. Type id is based on the actual enum type passed to the runtime.
+// scalar type. Type id is based on the enum type passed to the runtime.
 //
-// TODO(ezhulenev): Add an option to define enum conversion function when
-// the enum type at compile time doesn't match the enum type at run time.
-template <typename AttrType, typename EnumType>
+// This encoding can convert enum types defined in the compiler (e.g. dialect
+// enums defined in MLIR) to the enum types used at run time.
+template <typename AttrType, typename EnumType,
+          typename RuntimeEnumType = EnumType>
 struct EnumAttrEncoding : public CustomCallAttrEncoding {
-  static_assert(std::is_enum<EnumType>::value, "type must be an enum class");
+  static_assert(std::is_enum<RuntimeEnumType>::value, "must be an enum class");
 
-  using T = std::underlying_type_t<EnumType>;
+  // Convert from the compile time enum to the run time enum.
+  using Converter = std::function<RuntimeEnumType(EnumType)>;
+
+  EnumAttrEncoding() {
+    static_assert(std::is_same<EnumType, RuntimeEnumType>::value,
+                  "requires enum converter");
+    convert = [](EnumType value) { return value; };
+  }
+
+  explicit EnumAttrEncoding(Converter convert) : convert(std::move(convert)) {}
 
   mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute attr) const final {
     return mlir::success(attr.isa<AttrType>());
@@ -279,12 +300,18 @@ struct EnumAttrEncoding : public CustomCallAttrEncoding {
                                   mlir::StringRef name,
                                   mlir::Attribute attr) const final {
     // Convert enum underlying integral value to an attribute.
-    T underlying_value = static_cast<T>(attr.cast<AttrType>().getValue());
+    EnumType compile_time_enum = attr.cast<AttrType>().getValue();
+    RuntimeEnumType run_time_enum = convert(compile_time_enum);
+
+    using T = std::underlying_type_t<RuntimeEnumType>;
+    T underlying_value = static_cast<T>(run_time_enum);
+
+    mlir::TypeID type_id = mlir::TypeID::get<Tagged<RuntimeEnumType>>();
     mlir::Attribute underlying_attr = AsAttr(b, underlying_value);
 
     Encoded encoded;
     encoded.name = PackString(g, b, name, kAttrName);
-    encoded.type_id = PackTypeId(g, b, mlir::TypeID::get<Tagged<EnumType>>());
+    encoded.type_id = PackTypeId(g, b, type_id);
     encoded.value = PackScalarAttribute(g, b, underlying_attr, kAttrValue);
 
     return encoded;
@@ -293,6 +320,8 @@ struct EnumAttrEncoding : public CustomCallAttrEncoding {
   static mlir::Attribute AsAttr(mlir::ImplicitLocOpBuilder &b, uint32_t value) {
     return b.getI32IntegerAttr(value);
   }
+
+  Converter convert;
 };
 
 // -------------------------------------------------------------------------- //

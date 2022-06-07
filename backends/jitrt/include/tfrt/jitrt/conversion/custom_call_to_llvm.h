@@ -338,38 +338,50 @@ mlir::FailureOr<mlir::Value> EncodeAggregateAttr(
     const CustomCallAttrEncodingSet &encoding, mlir::TypeID type_id,
     llvm::StringRef type_name, llvm::ArrayRef<mlir::NamedAttribute> attrs);
 
+// A helper type to define `AttrType` encoding scheme.
+template <typename AttrType>
+struct AggregateAttrDef {
+  template <typename T>
+  using Extract = T (AttrType::*)() const;
+
+  template <typename T, typename Attr = mlir::Attribute>
+  using Encode = Attr (mlir::Builder::*)(T);
+
+  template <typename T, typename Attr = mlir::Attribute>
+  AggregateAttrDef &Add(std::string name, Extract<T> extract,
+                        Encode<T, Attr> encode) {
+    bindings.emplace_back([=](AttrType attr, mlir::Builder &b) {
+      auto encoded = (b.*encode)((attr.*extract)());  // C++17 std::invoke
+      return mlir::NamedAttribute(b.getStringAttr(name), encoded);
+    });
+    return *this;
+  }
+
+  AggregateAttrDef &Add(std::string name, Extract<int64_t> extract) {
+    return Add(name, extract, &mlir::Builder::getI64IntegerAttr);
+  }
+
+  AggregateAttrDef &Add(std::string name, Extract<ArrayRef<int64_t>> extract) {
+    return Add(name, extract, &mlir::Builder::getI64TensorAttr);
+  }
+
+  // A list of functions to destruct `AttrType` attribute into the aggregate
+  // attributes that will be used for encoding.
+  using Bind = std::function<mlir::NamedAttribute(AttrType, mlir::Builder &)>;
+  llvm::SmallVector<Bind> bindings;
+};
+
 // Custom call attribute encoding for the user-defined attributes which encodes
 // them as an aggregate of primitive attributes. It uses the encoding scheme
 // compatible with the custom call attributes decoding.
 template <typename AttrType, typename RuntimeType = AttrType>
 struct AggregateAttrEncoding : public CustomCallAttrEncoding {
-  // A helper type to define `AttrType` encoding scheme.
-  struct Binding {
-    template <typename T>
-    using Extract = T (AttrType::*)() const;
-
-    template <typename T, typename Attr = mlir::Attribute>
-    using Encode = Attr (mlir::Builder::*)(T);
-
-    template <typename T, typename Attr = mlir::Attribute>
-    void Add(std::string name, Extract<T> extract, Encode<T, Attr> encode) {
-      bindings.emplace_back([=](AttrType attr, mlir::Builder &b) {
-        // TODO(ezhulenev): Use std::invoke when C++17 available.
-        auto encoded = (b.*encode)((attr.*extract)());
-        return mlir::NamedAttribute(b.getStringAttr(name), encoded);
-      });
-    }
-
-    // A list of functions to destruct `AttrType` attribute into the aggregate
-    // attributes that will be used for encoding.
-    using Bind = std::function<mlir::NamedAttribute(AttrType, mlir::Builder &)>;
-    llvm::SmallVector<Bind> bindings;
-  };
+  using AttrDef = AggregateAttrDef<AttrType>;
 
   // TODO(ezhulenev): `Encode` function should get a `CustomCallAttrEncodingSet`
   // as an argument, so we wouldn't have to make a copy here.
-  AggregateAttrEncoding(CustomCallAttrEncodingSet encoding, Binding binding)
-      : encoding(std::move(encoding)), binding(std::move(binding)) {}
+  AggregateAttrEncoding(CustomCallAttrEncodingSet encoding, AttrDef attrdef)
+      : encoding(std::move(encoding)), attrdef(std::move(attrdef)) {}
 
   mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute attr) const final {
     return mlir::success(attr.isa<AttrType>());
@@ -380,7 +392,7 @@ struct AggregateAttrEncoding : public CustomCallAttrEncoding {
                                   mlir::Attribute attr) const final {
     // Extract aggregate attributes from the user-defined attributes.
     llvm::SmallVector<mlir::NamedAttribute> attrs;
-    for (auto &bind : binding.bindings)
+    for (auto &bind : attrdef.bindings)
       attrs.emplace_back(bind(attr.cast<AttrType>(), b));
 
     // Encode extracted attributes as an aggregate.
@@ -397,7 +409,7 @@ struct AggregateAttrEncoding : public CustomCallAttrEncoding {
   }
 
   CustomCallAttrEncodingSet encoding;
-  Binding binding;
+  AttrDef attrdef;
 };
 
 // -------------------------------------------------------------------------- //

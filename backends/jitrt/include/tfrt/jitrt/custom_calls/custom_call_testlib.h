@@ -17,9 +17,12 @@
 #ifndef TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_
 #define TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_
 
+#include <cstdint>
+
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "mlir/IR/Dialect.h"
+#include "tfrt/jitrt/custom_call.h"
 
 // clang-format off
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc"
@@ -65,6 +68,16 @@ struct RuntimePairOfDims {
 
 // Populate encoding for custom dialect attributes (enums and structs).
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet &encoding);
+
+// Explicitly register attributes decoding for enums passed to the custom calls.
+JITRT_REGISTER_ENUM_ATTR_DECODING(EnumType);
+JITRT_REGISTER_ENUM_ATTR_DECODING(RuntimeEnumType);
+
+// Explicitly register aggregate attributes decoding for structs.
+JITRT_REGISTER_AGGREGATE_ATTR_DECODING(RuntimePairOfDims,
+                                       JITRT_AGGREGATE_FIELDS("rank", "a", "b"),
+                                       int64_t, ArrayRef<int64_t>,
+                                       ArrayRef<int64_t>);
 
 }  // namespace jitrt
 }  // namespace tfrt

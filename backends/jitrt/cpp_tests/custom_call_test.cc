@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
@@ -54,11 +55,16 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
   CompilationOptions opts;
 
   opts.specialization = CompilationOptions::Specialization::kDisabled;
-  opts.register_dialects = RegisterDefaultJitRtDialects;
   opts.runtime_symbol_map = symbols_binding;
+
+  opts.register_dialects = [&](mlir::DialectRegistry& registry) {
+    registry.insert<TestlibDialect>();
+    RegisterDefaultJitRtDialects(registry);
+  };
 
   opts.create_compilation_pipeline = [&](mlir::PassManager& pm) {
     CompilationPipelineOptions copts;
+    copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 
@@ -442,6 +448,45 @@ static void BM_I32AttrX12(benchmark::State& state) {
 BENCHMARK(BM_I32AttrX12<all>);
 BENCHMARK(BM_I32AttrX12<types>);
 BENCHMARK(BM_I32AttrX12<none>);
+
+// -------------------------------------------------------------------------- //
+// Custom call with a single user-defined attribute argument.
+// -------------------------------------------------------------------------- //
+
+static const char* custom_call_pair_of_dimsx1 = R"(
+    func.func private @custom_call()
+      attributes { rt.direct_custom_call = "testlib.custom_call" }
+
+    func.func @compute() {
+      func.call @custom_call() {
+        dims = #testlib.pair_of_dims<2, [1, 1], [2, 2]>
+      }: () -> ()
+      func.return
+    }
+  )";
+
+template <RuntimeChecks checks>
+static bool PairOfDimsX1(runtime::KernelContext* ctx, void** args,
+                         void** attrs) {
+  static auto* handler = CustomCall::Bind("testlib.custom_call")
+                             .Attr<RuntimePairOfDims>("dims")
+                             .To<checks>([](RuntimePairOfDims dims) {
+                               benchmark::DoNotOptimize(dims);
+                               return success();
+                             })
+                             .release();
+  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+}
+
+template <RuntimeChecks checks>
+static void BM_PairOfDimsX1(benchmark::State& state) {
+  BenchmarkCustomCall(state, custom_call_pair_of_dimsx1,
+                      Bind("testlib.custom_call", &PairOfDimsX1<checks>));
+}
+
+BENCHMARK(BM_PairOfDimsX1<all>);
+BENCHMARK(BM_PairOfDimsX1<types>);
+BENCHMARK(BM_PairOfDimsX1<none>);
 
 }  // namespace jitrt
 }  // namespace tfrt

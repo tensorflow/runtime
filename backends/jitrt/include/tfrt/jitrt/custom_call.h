@@ -871,8 +871,17 @@ JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_ARRAY_ATTR_DECODING
 
+// -------------------------------------------------------------------------- //
 // Register a JitRt custom call attribute decoding for enum class. At runtime
 // the value should be passed as the underlying enum type.
+// -------------------------------------------------------------------------- //
+
+// Example: register decoding for a user-defined enum class
+//
+//   enum class MyEnumType { kFoo, kBar, kBaz };
+//
+//   JITRT_REGISTER_ENUM_ATTR_DECODING(MyEnumType);
+//
 #define JITRT_REGISTER_ENUM_ATTR_DECODING(T)                       \
   template <CustomCall::RuntimeChecks checks>                      \
   struct CustomCallAttrDecoding<T, checks> {                       \
@@ -887,6 +896,86 @@ JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
       return static_cast<T>(*reinterpret_cast<U*>(value));         \
     }                                                              \
   }
+
+// -------------------------------------------------------------------------- //
+// Register a JitRt custom call attribute decoding for aggregate attributes.
+// -------------------------------------------------------------------------- //
+
+// A workaround for passing braced initializers to macro.
+#define JITRT_AGGREGATE_FIELDS(...) \
+  { __VA_ARGS__ }
+
+// Example: register decoding for a user-defined struct
+//
+//   struct PairOfI64 { int64_t a; int64_t b; };
+//
+//   JITRT_REGISTER_AGGREGATE_ATTR_DECODING(
+//     PairOfI64, JITRT_AGGREGATE_FIELDS("a", "b"),
+//     int64_t, int64_t);
+//
+#define JITRT_REGISTER_AGGREGATE_ATTR_DECODING(T, NAMES, ...)             \
+  template <CustomCall::RuntimeChecks checks>                             \
+  struct CustomCallAttrDecoding<T, checks> {                              \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode(        \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {        \
+      if (!CustomCall::CheckType<Tagged<T>>(checks, type_id))             \
+        return mlir::failure();                                           \
+                                                                          \
+      using Impl = internal::DecodeAggregateAttr<T, checks, __VA_ARGS__>; \
+      return Impl::Decode(reinterpret_cast<void**>(value), NAMES);        \
+    }                                                                     \
+  }
+
+namespace internal {
+// Decodes aggregate attribute into the object of type `T` that must be
+// constructible from the `Ts` types.
+template <typename T, CustomCall::RuntimeChecks checks, typename... Ts>
+struct DecodeAggregateAttr {
+  static constexpr size_t kSize = sizeof...(Ts);
+
+  using RuntimeChecks = CustomCall::RuntimeChecks;
+
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  static mlir::FailureOr<T> Decode(void** value,
+                                   std::array<llvm::StringRef, kSize> names) {
+    internal::DecodedAttrs attrs(value);
+    return Decode(attrs, names, std::make_index_sequence<kSize>{});
+  }
+
+  template <size_t... Is>
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode(
+      internal::DecodedAttrs attrs, std::array<llvm::StringRef, kSize> names,
+      std::index_sequence<Is...>) {
+    // Check that the number of encoded attributes matches the signature.
+    if (checks != RuntimeChecks::kNone && kSize != attrs.size())
+      return mlir::failure();
+
+    // Check that aggregate member names match the expected names.
+    if (CustomCall::CheckNames(checks)) {
+      for (unsigned i = 0; i < kSize; ++i)
+        if (attrs[i].name != names[i]) return mlir::failure();
+    }
+
+    // Check if all members were decoded.
+    bool all_decoded = true;
+    auto check_all_decoded = [&](auto result) {
+      all_decoded &= mlir::succeeded(result);
+      return std::move(result);
+    };
+
+    // Decode all arguments into mlir::FailureOr containers. It is guaranteed
+    // that initializer list will be evaluated left-to-right, and we can rely
+    // on correct offsets computation.
+    std::tuple<mlir::FailureOr<Ts>...> members = {
+        check_all_decoded(CustomCallAttrDecoding<Ts, checks>::Decode(
+            attrs[Is].name, attrs[Is].type_id, attrs[Is].value))...};
+    if (LLVM_UNLIKELY(!all_decoded)) return mlir::failure();
+
+    // Forward unpacked members to the type constructor.
+    return T{std::move(*std::get<Is>(members))...};
+  }
+};
+}  // namespace internal
 
 // Declare/define an explicit specialialization for mlir::TypeID for types used
 // by the custom calls. This forces the compiler to emit a strong definition for

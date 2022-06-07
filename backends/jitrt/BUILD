@@ -368,6 +368,7 @@ td_library(
     name = "custom_call_testlib_td_files",
     srcs = [
         "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
+        "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.td",
         "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
@@ -413,23 +414,6 @@ gentbl_cc_library(
     deps = [":custom_call_testlib_td_files"],
 )
 
-cc_library(
-    name = "custom_call_testlib_enums",
-    srcs = [
-        "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc",
-        "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc",
-        "lib/custom_calls/custom_call_testlib_enums.cc",
-    ],
-    hdrs = ["include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    includes = ["include"],
-    deps = [
-        ":custom_call_testlib_enums_inc_gen",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-    ],
-)
-
 tfrt_cc_library(
     name = "custom_call_testlib",
     srcs = ["lib/custom_calls/custom_call_testlib.cc"],
@@ -440,7 +424,7 @@ tfrt_cc_library(
     deps = [
         ":custom_call",
         ":custom_call_testlib_attrs_inc_gen",
-        ":custom_call_testlib_enums",
+        ":custom_call_testlib_enums_inc_gen",
         ":custom_call_to_llvm",
         ":jitrt",
         "@llvm-project//llvm:OrcJIT",

@@ -76,6 +76,12 @@ module @print_dialect_attrs attributes { tfrt.compiled } {
      attributes { rt.custom_call = "testlib.print_dialect_attrs" }
 
   func.func @main() {
+
+    // TODO(ezhulenev): Pass custom dialect attribute to the custom call.
+    %0 = arith.constant {
+        attr = #testlib.pair_of_dims<2, [1, 1], [2, 2]>
+      } 0 : index
+
     func.call @print_dialect_attrs.cc() {
       enum = #testlib.enum_type<Baz>,
       runtime_enum = #testlib.another_enum_type<Bar>

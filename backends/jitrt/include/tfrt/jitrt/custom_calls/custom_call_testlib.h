@@ -20,7 +20,10 @@
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "mlir/IR/Dialect.h"
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h"
+
+// clang-format off
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc"
+// clang-format on
 
 #define GET_ATTRDEF_CLASSES
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.h.inc"

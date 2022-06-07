@@ -25,10 +25,13 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/custom_call.h"
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/support/string_util.h"
+
+// clang-format off
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc"
+// clang-format on
 
 #define GET_ATTRDEF_CLASSES
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"

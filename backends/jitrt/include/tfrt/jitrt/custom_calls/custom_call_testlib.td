@@ -39,6 +39,7 @@ def TestlibDialect : Dialect {
   let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
+include "custom_call_testlib_attrs.td"
 include "custom_call_testlib_enums.td"
 
 #endif // CUSTOM_CALL_TESTLIB

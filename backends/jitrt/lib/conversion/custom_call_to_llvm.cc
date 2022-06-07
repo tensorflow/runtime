@@ -543,5 +543,21 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
   return memref;
 }
 
+// -------------------------------------------------------------------------- //
+// Default encodings for arguments and attributes.
+// -------------------------------------------------------------------------- //
+
+CustomCallAttrEncodingSet DefaultAttrEncodings() {
+  CustomCallAttrEncodingSet encodings;
+  encodings.Add<StringAttrEncoding, ScalarAttrEncoding, ArrayAttrEncoding>();
+  return encodings;
+}
+
+CustomCallArgEncodingSet DefaultArgEncodings() {
+  CustomCallArgEncodingSet encodings;
+  encodings.Add<ScalarArgEncoding, MemrefArgEncoding>();
+  return encodings;
+}
+
 }  // namespace jitrt
 }  // namespace tfrt

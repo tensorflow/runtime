@@ -871,6 +871,23 @@ JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_ARRAY_ATTR_DECODING
 
+// Register a JitRt custom call attribute decoding for enum class. At runtime
+// the value should be passed as the underlying enum type.
+#define JITRT_REGISTER_ENUM_ATTR_DECODING(T)                       \
+  template <CustomCall::RuntimeChecks checks>                      \
+  struct CustomCallAttrDecoding<T, checks> {                       \
+    static_assert(std::is_enum<T>::value, "expected enum class");  \
+    using U = std::underlying_type_t<T>;                           \
+                                                                   \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<T> Decode( \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) { \
+      if (!CustomCall::CheckType<Tagged<T>>(checks, type_id))      \
+        return mlir::failure();                                    \
+                                                                   \
+      return static_cast<T>(*reinterpret_cast<U*>(value));         \
+    }                                                              \
+  }
+
 // Declare/define an explicit specialialization for mlir::TypeID for types used
 // by the custom calls. This forces the compiler to emit a strong definition for
 // a class and controls which translation unit and shared object will actually

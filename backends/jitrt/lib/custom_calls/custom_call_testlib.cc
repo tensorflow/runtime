@@ -19,22 +19,73 @@
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm_derived/Support/raw_ostream.h"
+#include "mlir/IR/DialectImplementation.h"
 #include "mlir/Support/LogicalResult.h"
+#include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/support/string_util.h"
 
+#define GET_ATTRDEF_CLASSES
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"
+
 namespace tfrt {
 namespace jitrt {
 
+using mlir::Attribute;
+using mlir::DialectAsmParser;
+using mlir::DialectAsmPrinter;
 using mlir::failure;
 using mlir::LogicalResult;
+using mlir::MLIRContext;
 using mlir::success;
+using mlir::TypeID;
 
 using llvm::StringRef;
+
+TestlibDialect::TestlibDialect(MLIRContext* context)
+    : Dialect(getDialectNamespace(), context, TypeID::get<TestlibDialect>()) {
+  addAttributes<
+#define GET_ATTRDEF_LIST
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"
+      >();
+}
+
+// Entry point for Attribute parsing, TableGen generated code will handle the
+// dispatch to the individual classes.
+Attribute TestlibDialect::parseAttribute(DialectAsmParser& parser,
+                                         mlir::Type type) const {
+  StringRef attr_tag;
+  if (failed(parser.parseKeyword(&attr_tag))) return Attribute();
+  {
+    Attribute attr;
+    auto parse_result = generatedAttributeParser(parser, attr_tag, type, attr);
+    if (parse_result.hasValue()) return attr;
+  }
+  parser.emitError(parser.getNameLoc(), "unknown testlib attribute");
+  return Attribute();
+}
+
+// Entry point for Attribute printing, TableGen generated code will handle the
+// dispatch to the individual classes.
+void TestlibDialect::printAttribute(Attribute attr,
+                                    DialectAsmPrinter& os) const {
+  LogicalResult result = generatedAttributePrinter(attr, os);
+  (void)result;
+  assert(succeeded(result));
+}
+
+// Explicitly register attributes decoding for enums passed to the custom calls.
+JITRT_REGISTER_ENUM_ATTR_DECODING(EnumType);
+
+// Explicitly register attributes encoding for enums passed to the custom calls.
+void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet& encoding) {
+  encoding.Add<EnumAttrEncoding<EnumTypeAttr, EnumType>>();
+}
 
 // NoOp custom call for benchmarking arguments/attributes encoding.
 static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
@@ -184,9 +235,6 @@ static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
-  // TODO(ezhulenev): Add a custom call binding for dialect attrs printing.
-  (void)PrintDialectAttrs;
-
   registry->Register(CustomCall::Bind("testlib.noop")
                          .Arg<FlatMemrefView>()
                          .Arg<FlatMemrefView>()
@@ -221,6 +269,10 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<ArrayRef<double>>("f64_arr")
                          .Attr<StringRef>("str")
                          .To(PrintAttrs));
+
+  registry->Register(CustomCall::Bind("testlib.print_dialect_attrs")
+                         .Attr<EnumType>("enum")
+                         .To(PrintDialectAttrs));
 
   registry->Register(CustomCall::Bind("testlib.variadic_args")
                          .RemainingArgs()  // variadic args

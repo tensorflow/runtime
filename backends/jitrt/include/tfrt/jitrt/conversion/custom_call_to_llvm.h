@@ -27,6 +27,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/Support/LogicalResult.h"
+#include "tfrt/jitrt/custom_call.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -259,6 +260,41 @@ struct ArrayAttrEncoding : public CustomCallAttrEncoding {
                                   mlir::StringRef, mlir::Attribute) const final;
 };
 
+// Custom call attribute encoding that encodes enums using their underlying
+// scalar type. Type id is based on the actual enum type passed to the runtime.
+//
+// TODO(ezhulenev): Add an option to define enum conversion function when
+// the enum type at compile time doesn't match the enum type at run time.
+template <typename AttrType, typename EnumType>
+struct EnumAttrEncoding : public CustomCallAttrEncoding {
+  static_assert(std::is_enum<EnumType>::value, "type must be an enum class");
+
+  using T = std::underlying_type_t<EnumType>;
+
+  mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute attr) const final {
+    return mlir::success(attr.isa<AttrType>());
+  }
+
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::StringRef name,
+                                  mlir::Attribute attr) const final {
+    // Convert enum underlying integral value to an attribute.
+    T underlying_value = static_cast<T>(attr.cast<AttrType>().getValue());
+    mlir::Attribute underlying_attr = AsAttr(b, underlying_value);
+
+    Encoded encoded;
+    encoded.name = PackString(g, b, name, kAttrName);
+    encoded.type_id = PackTypeId(g, b, mlir::TypeID::get<Tagged<EnumType>>());
+    encoded.value = PackScalarAttribute(g, b, underlying_attr, kAttrValue);
+
+    return encoded;
+  }
+
+  static mlir::Attribute AsAttr(mlir::ImplicitLocOpBuilder &b, uint32_t value) {
+    return b.getI32IntegerAttr(value);
+  }
+};
+
 // -------------------------------------------------------------------------- //
 // Custom call arguments encoding.
 // -------------------------------------------------------------------------- //
@@ -291,6 +327,13 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
                            mlir::MemRefType memref_ty,
                            mlir::Value descriptor) const;
 };
+
+// -------------------------------------------------------------------------- //
+// Default encodings for arguments and attributes.
+// -------------------------------------------------------------------------- //
+
+CustomCallArgEncodingSet DefaultArgEncodings();
+CustomCallAttrEncodingSet DefaultAttrEncodings();
 
 }  // namespace jitrt
 }  // namespace tfrt

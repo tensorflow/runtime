@@ -195,6 +195,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":codegen_transforms",
+        ":custom_call_to_llvm",
         ":rt_conversion",
         ":rt_opdefs",
         ":rt_transforms",
@@ -440,6 +441,7 @@ tfrt_cc_library(
         ":custom_call",
         ":custom_call_testlib_attrs_inc_gen",
         ":custom_call_testlib_enums",
+        ":custom_call_to_llvm",
         ":jitrt",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",

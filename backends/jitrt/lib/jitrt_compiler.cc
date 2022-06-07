@@ -20,6 +20,8 @@
 
 #include "tfrt/jitrt/jitrt_compiler.h"
 
+#include <utility>
+
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
@@ -49,6 +51,7 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
+#include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
@@ -131,7 +134,14 @@ void CreateDefaultJitRtCompilationPipeline(
   // Convert the entrypoint function to a kernel function (all results and
   // errors returned via the runtime API calls).
   pm.addPass(CreateConvertToKernelFunction());
-  pm.addPass(CreateConvertRuntimeToLLVMPass());
+
+  // Set up user-defined arguments and attributes encoding.
+  CustomCallArgEncodingSet arg_encoding = DefaultArgEncodings();
+  CustomCallAttrEncodingSet attr_encoding = DefaultAttrEncodings();
+  if (opts.populate_arg_encodings) opts.populate_arg_encodings(arg_encoding);
+  if (opts.populate_attr_encodings) opts.populate_attr_encodings(attr_encoding);
+  pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(arg_encoding),
+                                            std::move(attr_encoding)));
 
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();

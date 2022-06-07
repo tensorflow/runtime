@@ -17,6 +17,8 @@
 #ifndef TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_COMPILER_H_
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_JITRT_COMPILER_H_
 
+#include <functional>
+
 namespace mlir {
 class DialectRegistry;
 class OpPassManager;
@@ -24,6 +26,9 @@ class OpPassManager;
 
 namespace tfrt {
 namespace jitrt {
+
+class CustomCallArgEncodingSet;
+class CustomCallAttrEncodingSet;
 
 // Registers dialects, interfaces and dialects translations with the registry
 // required by the default JitRt compilation pipeline.
@@ -47,6 +52,14 @@ struct CompilationPipelineOptions {
 #else
   bool math_avx2 = false;
 #endif
+
+  // Add user-defined encoding for JitRt custom call arguments and attributes.
+  //
+  // Custom encodings allow to pass dialect-specific attributes (enums and
+  // structs) to the custom calls, and decode them into dialect-specific runtime
+  // values in the custom call handlers (see custom_call_to_llvm.h for details).
+  std::function<void(CustomCallArgEncodingSet&)> populate_arg_encodings;
+  std::function<void(CustomCallAttrEncodingSet&)> populate_attr_encodings;
 };
 
 // Creates the default JitRt compilation pipeline that lowers from the Linalg

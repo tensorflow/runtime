@@ -559,18 +559,6 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
 
 }  // namespace
 
-CustomCallAttrEncodingSet DefaultAttrEncodings() {
-  CustomCallAttrEncodingSet encodings;
-  encodings.Add<StringAttrEncoding, ScalarAttrEncoding, ArrayAttrEncoding>();
-  return encodings;
-}
-
-CustomCallArgEncodingSet DefaultArgEncodings() {
-  CustomCallArgEncodingSet encodings;
-  encodings.Add<ScalarArgEncoding, MemrefArgEncoding>();
-  return encodings;
-}
-
 std::unique_ptr<OperationPass<ModuleOp>> CreateConvertRuntimeToLLVMPass(
     CustomCallArgEncodingSet arg_encoding,
     CustomCallAttrEncodingSet attr_encoding) {

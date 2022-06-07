@@ -70,6 +70,20 @@ module @print_attrs attributes { tfrt.compiled } {
   }
 }
 
+// Prints dialect specific attributes passed to the custom call handler.
+module @print_dialect_attrs attributes { tfrt.compiled } {
+  func.func private @print_dialect_attrs.cc()
+     attributes { rt.custom_call = "testlib.print_dialect_attrs" }
+
+  func.func @main() {
+    func.call @print_dialect_attrs.cc() {
+      enum = #testlib.enum_type<Baz>
+    } : () -> ()
+
+    func.return
+  }
+}
+
 // Check that direct custom call handler for "testlib.print_attrs" skips
 // attributes names checks.
 module @direct_print_attrs attributes { tfrt.compiled } {
@@ -229,6 +243,17 @@ func.func @compiled_custom_call_print_attrs() {
   // Check that attributes not in the custom call signature are ignored.
   // CHECK-NOT: unused attributes to test
   %executable = jitrt.compile { kernel = @print_attrs::@main }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_custom_call_print_dialect_attrs'
+func.func @compiled_custom_call_print_dialect_attrs() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK: Enum: Baz
+  %executable = jitrt.compile { kernel = @print_dialect_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

@@ -26,9 +26,6 @@
 namespace tfrt {
 namespace jitrt {
 
-CustomCallArgEncodingSet DefaultArgEncodings();
-CustomCallAttrEncodingSet DefaultAttrEncodings();
-
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 CreateConvertRuntimeToLLVMPass(
     CustomCallArgEncodingSet arg_encoding = DefaultArgEncodings(),

@@ -33,6 +33,8 @@ def TESTLIB_EnumType : I32EnumAttr<"EnumType",
 }
 
 def TESTLIB_EnumTypeAttr : EnumAttr<TestlibDialect, TESTLIB_EnumType,
-                                    "enum_type">;
+                                    "enum_type"> {
+  let assemblyFormat = "`<` $value `>`";
+}
 
 #endif // CUSTOM_CALL_TESTLIB_ENUMS

@@ -21,6 +21,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -322,6 +323,81 @@ struct EnumAttrEncoding : public CustomCallAttrEncoding {
   }
 
   Converter convert;
+};
+
+// Encodes aggregate attribute using a scheme compatibe with runtime attributes
+// decoding (see `internal::DecodedAttrs` in the custom call header file).
+//
+// Returns a value of `!llvm.ptr<ptr<i8>>` (void**) type pointing to the encoded
+// aggregate.
+//
+// TODO(ezhulenev): Use this function to encode custom call attributes in the
+// rt-to-llvm pass.
+mlir::FailureOr<mlir::Value> EncodeAggregateAttr(
+    Globals &g, mlir::ImplicitLocOpBuilder &b,
+    const CustomCallAttrEncodingSet &encoding, mlir::TypeID type_id,
+    llvm::StringRef type_name, llvm::ArrayRef<mlir::NamedAttribute> attrs);
+
+// Custom call attribute encoding for the user-defined attributes which encodes
+// them as an aggregate of primitive attributes. It uses the encoding scheme
+// compatible with the custom call attributes decoding.
+template <typename AttrType, typename RuntimeType = AttrType>
+struct AggregateAttrEncoding : public CustomCallAttrEncoding {
+  // A helper type to define `AttrType` encoding scheme.
+  struct Binding {
+    template <typename T>
+    using Extract = T (AttrType::*)() const;
+
+    template <typename T, typename Attr = mlir::Attribute>
+    using Encode = Attr (mlir::Builder::*)(T);
+
+    template <typename T, typename Attr = mlir::Attribute>
+    void Add(std::string name, Extract<T> extract, Encode<T, Attr> encode) {
+      bindings.emplace_back([=](AttrType attr, mlir::Builder &b) {
+        // TODO(ezhulenev): Use std::invoke when C++17 available.
+        auto encoded = (b.*encode)((attr.*extract)());
+        return mlir::NamedAttribute(b.getStringAttr(name), encoded);
+      });
+    }
+
+    // A list of functions to destruct `AttrType` attribute into the aggregate
+    // attributes that will be used for encoding.
+    using Bind = std::function<mlir::NamedAttribute(AttrType, mlir::Builder &)>;
+    llvm::SmallVector<Bind> bindings;
+  };
+
+  // TODO(ezhulenev): `Encode` function should get a `CustomCallAttrEncodingSet`
+  // as an argument, so we wouldn't have to make a copy here.
+  AggregateAttrEncoding(CustomCallAttrEncodingSet encoding, Binding binding)
+      : encoding(std::move(encoding)), binding(std::move(binding)) {}
+
+  mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute attr) const final {
+    return mlir::success(attr.isa<AttrType>());
+  }
+
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::StringRef name,
+                                  mlir::Attribute attr) const final {
+    // Extract aggregate attributes from the user-defined attributes.
+    llvm::SmallVector<mlir::NamedAttribute> attrs;
+    for (auto &bind : binding.bindings)
+      attrs.emplace_back(bind(attr.cast<AttrType>(), b));
+
+    // Encode extracted attributes as an aggregate.
+    auto type_id = mlir::TypeID::get<Tagged<RuntimeType>>();
+    auto aggregate = EncodeAggregateAttr(g, b, encoding, type_id,
+                                         AttrType::getMnemonic(), attrs);
+    if (mlir::failed(aggregate)) return mlir::failure();
+
+    Encoded encoded;
+    encoded.name = PackString(g, b, name, kAttrName);
+    encoded.type_id = PackTypeId(g, b, type_id);
+    encoded.value = *aggregate;
+    return encoded;
+  }
+
+  CustomCallAttrEncodingSet encoding;
+  Binding binding;
 };
 
 // -------------------------------------------------------------------------- //

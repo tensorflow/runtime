@@ -55,6 +55,14 @@ llvm::orc::SymbolMap CustomCallsTestlibSymbolMap(
 // attributes enum conversion.
 enum class RuntimeEnumType : uint32_t { kFoo, kBar, kBaz };
 
+// Runtime structure corresponding to the compile-time PairOfDims MLIR attribute
+// to test attributes conversion.
+struct RuntimePairOfDims {
+  int64_t rank;
+  llvm::ArrayRef<int64_t> a;
+  llvm::ArrayRef<int64_t> b;
+};
+
 // Populate encoding for custom dialect attributes (enums and structs).
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet &encoding);
 

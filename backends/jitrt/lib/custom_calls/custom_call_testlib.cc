@@ -40,9 +40,11 @@ namespace tfrt {
 namespace jitrt {
 
 using mlir::Attribute;
+using mlir::Builder;
 using mlir::DialectAsmParser;
 using mlir::DialectAsmPrinter;
 using mlir::failure;
+using mlir::FailureOr;
 using mlir::LogicalResult;
 using mlir::MLIRContext;
 using mlir::success;
@@ -86,6 +88,37 @@ void TestlibDialect::printAttribute(Attribute attr,
 JITRT_REGISTER_ENUM_ATTR_DECODING(EnumType);
 JITRT_REGISTER_ENUM_ATTR_DECODING(RuntimeEnumType);
 
+// TODO(ezhulenev): Implement declarative DSL for registering aggregate
+// attributes decoding, so implementation doesn't have to depend on internal
+// details (do not leak anything from internal namespace).
+template <CustomCall::RuntimeChecks checks>
+struct CustomCallAttrDecoding<RuntimePairOfDims, checks> {
+  static FailureOr<RuntimePairOfDims> Decode(StringRef name, TypeID type_id,
+                                             void* value) {
+    if (!CustomCall::CheckType<Tagged<PairOfDimsAttr>>(checks, type_id))
+      return failure();
+
+    internal::DecodedAttrs attrs(reinterpret_cast<void**>(value));
+    if (attrs.size() != 3) return failure();
+
+    internal::DecodedAttr rank = attrs[0];
+    internal::DecodedAttr a = attrs[1];
+    internal::DecodedAttr b = attrs[2];
+
+    auto decoded_rank = CustomCallAttrDecoding<int64_t, checks>::Decode(
+        rank.name, rank.type_id, rank.value);
+    auto decoded_a = CustomCallAttrDecoding<ArrayRef<int64_t>, checks>::Decode(
+        a.name, a.type_id, a.value);
+    auto decoded_b = CustomCallAttrDecoding<ArrayRef<int64_t>, checks>::Decode(
+        b.name, b.type_id, b.value);
+
+    if (failed(decoded_rank) || failed(decoded_a) || failed(decoded_b))
+      return failure();
+
+    return RuntimePairOfDims{*decoded_rank, *decoded_a, *decoded_b};
+  }
+};
+
 // Explicitly register attributes encoding for enums passed to the custom calls.
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet& encoding) {
   encoding.Add<EnumAttrEncoding<EnumTypeAttr, EnumType>>();
@@ -100,6 +133,13 @@ void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet& encoding) {
             return RuntimeEnumType::kBaz;
         }
       });
+
+  // Encode `PairOfDimsAttr` as an aggregate attribute.
+  AggregateAttrEncoding<PairOfDimsAttr>::Binding binding;
+  binding.Add("rank", &PairOfDimsAttr::getRank, &Builder::getI64IntegerAttr);
+  binding.Add("a", &PairOfDimsAttr::getA, &Builder::getI64TensorAttr);
+  binding.Add("b", &PairOfDimsAttr::getB, &Builder::getI64TensorAttr);
+  encoding.Add<AggregateAttrEncoding<PairOfDimsAttr>>(encoding, binding);
 }
 
 static std::string StringifyEnumType(RuntimeEnumType value) {
@@ -168,10 +208,13 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
 }
 
 static LogicalResult PrintDialectAttrs(EnumType enum_value,
-                                       RuntimeEnumType runtime_enum_value) {
-  tfrt::outs() << "Enum: " << stringifyEnumType(enum_value) << "\n"
-               << "Runtime Enum: " << StringifyEnumType(runtime_enum_value)
-               << "\n";
+                                       RuntimeEnumType runtime_enum,
+                                       RuntimePairOfDims runtime_pair_of_dims) {
+  tfrt::outs() << "Enum: " << stringifyEnumType(enum_value) << "\n";
+  tfrt::outs() << "Runtime Enum: " << StringifyEnumType(runtime_enum) << "\n";
+  tfrt::outs() << "PairOfDims: rank = " << runtime_pair_of_dims.rank;
+  tfrt::outs() << " a = [" << Join(runtime_pair_of_dims.a, ", ") << "]";
+  tfrt::outs() << " b = [" << Join(runtime_pair_of_dims.b, ", ") << "]\n";
   return success();
 }
 
@@ -300,6 +343,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("testlib.print_dialect_attrs")
                          .Attr<EnumType>("enum")
                          .Attr<RuntimeEnumType>("runtime_enum")
+                         .Attr<RuntimePairOfDims>("dims")
                          .To(PrintDialectAttrs));
 
   registry->Register(CustomCall::Bind("testlib.variadic_args")

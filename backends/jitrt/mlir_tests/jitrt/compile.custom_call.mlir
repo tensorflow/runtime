@@ -77,14 +77,10 @@ module @print_dialect_attrs attributes { tfrt.compiled } {
 
   func.func @main() {
 
-    // TODO(ezhulenev): Pass custom dialect attribute to the custom call.
-    %0 = arith.constant {
-        attr = #testlib.pair_of_dims<2, [1, 1], [2, 2]>
-      } 0 : index
-
     func.call @print_dialect_attrs.cc() {
       enum = #testlib.enum_type<Baz>,
-      runtime_enum = #testlib.another_enum_type<Bar>
+      runtime_enum = #testlib.another_enum_type<Bar>,
+      dims = #testlib.pair_of_dims<2, [1, 1], [2, 2]>
     } : () -> ()
 
     func.return
@@ -261,6 +257,7 @@ func.func @compiled_custom_call_print_dialect_attrs() {
 
   // CHECK: Enum: Baz
   // CHECK: Runtime Enum: RuntimeBar
+  // CHECK: PairOfDims: rank = 2 a = [1, 1] b = [2, 2]
   %executable = jitrt.compile { kernel = @print_dialect_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 

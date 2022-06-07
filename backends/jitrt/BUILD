@@ -475,6 +475,7 @@ tfrt_cc_binary(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":codegen_transforms",
+        ":custom_call_testlib",
         ":jitrt_compiler",
         ":rt_conversion",
         ":rt_transforms",

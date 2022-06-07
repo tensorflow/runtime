@@ -17,9 +17,9 @@
 // Load MLIR and apply required passes on it.
 
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
-#include "mlir/Transforms/Passes.h"
 #include "tfrt/init_tfrt_dialects.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
+#include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
@@ -31,5 +31,9 @@ int main(int argc, char **argv) {
   tfrt::jitrt::registerRuntimeConversionPasses();
   tfrt::jitrt::registerCodegenTransformsPasses();
   tfrt::jitrt::registerRuntimeTransformsPasses();
+
+  // Test-only dialect for testing custom calls encoding.
+  registry.insert<tfrt::jitrt::TestlibDialect>();
+
   return failed(mlir::MlirOptMain(argc, argv, "JITRT pass driver\n", registry));
 }

@@ -44,6 +44,7 @@ using mlir::LogicalResult;
 using mlir::MemRefDescriptor;
 using mlir::MemRefType;
 using mlir::MLIRContext;
+using mlir::NamedAttribute;
 using mlir::OpBuilder;
 using mlir::ShapedType;
 using mlir::StringAttr;
@@ -52,6 +53,7 @@ using mlir::success;
 using mlir::Type;
 using mlir::TypeID;
 using mlir::Value;
+using mlir::ValueRange;
 
 using mlir::arith::ConstantOp;
 
@@ -429,6 +431,85 @@ FailureOr<EncodedAttr> ArrayAttrEncoding::Encode(Globals &g,
   encoded.value = PackArrayAttribute(g, b, attr, kAttrValue);
 
   return encoded;
+}
+
+// -------------------------------------------------------------------------- //
+// Encoding for aggregate attributes.
+// -------------------------------------------------------------------------- //
+
+mlir::FailureOr<mlir::Value> EncodeAggregateAttr(
+    Globals &g, ImplicitLocOpBuilder &b,
+    const CustomCallAttrEncodingSet &encoding, TypeID type_id,
+    StringRef type_name, ArrayRef<NamedAttribute> attrs) {
+  using EncodedAttr = std::pair<StringRef, CustomCallAttrEncoding::Encoded>;
+
+  // In addition to encoded attributes we encode the number of attributes.
+  int64_t n_attrs = attrs.size();
+
+  // We store encoded aggregate attribute as `!llvm.array<ptr<i8> x len>`.
+  Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
+  Type type = LLVM::LLVMArrayType::get(ptr, 1 + n_attrs * 3);
+
+  // Prepare a global constant for storing encoded aggregate.
+  LLVM::GlobalOp global = [&]() {
+    OpBuilder::InsertionGuard guard(b);
+    b.setInsertionPointToStart(g.module().getBody());
+    std::string global_name = ("__rt_aggregate_" + type_name).str();
+    return b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
+                                    LLVM::Linkage::Internal,
+                                    g.UniqueSymName(global_name), Attribute());
+  }();
+
+  // Get a pointer to the first element of the array: !llvm.ptr<ptr<i8>>.
+  Type ptr_ptr = mlir::LLVM::LLVMPointerType::get(ptr);
+  Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
+  Value addr = Globals::AddrOf(b, global);
+  Value gep = b.create<LLVM::GEPOp>(ptr_ptr, addr, ValueRange({c0, c0}));
+
+  OpBuilder::InsertionGuard guard(b);
+
+  // Create a global constant initializer block.
+  mlir::Region &region = global.getInitializerRegion();
+  mlir::Block *block = b.createBlock(&region);
+
+  // Build attributes encoding inside the initializer block.
+  b.setInsertionPointToStart(block);
+
+  llvm::SmallVector<EncodedAttr> encoded;
+  for (auto &attr : attrs) {
+    // Try to encode the attribute as a set of pointers.
+    auto encoded_attr = encoding.Encode(g, b, attr.getName(), attr.getValue());
+    if (failed(encoded_attr)) return failure();
+    encoded.emplace_back(attr.getName(), *encoded_attr);
+  }
+
+  // Prepare an array for encoding attributes.
+  Value arr = b.create<LLVM::UndefOp>(type);
+  auto insert_value = [&](Value value, int64_t offset) {
+    Value bcasted = b.createOrFold<LLVM::BitcastOp>(ptr, value);
+    arr = b.create<LLVM::InsertValueOp>(type, arr, bcasted,
+                                        b.getI64ArrayAttr(offset));
+  };
+
+  // Insert the number of encoded attributes.
+  Attribute num_attrs = b.getI64IntegerAttr(n_attrs);
+  insert_value(PackScalarAttribute(g, b, num_attrs, "__rt_aggregate_size"), 0);
+
+  // Insert encoded attributes into the allocated storage.
+  for (auto &pair : llvm::enumerate(encoded)) {
+    CustomCallAttrEncoding::Encoded encoded = pair.value().second;
+    int64_t offset = 1 + pair.index() * 3;
+
+    insert_value(encoded.name, offset + 0);
+    insert_value(encoded.type_id, offset + 1);
+    insert_value(encoded.value, offset + 2);
+  }
+
+  // Return attributes array from the global initializer block.
+  b.create<LLVM::ReturnOp>(arr);
+
+  // Return a pointer to the encoded aggregate: `!llvm.ptr<ptr<i8>>` (void**).
+  return gep;
 }
 
 // -------------------------------------------------------------------------- //

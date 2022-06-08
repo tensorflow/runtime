@@ -37,6 +37,7 @@
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/map_by_type.h"
+#include "tfrt/support/msan.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -583,9 +584,20 @@ class CustomCallHandler : public CustomCall {
 
   LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::LogicalResult call(
       void** args, void** attrs, const UserData* user_data) const final {
+    // Unpoison the first pointer to get the args and attrs sizes.
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(args, sizeof(void*));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(attrs, sizeof(void*));
+
     // Decode arguments and attributes from the opaque pointers.
     internal::DecodedArgs decoded_args(args);
     internal::DecodedAttrs decoded_attrs(attrs);
+
+    int64_t num_args = decoded_args.size();
+    int64_t num_attrs = decoded_attrs.size();
+
+    // Unpoison the rest of the of args and attrs data.
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(args, num_args * sizeof(void*));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(attrs, num_attrs * sizeof(void*));
 
     // If all runtime checks are disabled we are just reinterpreting opaque
     // `args` and `attrs` memory acording to the requested handler signature.
@@ -593,17 +605,14 @@ class CustomCallHandler : public CustomCall {
       // Check that the number of passed arguments matches the signature. Each
       // individual argument decoding will check the actual type.
       if (internal::HasRemainingArgs<Ts...>::value) {
-        if (LLVM_UNLIKELY(decoded_args.size() < kNumArgs - 1))
-          return mlir::failure();
+        if (LLVM_UNLIKELY(num_args < kNumArgs - 1)) return mlir::failure();
       } else {
-        if (LLVM_UNLIKELY(decoded_args.size() != kNumArgs))
-          return mlir::failure();
+        if (LLVM_UNLIKELY(num_args != kNumArgs)) return mlir::failure();
       }
 
       // Check that we have enough attributes passed to the custom call. Each
       // individual attribute decoding will check the name and the type.
-      if (LLVM_UNLIKELY(decoded_attrs.size() < attrs_.size()))
-        return mlir::failure();
+      if (LLVM_UNLIKELY(num_attrs < attrs_.size())) return mlir::failure();
     }
 
     return call(decoded_args, decoded_attrs, user_data,

@@ -30,6 +30,7 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
+#include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/logging.h"

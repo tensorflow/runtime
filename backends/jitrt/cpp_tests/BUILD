@@ -56,6 +56,7 @@ tfrt_cc_test(
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/jitrt",
+        "@tf_runtime//backends/jitrt:custom_call_registry",
         "@tf_runtime//backends/jitrt:jitrt_compiler",
     ],
 )

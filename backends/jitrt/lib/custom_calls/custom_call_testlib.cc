@@ -25,6 +25,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/support/string_util.h"

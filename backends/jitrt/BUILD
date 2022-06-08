@@ -161,6 +161,7 @@ tfrt_cc_library(
         ":async_values_cache",
         ":constraints",
         ":custom_call",
+        ":custom_call_registry",
         ":execution_engine",
         ":memory_mapper",
         ":rt_transforms",
@@ -316,7 +317,21 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":types",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "custom_call_registry",
+    srcs = ["lib/custom_call_registry.cc"],
+    hdrs = ["include/tfrt/jitrt/custom_call_registry.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":custom_call",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:dtype",
@@ -423,6 +438,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":custom_call",
+        ":custom_call_registry",
         ":custom_call_testlib_attrs_inc_gen",
         ":custom_call_testlib_enums_inc_gen",
         ":custom_call_to_llvm",

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/custom_call_registry.h"
 
 namespace tfrt {
 namespace jitrt {

@@ -320,20 +320,12 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .To(PrintMemrefAndVariadicArgs));
 }
 
-llvm::orc::SymbolMap CustomCallsTestlibSymbolMap(
-    llvm::orc::MangleAndInterner mangle) {
-  llvm::orc::SymbolMap symbol_map;
-
-  auto bind = [&](llvm::StringRef name, auto symbol_ptr) {
-    symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
-        llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
-  };
-
-  bind("testlib.direct_call", &DirectCustomCall);
-  bind("testlib.noop", &DirectNoOp);
-  bind("testlib.print_attrs", &DirectPrintAttrs);
-
-  return symbol_map;
+DirectCustomCallLibrary CustomCallTestlib() {
+  DirectCustomCallLibrary lib;
+  lib.Insert("testlib.direct_call", &DirectCustomCall);
+  lib.Insert("testlib.print_attrs", &DirectPrintAttrs);
+  lib.Insert("testlib.noop", &DirectNoOp);
+  return lib;
 }
 
 }  // namespace jitrt

@@ -31,6 +31,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
 #include "mlir/Support/LogicalResult.h"
@@ -41,6 +42,11 @@
 
 namespace tfrt {
 namespace jitrt {
+
+// Forward declare types enabling compiled kernel <-> runtime integration.
+namespace runtime {
+struct KernelContext;
+}  // namespace runtime
 
 // Forward declare template defined below.
 template <typename... Ts>
@@ -122,6 +128,34 @@ class CustomCall {
                                    const UserData* user_data) const = 0;
 
   static CustomCallBinding<> Bind(std::string callee);
+};
+
+// Direct custom call is a custom call that can be linked directly with the
+// compiled executable, and doesn't have to go through the custom call look up
+// by name at run time (see CustomCallRegistry).
+//
+// Direct custom call is a preffered way of implemenenting custom calls with
+// low run time overheads, as they will become just an indirect function calls
+// once LLVM ORC links them with the executable.
+//
+// See `GetSymbolsBinding` to convert custom call library to symbols binding.
+class DirectCustomCallLibrary {
+ public:
+  // Function type corresponding to the direct custom call (custom calls
+  // linked directly with the compiled executable).
+  using DirectCustomCall = bool (*)(runtime::KernelContext* kernel_context,
+                                    void** args, void** attrs);
+
+  void Insert(llvm::StringRef name, DirectCustomCall custom_call) {
+    lib_.try_emplace(name, custom_call);
+  }
+
+  void ForEach(std::function<void(llvm::StringRef, DirectCustomCall)> f) const {
+    for (auto& kv : lib_) f(kv.first(), kv.second);
+  }
+
+ private:
+  llvm::StringMap<DirectCustomCall> lib_;
 };
 
 // Forward declare template defined below.

@@ -178,6 +178,9 @@ class JitExecutable;
 // function, and knows how to execute it, and return results to the caller.
 class Executable;
 
+// Converts a custom call library into the execution engine symbols binding.
+ExecutionEngine::SymbolsBinding GetSymbolsBinding(DirectCustomCallLibrary lib);
+
 struct CompilationOptions {
   // Calling convention defines an ABI for JitRt to call a compiled kernel. See
   // documentation and example below.

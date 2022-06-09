@@ -137,6 +137,24 @@ llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
 }  // namespace runtime
 
 //----------------------------------------------------------------------------//
+// Converts a custom call library into the execution engine symbols binding.
+//----------------------------------------------------------------------------//
+
+ExecutionEngine::SymbolsBinding GetSymbolsBinding(DirectCustomCallLibrary lib) {
+  return [lib = std::move(lib)](llvm::orc::MangleAndInterner mangle) {
+    llvm::orc::SymbolMap symbol_map;
+
+    using DirectCustomCall = DirectCustomCallLibrary::DirectCustomCall;
+    lib.ForEach([&](llvm::StringRef name, DirectCustomCall custom_call) {
+      symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
+          llvm::pointerToJITTargetAddress(custom_call), llvm::JITSymbolFlags());
+    });
+
+    return symbol_map;
+  };
+}
+
+//----------------------------------------------------------------------------//
 // Construct a symbols binding for JitRt executable.
 //----------------------------------------------------------------------------//
 

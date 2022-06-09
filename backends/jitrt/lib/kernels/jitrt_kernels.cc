@@ -87,7 +87,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
 
     CompilationOptions opts;
-    opts.runtime_symbol_map = CustomCallsTestlibSymbolMap;
+    opts.runtime_symbol_map = GetSymbolsBinding(CustomCallTestlib());
 
     opts.register_dialects = [](mlir::DialectRegistry& registry) {
       registry.insert<TestlibDialect>();

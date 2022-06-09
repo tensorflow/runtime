@@ -25,6 +25,16 @@
 namespace tfrt {
 namespace jitrt {
 
+// Custom call registry is a container for the custom calls that looks up the
+// handler implementing the custom call by name at run time. It is used to
+// implement a generic `rt.custom_call` runtime intrinsic.
+//
+// For low overhead custom calls prefer direct custom calls that linked with the
+// compiled executable and bypass by-name look up (see DirectCustomCallLibrary).
+//
+// TODO(ezhulenev): Consider removing this registry, because we'll likely not
+// need it for any of the practical purposes, and it's currently used only in
+// tests. We also likely don't need the generic custom call API.
 class CustomCallRegistry {
  public:
   // The type for custom call registration functions.

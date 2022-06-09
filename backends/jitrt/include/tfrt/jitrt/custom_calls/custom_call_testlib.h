@@ -19,8 +19,6 @@
 
 #include <cstdint>
 
-#include "llvm/ExecutionEngine/Orc/Core.h"
-#include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "mlir/IR/Dialect.h"
 #include "tfrt/jitrt/custom_call.h"
 
@@ -51,8 +49,7 @@ class TestlibDialect : public mlir::Dialect {
                       mlir::DialectAsmPrinter &os) const override;
 };
 
-llvm::orc::SymbolMap CustomCallsTestlibSymbolMap(
-    llvm::orc::MangleAndInterner mangle);
+DirectCustomCallLibrary CustomCallTestlib();
 
 // Declare runtime enums corresponding to compile time enums to test
 // attributes enum conversion.

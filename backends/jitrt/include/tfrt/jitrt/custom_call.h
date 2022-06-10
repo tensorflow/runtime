@@ -60,6 +60,10 @@ class CustomCall {
   // A type for matching all remaining custom call arguments.
   class RemainingArgs;
 
+  // A type for passing an argument of different types at the same position,
+  // and the handler will do the decoding.
+  class VariantArg;
+
   // Custom call handler can check arguments and attributes types and names
   // at runtime, however this comes at extra cost and can be optionally
   // disabled. If the version of the compiler that generated the JitRt program
@@ -445,6 +449,31 @@ class CustomCall::RemainingArgs {
   size_t offset_;
 };
 
+class CustomCall::VariantArg {
+ public:
+  using RuntimeChecks = CustomCall::RuntimeChecks;
+
+  VariantArg(internal::DecodedArgs args, size_t offset)
+      : args_(args), offset_(offset) {
+    assert(offset <= args_.size() && "illegal remaining args offset");
+  }
+
+  template <typename T>
+  bool isa() const {
+    return args_[offset_].type_id == mlir::TypeID::get<Tagged<T>>();
+  }
+
+  template <typename T, RuntimeChecks checks = RuntimeChecks::kDefault>
+  mlir::FailureOr<T> get() const {
+    internal::DecodedArg arg = args_[offset_];
+    return CustomCallArgDecoding<T, checks>::Decode(arg.type_id, arg.value);
+  }
+
+ private:
+  internal::DecodedArgs args_;
+  size_t offset_;
+};
+
 // -------------------------------------------------------------------------- //
 // A little bit of template metaprogramming to implement type safe binding
 // of custom calls to C++ functions. This is internal implementation details,
@@ -589,6 +618,17 @@ struct Decode<CustomCall::RemainingArgs, checks> {
        internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
        const CustomCall::UserData* user_data) {
     return CustomCall::RemainingArgs(args, offsets.args);
+  }
+};
+
+template <CustomCall::RuntimeChecks checks>
+struct Decode<CustomCall::VariantArg, checks> {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<CustomCall::VariantArg>
+  call(DecodingOffsets& offsets, internal::DecodedArgs args,
+       ArrayRef<std::string> attr_names, ArrayRef<size_t> attrs_idx,
+       internal::DecodedAttrs attrs, ArrayRef<llvm::Any> values,
+       const CustomCall::UserData* user_data) {
+    return CustomCall::VariantArg(args, offsets.args++);
   }
 };
 

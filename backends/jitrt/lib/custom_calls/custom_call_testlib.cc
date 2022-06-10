@@ -210,6 +210,33 @@ static LogicalResult PrintVariadicArgs(CustomCall::RemainingArgs args) {
   return success();
 }
 
+static LogicalResult PrintVariantArg(CustomCall::VariantArg arg1,
+                                     CustomCall::VariantArg arg2,
+                                     CustomCall::VariantArg arg3) {
+  std::vector<CustomCall::VariantArg> args = {arg1, arg2, arg3};
+  for (auto arg : args) {
+    if (arg.isa<int32_t>()) {
+      tfrt::outs() << "i32: " << arg.get<int32_t>();
+    } else if (arg.isa<int64_t>()) {
+      tfrt::outs() << "i64: " << arg.get<int64_t>();
+    } else if (arg.isa<float>()) {
+      tfrt::outs() << "f32: " << arg.get<float>();
+    } else if (arg.isa<double>()) {
+      tfrt::outs() << "f64: " << arg.get<double>();
+    } else if (arg.isa<StridedMemrefView>() || arg.isa<MemrefView>()) {
+      tfrt::outs() << arg.get<StridedMemrefView>() << " / "
+                   << arg.get<MemrefView>() << " / "
+                   << arg.get<FlatMemrefView>();
+    } else {
+      tfrt::outs() << "<unknown type>";
+    }
+  }
+
+  tfrt::outs() << "\n";
+  tfrt::outs().flush();
+  return success();
+}
+
 static LogicalResult PrintMemrefAndVariadicArgs(
     MemrefView arg, CustomCall::RemainingArgs args) {
   tfrt::outs() << "arg: " << arg << "\n";
@@ -318,6 +345,12 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Arg<MemrefView>()
                          .RemainingArgs()  // variadic args
                          .To(PrintMemrefAndVariadicArgs));
+
+  registry->Register(CustomCall::Bind("testlib.variant_arg")
+                         .Arg<CustomCall::VariantArg>()
+                         .Arg<CustomCall::VariantArg>()
+                         .Arg<CustomCall::VariantArg>()
+                         .To(PrintVariantArg));
 }
 
 DirectCustomCallLibrary CustomCallTestlib() {

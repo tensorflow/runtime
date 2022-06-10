@@ -164,6 +164,26 @@ module @variadic_args attributes { tfrt.compiled } {
   }
 }
 
+module @variant_arg attributes { tfrt.compiled } {
+  func.func private @variant_arg.cc(%arg0: i32, %arg1: i64, %arg2: memref<?xi64>)
+    attributes { rt.custom_call = "testlib.variant_arg" }
+
+  func.func @main() {
+    %arg0 = arith.constant 123 : i32
+    %arg1 = arith.constant 456 : i64
+
+    %c1 = arith.constant 1 : index
+    %arg2 = memref.alloc(%c1) : memref<?xi64>
+
+    func.call @variant_arg.cc(%arg0, %arg1, %arg2)
+      : (i32, i64, memref<?xi64>) -> ()
+
+    memref.dealloc %arg2 : memref<?xi64>
+
+    func.return
+  }
+}
+
 module @direct_custom_call attributes { tfrt.compiled } {
   func.func private @custom_call.cc()
      attributes { rt.direct_custom_call = "testlib.direct_call" }
@@ -317,6 +337,21 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK-SAME:    MemrefView: dtype: f32 sizes: [2]
   // CHECK-SAME:    FlatMemrefView: dtype: f32 size_in_bytes: 8
   %executable = jitrt.compile { kernel = @variadic_args::@main }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_custom_call_variant_arg'
+func.func @compiled_custom_call_variant_arg() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK: i32: 123
+  // CHECK: i64: 456
+  // CHECK: StridedMemrefView: dtype: i64 sizes: [1] strides: [1]
+  // CHECK-SAME: MemrefView: dtype: i64 sizes: [1]
+  // CHECK-SAME: FlatMemrefView: dtype: i64 size_in_bytes: 8
+  %executable = jitrt.compile { kernel = @variant_arg::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

@@ -32,7 +32,7 @@ include "tfrt/gpu/kernels/gpu_driver_ops.td"
 include "tfrt/gpu/kernels/gpu_fft_ops.td"
 include "tfrt/gpu/kernels/gpu_solver_ops.td"
 
-include "mlir/Dialect/GPU/GPUBase.td"
+include "mlir/Dialect/GPU/IR/GPUBase.td"
 
 def TFRTGPU_StreamifyOp : TFRTGPU_Op<"streamify", [
   GPU_AsyncOpInterface,

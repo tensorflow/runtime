@@ -629,7 +629,7 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Translation",
+        "@llvm-project//mlir:TranslateLib",
     ],
 )
 
@@ -675,7 +675,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:Translation",
+        "@llvm-project//mlir:TranslateLib",
     ],
 )
 
@@ -713,7 +713,7 @@ td_library(
     visibility = [":friends"],
     deps = [
         "@llvm-project//mlir:OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -748,7 +748,7 @@ gentbl_cc_library(
         ":OpBaseTdFiles",
         "@llvm-project//mlir:CallInterfacesTdFiles",
         "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -772,7 +772,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
     ],
@@ -810,7 +810,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/tensor/opdefs/tensor_shape.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -832,7 +832,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/tensor/opdefs/tensor_shape_sync.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -854,7 +854,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/tensor/opdefs/tensor.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -876,7 +876,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/tensor/opdefs/host_tensor.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -898,7 +898,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/tensor/opdefs/dense_host_tensor.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -920,7 +920,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/tensor/opdefs/dense_host_tensor_sync.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -977,7 +977,7 @@ tfrt_cc_library(
         ":tensor_shape_opdefs_inc_gen",
         ":tensor_shape_sync_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
     ],
 )
 
@@ -1000,7 +1000,7 @@ gentbl_cc_library(
     deps = [
         ":CoreRTTdFiles",
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -1025,7 +1025,7 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
     ],
@@ -1050,7 +1050,7 @@ gentbl_cc_library(
     deps = [
         ":CoreRTTdFiles",
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -1070,7 +1070,7 @@ tfrt_cc_library(
         ":core_runtime_sync_opdefs_inc_gen",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -1202,7 +1202,7 @@ gentbl_cc_library(
         ":CoreRTTdFiles",
         ":OpBaseTdFiles",
         ":compiler_td_files",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -1225,7 +1225,7 @@ tfrt_cc_library(
         ":test_kernels_opdefs_inc_gen",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
@@ -1248,7 +1248,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/test_kernels/opdefs/test_kernels_sync.td",
     deps = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -1266,7 +1266,7 @@ tfrt_cc_library(
         ":tensor_opdefs",
         ":test_kernels_sync_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -1534,7 +1534,7 @@ gentbl_cc_library(
         ":CoreRTTdFiles",
         ":OpBaseTdFiles",
         "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
     ],
 )
 
@@ -1556,7 +1556,7 @@ tfrt_cc_library(
         ":tensor_opdefs",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
-        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:SideEffectInterfaces",
     ],
 )
 
@@ -1702,10 +1702,10 @@ tfrt_cc_library(
         "@llvm-project//mlir:Affine",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
-        "@llvm-project//mlir:ControlFlowOps",
+        "@llvm-project//mlir:ControlFlowDialect",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:LinalgOps",
+        "@llvm-project//mlir:LinalgDialect",
         "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:SCFDialect",

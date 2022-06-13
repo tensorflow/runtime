@@ -26,7 +26,7 @@
 #include <utility>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/GPU/GPUDialect.h"
+#include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"

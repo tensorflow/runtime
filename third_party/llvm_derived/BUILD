@@ -46,6 +46,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:Translation",
+        "@llvm-project//mlir:TranslateLib",
     ],
 )

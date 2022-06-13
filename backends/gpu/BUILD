@@ -784,7 +784,7 @@ gentbl_cc_library(
     deps = [
         ":GpuOpBaseTdFile",
         "@llvm-project//mlir:GPUOpsTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
     ],
 )
@@ -902,7 +902,7 @@ tfrt_cc_binary(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
-        "@llvm-project//mlir:ControlFlowOps",
+        "@llvm-project//mlir:ControlFlowDialect",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
@@ -925,7 +925,7 @@ tfrt_cc_binary(
         ":gpu_opdefs",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Translation",
+        "@llvm-project//mlir:TranslateLib",
         "@tf_runtime//:beftomlir_translate",
         "@tf_runtime//:init_tfrt_dialects",
         "@tf_runtime//:mlirtobef_translate",

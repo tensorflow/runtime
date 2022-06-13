@@ -20,7 +20,7 @@
 #include <utility>
 
 #include "llvm/ADT/TypeSwitch.h"
-#include "mlir/Dialect/GPU/GPUDialect.h"
+#include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"

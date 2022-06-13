@@ -26,7 +26,7 @@
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/GPU/GPUDialect.h"
+#include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BlockAndValueMapping.h"

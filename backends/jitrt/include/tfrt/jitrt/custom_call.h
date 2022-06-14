@@ -63,6 +63,7 @@ class CustomCall {
   // A type for passing an argument of different types at the same position,
   // and the handler will do the decoding.
   class VariantArg;
+  class VariantAttr;
 
   // Custom call handler can check arguments and attributes types and names
   // at runtime, however this comes at extra cost and can be optionally
@@ -474,6 +475,29 @@ class CustomCall::VariantArg {
   size_t offset_;
 };
 
+class CustomCall::VariantAttr {
+ public:
+  using RuntimeChecks = CustomCall::RuntimeChecks;
+
+  VariantAttr(llvm::StringRef name, mlir::TypeID type_id, void* value)
+      : name_(name), type_id_(type_id), value_(value) {}
+
+  template <typename T>
+  bool isa() const {
+    return type_id_ == mlir::TypeID::get<Tagged<T>>();
+  }
+
+  template <typename T, RuntimeChecks checks = RuntimeChecks::kDefault>
+  mlir::FailureOr<T> get() const {
+    return CustomCallAttrDecoding<T, checks>::Decode(name_, type_id_, value_);
+  }
+
+ private:
+  llvm::StringRef name_;
+  mlir::TypeID type_id_;
+  void* value_;
+};
+
 // -------------------------------------------------------------------------- //
 // A little bit of template metaprogramming to implement type safe binding
 // of custom calls to C++ functions. This is internal implementation details,
@@ -872,6 +896,14 @@ struct CustomCallAttrDecoding<llvm::StringRef, checks> {
 
     auto* encoded = reinterpret_cast<internal::EncodedString*>(value);
     return StringRef(encoded->data, encoded->size);
+  }
+};
+
+template <CustomCall::RuntimeChecks checks>
+struct CustomCallAttrDecoding<CustomCall::VariantAttr, checks> {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<CustomCall::VariantAttr>
+  Decode(llvm::StringRef name, mlir::TypeID type_id, void* value) {
+    return CustomCall::VariantAttr(name, type_id, value);
   }
 };
 

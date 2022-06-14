@@ -141,6 +141,11 @@ static LogicalResult Multiply(MemrefView input, MemrefView output, float cst) {
   return success();
 }
 
+template <typename Array>
+static void print_arr(llvm::StringRef type, Array arr) {
+  tfrt::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ") << "\n";
+}
+
 // A custom call for testing attributes encoding/decoding.
 static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
                                 float f32, double f64,
@@ -155,18 +160,50 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
   tfrt::outs() << "f32: " << f32 << "\n";
   tfrt::outs() << "f64: " << f64 << "\n";
 
-  auto print_arr = [](llvm::StringRef type, auto arr) {
-    tfrt::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ")
-                 << "\n";
-  };
-
-  print_arr("i32", i32_arr);
-  print_arr("i64", i64_arr);
-  print_arr("f32", f32_arr);
-  print_arr("f64", f64_arr);
+  print_arr<ArrayRef<int32_t>>("i32", i32_arr);
+  print_arr<ArrayRef<int64_t>>("i64", i64_arr);
+  print_arr<ArrayRef<float>>("f32", f32_arr);
+  print_arr<ArrayRef<double>>("f64", f64_arr);
 
   tfrt::outs() << "str: " << str << "\n";
   tfrt::outs().flush();
+
+  return success();
+}
+
+static LogicalResult PrintVariantAttrs(CustomCall::VariantAttr attr1,
+                                       CustomCall::VariantAttr attr2,
+                                       CustomCall::VariantAttr attr3) {
+  std::vector<CustomCall::VariantAttr> attrs = {attr1, attr2, attr3};
+  for (auto attr : attrs) {
+    if (attr.isa<int32_t>()) {
+      tfrt::outs() << "i32: " << attr.get<int32_t>();
+    } else if (attr.isa<int64_t>()) {
+      tfrt::outs() << "i64: " << attr.get<int64_t>();
+    } else if (attr.isa<float>()) {
+      tfrt::outs() << "f32: " << attr.get<float>();
+    } else if (attr.isa<double>()) {
+      tfrt::outs() << "f64: " << attr.get<double>();
+    } else if (attr.isa<ArrayRef<int32_t>>()) {
+      print_arr<ArrayRef<int32_t>>("i32",
+                                   attr.get<ArrayRef<int32_t>>().getValue());
+    } else if (attr.isa<ArrayRef<int32_t>>()) {
+      print_arr<ArrayRef<int64_t>>("i64",
+                                   attr.get<ArrayRef<int64_t>>().getValue());
+    } else if (attr.isa<ArrayRef<int32_t>>()) {
+      print_arr("f32", attr.get<ArrayRef<float>>().getValue());
+    } else if (attr.isa<ArrayRef<int32_t>>()) {
+      print_arr<ArrayRef<double>>("f64",
+                                  attr.get<ArrayRef<double>>().getValue());
+    } else if (attr.isa<StringRef>()) {
+      tfrt::outs() << "str: " << attr.get<StringRef>();
+    } else {
+      tfrt::outs() << "<unknown type>";
+    }
+
+    tfrt::outs() << "\n";
+    tfrt::outs().flush();
+  }
 
   return success();
 }
@@ -351,6 +388,12 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Arg<CustomCall::VariantArg>()
                          .Arg<CustomCall::VariantArg>()
                          .To(PrintVariantArg));
+
+  registry->Register(CustomCall::Bind("testlib.print_variant_attrs")
+                         .Attr<CustomCall::VariantAttr>("i32")
+                         .Attr<CustomCall::VariantAttr>("f32")
+                         .Attr<CustomCall::VariantAttr>("str")
+                         .To(PrintVariantAttrs));
 }
 
 DirectCustomCallLibrary CustomCallTestlib() {

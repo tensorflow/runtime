@@ -70,6 +70,21 @@ module @print_attrs attributes { tfrt.compiled } {
   }
 }
 
+module @print_variant_attrs attributes { tfrt.compiled } {
+  func.func private @print_variant_attrs.cc()
+     attributes { rt.custom_call = "testlib.print_variant_attrs" }
+
+  func.func @main() {
+    func.call @print_variant_attrs.cc() {
+      i32 = 101 : i32,
+      f32 = 1.0 : f32,
+      str = "some string"
+    } : () -> ()
+
+    func.return
+  }
+}
+
 // Prints dialect specific attributes passed to the custom call handler.
 module @print_dialect_attrs attributes { tfrt.compiled } {
   func.func private @print_dialect_attrs.cc()
@@ -266,6 +281,19 @@ func.func @compiled_custom_call_print_attrs() {
   // Check that attributes not in the custom call signature are ignored.
   // CHECK-NOT: unused attributes to test
   %executable = jitrt.compile { kernel = @print_attrs::@main }
+  jitrt.execute %executable[%ch0]() : () -> ()
+
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_custom_call_print_variant_attrs'
+func.func @compiled_custom_call_print_variant_attrs() {
+  %ch0 = tfrt.new.chain
+
+  // CHECK: i32: 101
+  // CHECK: f32: 1.000000e+00
+  // CHECK: str: some string
+  %executable = jitrt.compile { kernel = @print_variant_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

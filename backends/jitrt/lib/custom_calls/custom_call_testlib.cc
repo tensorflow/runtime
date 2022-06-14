@@ -267,10 +267,11 @@ static LogicalResult PrintVariantArg(CustomCall::VariantArg arg1,
     } else {
       tfrt::outs() << "<unknown type>";
     }
+
+    tfrt::outs() << "\n";
+    tfrt::outs().flush();
   }
 
-  tfrt::outs() << "\n";
-  tfrt::outs().flush();
   return success();
 }
 

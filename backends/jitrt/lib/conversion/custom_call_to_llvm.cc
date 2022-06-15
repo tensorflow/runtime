@@ -146,11 +146,10 @@ Value PackScalarAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
 }
 
 // Packs array attribute as a global constant. Returns `!llvm.ptr<EncodedArr>`.
-Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
-                         StringRef symbol_base) {
+Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                 Attribute value, StringRef symbol_base) {
   MLIRContext *ctx = b.getContext();
 
-  // We only support dense attributes for now.
   DenseIntOrFPElementsAttr dense = value.cast<DenseIntOrFPElementsAttr>();
   int64_t size = dense.getNumElements();
 
@@ -413,22 +412,21 @@ FailureOr<EncodedAttr> ScalarAttrEncoding::Encode(Globals &g,
 
 // -------------------------------------------------------------------------- //
 
-LogicalResult ArrayAttrEncoding::Match(StringRef name, Attribute attr) const {
+LogicalResult DenseElementsAttrEncoding::Match(StringRef name,
+                                               Attribute attr) const {
   if (auto dense = attr.dyn_cast<DenseIntOrFPElementsAttr>())
     return success(IsSupportedShapedType(dense.getType()));
   return failure();
 }
 
-FailureOr<EncodedAttr> ArrayAttrEncoding::Encode(Globals &g,
-                                                 ImplicitLocOpBuilder &b,
-                                                 StringRef name,
-                                                 Attribute attr) const {
+FailureOr<EncodedAttr> DenseElementsAttrEncoding::Encode(
+    Globals &g, ImplicitLocOpBuilder &b, StringRef name, Attribute attr) const {
   ShapedType type = attr.getType().cast<ShapedType>();
 
   Encoded encoded;
   encoded.name = PackString(g, b, name, kAttrName);
   encoded.type_id = PackTypeId(g, b, ArrayRuntimeTypeId(type));
-  encoded.value = PackArrayAttribute(g, b, attr, kAttrValue);
+  encoded.value = PackDenseElementsAttribute(g, b, attr, kAttrValue);
 
   return encoded;
 }
@@ -630,7 +628,8 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
 
 CustomCallAttrEncodingSet DefaultAttrEncodings() {
   CustomCallAttrEncodingSet encodings;
-  encodings.Add<StringAttrEncoding, ScalarAttrEncoding, ArrayAttrEncoding>();
+  encodings
+      .Add<StringAttrEncoding, ScalarAttrEncoding, DenseElementsAttrEncoding>();
   return encodings;
 }
 

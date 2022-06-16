@@ -37,6 +37,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/support/map_by_type.h"
 #include "tfrt/support/msan.h"
 
@@ -129,8 +130,9 @@ class CustomCall {
   virtual ~CustomCall() = default;
 
   virtual llvm::StringRef name() const = 0;
-  virtual mlir::LogicalResult call(void** args, void** attrs,
-                                   const UserData* user_data) const = 0;
+  virtual mlir::LogicalResult call(
+      void** args, void** attrs, const UserData* user_data,
+      const DiagnosticEngine* diagnostic) const = 0;
 
   static CustomCallBinding<> Bind(std::string callee);
 };
@@ -681,7 +683,8 @@ class CustomCallHandler : public CustomCall {
   llvm::StringRef name() const final { return callee_; }
 
   LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::LogicalResult call(
-      void** args, void** attrs, const UserData* user_data) const final {
+      void** args, void** attrs, const UserData* user_data,
+      const DiagnosticEngine* diagnostic) const final {
     // Unpoison the first pointer to get the args and attrs sizes.
     TFRT_MSAN_MEMORY_IS_INITIALIZED(args, sizeof(void*));
     TFRT_MSAN_MEMORY_IS_INITIALIZED(attrs, sizeof(void*));
@@ -697,30 +700,43 @@ class CustomCallHandler : public CustomCall {
     TFRT_MSAN_MEMORY_IS_INITIALIZED(args, num_args * sizeof(void*));
     TFRT_MSAN_MEMORY_IS_INITIALIZED(attrs, num_attrs * sizeof(void*));
 
+    if (LLVM_UNLIKELY(diagnostic == nullptr))
+      diagnostic = DiagnosticEngine::DefaultDiagnosticEngine();
+
     // If all runtime checks are disabled we are just reinterpreting opaque
     // `args` and `attrs` memory acording to the requested handler signature.
     if (checks != RuntimeChecks::kNone) {
       // Check that the number of passed arguments matches the signature. Each
       // individual argument decoding will check the actual type.
       if (internal::HasRemainingArgs<Ts...>::value) {
-        if (LLVM_UNLIKELY(num_args < kNumArgs - 1)) return mlir::failure();
+        if (LLVM_UNLIKELY(num_args < kNumArgs - 1))
+          return diagnostic->EmitError()
+                 << "Wrong number of arguments: expected at least "
+                 << (kNumArgs - 1) << " got " << num_args;
       } else {
-        if (LLVM_UNLIKELY(num_args != kNumArgs)) return mlir::failure();
+        if (LLVM_UNLIKELY(num_args != kNumArgs))
+          return diagnostic->EmitError()
+                 << "Wrong number of arguments: expected " << kNumArgs
+                 << " got " << num_args;
       }
 
       // Check that we have enough attributes passed to the custom call. Each
       // individual attribute decoding will check the name and the type.
-      if (LLVM_UNLIKELY(num_attrs < attrs_.size())) return mlir::failure();
+      if (LLVM_UNLIKELY(num_attrs < attrs_.size()))
+        return diagnostic->EmitError()
+               << "Wrong number of attributes: expected at least "
+               << attrs_.size() << " got " << num_attrs;
     }
 
-    return call(decoded_args, decoded_attrs, user_data,
+    return call(decoded_args, decoded_attrs, user_data, diagnostic,
                 std::make_index_sequence<kSize>{});
   }
 
   template <size_t... Is>
   LLVM_ATTRIBUTE_ALWAYS_INLINE mlir::LogicalResult call(
       internal::DecodedArgs args, internal::DecodedAttrs attrs,
-      const UserData* user_data, std::index_sequence<Is...>) const {
+      const UserData* user_data, const DiagnosticEngine* diagnostic,
+      std::index_sequence<Is...>) const {
     // A helper structure to allow each decoder find the correct offset in the
     // arguments or attributes.
     internal::DecodingOffsets offsets;
@@ -738,7 +754,9 @@ class CustomCallHandler : public CustomCall {
     std::tuple<mlir::FailureOr<FnArgType<Ts>>...> fn_args = {
         check_all_decoded(internal::Decode<Ts, checks>::call(
             offsets, args, attrs_, attrs_idx_, attrs, values_, user_data))...};
-    if (LLVM_UNLIKELY(!all_decoded)) return mlir::failure();
+    if (LLVM_UNLIKELY(!all_decoded))
+      return diagnostic->EmitError()
+             << "Failed to decode all custom call arguments and attributes";
 
     // Forward unpacked arguments to the callback.
     return fn_(std::move(*std::get<Is>(fn_args))...);
@@ -776,6 +794,12 @@ class CustomCallHandler : public CustomCall {
   // decoded attribute entry.
   std::vector<size_t> attrs_idx_;
 };
+
+template <CustomCall::RuntimeChecks checks, typename Fn, typename... Ts>
+constexpr int64_t CustomCallHandler<checks, Fn, Ts...>::kSize;
+
+template <CustomCall::RuntimeChecks checks, typename Fn, typename... Ts>
+constexpr int64_t CustomCallHandler<checks, Fn, Ts...>::kNumArgs;
 
 // -------------------------------------------------------------------------- //
 // Custom arguments attributes decoding.

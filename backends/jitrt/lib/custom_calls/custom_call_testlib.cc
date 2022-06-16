@@ -46,6 +46,7 @@ using mlir::DialectAsmPrinter;
 using mlir::failure;
 using mlir::LogicalResult;
 using mlir::MLIRContext;
+using mlir::succeeded;
 using mlir::success;
 using mlir::TypeID;
 
@@ -310,7 +311,7 @@ static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
                           .To<CustomCall::RuntimeChecks::kNone>(noop)
                           .release();
 
-  return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *call, args, attrs));
 }
 
 // Direct PrintAttrs custom call for testing disabled attributes checks.
@@ -330,7 +331,7 @@ static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
                           .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
                           .release();
 
-  return mlir::succeeded(call->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *call, args, attrs));
 }
 
 void RegisterCustomCallTestLib(CustomCallRegistry* registry) {

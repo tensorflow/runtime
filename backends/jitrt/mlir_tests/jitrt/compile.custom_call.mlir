@@ -44,6 +44,31 @@ module @multiply attributes { tfrt.compiled } {
   }
 }
 
+// Test that custom calls with incorrect signatures emit error messages.
+module @multiply_errors attributes { tfrt.compiled } {
+
+  // "testlib.multiply" custom call expects two arguments.
+  func.func private @multiply.wrong_args.cc(
+      %arg0: memref<?x?xf32>,
+      %arg1: memref<?x?xf32>,
+      %arg1: memref<?x?xf32>
+    ) attributes { rt.custom_call = "testlib.multiply" }
+
+  func.func @main(%input: memref<?x?xf32>) -> memref<?x?xf32> {
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    %0 = memref.dim %input, %c0 : memref<?x?xf32>
+    %1 = memref.dim %input, %c1 : memref<?x?xf32>
+
+    %out = memref.alloc(%0, %1) : memref<?x?xf32>
+
+    func.call @multiply.wrong_args.cc(%input, %input, %out) { cst = 2.0 : f32 }
+      : (memref<?x?xf32>, memref<?x?xf32>, memref<?x?xf32>) -> ()
+
+    return %out : memref<?x?xf32>
+  }
+}
+
 // Prints all attributes passed to the custom call handler.
 module @print_attrs attributes { tfrt.compiled } {
   func.func private @print_attrs.cc()
@@ -260,6 +285,26 @@ func.func @compiled_custom_call_error() -> !t.tensor {
 
   // CHECK: returned <<error: compiled kernel run time error:
   // CHECK-SAME: custom call 'testlib.multiply' failed>>
+  tfrt.return %output : !t.tensor
+}
+
+// CHECK: --- Running 'compiled_custom_call_error_args'
+func.func @compiled_custom_call_error_args() -> !t.tensor {
+  %ch0 = tfrt.new.chain
+
+  // Allocate and initialize input tensor.
+  %input = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 4 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
+
+  // Compile a kernel with a custom call.
+  %executable = jitrt.compile { kernel = @multiply_errors::@main }
+
+  // Execute compiled kernel with tensor operands.
+  %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
+
+  // CHECK: returned <<error: compiled kernel run time error:
+  // CHECK-SAME: custom call 'testlib.multiply' failed:
+  // CHECK-SAME: Wrong number of arguments: expected 2 got 3>>
   tfrt.return %output : !t.tensor
 }
 

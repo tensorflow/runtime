@@ -19,10 +19,7 @@
 
 #include <functional>
 
-namespace mlir {
-class DialectRegistry;
-class OpPassManager;
-}  // namespace mlir
+#include "mlir/Pass/PassManager.h"
 
 namespace tfrt {
 namespace jitrt {

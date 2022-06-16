@@ -37,9 +37,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/dtype/dtype.h"
@@ -50,6 +47,7 @@
 #include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call.h"
+#include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/memory_mapper.h"
 #include "tfrt/jitrt/specialization.h"
@@ -62,6 +60,10 @@
 namespace Eigen {
 class ThreadPoolInterface;
 }  // namespace Eigen
+
+namespace mlir {
+class PassManager;
+}  // namespace mlir
 
 namespace tfrt {
 
@@ -329,10 +331,18 @@ class ReturnValueConverter : public ReturnValueConverterBase {
                 "Conversion context can't be void");
 
  public:
+  // A user provided function to augment all emitted errors, e.g. it can be used
+  // to attach diagnostics collected at runtime to the error message.
+  using AugmentError =
+      std::function<RCReference<ErrorAsyncValue>(const DecodedDiagnostic&)>;
+
   // It is the caller's responsibility to guarantee that conversion context
   // will outlive all pending conversions (in case of returning async values).
-  ReturnValueConverter(RemainingResults results, ConversionContext& context)
-      : ReturnValueConverterBase(results), context_(context) {
+  ReturnValueConverter(RemainingResults results, ConversionContext& context,
+                       AugmentError augment_error = {})
+      : ReturnValueConverterBase(results),
+        context_(context),
+        augment_error_(augment_error) {
     AddConversion(UnsupportedReturnType);
   }
 
@@ -347,6 +357,13 @@ class ReturnValueConverter : public ReturnValueConverterBase {
       if (mlir::succeeded(converted)) return mlir::success();
     }
     return mlir::failure();
+  }
+
+  void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
+    if (augment_error_)
+      ReturnValueConverterBase::ReturnErrors(augment_error_(error->GetError()));
+    else
+      ReturnValueConverterBase::ReturnErrors(error);
   }
 
   // Adds a conversion function to this converter. Conversion callback must be
@@ -386,6 +403,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
   ConversionContext& context_;  // must outlive all pending result conversions
   llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+  AugmentError augment_error_;
 };
 
 // A template that converts function pointer passed as non-type template
@@ -926,6 +944,9 @@ class Executable {
     // Memory where the compiled kernel will write its results.
     llvm::SmallVector<uint8_t, 128> results;
 
+    // Tracks whether any of the outputs were set.
+    bool has_set_outputs = false;
+
     // Indicates whether the kernel function execution finished with an error.
     bool is_error = false;
 
@@ -974,21 +995,23 @@ class Executable {
 
   // Options for configuring compiled kernel execution.
   struct ExecuteOpts {
-    ExecuteOpts() : async_task_runner(nullptr), kernel_context(nullptr) {}
-
     // Async task runner for executing async runtime tasks. Typically it
     // schedules async tasks into the underlying thread pool. It's the caller's
     // responsibility to guarantee that it will outlive the execution of all
     // async tasks started by the executable.
-    AsyncTaskRunner* async_task_runner;
+    AsyncTaskRunner* async_task_runner = nullptr;
 
     // User-provided kernel context corresponding to the JIT executable.
     // Must outlive all async tasks launched by this executable.
-    KernelContext* kernel_context;
+    KernelContext* kernel_context = nullptr;
 
     // A container for passing arbitrary user-provided data to the custom call
     // handlers. Must outlive all async tasks launched by this executable.
-    CustomCall::UserData* custom_call_data;
+    CustomCall::UserData* custom_call_data = nullptr;
+
+    // Diagnostic engine is responsible for passing runtime diagnostics back
+    // to the caller through the diagnostic handler.
+    DiagnosticEngine* diagnostic_engine = nullptr;
   };
 
   // Loads executable from an object file. It is the caller responsibility to
@@ -1013,8 +1036,21 @@ class Executable {
   static Expected<ResultsMemoryLayout> GetResultsMemoryLayout(
       const FunctionType& signature);
 
+  // TODO(ezhulenev): The following three functions should be decoupled from
+  // the jitrt header file (maybe move them to runtime.h?) so that custom call
+  // implementations do not have to depend on the `jitrt` target.
+
   // Returns the user data passed via the ExecuteOpts to the compiled kernel.
   static CustomCall::UserData* GetUserData(runtime::KernelContext* ctx);
+
+  // Returns the diagnostic engine passed via the ExecuteOpts to the compiled
+  // kernel.
+  static DiagnosticEngine* GetDiagnosticEngine(runtime::KernelContext* ctx);
+
+  // Calls the custom call handler with the given runtime context, arguments and
+  // attributes.
+  static mlir::LogicalResult Call(runtime::KernelContext* ctx, CustomCall& call,
+                                  void** args, void** attrs);
 
  private:
   friend class internal::JitCompilationContext;

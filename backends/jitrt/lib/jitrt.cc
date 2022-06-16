@@ -57,6 +57,7 @@
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call_registry.h"
+#include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
@@ -118,18 +119,18 @@ namespace runtime {
 struct KernelContext {
   // Results memory layout is owned by the executable, and stays alive after
   // the kernel function execution completes.
-  const Executable::ResultsMemoryLayout* results_memory_layout;
+  const Executable::ResultsMemoryLayout* results_memory_layout = nullptr;
 
   // CallFrame life time bound to the kernel function execution and destroyed
   // immediately when the function returns. Only the kernel function itself
   // reads the arguments and writes to the function results storage.
-  Executable::CallFrame* call_frame;
-
-  // Tracks whether any of the outputs were set.
-  bool has_set_outputs = false;
+  Executable::CallFrame* call_frame = nullptr;
 
   // User-defined data for custom call handlers.
-  CustomCall::UserData* custom_call_data;
+  CustomCall::UserData* custom_call_data = nullptr;
+
+  // User-defined diagnostic engine for reporting diagnostics.
+  DiagnosticEngine* diagnostic_engine = nullptr;
 };
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
@@ -580,10 +581,9 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
 
   // Runtime kernel context can be used only by the entrypoint function (kernel
   // function) and can be safely allocated on the stack.
-  runtime::KernelContext kernel_context;
-  kernel_context.results_memory_layout = &results_memory_layout_;
-  kernel_context.call_frame = &call_frame;
-  kernel_context.custom_call_data = opts.custom_call_data;
+  runtime::KernelContext kernel_context = {&results_memory_layout_, &call_frame,
+                                           opts.custom_call_data,
+                                           opts.diagnostic_engine};
 
   // Override the kernel context argument.
   runtime::KernelContext* kernel_context_ptr = &kernel_context;
@@ -635,6 +635,16 @@ std::unique_ptr<llvm::MemoryBuffer> Executable::obj_file() const {
 
 CustomCall::UserData* Executable::GetUserData(runtime::KernelContext* ctx) {
   return ctx->custom_call_data;
+}
+
+DiagnosticEngine* Executable::GetDiagnosticEngine(runtime::KernelContext* ctx) {
+  return ctx->diagnostic_engine;
+}
+
+mlir::LogicalResult Executable::Call(runtime::KernelContext* ctx,
+                                     CustomCall& call, void** args,
+                                     void** attrs) {
+  return call.call(args, attrs, ctx->custom_call_data, ctx->diagnostic_engine);
 }
 
 //----------------------------------------------------------------------------//
@@ -1382,7 +1392,7 @@ extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
   assert(!ctx->call_frame->is_error && "error must not be set");
   size_t offset = ctx->results_memory_layout->offsets[index];
   assert(offset < ctx->call_frame->results.size() && "offset is out of bounds");
-  ctx->has_set_outputs = true;
+  ctx->call_frame->has_set_outputs = true;
   return &ctx->call_frame->results[offset];
 }
 
@@ -1390,7 +1400,7 @@ extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
   assert(ctx && "kernel context must be not null");
   assert(error && "runtime error must be not null");
   assert(!ctx->call_frame->is_error && "error must be set only once");
-  assert(!ctx->has_set_outputs && "outputs must be undefined");
+  assert(!ctx->call_frame->has_set_outputs && "outputs must be undefined");
   ctx->call_frame->is_error = true;
   ctx->call_frame->error = {error};
 }
@@ -1410,10 +1420,8 @@ extern "C" bool runtimeCustomCall(KernelContext* ctx, const char* callee,
   assert(custom_call && "custom call not found");
   if (custom_call == nullptr) return false;
 
-  auto result = custom_call->call(args, attrs, ctx->custom_call_data);
-  if (mlir::failed(result)) return false;
-
-  return true;
+  return succeeded(custom_call->call(args, attrs, ctx->custom_call_data,
+                                     ctx->diagnostic_engine));
 }
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {

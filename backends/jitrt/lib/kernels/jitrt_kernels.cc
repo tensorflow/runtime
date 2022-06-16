@@ -150,13 +150,6 @@ static void ExecuteImpl(const Executable& executable,
                         RepeatedArguments<Tensor> operands,
                         RemainingResults results,
                         const ExecutionContext& exec_ctx) {
-  // If execution failed errors will be automatically allocated for all results.
-  ConversionCtx conversion_ctx;
-  ReturnValueConverter<ConversionCtx> converter(results, conversion_ctx);
-  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
-  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
-  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
-
   // Use HostContext to execute all async tasks.
   HostContext* host = exec_ctx.host();
   auto& runner_ctx = host->GetOrCreateSharedContext<AsyncTaskRunnerContext>();
@@ -168,9 +161,32 @@ static void ExecuteImpl(const Executable& executable,
   CustomCall::UserData custom_call_data;
   custom_call_data.insert(kCaller);
 
+  // Collect all emitted diagnostic messages.
+  DiagnosticEngine diagnostic_engine;
+  std::string diagnostic;
+  diagnostic_engine.AddHandler([&](Diagnostic& d) {
+    llvm::raw_string_ostream(diagnostic) << d.str();
+    return mlir::success();
+  });
+
+  // Attach diagnostics to all errors emitted through the result converter.
+  auto augment_errors = [&](const DecodedDiagnostic& err) {
+    if (diagnostic.empty()) return MakeErrorAsyncValueRef(err);
+    return MakeErrorAsyncValueRef(StrCat(err.message, ": ", diagnostic));
+  };
+
   Executable::ExecuteOpts opts;
   opts.async_task_runner = &runner_ctx.runner;
   opts.custom_call_data = &custom_call_data;
+  opts.diagnostic_engine = &diagnostic_engine;
+
+  // If execution failed errors will be automatically allocated for all results.
+  ConversionCtx conversion_ctx;
+  ReturnValueConverter<ConversionCtx> converter(results, conversion_ctx,
+                                                std::move(augment_errors));
+  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
 
   if (auto err = executable.Execute(memrefs, converter, opts)) return;
 

@@ -20,6 +20,8 @@
 
 #include "tfrt/jitrt/custom_call.h"
 
+#include <string>
+
 namespace tfrt {
 namespace jitrt {
 

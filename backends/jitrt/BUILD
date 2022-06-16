@@ -162,6 +162,7 @@ tfrt_cc_library(
         ":constraints",
         ":custom_call",
         ":custom_call_registry",
+        ":diagnostics",
         ":execution_engine",
         ":memory_mapper",
         ":rt_transforms",
@@ -317,6 +318,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":diagnostics",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:dtype",
@@ -336,6 +338,18 @@ tfrt_cc_library(
         "@llvm-project//mlir:Support",
         "@tf_runtime//:dtype",
         "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "diagnostics",
+    srcs = ["lib/diagnostics.cc"],
+    hdrs = ["include/tfrt/jitrt/diagnostics.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
     ],
 )
 

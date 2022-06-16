@@ -32,8 +32,23 @@ tfrt_cc_test(
         "@tf_runtime//backends/jitrt",
         "@tf_runtime//backends/jitrt:custom_call",
         "@tf_runtime//backends/jitrt:custom_call_testlib",
+        "@tf_runtime//backends/jitrt:diagnostics",
         "@tf_runtime//backends/jitrt:execution_engine",
         "@tf_runtime//backends/jitrt:jitrt_compiler",
+    ],
+)
+
+tfrt_cc_test(
+    name = "diagnostics_test",
+    srcs = ["diagnostics_test.cc"],
+    tags = ["no_oss"],  # TODO(b/197262906)
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
+        "@tf_runtime//backends/jitrt:diagnostics",
     ],
 )
 

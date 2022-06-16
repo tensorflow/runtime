@@ -23,6 +23,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
+#include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
@@ -86,6 +87,10 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
   execute_opts.async_task_runner =
       reinterpret_cast<jitrt::AsyncTaskRunner*>(0XDEADBEEF);
 
+  // Dump all emitted diagnostics to the llvm::errs() by default.
+  DiagnosticEngine diagnostic_engine;
+  execute_opts.diagnostic_engine = &diagnostic_engine;
+
   for (auto _ : state) {
     call_frame.args[0] = nullptr;  // reset kernel context
     executable->Execute(call_frame, execute_opts);
@@ -138,7 +143,7 @@ static bool I32X1(runtime::KernelContext* ctx, void** args, void** attrs) {
                              .Arg<int32_t>()
                              .To<checks>([](int32_t arg0) { return success(); })
                              .release();
-  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs));
 }
 
 template <RuntimeChecks checks>
@@ -201,7 +206,7 @@ static bool I32X12(runtime::KernelContext* ctx, void** args, void** attrs) {
                          int32_t arg8, int32_t arg9, int32_t arg10,
                          int32_t arg11) { return success(); })
           .release();
-  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs));
 }
 
 template <RuntimeChecks checks>
@@ -236,7 +241,7 @@ static bool MemrefX1(runtime::KernelContext* ctx, void** args, void** attrs) {
                                return success();
                              })
                              .release();
-  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs));
 }
 
 template <RuntimeChecks checks>
@@ -336,7 +341,7 @@ static bool MemrefX12(runtime::KernelContext* ctx, void** args, void** attrs) {
                 return success();
               })
           .release();
-  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs));
 }
 
 static SmallVector<MemrefDesc> FakeMemrefsX12() {
@@ -436,7 +441,7 @@ static bool I32AttrX12(runtime::KernelContext* ctx, void** args, void** attrs) {
                          int32_t arg8, int32_t arg9, int32_t arg10,
                          int32_t arg11) { return success(); })
           .release();
-  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs));
 }
 
 template <RuntimeChecks checks>
@@ -475,7 +480,7 @@ static bool PairOfDimsX1(runtime::KernelContext* ctx, void** args,
                                return success();
                              })
                              .release();
-  return succeeded(handler->call(args, attrs, Executable::GetUserData(ctx)));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs));
 }
 
 template <RuntimeChecks checks>

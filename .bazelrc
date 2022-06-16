@@ -22,7 +22,7 @@ test:windows --test_env=PATHEXT
 
 # Build with MSVC (and nvcc if --config=cuda)
 build:msvc --config=nvcc
-build:msvc --cxxopt=/std:c++14 --host_cxxopt=/std:c++14
+build:msvc --cxxopt=/std:c++17 --host_cxxopt=/std:c++17
 # Workaround for https://github.com/tensorflow/runtime/issues/65
 build:msvc --cxxopt=/d2ReducedOptimizeHugeFunctions
 
@@ -30,12 +30,12 @@ build:msvc --cxxopt=/d2ReducedOptimizeHugeFunctions
 build:clang --repo_env=CC=clang
 build:clang --@rules_cuda//cuda:compiler=clang
 build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
-build:clang --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
+build:clang --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 
 # Build with gcc (and nvcc if --config=cuda).
 build:gcc --repo_env=CC=gcc
 build:gcc --config=nvcc
-build:gcc --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
+build:gcc --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 build:gcc --cxxopt=-Wno-maybe-uninitialized
 build:gcc --cxxopt=-Wno-sign-compare
 
@@ -43,6 +43,8 @@ build:gcc --cxxopt=-Wno-sign-compare
 build:nvcc --@rules_cuda//cuda:compiler=nvcc
 build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
 build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
+# TODO(ezhulenev): Currently nvcc can't compile some of the kernels with c++17.
+build:nvcc --@rules_cuda//cuda:copts=-std=c++14
 
 # Default to an optimized build.
 # Override via: "-c dbg" or --compilation_mode=dbg

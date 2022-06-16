@@ -507,13 +507,6 @@ class CustomCall::VariantAttr {
 
 namespace internal {
 
-// TODO(ezhulenev): C++17 https://en.cppreference.com/w/cpp/types/is_invocable.
-template <class R, typename F, typename... Args>
-struct is_invocable
-    : std::is_constructible<
-          std::function<R(Args...)>,
-          std::reference_wrapper<typename std::remove_reference<F>::type>> {};
-
 // A helper struct to extract the type of the handler argument.
 template <typename T>
 struct FnArgType {
@@ -676,7 +669,7 @@ class CustomCallHandler : public CustomCall {
   using FnArgType = typename internal::FnArgType<T>::Type;
 
   static_assert(
-      internal::is_invocable<mlir::LogicalResult, Fn, FnArgType<Ts>...>::value,
+      std::is_invocable_r<mlir::LogicalResult, Fn, FnArgType<Ts>...>::value,
       "incompatible custom call handler types");
 
  public:

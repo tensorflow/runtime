@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "tfrt/jitrt/types.h"
+#include "tfrt/jitrt/arguments.h"
 
 #include <type_traits>
 #include <utility>
@@ -23,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/jitrt/types.h"
 
 namespace tfrt {
 namespace jitrt {

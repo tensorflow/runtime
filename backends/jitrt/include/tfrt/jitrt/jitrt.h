@@ -42,6 +42,7 @@
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/task_function.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/async_values_cache.h"

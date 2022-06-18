@@ -19,6 +19,19 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "arguments_test",
+    srcs = ["arguments_test.cc"],
+    deps = [
+        "@com_github_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//backends/jitrt:arguments",
+        "@tf_runtime//backends/jitrt:types",
+    ],
+)
+
+tfrt_cc_test(
     name = "custom_call_test",
     srcs = ["custom_call_test.cc"],
     tags = ["no_oss"],  # TODO(b/197262906)
@@ -115,17 +128,5 @@ tfrt_cc_test(
         "@tf_runtime//:dtype",
         "@tf_runtime//backends/jitrt",
         "@tf_runtime//backends/jitrt:constraints",
-    ],
-)
-
-tfrt_cc_test(
-    name = "types_test",
-    srcs = ["types_test.cc"],
-    deps = [
-        "@com_github_google_benchmark//:benchmark_main",
-        "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//backends/jitrt:types",
     ],
 )

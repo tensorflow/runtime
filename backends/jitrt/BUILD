@@ -156,6 +156,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":arguments",
         ":async_runtime",
         ":async_runtime_api",
         ":async_values_cache",
@@ -234,6 +235,21 @@ tfrt_cc_library(
         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
     ],
     alwayslink = 1,
+)
+
+tfrt_cc_library(
+    name = "arguments",
+    srcs = ["lib/arguments.cc"],
+    hdrs = ["include/tfrt/jitrt/arguments.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":types",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
+    ],
 )
 
 # Generates 'async_values_cache.h' based on the :std_thread flag.
@@ -360,8 +376,8 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":arguments",
         ":constraints",
-        ":types",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ],

@@ -20,8 +20,8 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/SmallVector.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
-#include "tfrt/jitrt/types.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {

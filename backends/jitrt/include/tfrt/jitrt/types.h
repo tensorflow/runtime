@@ -22,169 +22,151 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/ExtensibleRTTI.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/dtype/dtype.h"
 
 namespace tfrt {
 namespace jitrt {
 
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
+// Canonical JitRt types for the arguments of the compiled kernels.
+//===----------------------------------------------------------------------===//
+
 // Types supported by the compiled function signature. We do rely on the LLVM
 // style RTTI (https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html) to avoid
-// dependency on the MLIR types at runtime, because for that we need to carry
-// a separate MLIRContext with every instance of Executable which might require
-// a lot of memory to hold all the uniqued attributes (large constants).
-//----------------------------------------------------------------------------//
-
-class Type {
+// dependency on the MLIR types at runtime, because we don't want to depend
+// on any of the compiler implementation details at runtime and we want to
+// support lightweight loading and execution of AOT compiled programs.
+//
+// We rely on the RTTI for the open class hierarchies, because we want to allow
+// users to define their own types for the arguments.
+class Type : public llvm::RTTIExtends<Type, llvm::RTTIRoot> {
  public:
-  enum class TypeKind {
-    kAsyncToken,
-    kAsyncValue,
-    kRankedTensor,
-    kUnrankedTensor,
-    kMemref,
-    kUnrankedMemref,
-    kKernelContext
-  };
-
-  virtual ~Type() = default;
-
-  TypeKind kind() const { return kind_; }
+  static constexpr char ID = 0;  // NOLINT
 
  protected:
-  explicit Type(TypeKind kind) : kind_(kind) {}
-
-  // Unlike the mlir::Type which itself is a "smart pointer like" type, with the
-  // underlying object owned by the MLIR context, the runtime type must be
-  // wrapped in a smart pointer explicitly (e.g. in std::unique_ptr) and can't
-  // be moved or copied (see the `FunctionType` below for example).
-  Type(Type&&) = delete;
-  Type(const Type&) = delete;
-  Type& operator=(Type&&) = delete;
-  Type& operator=(const Type&) = delete;
-
- private:
-  const TypeKind kind_;
+  Type() = default;
 };
 
 raw_ostream& operator<<(raw_ostream& os, const Type& type);
 
+//===----------------------------------------------------------------------===//
 // Async Token type corresponding to the mlir::async::TokenType
-class AsyncTokenType : public Type {
- public:
-  AsyncTokenType() : Type(TypeKind::kAsyncToken) {}
+//===----------------------------------------------------------------------===//
 
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kAsyncToken;
-  }
+class AsyncTokenType : public llvm::RTTIExtends<AsyncTokenType, Type> {
+ public:
+  static constexpr char ID = 0;  // NOLINT
 };
 
+//===----------------------------------------------------------------------===//
 // Async Value type corresponding to the mlir::async::ValueType.
-class AsyncValueType : public Type {
+//===----------------------------------------------------------------------===//
+
+class AsyncValueType : public llvm::RTTIExtends<AsyncValueType, Type> {
  public:
+  static constexpr char ID = 0;  // NOLINT
+
   explicit AsyncValueType(std::unique_ptr<Type> value_type)
-      : Type(TypeKind::kAsyncValue), value_type_(std::move(value_type)) {}
+      : value_type_(std::move(value_type)) {}
 
   const Type& value_type() const { return *value_type_; }
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kAsyncValue;
-  }
 
  private:
   std::unique_ptr<Type> value_type_;
 };
 
+//===----------------------------------------------------------------------===//
 // Ranked Tensor type corresponding to the mlir::RankedTensorType.
-class RankedTensorType : public Type {
+//===----------------------------------------------------------------------===//
+
+class RankedTensorType : public llvm::RTTIExtends<RankedTensorType, Type> {
  public:
+  static constexpr char ID = 0;  // NOLINT
   static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
 
   RankedTensorType(ArrayRef<Index> sizes, DType element_type)
-      : Type(TypeKind::kRankedTensor),
-        sizes_(sizes.begin(), sizes.end()),
-        element_type_(element_type) {}
+      : sizes_(sizes.begin(), sizes.end()), element_type_(element_type) {}
 
   ArrayRef<Index> sizes() const { return sizes_; }
   unsigned rank() const { return sizes_.size(); }
   DType element_type() const { return element_type_; }
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kRankedTensor;
-  }
 
  private:
   llvm::SmallVector<Index> sizes_;
   DType element_type_;
 };
 
+//===----------------------------------------------------------------------===//
 // Unranked Tensor type corresponding to the mlir::UnrankedTensorType.
-class UnrankedTensorType : public Type {
+//===----------------------------------------------------------------------===//
+
+class UnrankedTensorType : public llvm::RTTIExtends<UnrankedTensorType, Type> {
  public:
+  static constexpr char ID = 0;  // NOLINT
+
   explicit UnrankedTensorType(DType element_type)
-      : Type(TypeKind::kUnrankedTensor), element_type_(element_type) {}
+      : element_type_(element_type) {}
 
   DType element_type() const { return element_type_; }
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kUnrankedTensor;
-  }
 
  private:
   DType element_type_;
 };
 
+//===----------------------------------------------------------------------===//
 // Ranked Memref type corresponding to the mlir::MemrefType.
-class MemrefType : public Type {
+//===----------------------------------------------------------------------===//
+
+class MemrefType : public llvm::RTTIExtends<MemrefType, Type> {
  public:
+  static constexpr char ID = 0;  // NOLINT
   static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
 
   MemrefType(ArrayRef<Index> sizes, DType element_type)
-      : Type(TypeKind::kMemref),
-        sizes_(sizes.begin(), sizes.end()),
-        element_type_(element_type) {}
+      : sizes_(sizes.begin(), sizes.end()), element_type_(element_type) {}
 
   ArrayRef<Index> sizes() const { return sizes_; }
   unsigned rank() const { return sizes_.size(); }
   DType element_type() const { return element_type_; }
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kMemref;
-  }
 
  private:
   llvm::SmallVector<Index> sizes_;
   DType element_type_;
 };
 
+//===----------------------------------------------------------------------===//
 // Unranked Memref type corresponding to the mlir::UnrankedMemrefType.
-class UnrankedMemrefType : public Type {
+//===----------------------------------------------------------------------===//
+
+class UnrankedMemrefType : public llvm::RTTIExtends<UnrankedMemrefType, Type> {
  public:
+  static constexpr char ID = 0;  // NOLINT
+
   explicit UnrankedMemrefType(DType element_type)
-      : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
+      : element_type_(element_type) {}
 
   DType element_type() const { return element_type_; }
-
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kUnrankedMemref;
-  }
 
  private:
   DType element_type_;
 };
 
+//===----------------------------------------------------------------------===//
 // Corresponds to the RT dialect's KernelContextType.
-class KernelContextOperandType : public Type {
- public:
-  KernelContextOperandType() : Type(TypeKind::kKernelContext) {}
+//===----------------------------------------------------------------------===//
 
-  static bool classof(const Type* type) {
-    return type->kind() == TypeKind::kKernelContext;
-  }
+class KernelContextOperandType
+    : public llvm::RTTIExtends<KernelContextOperandType, Type> {
+ public:
+  static constexpr char ID = 0;  // NOLINT
 };
 
+//===----------------------------------------------------------------------===//
 // Compiled function signature type corresponding to the mlir::FunctionType.
+//===----------------------------------------------------------------------===//
+
 class FunctionType {
  public:
   const Type* operand(unsigned index) const { return operands_[index].get(); }
@@ -212,9 +194,12 @@ Expected<DType> ConvertElementType(mlir::Type type);
 // Converts MLIR type to the corresponding JitRt type.
 Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type);
 
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
 // Types for passing compiled kernel arguments and passing back results.
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
+
+// TODO(ezhulenev): Move this to arguments.h and add support for open class
+// hierarchy of compiled kernel arguments (virtual base).
 
 class MemrefDesc {
  public:
@@ -287,9 +272,9 @@ MemrefDesc::MemrefDesc(unsigned rank, DType dtype, void* data, Index offset,
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 
-// -------------------------------------------------------------------------- //
+//===----------------------------------------------------------------------===//
 // Verify that operands types are matching runtime values.
-// -------------------------------------------------------------------------- //
+//===----------------------------------------------------------------------===//
 
 // We pass operand index to all verification functions to get a user-friendly
 // error messages in case of an error.

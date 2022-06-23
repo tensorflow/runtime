@@ -24,16 +24,10 @@
 #include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/symbolic_shape.h"
+#include "tfrt/jitrt/types.h"
 
 namespace tfrt {
-
-using ::tfrt::jitrt::FunctionType;
-using ::tfrt::jitrt::MemrefDesc;
-using ::tfrt::jitrt::MemrefType;
-using ::tfrt::jitrt::OperandConstraint;
-using ::tfrt::jitrt::SymbolicShapesResolver;
-using ::tfrt::jitrt::Type;
-using ::tfrt::jitrt::UnrankedMemrefType;
+namespace jitrt {
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 
@@ -57,18 +51,21 @@ static FunctionType GetFunctionType(
   return FunctionType(std::move(operands), {});
 }
 
-// Create fake memref operands from the operands shapes.
+// Creates fake opaque argument.
+static OpaqueArg GetFakeOpaqueArg() { return OpaqueArg(nullptr); }
+
+// Creates fake memref argument of the given shape.
+static MemrefDesc GetFakeMemref(SymbolicShape shape) {
+  // Data type of the fake memrefs doesn't matter.
+  return MemrefDesc(DType::F32, nullptr, 0, shape, shape /* fake strides */);
+}
+
+// Creates fake memref arguments of the given shapes.
 static llvm::SmallVector<MemrefDesc> GetFakeMemrefs(
     llvm::SmallVector<SymbolicShape> shapes) {
   llvm::SmallVector<MemrefDesc> memrefs;
   memrefs.reserve(shapes.size());
-
-  for (auto& shape : shapes) {
-    // Data type of the fake memrefs doesn't matter.
-    MemrefDesc desc(DType::F32, nullptr, 0, shape, shape /* fake strides */);
-    memrefs.push_back(std::move(desc));
-  }
-
+  for (auto& shape : shapes) memrefs.push_back(GetFakeMemref(shape));
   return memrefs;
 }
 
@@ -372,7 +369,7 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
 
   SymbolicShapesResolver resolver(type, constraints);
 
-  {  // Operand of a different rank;
+  {  // Operand of a different rank.
     auto operands = GetFakeMemrefs({{100, 100, 100}});
     auto symbolic = resolver.Resolve(operands);
     auto hash = resolver.ResolveHash(operands);
@@ -388,6 +385,58 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
 
     EXPECT_TRUE(mlir::failed(symbolic));
     EXPECT_TRUE(mlir::failed(hash));
+  }
+}
+
+TEST(SymbolicShapeResolverTest, OpaqueAndShapedInputs) {
+  llvm::SmallVector<int64_t> shape = {MemrefType::kDynamicSize, 4};
+
+  // Operands: !async.token, tensor<?x4xf32>, tensor<?x4xf32>
+  llvm::SmallVector<std::unique_ptr<Type>> operands;
+  operands.push_back(std::make_unique<AsyncTokenType>());
+  operands.push_back(std::make_unique<MemrefType>(shape, DType::F32));
+  operands.push_back(std::make_unique<MemrefType>(shape, DType::F32));
+
+  auto constraints = {OperandConstraint::kResolved,
+                      OperandConstraint::kResolved,
+                      OperandConstraint::kResolved};
+
+  FunctionType type(std::move(operands), {});
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  {  // Operand of a different shape.
+    Arguments<OpaqueArg, MemrefDesc> arguments(3);
+    arguments.push_back(GetFakeOpaqueArg());
+    arguments.push_back(GetFakeMemref({2, 4}));
+    arguments.push_back(GetFakeMemref({3, 4}));
+
+    auto symbolic = resolver.Resolve(arguments);
+    auto hash = resolver.ResolveHash(arguments);
+
+    ASSERT_TRUE(succeeded(symbolic));
+    EXPECT_EQ(symbolic->size(), 3);
+    EXPECT_EQ(*symbolic, SymbolicShapes({{}, {-2, 4}, {-3, 4}}));
+
+    llvm::SmallVector<int64_t> values = {-2, 4, -3, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
+  }
+
+  {  // Both dynamic dimensions are the same.
+    Arguments<OpaqueArg, MemrefDesc> arguments(3);
+    arguments.push_back(GetFakeOpaqueArg());
+    arguments.push_back(GetFakeMemref({2, 4}));
+    arguments.push_back(GetFakeMemref({2, 4}));
+
+    auto symbolic = resolver.Resolve(arguments);
+    auto hash = resolver.ResolveHash(arguments);
+
+    ASSERT_TRUE(succeeded(symbolic));
+    EXPECT_EQ(symbolic->size(), 3);
+    EXPECT_EQ(*symbolic, SymbolicShapes({{}, {-2, 4}, {-2, 4}}));
+
+    llvm::SmallVector<int64_t> values = {-2, 4, -2, 4};
+    EXPECT_EQ(*hash, llvm::hash_combine_range(values.begin(), values.end()));
   }
 }
 
@@ -636,4 +685,5 @@ BENCHMARK(BM_Hash2x1);
 BENCHMARK(BM_Hash2x4);
 BENCHMARK(BM_Hash2x8);
 
+}  // namespace jitrt
 }  // namespace tfrt

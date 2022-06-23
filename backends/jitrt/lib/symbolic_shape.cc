@@ -27,6 +27,7 @@
 
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/Compiler.h"
+#include "tfrt/jitrt/arguments.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -75,7 +76,11 @@ SymbolicShapesResolver::SymbolicShapesResolver(
       continue;
     }
 
-    assert(false && "unsupported operand type");
+    // TODO(ezhulenev): Add support for `ShapedType` to allow users to enable
+    // symbolic shape resolution for user-defined types.
+
+    // All non-shaped types have statically known empty shape.
+    emplace_sizes({});
   }
 
   // When resolving symbolic shapes we should visit operands starting from the
@@ -92,6 +97,13 @@ SymbolicShapesResolver::SymbolicShapesResolver(
     unsigned cb = static_cast<unsigned>(constraints[b]);
     if (ca > cb) return true;
     return ca < cb ? false : a < b;
+  });
+
+  // We can safely skip operands with a known empty symbolic shape, because
+  // that's the default value we return when resolving symbolic shapes for
+  // the arguments, and such shapes do not participate in the hash computation.
+  llvm::erase_if(iteration_order_, [&](size_t i) {
+    return operands_sizes_[i].hasValue() && operands_sizes_[i]->empty();
   });
 
   // When computing a symbolic shapes hash we don't need to visit operands with
@@ -126,10 +138,10 @@ bool SymbolicShapesResolver::seen_static_size(size_t dim) const {
 
 template <typename SymbolicShapes>
 LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
-    const SymbolicShapesResolver& resolver, ArrayRef<MemrefDesc> operands,
+    const SymbolicShapesResolver& resolver, ArgumentsRef arguments,
     ArrayRef<size_t> iteration_order, SymbolicShapes& symbolic_shapes) {
-  // The number of operands must match the function signature.
-  assert(operands.size() == resolver.num_operands());
+  // The number of arguments must match the function signature.
+  assert(arguments.size() == resolver.num_operands());
 
   // Mapping from the runtime dimension size to the symbolic dimension.
   llvm::SmallDenseMap<int64_t, int64_t, 16> size_to_symbolic_dim;
@@ -138,7 +150,14 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
 
   for (size_t i : iteration_order) {
     bool has_static_sizes = resolver.has_operand_sizes(i);
-    ArrayRef<int64_t> runtime_sizes = operands[i].sizes();
+
+    // TODO(ezhulenev): Add support for `ShapedArgument` to allow users to
+    // enable symbolic shape resolution for user-defined arguments.
+    //
+    // At this point it's guaranteed that the operand at `i` is a shaped one,
+    // because non-shaped operands are not in the `iteration_order`.
+    const MemrefDesc* shaped = cast<MemrefDesc>(&arguments[i]);
+    ArrayRef<int64_t> runtime_sizes = shaped->sizes();
 
     // Check that statically known rank matches the runtime rank.
     if (LLVM_UNLIKELY(has_static_sizes &&
@@ -201,13 +220,13 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
 }
 
 mlir::FailureOr<llvm::SmallVector<SymbolicShape>>
-SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) const {
+SymbolicShapesResolver::Resolve(ArgumentsRef arguments) const {
   // Prepare storage for resolving symbolic shapes.
   llvm::SmallVector<SymbolicShape> symbolic_shapes;
-  symbolic_shapes.resize(operands.size());
+  symbolic_shapes.resize(arguments.size());
 
   if (LLVM_UNLIKELY(failed(
-          ResolveImpl(*this, operands, iteration_order_, symbolic_shapes))))
+          ResolveImpl(*this, arguments, iteration_order_, symbolic_shapes))))
     return failure();
 
   return symbolic_shapes;
@@ -249,12 +268,12 @@ struct SymbolicShapesFingerprint {
 }  // namespace
 
 mlir::FailureOr<llvm::hash_code> SymbolicShapesResolver::ResolveHash(
-    ArrayRef<MemrefDesc> operands) const {
+    ArgumentsRef arguments) const {
   // Accumulate symbolic shapes into the shapes fingerprint.
   SymbolicShapesFingerprint fingerprint;
 
   if (LLVM_UNLIKELY(failed(
-          ResolveImpl(*this, operands, hash_iteration_order_, fingerprint))))
+          ResolveImpl(*this, arguments, hash_iteration_order_, fingerprint))))
     return failure();
 
   return llvm::hash_combine_range(fingerprint.values.begin(),

@@ -201,17 +201,8 @@ struct IsWrapped<internal::Value<T>> : std::true_type {};
 
 // Checks if remaining arguments are in the parameter pack.
 template <typename... Ts>
-struct HasRemainingArgs;
-
-template <typename T, typename... Ts>
-struct HasRemainingArgs<T, Ts...> {
-  static constexpr bool value =
-      std::is_same<CustomCall::RemainingArgs, T>::value ||
-      HasRemainingArgs<Ts...>::value;
-};
-
-template <>
-struct HasRemainingArgs<> : std::false_type {};
+using HasRemainingArgs =
+    std::disjunction<std::is_same<CustomCall::RemainingArgs, Ts>...>;
 
 }  // namespace internal
 

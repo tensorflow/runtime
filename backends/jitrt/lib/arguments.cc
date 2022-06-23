@@ -27,7 +27,11 @@
 namespace tfrt {
 namespace jitrt {
 
-raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
+raw_ostream& OpaqueArg::print(raw_ostream& os) const {
+  return os << "OpaqueArg: ptr=" << ptr_;
+}
+
+raw_ostream& MemrefDesc::print(raw_ostream& os) const {
   auto print_arr = [&](string_view name, ArrayRef<Index> arr) {
     os << " " << name << ": [";
     if (!arr.empty()) {
@@ -37,9 +41,9 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
     os << "]";
   };
 
-  os << "MemrefDesc: dtype: " << desc.dtype() << " offset: " << desc.offset();
-  print_arr("sizes", desc.sizes());
-  print_arr("strides", desc.strides());
+  os << "MemrefDesc: dtype: " << dtype() << " offset: " << offset();
+  print_arr("sizes", sizes());
+  print_arr("strides", strides());
 
   return os;
 }

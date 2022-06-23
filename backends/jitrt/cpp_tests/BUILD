@@ -126,7 +126,9 @@ tfrt_cc_test(
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
-        "@tf_runtime//backends/jitrt",
+        "@tf_runtime//backends/jitrt:arguments",
         "@tf_runtime//backends/jitrt:constraints",
+        "@tf_runtime//backends/jitrt:symbolic_shape",
+        "@tf_runtime//backends/jitrt:types",
     ],
 )

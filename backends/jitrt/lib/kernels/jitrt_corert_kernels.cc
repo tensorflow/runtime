@@ -53,6 +53,9 @@
 namespace tfrt {
 namespace jitrt {
 
+template <typename T>
+using KernelArgument = ::tfrt::Argument<T>;
+
 // -------------------------------------------------------------------------- //
 // Compile compilation unit attribute to an executable result.
 // -------------------------------------------------------------------------- //
@@ -214,7 +217,7 @@ static void ExecuteImpl(const Executable& executable,
     RunWhenReady(kernel_ret, [o = RCArray<AsyncValue>(operands.values())] {});
 }
 
-static void Execute(Argument<JitExecutable> jit_executable,
+static void Execute(KernelArgument<JitExecutable> jit_executable,
                     RepeatedArguments<TensorHandle> operands,
                     RemainingResults results,
                     const ExecutionContext& exec_ctx) {

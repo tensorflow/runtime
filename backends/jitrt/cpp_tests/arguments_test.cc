@@ -21,9 +21,8 @@
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
-#include "llvm/ADT/SmallVector.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/types.h"
+#include "tfrt/jitrt/arguments.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -40,8 +39,7 @@ static void BM_CreateMemrefDesc_1d(benchmark::State& state) {
   int64_t num_memrefs = state.range(0);
 
   for (auto _ : state) {
-    std::vector<MemrefDesc> memrefs;
-    memrefs.reserve(num_memrefs);
+    Arguments<MemrefDesc> memrefs(num_memrefs);
 
     for (unsigned i = 0; i < num_memrefs; ++i) {
       ArrayRef<Index> sizes = size;

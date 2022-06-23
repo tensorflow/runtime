@@ -21,8 +21,9 @@
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
-#include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/symbolic_shape.h"
 
 namespace tfrt {
 

@@ -1168,17 +1168,20 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
 
 // Combines `hash` with a hash value computed from a value constrained operands.
 static llvm::hash_code CombineWithValueConstraineOperands(
-    llvm::hash_code hash, ArrayRef<MemrefDesc> operands,
+    llvm::hash_code hash, ArgumentsRef arguments,
     ArrayRef<OperandConstraint> constraints) {
   for (int i = 0; i < constraints.size(); ++i) {
     if (LLVM_LIKELY(constraints[i] != OperandConstraint::kValue)) continue;
 
-    const MemrefDesc& operand = operands[i];
-    const auto* data = static_cast<uint8_t*>(operand.data());
-    size_t rank = operand.rank();
+    // TODO(ezhulenev): Currently we only support value specialization of Tensor
+    // operands (wiht MemrefDesc run time argument), it should be extended to
+    // support open type and argument hierarchies.
+    const MemrefDesc& memref = cast<MemrefDesc>(arguments[i]);
+    const auto* data = static_cast<uint8_t*>(memref.data());
+    size_t rank = memref.rank();
     assert(rank == 0 || rank == 1);
-    size_t num_values = rank == 0 ? 1 : operand.size(0);
-    Index len = num_values * GetHostSize(operand.dtype());
+    size_t num_values = rank == 0 ? 1 : memref.size(0);
+    Index len = num_values * GetHostSize(memref.dtype());
     hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
   }
   return hash;

@@ -299,6 +299,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":arguments",
         ":constraints",
         ":support",
         ":symbolic_shape",

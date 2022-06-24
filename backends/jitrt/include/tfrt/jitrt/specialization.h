@@ -20,13 +20,17 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/symbolic_shape.h"
-#include "tfrt/jitrt/types.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 namespace jitrt {
+
+// TODO(ezhulenev): A lot of specialization code is written with an assumption
+// that we can only specialize Tensor arguments. Make this extendable
+// to support user-defined types and user-defined specializations.
 
 // Listener class to control notifications during specialization.
 struct SpecializationListener {
@@ -44,17 +48,17 @@ struct SpecializationListener {
                                       mlir::Attribute value) const {}
 };
 
-// Specializes function to the runtime operands:
+// Specializes function to the runtime arguments:
 //
 // - updates all unknown dimensions according to the resolved symbolic shapes
 // - attaches symbolic shape attribute to the operands
 // - for value-specialized operands sinks small constants into the function body
 //
-// Returns error if operands are not compatible with the function signature.
+// Returns error if arguments are not compatible with the function signature.
 //
 // See an example of a compiled module specialization in `jitrt.h`.
 Error SpecializeFunction(
-    mlir::func::FuncOp func, ArrayRef<MemrefDesc> operands,
+    mlir::func::FuncOp func, ArgumentsRef arguments,
     ArrayRef<SymbolicShapesResolver::SymbolicShape> symbolic_shapes,
     ArrayRef<OperandConstraint> constraints,
     const SpecializationListener* listener = nullptr);

@@ -799,19 +799,19 @@ class JitCompilationContext {
     return entrypoint_;
   }
 
-  // Specialize compiled module to the operands:
+  // Specialize compiled module to the arguments:
   //
   // - update all unknown dimensions according to the resolved symbolic shapes
   // - attach symbolic shape attribute to the operands
   // - sink small constants into the function body
   //
-  // After entrypoint signature is updated, and all constant operands
+  // After entrypoint signature is updated, and all constant arguments
   // materialized in the function body, runs the user-provided specialization
   // pipeline to optimize the module based on the new information in the IR.
   //
-  // Returns error if operands are not compatible with compiled module
+  // Returns error if arguments are not compatible with compiled module
   // entrypoint signature.
-  llvm::Error Specialize(ArrayRef<MemrefDesc> operands,
+  llvm::Error Specialize(ArgumentsRef arguments,
                          ArrayRef<SymbolicShape> symbolic_shapes,
                          ArrayRef<OperandConstraint> constraints,
                          const SpecializationListener* listener);
@@ -982,7 +982,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 }
 
 llvm::Error JitCompilationContext::Specialize(
-    ArrayRef<MemrefDesc> operands, ArrayRef<SymbolicShape> symbolic_shapes,
+    ArgumentsRef arguments, ArrayRef<SymbolicShape> symbolic_shapes,
     ArrayRef<OperandConstraint> constraints,
     const SpecializationListener* listener) {
   assert(!specialized_ && "can specialize executable only once");
@@ -990,8 +990,8 @@ llvm::Error JitCompilationContext::Specialize(
 
   mlir::func::FuncOp func = entrypoint();
 
-  // Update function signature and sink constant operands into the body.
-  if (auto err = SpecializeFunction(func, operands, symbolic_shapes,
+  // Update function signature and sink constant arguments into the body.
+  if (auto err = SpecializeFunction(func, arguments, symbolic_shapes,
                                     constraints, listener)) {
     // No need to call this->Error() because we don't have diagnostic to report
     // in case of a failed specialization.

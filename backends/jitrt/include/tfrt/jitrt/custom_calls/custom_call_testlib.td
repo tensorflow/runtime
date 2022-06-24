@@ -36,10 +36,15 @@ def TestlibDialect : Dialect {
 
   let cppNamespace = "::tfrt::jitrt";
 
+  let useDefaultAttributePrinterParser = 1;
+
+  let useDefaultTypePrinterParser = 1;
+
   let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
 }
 
 include "custom_call_testlib_attrs.td"
 include "custom_call_testlib_enums.td"
+include "custom_call_testlib_types.td"
 
 #endif // CUSTOM_CALL_TESTLIB

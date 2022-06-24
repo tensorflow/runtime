@@ -1221,7 +1221,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     for (unsigned i = 0; i < arguments.size(); ++i) {
       auto* type = signature_.operand(i);
 
-      // TODO(ezhulenev): Support open shaped type/argument chierarchy.
+      // TODO(ezhulenev): Support open shaped type/argument hierarchy.
       auto* memref_arg = dyn_cast<MemrefDesc>(&arguments[i]);
       if (!memref_arg) continue;
 

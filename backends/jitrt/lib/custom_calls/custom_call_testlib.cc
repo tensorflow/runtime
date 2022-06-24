@@ -31,57 +31,35 @@
 #include "tfrt/support/string_util.h"
 
 // clang-format off
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.cc.inc"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc"
 // clang-format on
 
 #define GET_ATTRDEF_CLASSES
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"
 
+#define GET_TYPEDEF_CLASSES
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_types.cc.inc"
+
 namespace tfrt {
 namespace jitrt {
 
-using mlir::Attribute;
-using mlir::DialectAsmParser;
-using mlir::DialectAsmPrinter;
 using mlir::failure;
 using mlir::LogicalResult;
-using mlir::MLIRContext;
 using mlir::succeeded;
 using mlir::success;
-using mlir::TypeID;
 
 using llvm::StringRef;
 
-TestlibDialect::TestlibDialect(MLIRContext* context)
-    : Dialect(getDialectNamespace(), context, TypeID::get<TestlibDialect>()) {
+void TestlibDialect::initialize() {
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"
       >();
-}
-
-// Entry point for Attribute parsing, TableGen generated code will handle the
-// dispatch to the individual classes.
-Attribute TestlibDialect::parseAttribute(DialectAsmParser& parser,
-                                         mlir::Type type) const {
-  StringRef attr_tag;
-  if (failed(parser.parseKeyword(&attr_tag))) return Attribute();
-  {
-    Attribute attr;
-    auto parse_result = generatedAttributeParser(parser, attr_tag, type, attr);
-    if (parse_result.hasValue()) return attr;
-  }
-  parser.emitError(parser.getNameLoc(), "unknown testlib attribute");
-  return Attribute();
-}
-
-// Entry point for Attribute printing, TableGen generated code will handle the
-// dispatch to the individual classes.
-void TestlibDialect::printAttribute(Attribute attr,
-                                    DialectAsmPrinter& os) const {
-  LogicalResult result = generatedAttributePrinter(attr, os);
-  (void)result;
-  assert(succeeded(result));
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_types.cc.inc"
+      >();
 }
 
 // Explicitly register attributes encoding for enums passed to the custom calls.

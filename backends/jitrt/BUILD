@@ -416,6 +416,7 @@ td_library(
         "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
         "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.td",
         "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.td",
+        "include/tfrt/jitrt/custom_calls/custom_call_testlib_types.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = ["include"],
@@ -425,25 +426,7 @@ td_library(
 )
 
 gentbl_cc_library(
-    name = "custom_call_testlib_enums_inc_gen",
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    tbl_outs = [
-        (
-            ["-gen-enum-decls"],
-            "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc",
-        ),
-        (
-            ["-gen-enum-defs"],
-            "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
-    deps = [":custom_call_testlib_td_files"],
-)
-
-gentbl_cc_library(
-    name = "custom_call_testlib_attrs_inc_gen",
+    name = "custom_call_testlib_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
@@ -453,6 +436,30 @@ gentbl_cc_library(
         (
             ["-gen-attrdef-defs"],
             "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc",
+        ),
+        (
+            ["-gen-dialect-decls"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_dialect.h.inc",
+        ),
+        (
+            ["-gen-dialect-defs"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_dialect.cc.inc",
+        ),
+        (
+            ["-gen-enum-decls"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc",
+        ),
+        (
+            ["-gen-enum-defs"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc",
+        ),
+        (
+            ["-gen-typedef-decls"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_types.h.inc",
+        ),
+        (
+            ["-gen-typedef-defs"],
+            "include/tfrt/jitrt/custom_calls/custom_call_testlib_types.cc.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
@@ -470,8 +477,7 @@ tfrt_cc_library(
     deps = [
         ":custom_call",
         ":custom_call_registry",
-        ":custom_call_testlib_attrs_inc_gen",
-        ":custom_call_testlib_enums_inc_gen",
+        ":custom_call_testlib_inc_gen",
         ":custom_call_to_llvm",
         ":jitrt",
         "@llvm-project//llvm:OrcJIT",

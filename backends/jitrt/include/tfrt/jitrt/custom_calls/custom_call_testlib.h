@@ -20,34 +20,24 @@
 #include <cstdint>
 
 #include "mlir/IR/Dialect.h"
+#include "mlir/IR/Types.h"
 #include "tfrt/jitrt/custom_call.h"
 
 // clang-format off
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.h.inc"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc"
 // clang-format on
 
 #define GET_ATTRDEF_CLASSES
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.h.inc"
 
+#define GET_TYPEDEF_CLASSES
+#include "tfrt/jitrt/custom_calls/custom_call_testlib_types.h.inc"
+
 namespace tfrt {
 namespace jitrt {
 
 class CustomCallAttrEncodingSet;
-
-class TestlibDialect : public mlir::Dialect {
- public:
-  explicit TestlibDialect(mlir::MLIRContext *context);
-
-  static llvm::StringRef getDialectNamespace() { return "testlib"; }
-
-  // Parses an attribute registered to this dialect.
-  mlir::Attribute parseAttribute(mlir::DialectAsmParser &parser,
-                                 mlir::Type type) const override;
-
-  // Prints an attribute registered to this dialect.
-  void printAttribute(mlir::Attribute attr,
-                      mlir::DialectAsmPrinter &os) const override;
-};
 
 DirectCustomCallLibrary CustomCallTestlib();
 

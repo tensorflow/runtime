@@ -885,20 +885,19 @@ class Executable {
   Error ReturnResults(const ReturnValueConverterBase& results,
                       CallFrame* call_frame) const;
 
-  // Executes compiled function with given operands.
+  // Executes compiled function with given arguments.
   //
-  // If `verify_operands` is true (in debug mode it's always on, independent of
-  // the argument value) this function also verifies that operands passed at run
-  // time matches the executable entrypoint signature. If some of the operands
-  // do not match the expected type, this function allocates error async values
-  // for all results and returns an error.
+  // If `verify_arguments` is true (in debug mode it's always on, independent of
+  // the argument value) this function also verifies that arguments passed at
+  // run time matches the executable entrypoint signature. If some of the
+  // arguments do not match the expected type, this function allocates error
+  // async values for all results and returns an error.
   //
   // Returns compiled function results via the user-provided results converter.
   // If compiled function execution completed in the error state, emits error
   // async value for all results.
-  Error Execute(ArrayRef<MemrefDesc> operands,
-                const ReturnValueConverterBase& results,
-                const ExecuteOpts& opts, bool verify_operands = true) const;
+  Error Execute(ArgumentsRef arguments, const ReturnValueConverterBase& results,
+                const ExecuteOpts& opts, bool verify_arguments = true) const;
 
   // Executes compiled function using user provided call frame.
   //
@@ -1162,30 +1161,31 @@ class JitExecutable {
   // (operands rank and all static dimensions should match the operands).
   AsyncValuePtr<Executable> DefaultExecutable() const;
 
-  // Returns an executable that may be specialized for the operands shape or
-  // values. Can return default executable if no specialization is required, or
-  // if the specialized executable is not yet available.
+  // Returns an executable that may be specialized for the arguments. Can return
+  // default executable if no specialization is required, or if the specialized
+  // executable is not yet available.
   //
   // Caller can pass arbitrary data via the `user_data` argument, and it will be
   // available to the compilation task runner. This can be used for tracing,
   // e.g. to track what user-level requests triggered recompilation.
   //
-  // Returns an error if the operands do not match the expected function
+  // Returns an error if the arguments do not match the expected function
   // signature and specialization is not possible (without trying to compile).
   // If specialization is disabled, returns the default executable without
-  // checking the operands (the default executable itself will check operands
+  // checking the arguments (the default executable itself will check arguments
   // when called).
   //
   // Async values holding compilation results (executables) cached in the
-  // JitExecutable, and successive calls with operands of the same shape
-  // (symbolic shape) are cheap. If compilation fails, then the returned async
-  // value will hold a compilation error message. Compilation errors are never
-  // retried.
+  // JitExecutable, and successive calls with the same arguments are cheap (the
+  // definition of "same" depend on the argument type specialization and chosen
+  // hash function, e.g. shaped arguments compared using their symbolic shape).
+  // If compilation fails, then the returned async value will hold a compilation
+  // error message. Compilation errors are never retried.
   //
   // Note: This function never falls back on the default executable if
   // specialization compilation fails.
   Expected<AsyncValuePtr<Executable>> GetExecutable(
-      ArrayRef<MemrefDesc> operands, UserData user_data = {},
+      ArgumentsRef arguments, UserData user_data = {},
       const SpecializationListener* listener = nullptr);
 
   // Returns an async value that becomes ready when all executables owned by

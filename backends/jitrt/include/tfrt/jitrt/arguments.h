@@ -162,6 +162,10 @@ class ArgumentsRef {
   ArgumentsRef(const llvm::SmallVectorImpl<T>& vec)  // NOLINT
       : ArgumentsRef(ArrayRef<T>(vec)) {}
 
+  template <typename T, std::enable_if_t<is_argument<T>>* = nullptr>
+  ArgumentsRef(const std::vector<T>& vec)  // NOLINT
+      : ArgumentsRef(ArrayRef<T>(vec)) {}
+
   template <typename T, size_t n, std::enable_if_t<is_argument<T>>* = nullptr>
   ArgumentsRef(const std::array<T, n>& arr)  // NOLINT
       : ArgumentsRef(ArrayRef<T>(arr)) {}

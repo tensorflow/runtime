@@ -480,9 +480,10 @@ Error ReturnErrors(const ReturnValueConverterBase& results, Error error) {
 // codegened kernels to allocate/deallocate memrefs at runtime to use the host
 // context allocator.
 
-Error Executable::Execute(ArrayRef<MemrefDesc> operands,
+Error Executable::Execute(ArgumentsRef arguments,
                           const ReturnValueConverterBase& results,
-                          const ExecuteOpts& opts, bool verify_operands) const {
+                          const ExecuteOpts& opts,
+                          bool verify_arguments) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
   // the data after the initial function will return the result.
@@ -498,11 +499,14 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
     asm volatile("" : : "r,m"(value) : "memory");
   };
 
-  for (const MemrefDesc& memref : operands) {
-    Index size_in_bytes = GetHostSize(memref.dtype());
-    for (Index size : memref.sizes()) size_in_bytes *= size;
+  for (unsigned i = 0; i < arguments.size(); ++i) {
+    auto* memref = dyn_cast<MemrefDesc>(&arguments[i]);
+    if (!memref) continue;
 
-    uint8_t* data = static_cast<uint8_t*>(memref.data());
+    Index size_in_bytes = GetHostSize(memref->dtype());
+    for (Index size : memref->sizes()) size_in_bytes *= size;
+
+    uint8_t* data = static_cast<uint8_t*>(memref->data());
     for (Index i = 0; i < size_in_bytes; ++i) {
       uint8_t value = data[i];
       do_not_optimize(value);
@@ -512,7 +516,7 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
 
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
-  if (auto err = InitializeCallFrame(operands, &call_frame, verify_operands))
+  if (auto err = InitializeCallFrame(arguments, &call_frame, verify_arguments))
     return ReturnErrors(results, std::move(err));
 
   Execute(call_frame, opts);
@@ -1197,7 +1201,7 @@ static llvm::hash_code CombineWithValueConstraineOperands(
 // fall back on the default executable. However what to do if default executable
 // is not available, and the number of specializations is above N?
 Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands, UserData user_data,
+    ArgumentsRef arguments, UserData user_data,
     const SpecializationListener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
@@ -1206,23 +1210,27 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // Resolve symbolic shapes hash based on the static and runtime information.
   //
   // We rely on the hash code to find the specialized executable. In case of
-  // a collision (practically impossible) incompatible operands will be rejected
-  // by the executable operands verification.
+  // a collision (practically impossible) incompatible arguments will be
+  // rejected by the executable arguments verification.
   mlir::FailureOr<llvm::hash_code> hash =
-      symbolic_shapes_resolver_.ResolveHash(operands);
+      symbolic_shapes_resolver_.ResolveHash(arguments);
 
   // If we failed to resolve the symbolic shapes hash, then we need to verify
   // all the operands to find the mismatch and report it to the user.
   if (LLVM_UNLIKELY(mlir::failed(hash))) {
-    for (unsigned i = 0; i < operands.size(); ++i) {
+    for (unsigned i = 0; i < arguments.size(); ++i) {
       auto* type = signature_.operand(i);
 
+      // TODO(ezhulenev): Support open shaped type/argument chierarchy.
+      auto* memref_arg = dyn_cast<MemrefDesc>(&arguments[i]);
+      if (!memref_arg) continue;
+
       if (auto* memref = dyn_cast<MemrefType>(type)) {
-        if (auto err = VerifyMemrefOperand(i, *memref, operands[i]))
+        if (auto err = VerifyMemrefOperand(i, *memref, *memref_arg))
           return std::move(err);
 
       } else if (auto* tensor = dyn_cast<RankedTensorType>(type)) {
-        if (auto err = VerifyMemrefOperand(i, *tensor, operands[i]))
+        if (auto err = VerifyMemrefOperand(i, *tensor, *memref_arg))
           return std::move(err);
 
       } else {
@@ -1237,7 +1245,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Combine with a hash value computed from the value constrained operands.
   if (LLVM_UNLIKELY(has_value_constraints_))
-    *hash = CombineWithValueConstraineOperands(*hash, operands, constraints_);
+    *hash = CombineWithValueConstraineOperands(*hash, arguments, constraints_);
 
   // Maybe return Executable from the cache.
   if (auto cached = specializations_->Find(*hash)) {
@@ -1268,8 +1276,8 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Specialize executable to the concrete operands.
   mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
-      symbolic_shapes_resolver_.Resolve(operands);
-  if (auto err = (*ctx)->Specialize(operands, *symbolic_shapes, constraints_,
+      symbolic_shapes_resolver_.Resolve(arguments);
+  if (auto err = (*ctx)->Specialize(arguments, *symbolic_shapes, constraints_,
                                     listener)) {
     return MakeStringError("failed to specialize executable: ", err);
   }
@@ -1300,7 +1308,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   });
 
   // Offload specialization compilation to the user provided runner.
-  runner_(specialization, constraints_, operands, std::move(compile),
+  runner_(specialization, constraints_, arguments, std::move(compile),
           user_data);
 
   // Use the default executable while we are compiling a specialized version if

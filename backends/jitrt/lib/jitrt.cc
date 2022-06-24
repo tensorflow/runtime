@@ -53,6 +53,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_buffer.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/constraints.h"
@@ -281,82 +282,33 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
 // Executable CallFrame initialization.
 // -------------------------------------------------------------------------- //
 
-// Unpack `memref` argument into pointers to the data to be compatible with
-// compiled MLIR function ABI.
-static void AddMemrefArgument(const MemrefDesc& memref, size_t* offset,
-                              llvm::SmallVectorImpl<void*>* args) {
-  // Write into the arguments data starting from the given offset.
-  auto* storage = args->data() + *offset;
-
-  auto cast = [](const void* p) { return const_cast<void*>(p); };
-
-  // Packs memref with a rank not known at compile time.
-  auto pack_memref = [&](int64_t rank) {
-    storage[0] = cast(&memref.data());  // memref.basePtr
-    storage[1] = cast(&memref.data());  // memref.data
-    storage[2] = cast(&memref.offset());
-    for (int64_t d = 0; d < rank; ++d) {
-      storage[3 + d] = cast(&memref.size(d));
-      storage[3 + rank + d] = cast(&memref.stride(d));
-    }
-
-    // Move offsets to the next argument position.
-    *offset += 3 + rank * 2;
-    storage += 3 + rank * 2;
-  };
-
-  // Packs memref with a rank known at compile time.
-  auto pack_ranked_memref = [&](auto rank_tag) {
-    static constexpr int64_t rank = decltype(rank_tag)::value;
-    pack_memref(rank);
-  };
-
-  // Dispatch to lambda with a statically known rank parameter for the most
-  // common ranks. It allows to inline the nested lambda, and generate better
-  // code without for loops on a hot path.
-  switch (memref.rank()) {
-    case 0:
-      return pack_ranked_memref(std::integral_constant<int64_t, 0>{});
-    case 1:
-      return pack_ranked_memref(std::integral_constant<int64_t, 1>{});
-    case 2:
-      return pack_ranked_memref(std::integral_constant<int64_t, 2>{});
-    case 3:
-      return pack_ranked_memref(std::integral_constant<int64_t, 3>{});
-    case 4:
-      return pack_ranked_memref(std::integral_constant<int64_t, 4>{});
-    default:
-      return pack_memref(memref.rank());
-  }
-}
-
-// Always verify executable operands in debug mode.
-static bool VerifyOperands(bool verify_operands) {
+// Always verify executable arguments in debug mode.
+static bool VerifyArguments(bool verify_arguments) {
 #if defined(NDEBUG)
-  return verify_operands;
+  return verify_arguments;
 #endif
   return true;
 }
 
-Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
+Error Executable::InitializeCallFrame(ArgumentsRef arguments,
                                       CallFrame* call_frame,
-                                      bool verify_operands) const {
-  // TODO(ezhulenev): If executable is specialized for operands shapes then
+                                      bool verify_arguments) const {
+  // TODO(ezhulenev): If executable is specialized for concrete shapes then
   // there is no need to verify them once more here. However currently we rely
   // on a hash code to look up specializations, and this can lead to collisions.
-  if (VerifyOperands(verify_operands)) {
-    // We verify run time operands against the run time signature.
+  if (VerifyArguments(verify_arguments)) {
+    // We verify run time arguments against the run time signature.
     const FunctionType& signature = runtime_signature_;
 
-    // Make sure that we call the kernel with the correct number of operands.
-    // We subtract one operand from the signature because it corresponds to the
-    // context that we prepend to the given operands.
-    if (LLVM_UNLIKELY(operands.size() != signature.num_operands() - 1))
+    // Make sure that we call the kernel with the correct number of arguments.
+    // We subtract one argument from the signature because it corresponds to the
+    // context that we prepend to the given arguments.
+    if (LLVM_UNLIKELY(arguments.size() != signature.num_operands() - 1))
       return MakeStringError(
-          "number of operands doesn't match the function signature: ",
-          operands.size(), " vs ", signature.num_operands() - 1);
+          "number of arguments doesn't match the function signature: ",
+          arguments.size(), " vs ", signature.num_operands() - 1);
 
-    // Verify that all operands passed at runtime are compatible with compiled
+    // Verify that all arguments passed at runtime are compatible with compiled
     // function signature.
     auto kctx = dyn_cast<KernelContextOperandType>(signature.operand(0));
     if (LLVM_UNLIKELY(!kctx)) {
@@ -365,18 +317,15 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
           signature.operand(0));
     }
 
-    // We use 0-based index for operands, because the kernel context operand is
-    // an internal implementation detail, and in case of an error users should
-    // get back operand index corresponding to the user provided signature.
-    for (unsigned i = 0; i < operands.size(); ++i) {
-      unsigned idx = i + 1;  // use 1-based index to fetch runtime operand
-
-      if (auto* memref = dyn_cast<MemrefType>(signature.operand(idx))) {
-        if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
-      } else {
-        return MakeStringError("expected memref operand at #", i,
-                               ", got: ", *signature.operand(i));
-      }
+    // We use 0-based index for arguments, because the kernel context argument
+    // is an internal implementation detail, and in case of an error users
+    // should get back argument index corresponding to the user provided
+    // signature.
+    for (unsigned i = 0; i < arguments.size(); ++i) {
+      unsigned idx = i + 1;  // use 1-based index to fetch signature operand
+      if (auto err = arguments[i].Verify(*signature.operand(idx)))
+        return MakeStringError("argument #", i,
+                               " doesn't match the signature: ", err);
     }
   }
 
@@ -390,9 +339,9 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // time we pack a new argument.
   size_t offset = 1;
 
-  // Pack all Memref operands as pointers to the call frame arguments.
-  for (const MemrefDesc& desc : operands)
-    AddMemrefArgument(desc, &offset, &call_frame->args);
+  // Pack all arguments according to the ABI to the call frame arguments.
+  for (unsigned i = 0; i < arguments.size(); ++i)
+    offset = arguments[i].Pack(call_frame->args, offset);
 
   assert(offset == num_args_ptrs &&
          "reserved number of args must match the argument offset");

@@ -22,7 +22,6 @@
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/arguments.h"
 
 namespace tfrt {
 namespace jitrt {

@@ -38,6 +38,18 @@ class Argument : public llvm::RTTIExtends<Type, llvm::RTTIRoot> {
 
   Argument() = default;
 
+  // Verifies that the argument matches the expected type.
+  virtual Error Verify(const Type& type) const = 0;
+
+  // Packs argument into the `args` array starting at the given `offset`
+  // according to the expected executable ABI. Return offset incremented by
+  // the number of packed pointers, so that result will point to the offset for
+  // packing the next argument.
+  //
+  // Arguments array is guaranteed to be properly sized to have space for all
+  // arguments according to the arguments memory layout.
+  virtual size_t Pack(MutableArrayRef<void*> args, size_t offset) const = 0;
+
   virtual raw_ostream& print(raw_ostream& os) const = 0;
 };
 
@@ -147,8 +159,12 @@ class ArgumentsRef {
       : data_(ref.data()), size_(ref.size()), stride_(sizeof(T)) {}
 
   template <typename T, std::enable_if_t<is_argument<T>>* = nullptr>
-  ArgumentsRef(llvm::SmallVectorImpl<T>& vec)  // NOLINT
+  ArgumentsRef(const llvm::SmallVectorImpl<T>& vec)  // NOLINT
       : ArgumentsRef(ArrayRef<T>(vec)) {}
+
+  template <typename T, size_t n, std::enable_if_t<is_argument<T>>* = nullptr>
+  ArgumentsRef(const std::array<T, n>& arr)  // NOLINT
+      : ArgumentsRef(ArrayRef<T>(arr)) {}
 
   const Argument& operator[](size_t index) const {
     assert(index < size_ && "index out of bounds");
@@ -187,6 +203,8 @@ class OpaqueArg final : public llvm::RTTIExtends<OpaqueArg, Argument> {
 
   void* ptr() const { return ptr_; }
 
+  Error Verify(const Type& type) const final;
+  size_t Pack(MutableArrayRef<void*> args, size_t offset) const final;
   raw_ostream& print(raw_ostream& os) const final;
 
  private:
@@ -234,24 +252,19 @@ class MemrefDesc final : public llvm::RTTIExtends<MemrefDesc, Argument> {
   unsigned rank() const { return rank_; }
   DType dtype() const { return dtype_; }
 
-  // IMPORTANT: Arguments are passed to compiled kernels as pointers to values,
-  // for this reason every method that is used in
-  // `Executable::InitializeCallFrame` returns a reference to data member, so we
-  // don't accidentally pass pointers to temporaries.
+  void* data() const { return data_; }
+  Index offset() const { return offset_; }
 
-  void* const& data() const { return data_; }
-  const Index& offset() const { return offset_; }
-
-  const Index& size(size_t index) const { return sizes_and_strides_[index]; }
-  const Index& stride(size_t index) const {
-    return sizes_and_strides_[rank_ + index];
-  }
+  Index size(size_t index) const { return sizes_and_strides_[index]; }
+  Index stride(size_t index) const { return sizes_and_strides_[rank_ + index]; }
 
   ArrayRef<Index> sizes() const { return {sizes_and_strides_.data(), rank_}; }
   ArrayRef<Index> strides() const {
     return {sizes_and_strides_.data() + rank_, rank_};
   }
 
+  Error Verify(const Type& type) const final;
+  size_t Pack(MutableArrayRef<void*> args, size_t offset) const final;
   raw_ostream& print(raw_ostream& os) const final;
 
  private:

@@ -20,8 +20,10 @@
 
 #include "tfrt/jitrt/arguments.h"
 
+#include <cstddef>
 #include <string>
 
+#include "tfrt/jitrt/types.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -70,11 +72,11 @@ static bool AreCompatibleTypes(DType type1, DType type2) {
   return type1 == type2;
 }
 
-Error VerifyMemrefOperand(unsigned index, DType element_type,
-                          Optional<ArrayRef<Index>> sizes,
-                          const MemrefDesc& memref) {
-  // Format memref operand and expected type for user-friendly error messages.
-  auto format_operands = [&]() -> std::string {
+static Error VerifyMemrefArgument(DType element_type,
+                                  Optional<ArrayRef<Index>> sizes,
+                                  const MemrefDesc& memref) {
+  // Format memref argument and expected type for user-friendly error messages.
+  auto pretty_print = [&]() -> std::string {
     std::string err;
     llvm::raw_string_ostream os(err);
 
@@ -106,38 +108,44 @@ Error VerifyMemrefOperand(unsigned index, DType element_type,
     return err;
   };
 
-  // Check that memref data type is compatible with the operand element type.
+  // Check that memref data type is compatible with the expected element type.
   if (LLVM_UNLIKELY(!AreCompatibleTypes(element_type, memref.dtype()))) {
     return MakeStringError(
-        "operand #", index,
-        " type is not compatible with the expected element type: ",
-        memref.dtype(), " vs ", element_type, " (", format_operands(), ")");
+        "type is not compatible with the expected element type: ",
+        memref.dtype(), " vs ", element_type, " (", pretty_print(), ")");
   }
 
   // Skip sizes verification if they are not available.
   if (!sizes.hasValue()) return Error::success();
 
-  // Check that memref rank is the same as operand rank.
+  // Check that memref rank is the same as the expected rank.
   if (LLVM_UNLIKELY(memref.rank() != sizes->size()))
     return MakeStringError(
-        "operand #", index,
-        " rank does not match expected input rank: ", memref.rank(), " vs ",
-        sizes->size(), " (", format_operands(), ")");
+        "rank does not match expected input rank: ", memref.rank(), " vs ",
+        sizes->size(), " (", pretty_print(), ")");
 
   // Check that all statically known dimensions matches the memref dimensions.
   for (const auto& pair : llvm::enumerate(llvm::zip(memref.sizes(), *sizes))) {
-    Index operand_dim = std::get<0>(pair.value());
+    Index argument_dim = std::get<0>(pair.value());
     Index expected_dim = std::get<1>(pair.value());
 
     bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
 
-    if (LLVM_UNLIKELY(operand_dim != expected_dim && !is_dynamic_dim))
+    if (LLVM_UNLIKELY(argument_dim != expected_dim && !is_dynamic_dim))
       return MakeStringError(
-          "operand #", index, " dimension #", pair.index(),
-          " does not match expected input dimension: ", operand_dim, " vs ",
-          expected_dim, " (", format_operands(), ")");
+          "dimension #", pair.index(),
+          " does not match expected input dimension: ", argument_dim, " vs ",
+          expected_dim, " (", pretty_print(), ")");
   }
 
+  return Error::success();
+}
+
+Error VerifyMemrefOperand(unsigned index, DType element_type,
+                          Optional<ArrayRef<Index>> sizes,
+                          const MemrefDesc& memref) {
+  if (auto err = VerifyMemrefArgument(element_type, sizes, memref))
+    return MakeStringError("argument #", index, " ", err);
   return Error::success();
 }
 
@@ -162,6 +170,75 @@ Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
       index, *element_type,
       type.hasRank() ? Optional<ArrayRef<Index>>{type.getShape()} : llvm::None,
       memref);
+}
+
+// -------------------------------------------------------------------------- //
+// OpaqueArg.
+// -------------------------------------------------------------------------- //
+
+Error OpaqueArg::Verify(const Type& type) const {
+  if (isa<AsyncTokenType>(type)) return Error::success();
+  return MakeStringError("unsupported opaque argument type: ", type);
+}
+
+size_t OpaqueArg::Pack(MutableArrayRef<void*> args, size_t offset) const {
+  args[offset] = ptr_;
+  return ++offset;
+}
+
+// -------------------------------------------------------------------------- //
+// MemrefDesc.
+// -------------------------------------------------------------------------- //
+
+Error MemrefDesc::Verify(const Type& type) const {
+  if (auto* memref = dyn_cast<MemrefType>(&type))
+    return VerifyMemrefArgument(memref->element_type(), memref->sizes(), *this);
+  return MakeStringError("unsupported memref type: ", type);
+}
+
+size_t MemrefDesc::Pack(MutableArrayRef<void*> args, size_t offset) const {
+  // Write into the arguments data starting from the given offset.
+  void** storage = &args[offset];
+
+  auto cast = [](const void* p) { return const_cast<void*>(p); };
+
+  // Packs memref with a rank not known at compile time.
+  auto pack_memref = [&](int64_t rank) -> size_t {
+    storage[0] = cast(&data_);  // memref.basePtr
+    storage[1] = cast(&data_);  // memref.data
+    storage[2] = cast(&offset_);
+    for (int64_t d = 0; d < rank; ++d) {
+      storage[3 + d] = cast(&sizes_and_strides_[d]);
+      storage[3 + rank + d] = cast(&sizes_and_strides_[rank_ + d]);
+    }
+
+    // Move offsets to the next argument position.
+    return offset + 3 + rank * 2;
+  };
+
+  // Packs memref with a rank known at compile time.
+  auto pack_ranked_memref = [&](auto rank_tag) -> size_t {
+    static constexpr int64_t rank = decltype(rank_tag)::value;
+    return pack_memref(rank);
+  };
+
+  // Dispatch to lambda with a statically known rank parameter for the most
+  // common ranks. It allows to inline the nested lambda, and generate better
+  // code without for loops on a hot path.
+  switch (rank_) {
+    case 0:
+      return pack_ranked_memref(std::integral_constant<int64_t, 0>{});
+    case 1:
+      return pack_ranked_memref(std::integral_constant<int64_t, 1>{});
+    case 2:
+      return pack_ranked_memref(std::integral_constant<int64_t, 2>{});
+    case 3:
+      return pack_ranked_memref(std::integral_constant<int64_t, 3>{});
+    case 4:
+      return pack_ranked_memref(std::integral_constant<int64_t, 4>{});
+    default:
+      return pack_memref(rank_);
+  }
 }
 
 }  // namespace jitrt

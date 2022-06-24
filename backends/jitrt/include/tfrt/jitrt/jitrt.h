@@ -863,10 +863,11 @@ class Executable {
   struct ExecuteOpts;
   struct KernelContext;
 
-  // Initializes call frame by adding all operands as pointers to the arguments
-  // vector. Also allocates storage for the returned values.
+  // Initializes call frame by adding all arguments according to the compiled
+  // kernel ABI. Also allocates storage for the returned values according to the
+  // results memory layout.
   //
-  // If `verify_operands` is true (in debug mode it's always on, independent of
+  // If `verify_arguments` is true (in debug mode it's always on, independent of
   // the argument value) this function also verifies that operands passed at run
   // time matches the executable entrypoint signature (e.g. all statically known
   // dimensions of the memrefs matches the operands). Returns an error if finds
@@ -875,11 +876,8 @@ class Executable {
   // This function leaves the kernel context argument (the first argument of a
   // kernel function) uninitialized. It will be initialized in the `Execute`
   // function right before the actual execution.
-  //
-  // See mlir::ExecutionEngine `packFunctionArguments` for the details.
-  Error InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                            CallFrame* call_frame,
-                            bool verify_operands = true) const;
+  Error InitializeCallFrame(ArgumentsRef arguments, CallFrame* call_frame,
+                            bool verify_arguments = true) const;
 
   // Converts returned values owned by the call frame using provided value
   // converter. If result conversion fails (e.g. result type is not supported)

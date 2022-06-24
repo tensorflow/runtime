@@ -27,18 +27,9 @@
 #include "tfrt/support/logging.h"
 
 namespace tfrt {
-namespace {
+namespace jitrt {
 
 using ::llvm::SmallVector;
-
-using ::tfrt::jitrt::CompilationOptions;
-using ::tfrt::jitrt::CompilationPipelineOptions;
-using ::tfrt::jitrt::CreateDefaultJitRtCompilationPipeline;
-using ::tfrt::jitrt::Executable;
-using ::tfrt::jitrt::JitExecutable;
-using ::tfrt::jitrt::MemrefDesc;
-using ::tfrt::jitrt::RegisterDefaultJitRtDialects;
-using ::tfrt::jitrt::SymbolicShapesResolver;
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 
@@ -195,5 +186,5 @@ BM_InitializeCallFrame(KnownShapes,
                        GetFakeMemrefs({{16, 32}, {16, 32}, {16, 32}, {16, 32}}),
                        false);
 
-}  // namespace
+}  // namespace jitrt
 }  // namespace tfrt

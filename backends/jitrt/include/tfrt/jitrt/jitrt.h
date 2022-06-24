@@ -23,10 +23,7 @@
 
 #include <sys/types.h>
 
-#if __cplusplus >= 201703L
 #include <any>
-#endif
-
 #include <chrono>  // NOLINT(build/c++11)
 #include <complex>
 #include <cstddef>
@@ -1130,12 +1127,7 @@ class Executable {
 // constraints.
 class JitExecutable {
  public:
-// TODO(ezhulenev): Use std::any once TFRT switches to C++17.
-#if __cplusplus >= 201703L
   using UserData = std::any;
-#else
-  using UserData = llvm::Any;
-#endif
 
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates
@@ -1150,12 +1142,12 @@ class JitExecutable {
   //
   using CompilationTaskRunner =
       llvm::unique_function<void(size_t, ArrayRef<OperandConstraint>,
-                                 ArrayRef<MemrefDesc>, TaskFunction, UserData)>;
+                                 ArgumentsRef, TaskFunction, UserData)>;
 
   // Inline compilation task runner runs compilation task in the caller thread.
   static void InlineCompilationTaskRunner(
       size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-      ArrayRef<MemrefDesc> operands, TaskFunction task, UserData user_data);
+      ArgumentsRef arguments, TaskFunction task, UserData user_data);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,

@@ -1068,7 +1068,7 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
 /*static*/ void JitExecutable::InlineCompilationTaskRunner(
     size_t num_specializations, ArrayRef<OperandConstraint> constraints,
-    ArrayRef<MemrefDesc> operands, TaskFunction task, UserData user_data) {
+    ArgumentsRef arguments, TaskFunction task, UserData user_data) {
   task();
 }
 

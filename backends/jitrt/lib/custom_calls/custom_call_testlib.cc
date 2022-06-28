@@ -126,12 +126,12 @@ static void print_arr(llvm::StringRef type, Array arr) {
 }
 
 // A custom call for testing attributes encoding/decoding.
-static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
-                                float f32, double f64,
-                                ArrayRef<int32_t> i32_arr,
-                                ArrayRef<int64_t> i64_arr,
-                                ArrayRef<float> f32_arr,
-                                ArrayRef<double> f64_arr, StringRef str) {
+static LogicalResult PrintAttrs(
+    const char* caller, int32_t i32, int64_t i64, float f32, double f64,
+    ArrayRef<int32_t> i32_arr, ArrayRef<int64_t> i64_arr,
+    ArrayRef<float> f32_arr, ArrayRef<double> f64_arr,
+    ArrayRef<int32_t> i32_array, ArrayRef<int64_t> i64_array,
+    ArrayRef<float> f32_array, ArrayRef<double> f64_array, StringRef str) {
   tfrt::outs() << caller << "\n";
 
   tfrt::outs() << "i32: " << i32 << "\n";
@@ -143,6 +143,10 @@ static LogicalResult PrintAttrs(const char* caller, int32_t i32, int64_t i64,
   print_arr<ArrayRef<int64_t>>("i64", i64_arr);
   print_arr<ArrayRef<float>>("f32", f32_arr);
   print_arr<ArrayRef<double>>("f64", f64_arr);
+  print_arr<ArrayRef<int32_t>>("i32", i32_array);
+  print_arr<ArrayRef<int64_t>>("i64", i64_array);
+  print_arr<ArrayRef<float>>("f32", f32_array);
+  print_arr<ArrayRef<double>>("f64", f64_array);
 
   tfrt::outs() << "str: " << str << "\n";
   tfrt::outs().flush();
@@ -301,10 +305,14 @@ static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
                           .Attr<int64_t>("i64")
                           .Attr<float>("f32")
                           .Attr<double>("f64")
-                          .Attr<ArrayRef<int32_t>>("i32_arr")
-                          .Attr<ArrayRef<int64_t>>("i64_arr")
-                          .Attr<ArrayRef<float>>("f32_arr")
-                          .Attr<ArrayRef<double>>("f64_arr")
+                          .Attr<ArrayRef<int32_t>>("i32_dense")
+                          .Attr<ArrayRef<int64_t>>("i64_dense")
+                          .Attr<ArrayRef<float>>("f32_dense")
+                          .Attr<ArrayRef<double>>("f64_dense")
+                          .Attr<ArrayRef<int32_t>>("i32_array")
+                          .Attr<ArrayRef<int64_t>>("i64_array")
+                          .Attr<ArrayRef<float>>("f32_array")
+                          .Attr<ArrayRef<double>>("f64_array")
                           .Attr<StringRef>("str")
                           .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
                           .release();
@@ -341,10 +349,14 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<int64_t>("i64")
                          .Attr<float>("f32")
                          .Attr<double>("f64")
-                         .Attr<ArrayRef<int32_t>>("i32_arr")
-                         .Attr<ArrayRef<int64_t>>("i64_arr")
-                         .Attr<ArrayRef<float>>("f32_arr")
-                         .Attr<ArrayRef<double>>("f64_arr")
+                         .Attr<ArrayRef<int32_t>>("i32_dense")
+                         .Attr<ArrayRef<int64_t>>("i64_dense")
+                         .Attr<ArrayRef<float>>("f32_dense")
+                         .Attr<ArrayRef<double>>("f64_dense")
+                         .Attr<ArrayRef<int32_t>>("i32_array")
+                         .Attr<ArrayRef<int64_t>>("i64_array")
+                         .Attr<ArrayRef<float>>("f32_array")
+                         .Attr<ArrayRef<double>>("f64_array")
                          .Attr<StringRef>("str")
                          .To(PrintAttrs));
 

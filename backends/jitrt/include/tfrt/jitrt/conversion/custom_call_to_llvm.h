@@ -272,6 +272,12 @@ struct DenseElementsAttrEncoding : public CustomCallAttrEncoding {
                                   mlir::StringRef, mlir::Attribute) const final;
 };
 
+struct ArrayAttrEncoding : public CustomCallAttrEncoding {
+  mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute) const final;
+  mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
+                                  mlir::StringRef, mlir::Attribute) const final;
+};
+
 // Custom call attribute encoding that encodes enums using their underlying
 // scalar type. Type id is based on the enum type passed to the runtime.
 //

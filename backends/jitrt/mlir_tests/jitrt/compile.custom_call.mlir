@@ -80,10 +80,14 @@ module @print_attrs attributes { tfrt.compiled } {
       i64 = 102 : i64,
       f32 = 1.0 : f32,
       f64 = 2.0 : f64,
-      i32_arr = dense<[101, 102, 103, 104]> : tensor<4xi32>,
-      i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
-      f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
-      f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      i32_dense = dense<[101, 102, 103, 104]> : tensor<4xi32>,
+      i64_dense = dense<[105, 106, 107, 108]> : tensor<4xi64>,
+      f32_dense = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
+      f64_dense = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      i32_array = [101 : i32, 102 : i32, 103 : i32, 104 : i32],
+      i64_array = [105, 106, 107, 108],
+      f32_array = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
+      f64_array = [5.0, 6.0, 7.0, 8.0],
       str = "some string",
       aaa = "these are unused attributes to test",
       mmm = "that custom call only decodes attributes",
@@ -139,10 +143,14 @@ module @direct_print_attrs attributes { tfrt.compiled } {
       invalid_attr_name_i64 = 102 : i64,
       invalid_attr_name_f32 = 1.0 : f32,
       invalid_attr_name_f64 = 2.0 : f64,
-      invalid_attr_name_i32_arr = dense<[101, 102, 103, 104]> : tensor<4xi32>,
-      invalid_attr_name_i64_arr = dense<[105, 106, 107, 108]> : tensor<4xi64>,
-      invalid_attr_name_f32_arr = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
-      invalid_attr_name_f64_arr = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      invalid_attr_name_i32_dense = dense<[101, 102, 103, 104]> : tensor<4xi32>,
+      invalid_attr_name_i64_dense = dense<[105, 106, 107, 108]> : tensor<4xi64>,
+      invalid_attr_name_f32_dense = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
+      invalid_attr_name_f64_dense = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      invalid_attr_name_i32_arr = [101 : i32, 102 : i32, 103 : i32, 104 : i32],
+      invalid_attr_name_i64_arr = [105, 106, 107, 108],
+      invalid_attr_name_f32_arr = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
+      invalid_attr_name_f64_arr = [5.0, 6.0, 7.0, 8.0],
       invalid_attr_name_str = "some string"
     } : () -> ()
 
@@ -321,6 +329,10 @@ func.func @compiled_custom_call_print_attrs() {
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
+  // CHECK: i32[4] 101, 102, 103, 104
+  // CHECK: i64[4] 105, 106, 107, 108
+  // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
+  // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: str: some string
 
   // Check that attributes not in the custom call signature are ignored.
@@ -366,6 +378,10 @@ func.func @compiled_custom_call_direct_print_attrs() {
   // CHECK: i64: 102
   // CHECK: f32: 1.000000e+00
   // CHECK: f64: 2.000000e+00
+  // CHECK: i32[4] 101, 102, 103, 104
+  // CHECK: i64[4] 105, 106, 107, 108
+  // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
+  // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: i32[4] 101, 102, 103, 104
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00

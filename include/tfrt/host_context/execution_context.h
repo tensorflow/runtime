@@ -19,6 +19,8 @@
 #ifndef TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 
+#include <utility>
+
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/map_by_type.h"
@@ -78,15 +80,18 @@ class RequestContext : public ReferenceCounted<RequestContext> {
 
   int64_t id() const { return id_; }
 
+  bool IsCostMeasurementEnabled() const { return enable_cost_measurement_; }
+
  private:
   friend class RequestContextBuilder;
 
   RequestContext(HostContext* host, ResourceContext* resource_context,
-                 ContextData ctx_data, int64_t id)
+                 ContextData ctx_data, int64_t id, bool enable_cost_measurement)
       : id_{id},
         host_{host},
         resource_context_{resource_context},
-        context_data_{std::move(ctx_data)} {}
+        context_data_{std::move(ctx_data)},
+        enable_cost_measurement_{enable_cost_measurement} {}
 
   int64_t id_;
   HostContext* const host_ = nullptr;
@@ -102,6 +107,8 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   ContextData context_data_;
 
   std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
+  // If true, the cost of op will be measured at the execution time.
+  bool enable_cost_measurement_ = false;
 };
 
 struct RequestOptions {
@@ -118,8 +125,11 @@ struct RequestOptions {
 class RequestContextBuilder {
  public:
   RequestContextBuilder(HostContext* host, ResourceContext* resource_context,
-                        int64_t id = 0)
-      : id_{id}, host_{host}, resource_context_{resource_context} {}
+                        int64_t id = 0, bool enable_cost_measurement = false)
+      : id_{id},
+        host_{host},
+        resource_context_{resource_context},
+        enable_cost_measurement_{enable_cost_measurement} {}
 
   RequestContextBuilder& set_request_options(RequestOptions request_options) & {
     request_options_ = std::move(request_options);
@@ -150,6 +160,7 @@ class RequestContextBuilder {
   RequestOptions request_options_;
   ResourceContext* resource_context_ = nullptr;
   RequestContext::ContextData context_data_;
+  bool enable_cost_measurement_ = false;
 };
 
 // ExecutionContext holds the context information for kernel and op execution,

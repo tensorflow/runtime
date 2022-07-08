@@ -18,6 +18,8 @@
 
 #include "tfrt/host_context/execution_context.h"
 
+#include <utility>
+
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_context.h"
 
@@ -47,7 +49,8 @@ void RequestContext::Cancel() {
 
 Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
   return TakeRef(new RequestContext(host_, resource_context_,
-                                    std::move(context_data_), id_));
+                                    std::move(context_data_), id_,
+                                    enable_cost_measurement_));
 };
 
 ExecutionContext::ExecutionContext(RCReference<RequestContext> req_ctx,

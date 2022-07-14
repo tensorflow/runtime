@@ -224,7 +224,7 @@ class TaskPriorityDeque {
   void Flush() {
     while (!Empty()) {
       llvm::Optional<TaskFunction> task = PopFront();
-      assert(task.hasValue());
+      assert(task.has_value());
     }
   }
 

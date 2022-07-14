@@ -159,7 +159,7 @@ BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
     unsigned victim = FastReduce(r, num_threads_);
     unsigned inc = coprimes_[FastReduce(r, coprimes_.size())];
 
-    for (unsigned i = 0; i < num_threads_ && inline_task.hasValue(); i++) {
+    for (unsigned i = 0; i < num_threads_ && inline_task.has_value(); i++) {
       inline_task =
           thread_data_[victim].queue.PushFront(std::move(*inline_task));
       if ((victim += inc) >= num_threads_) victim -= num_threads_;
@@ -167,7 +167,7 @@ BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
   }
 
   // Failed to push task into one of the worker threads queues.
-  if (inline_task.hasValue()) {
+  if (inline_task.has_value()) {
     // If we are in quiescing mode, we can always execute the submitted task in
     // the caller thread, because the system is anyway going to shutdown soon,
     // and even if we are running inside a non-blocking work queue, a single

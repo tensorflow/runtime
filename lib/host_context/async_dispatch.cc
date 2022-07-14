@@ -50,7 +50,7 @@ LLVM_NODISCARD bool EnqueueBlockingWork(HostContext* host,
   auto& work_queue = host->work_queue();
   Optional<TaskFunction> task = work_queue.AddBlockingTask(
       TaskFunction(std::move(work)), /*allow_queuing=*/true);
-  return !task.hasValue();
+  return !task.has_value();
 }
 
 LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
@@ -58,7 +58,7 @@ LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
   auto& work_queue = host->work_queue();
   Optional<TaskFunction> task = work_queue.AddBlockingTask(
       TaskFunction(std::move(work)), /*allow_queuing=*/false);
-  return !task.hasValue();
+  return !task.has_value();
 }
 
 void RunWhenReady(ArrayRef<AsyncValue*> values,

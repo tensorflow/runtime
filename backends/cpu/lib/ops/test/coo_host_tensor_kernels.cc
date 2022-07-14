@@ -47,7 +47,7 @@ Expected<CooHostTensor> ParseCooTensorFromStream(std::ifstream* stream,
 
   auto dht =
       DenseHostTensor::CreateUninitialized<DType>(TensorShape(dims), host);
-  if (!dht.hasValue()) {
+  if (!dht.has_value()) {
     return MakeStringError("cannot allocate result tensor");
   }
 

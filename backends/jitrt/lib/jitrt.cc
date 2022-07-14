@@ -949,7 +949,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   std::string mapper_name = llvm::formatv(
       "/jitrt{0}{1}:@{2}::@{3}:{4}", memory_region_name.empty() ? "" : ":",
       EscapeMemRegionName(memory_region_name), module_name, entrypoint,
-      specialization.hasValue() ? "specialized" : "default");
+      specialization.has_value() ? "specialized" : "default");
 
   // Custom memory mapper to tag memory allocated for JitRt executables.
   std::unique_ptr<JitRtMemoryMapper> memory_mapper =
@@ -1149,7 +1149,7 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       has_value_constraints_(HasValueConstraints(constraints_)),
       signature_(std::move(signature)),
       symbolic_shapes_resolver_(signature_, constraints_),
-      has_default_executable_(default_executable.hasValue()),
+      has_default_executable_(default_executable.has_value()),
       runner_(std::move(runner)),
       specializations_(std::make_unique<Specializations>()) {
   // Initialize default executable if it is available.

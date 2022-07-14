@@ -30,7 +30,7 @@ struct TaskFunctions {
   }
 
   int Run(llvm::Optional<TaskFunction> task) {
-    if (!task.hasValue()) return -1;
+    if (!task.has_value()) return -1;
     (*task)();
     return value;
   }
@@ -161,7 +161,7 @@ TEST(TaskPriorityDequeTest, PushFrontToOverflowDefaultPriority) {
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
-  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_TRUE(overflow.has_value());
   ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
 
   for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
@@ -190,10 +190,10 @@ TEST(TaskPriorityDequeTest, PushFrontToOverflowWithPriority) {
   auto overflow2 = queue.PushFront(fn.Next(23456), TaskPriority::kHigh);
   auto overflow3 = queue.PushFront(fn.Next(78910), TaskPriority::kCritical);
 
-  ASSERT_TRUE(overflow0.hasValue());
-  ASSERT_TRUE(overflow1.hasValue());
-  ASSERT_TRUE(overflow2.hasValue());
-  ASSERT_TRUE(overflow3.hasValue());
+  ASSERT_TRUE(overflow0.has_value());
+  ASSERT_TRUE(overflow1.has_value());
+  ASSERT_TRUE(overflow2.has_value());
+  ASSERT_TRUE(overflow3.has_value());
 
   ASSERT_EQ(fn.Run(std::move(overflow0)), 12345);
   ASSERT_EQ(fn.Run(std::move(overflow1)), 67891);
@@ -217,7 +217,7 @@ TEST(TaskPriorityDequeTest, PushBackToOverflowDefaultPriority) {
   }
 
   auto overflow = queue.PushBack(fn.Next(12345));
-  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_TRUE(overflow.has_value());
   ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
 
   for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
@@ -245,10 +245,10 @@ TEST(TaskPriorityDequeTest, PushBackToOverflowWithPriority) {
   auto overflow2 = queue.PushBack(fn.Next(23456), TaskPriority::kHigh);
   auto overflow3 = queue.PushBack(fn.Next(78901), TaskPriority::kHigh);
 
-  ASSERT_TRUE(overflow0.hasValue());
-  ASSERT_TRUE(overflow1.hasValue());
-  ASSERT_TRUE(overflow2.hasValue());
-  ASSERT_TRUE(overflow3.hasValue());
+  ASSERT_TRUE(overflow0.has_value());
+  ASSERT_TRUE(overflow1.has_value());
+  ASSERT_TRUE(overflow2.has_value());
+  ASSERT_TRUE(overflow3.has_value());
 
   ASSERT_EQ(fn.Run(std::move(overflow0)), 12345);
   ASSERT_EQ(fn.Run(std::move(overflow1)), 67891);
@@ -303,9 +303,9 @@ TEST(TaskPriorityDequeTest, EmptynessCheckSingleWorker) {
       int choice = rng() % 2;
 
       if (choice == 0) {
-        ASSERT_TRUE(queue.PopFront().hasValue());
+        ASSERT_TRUE(queue.PopFront().has_value());
       } else if (choice == 1) {
-        ASSERT_TRUE(queue.PopBack().hasValue());
+        ASSERT_TRUE(queue.PopBack().has_value());
       }
 
       // And it's never empty after we pop a task.
@@ -326,7 +326,7 @@ TEST(TaskPriorityDequeTest, EmptynessCheckSingleWorker) {
   }
 
   ASSERT_EQ(queue.Size(), 1);
-  ASSERT_TRUE(queue.PopBack().hasValue());
+  ASSERT_TRUE(queue.PopBack().has_value());
 
   // Wait for worker thread completion.
   worker_thread.join();
@@ -386,13 +386,13 @@ TEST(TaskPriorityDequeTest, EmptynessCheckMultipleWorkers) {
       // after a reasonable number of iterations.
       llvm::Optional<TaskFunction> popped = llvm::None;
       if (id == 0 && rng() % 2 == 0) {
-        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+        for (int i = 0; i < 100 && !popped.has_value(); ++i)
           popped = queue.PopFront();
       } else {
-        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+        for (int i = 0; i < 100 && !popped.has_value(); ++i)
           popped = queue.PopBack();
       }
-      ASSERT_TRUE(popped.hasValue());
+      ASSERT_TRUE(popped.has_value());
 
       // And it's never empty after we pop a task.
       ASSERT_FALSE(queue.Empty());
@@ -411,7 +411,7 @@ TEST(TaskPriorityDequeTest, EmptynessCheckMultipleWorkers) {
   }
 
   ASSERT_EQ(queue.Size(), 1);
-  ASSERT_TRUE(queue.PopBack().hasValue());
+  ASSERT_TRUE(queue.PopBack().has_value());
 
   // Wait for worker threads completion.
   for (auto& worker_thread : worker_threads) worker_thread.join();

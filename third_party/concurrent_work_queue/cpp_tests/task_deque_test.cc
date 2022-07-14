@@ -27,7 +27,7 @@ struct TaskFunctions {
   }
 
   int Run(llvm::Optional<TaskFunction> task) {
-    if (!task.hasValue()) return -1;
+    if (!task.has_value()) return -1;
     (*task)();
     return value;
   }
@@ -88,7 +88,7 @@ TEST(TaskDequeTest, PushFrontToOverflow) {
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
-  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_TRUE(overflow.has_value());
   ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
 
   for (int i = 0; i < TaskDeque::kCapacity; ++i) {
@@ -105,7 +105,7 @@ TEST(TaskDequeTest, PushBackToOverflow) {
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
-  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_TRUE(overflow.has_value());
   ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
 
   for (int i = 0; i < TaskDeque::kCapacity; ++i) {
@@ -176,9 +176,9 @@ TEST(TaskDequeTest, EmptynessCheckSingleWorker) {
       int choice = rng() % 3;
 
       if (choice == 0) {
-        ASSERT_TRUE(queue.PopFront().hasValue());
+        ASSERT_TRUE(queue.PopFront().has_value());
       } else if (choice == 1) {
-        ASSERT_TRUE(queue.PopBack().hasValue());
+        ASSERT_TRUE(queue.PopBack().has_value());
       } else if (choice == 2) {
         std::vector<TaskFunction> tasks;
         queue.PopBackHalf(&tasks);
@@ -203,7 +203,7 @@ TEST(TaskDequeTest, EmptynessCheckSingleWorker) {
   }
 
   ASSERT_EQ(queue.Size(), 1);
-  ASSERT_TRUE(queue.PopBack().hasValue());
+  ASSERT_TRUE(queue.PopBack().has_value());
 
   // Wait for worker thread completion.
   worker_thread.join();
@@ -256,13 +256,13 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
       // after a reasonable number of iterations.
       llvm::Optional<TaskFunction> popped = llvm::None;
       if (id == 0 && rng() % 2 == 0) {
-        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+        for (int i = 0; i < 100 && !popped.has_value(); ++i)
           popped = queue.PopFront();
       } else {
-        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+        for (int i = 0; i < 100 && !popped.has_value(); ++i)
           popped = queue.PopBack();
       }
-      ASSERT_TRUE(popped.hasValue());
+      ASSERT_TRUE(popped.has_value());
 
       // And it's never empty after we pop a task.
       ASSERT_FALSE(queue.Empty());
@@ -281,7 +281,7 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
   }
 
   ASSERT_EQ(queue.Size(), 1);
-  ASSERT_TRUE(queue.PopBack().hasValue());
+  ASSERT_TRUE(queue.PopBack().has_value());
 
   // Wait for worker threads completion.
   for (auto& worker_thread : worker_threads) worker_thread.join();

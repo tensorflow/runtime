@@ -103,13 +103,13 @@ SymbolicShapesResolver::SymbolicShapesResolver(
   // that's the default value we return when resolving symbolic shapes for
   // the arguments, and such shapes do not participate in the hash computation.
   llvm::erase_if(iteration_order_, [&](size_t i) {
-    return operands_sizes_[i].hasValue() && operands_sizes_[i]->empty();
+    return operands_sizes_[i].has_value() && operands_sizes_[i]->empty();
   });
 
   // When computing a symbolic shapes hash we don't need to visit operands with
   // a statically known shape.
   auto is_dynamic_shape_operand = [&](size_t idx) {
-    return !operands_sizes_[idx].hasValue() ||
+    return !operands_sizes_[idx].has_value() ||
            llvm::any_of(*operands_sizes_[idx], [](int64_t d) { return d < 0; });
   };
   llvm::copy_if(iteration_order_, std::back_inserter(hash_iteration_order_),
@@ -125,7 +125,7 @@ size_t SymbolicShapesResolver::num_operands() const {
 }
 
 bool SymbolicShapesResolver::has_operand_sizes(size_t index) const {
-  return operands_sizes_[index].hasValue();
+  return operands_sizes_[index].has_value();
 }
 
 const StaticShape& SymbolicShapesResolver::operand_sizes(size_t index) const {

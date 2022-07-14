@@ -22,7 +22,7 @@ TEST(BlockingWorkQueueTest, RejectRunBlockingTask) {
   auto quiescing_state = std::make_unique<internal::QuiescingState>();
   WorkQueue work_queue(quiescing_state.get(), 2, 0);
   auto rejected = work_queue.RunBlockingTask({});
-  ASSERT_TRUE(rejected.hasValue());
+  ASSERT_TRUE(rejected.has_value());
 }
 
 TEST(BlockingWorkQueueTest, RunBlockingTask) {
@@ -40,11 +40,11 @@ TEST(BlockingWorkQueueTest, RunBlockingTask) {
   };
 
   auto t1 = work_queue.RunBlockingTask(task());
-  ASSERT_FALSE(t1.hasValue());
+  ASSERT_FALSE(t1.has_value());
   auto t2 = work_queue.RunBlockingTask(task());
-  ASSERT_FALSE(t2.hasValue());
+  ASSERT_FALSE(t2.has_value());
   auto t3 = work_queue.RunBlockingTask(task());
-  ASSERT_TRUE(t3.hasValue());  // rejected
+  ASSERT_TRUE(t3.has_value());  // rejected
 
   // Let the tasks start.
   barrier.count_down();
@@ -69,15 +69,15 @@ TEST(BlockingWorkQueueTest, Quiescing) {
   };
 
   auto t1 = work_queue.EnqueueBlockingTask(task());
-  ASSERT_FALSE(t1.hasValue());
+  ASSERT_FALSE(t1.has_value());
   auto t2 = work_queue.EnqueueBlockingTask(task());
-  ASSERT_FALSE(t2.hasValue());
+  ASSERT_FALSE(t2.has_value());
   auto t3 = work_queue.RunBlockingTask(task());
-  ASSERT_FALSE(t3.hasValue());
+  ASSERT_FALSE(t3.has_value());
   auto t4 = work_queue.RunBlockingTask(task());
-  ASSERT_FALSE(t4.hasValue());
+  ASSERT_FALSE(t4.has_value());
   auto t5 = work_queue.RunBlockingTask(task());
-  ASSERT_TRUE(t5.hasValue());  // rejected
+  ASSERT_TRUE(t5.has_value());  // rejected
 
   ASSERT_TRUE(quiescing.HasPendingTasks());
 

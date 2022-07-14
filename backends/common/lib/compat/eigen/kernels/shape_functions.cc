@@ -49,12 +49,12 @@ llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
                                    dilation);
   }
 
-  if (padding_type == PaddingType::kExplicit && !explicit_padding.hasValue()) {
+  if (padding_type == PaddingType::kExplicit && !explicit_padding.has_value()) {
     return llvm::createStringError(
         llvm::errc::invalid_argument,
         "For explicit padding, padding values must be defined");
   }
-  if (padding_type != PaddingType::kExplicit && explicit_padding.hasValue()) {
+  if (padding_type != PaddingType::kExplicit && explicit_padding.has_value()) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Explicit padding values must be empty if "
                                    "padding type is not explicit");

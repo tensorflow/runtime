@@ -85,7 +85,7 @@ static Error VerifyMemrefArgument(DType element_type,
     };
 
     auto print_shaped = [&](Optional<ArrayRef<Index>> dims, DType dtype) {
-      if (!dims.hasValue()) {
+      if (!dims.has_value()) {
         os << "[*x" << dtype << "]";
         return;
       }
@@ -116,7 +116,7 @@ static Error VerifyMemrefArgument(DType element_type,
   }
 
   // Skip sizes verification if they are not available.
-  if (!sizes.hasValue()) return Error::success();
+  if (!sizes.has_value()) return Error::success();
 
   // Check that memref rank is the same as the expected rank.
   if (LLVM_UNLIKELY(memref.rank() != sizes->size()))

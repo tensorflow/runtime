@@ -42,7 +42,7 @@ TEST(DenseHostTensorTest, FillWithComplex64Type) {
   auto dht_create_res_a =
       tfrt::DenseHostTensor::CreateUninitialized<std::complex<float>>(
           TensorShape({1, 2}), host.get());
-  ASSERT_TRUE(dht_create_res_a.hasValue());
+  ASSERT_TRUE(dht_create_res_a.has_value());
   DenseHostTensor dht_a(std::move(*dht_create_res_a));
   MutableDHTArrayView<std::complex<float>> tensor_view_a(&dht_a);
   tensor_view_a.Fill({1.0, -2.0});
@@ -50,7 +50,7 @@ TEST(DenseHostTensorTest, FillWithComplex64Type) {
   auto dht_create_res_b =
       tfrt::DenseHostTensor::CreateUninitialized<std::complex<float>>(
           TensorShape({1, 2}), host.get());
-  ASSERT_TRUE(dht_create_res_b.hasValue());
+  ASSERT_TRUE(dht_create_res_b.has_value());
   DenseHostTensor dht_b(std::move(*dht_create_res_b));
   MutableDHTArrayView<std::complex<float>> tensor_view_b(&dht_b);
   tensor_view_b.Fill({1.0, -2.0});
@@ -63,7 +63,7 @@ TEST(DenseHostTensorTest, FillWithComplex128Type) {
   auto dht_create_res_a =
       tfrt::DenseHostTensor::CreateUninitialized<std::complex<double>>(
           TensorShape({1, 2}), host.get());
-  ASSERT_TRUE(dht_create_res_a.hasValue());
+  ASSERT_TRUE(dht_create_res_a.has_value());
   DenseHostTensor dht_a(std::move(*dht_create_res_a));
   MutableDHTArrayView<std::complex<double>> tensor_view_a(&dht_a);
   tensor_view_a.Fill({1.0, -2.0});
@@ -71,7 +71,7 @@ TEST(DenseHostTensorTest, FillWithComplex128Type) {
   auto dht_create_res_b =
       tfrt::DenseHostTensor::CreateUninitialized<std::complex<double>>(
           TensorShape({1, 2}), host.get());
-  ASSERT_TRUE(dht_create_res_b.hasValue());
+  ASSERT_TRUE(dht_create_res_b.has_value());
   DenseHostTensor dht_b(std::move(*dht_create_res_b));
   MutableDHTArrayView<std::complex<double>> tensor_view_b(&dht_b);
   tensor_view_b.Fill({1.0, -2.0});
@@ -85,14 +85,14 @@ TEST(DenseHostTensorTest, FillWithBF16Type) {
 
   auto dht_create_res_a = tfrt::DenseHostTensor::CreateUninitialized<bf16>(
       TensorShape({1, 1}), host.get());
-  ASSERT_TRUE(dht_create_res_a.hasValue());
+  ASSERT_TRUE(dht_create_res_a.has_value());
   DenseHostTensor dht_a(std::move(*dht_create_res_a));
   MutableDHTArrayView<bf16> tensor_view_a(&dht_a);
   tensor_view_a.Fill(bf16{static_cast<uint16_t>(1.0)});
 
   auto dht_create_res_b = tfrt::DenseHostTensor::CreateUninitialized<bf16>(
       TensorShape({1, 1}), host.get());
-  ASSERT_TRUE(dht_create_res_b.hasValue());
+  ASSERT_TRUE(dht_create_res_b.has_value());
   DenseHostTensor dht_b(std::move(*dht_create_res_b));
   MutableDHTArrayView<bf16> tensor_view_b(&dht_b);
   tensor_view_b.Fill(bf16{static_cast<uint16_t>(1.0)});

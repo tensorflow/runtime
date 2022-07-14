@@ -84,7 +84,7 @@ Expected<DenseHostTensor> ReadDHTFromBTF(std::istream* stream, uint64_t offset,
   const TensorMetadata metadata(DType(ToDTypeKind(header.dtype)),
                                 TensorShape(dims));
   auto dht_or = DenseHostTensor::CreateUninitialized(metadata, host);
-  if (!dht_or.hasValue()) {
+  if (!dht_or.has_value()) {
     return MakeStringError("cannot allocate result tensor");
   }
   auto dht = std::move(*dht_or);

@@ -40,7 +40,7 @@ static Expected<DenseHostTensor> CreateUninitializedDenseTensor(
     ArrayAttribute<Index> shape_in, const ExecutionContext& exec_ctx) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(shape_in.data()), exec_ctx.host());
-  if (!result.hasValue()) {
+  if (!result.has_value()) {
     return MakeStringError("Cannot allocate tensor");
   }
   return std::move(*result);
@@ -86,7 +86,7 @@ static Expected<DenseHostTensor> CreateDenseTensor(
     const ExecutionContext& exec_ctx) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(shape.data()), exec_ctx.host());
-  if (!result.hasValue()) {
+  if (!result.has_value()) {
     return MakeStringError("Cannot allocate tensor");
   }
 

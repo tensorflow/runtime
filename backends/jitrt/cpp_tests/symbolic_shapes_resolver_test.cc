@@ -41,7 +41,7 @@ static FunctionType GetFunctionType(
   for (auto tuple : llvm::zip(dtypes, shapes)) {
     auto dtype = std::get<0>(tuple);
     auto shape = std::get<1>(tuple);
-    if (shape.hasValue()) {
+    if (shape.has_value()) {
       operands.push_back(std::make_unique<MemrefType>(*shape, dtype));
     } else {
       operands.push_back(std::make_unique<UnrankedMemrefType>(dtype));

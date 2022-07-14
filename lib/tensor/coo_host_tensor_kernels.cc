@@ -61,13 +61,13 @@ static void ConvertFromDHT(ArgumentView<MutableDHTIndexableView<T, Rank>> in,
   }
   auto values = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(num_non_zero_values), frame->GetHostContext());
-  if (!values.hasValue()) {
+  if (!values.has_value()) {
     handler.ReportError("Cannot allocate value tensor");
     return;
   }
   auto indices = DenseHostTensor::CreateUninitialized<int64_t>(
       TensorShape({num_non_zero_values, Rank}), frame->GetHostContext());
-  if (!indices.hasValue()) {
+  if (!indices.has_value()) {
     handler.ReportError("Cannot allocate index tensor");
     return;
   }

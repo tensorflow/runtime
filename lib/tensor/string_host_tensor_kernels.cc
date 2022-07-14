@@ -48,7 +48,7 @@ static Expected<StringHostTensor> CreateUninitializedStringTensor(
     ArrayAttribute<Index> shape_in, const ExecutionContext& exec_ctx) {
   auto result = StringHostTensor::CreateUninitialized(
       TensorShape(shape_in.data()), exec_ctx.host());
-  if (!result.hasValue()) {
+  if (!result.has_value()) {
     return MakeStringError("Cannot allocate tensor");
   }
   return std::move(*result);

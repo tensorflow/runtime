@@ -64,7 +64,7 @@ TEST(ResourceContextTest, GetNotCreated) {
   ResourceContext resource_context;
   Optional<SomeResource*> resource =
       resource_context.GetResource<SomeResource>("some_name");
-  EXPECT_EQ(resource.hasValue(), false);
+  EXPECT_EQ(resource.has_value(), false);
 }
 
 TEST(ResourceContextTest, CreateAndGet) {
@@ -75,7 +75,7 @@ TEST(ResourceContextTest, CreateAndGet) {
 
   Optional<SomeResource*> resource =
       resource_context.GetResource<SomeResource>("some_name");
-  EXPECT_EQ(resource.hasValue(), true);
+  EXPECT_EQ(resource.has_value(), true);
   EXPECT_EQ(resource.getValue()->GetData(), 41);
 }
 

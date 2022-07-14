@@ -81,7 +81,7 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
     return EmitErrorAsync(exec_ctx, "ksize should have 4 elements");
   }
 
-  if (data_format.hasValue() && data_format.getValue().str() != "NHWC") {
+  if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
     return EmitErrorAsync(exec_ctx, "only channel last order is supported");
   }
 
@@ -119,7 +119,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
   auto strides = attrs.GetArrayOptional<Index>("strides");
   auto data_format = attrs.GetStringOptional("data_format");
 
-  if (data_format.hasValue() && data_format.getValue().str() != "NHWC") {
+  if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
     return EmitErrorAsync(exec_ctx, "only channel last order is supported");
   }
 
@@ -185,7 +185,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
   }
 
   auto data_format = attrs.GetStringOptional("data_format");
-  if (data_format.hasValue() && data_format.getValue().str() != "NHWC") {
+  if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
     result.SetError("only channel last order is supported");
     return results;
   }

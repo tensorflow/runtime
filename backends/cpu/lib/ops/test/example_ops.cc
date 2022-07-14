@@ -55,7 +55,7 @@ static Expected<DenseHostTensor> OddCollectorOp(
   // Allocate the result.
   auto result = DenseHostTensor::CreateUninitialized<int32_t>(
       TensorShape{result_size}, exec_ctx.host());
-  if (!result.hasValue()) return MakeStringError("cannot allocate tensor");
+  if (!result.has_value()) return MakeStringError("cannot allocate tensor");
 
   // Fill in the result.
   MutableDHTArrayView<int32_t> result_view(result.getPointer());

@@ -472,7 +472,7 @@ static Expected<DenseHostTensor> CpuAddOp(const DenseHostTensor& lhs,
                                           HostContext* host) {
   // Allocate buffer for result
   auto dht = DenseHostTensor::CreateUninitialized(result_md.shape, host);
-  if (!dht.hasValue())
+  if (!dht.has_value())
     return MakeStringError("cannot allocate result tensor");
 
   DHTArrayView lhs_view(&lhs);

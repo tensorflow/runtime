@@ -27,7 +27,7 @@ struct TaskFunctions {
   }
 
   int Run(llvm::Optional<TaskFunction> task) {
-    if (!task.hasValue()) return -1;
+    if (!task.has_value()) return -1;
     (*task)();
     return value;
   }
@@ -63,7 +63,7 @@ TEST(TaskQueueTest, PushFrontToOverflow) {
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
-  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_TRUE(overflow.has_value());
   ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
 
   for (int i = 0; i < TaskQueue::kCapacity; ++i) {
@@ -98,14 +98,14 @@ TEST(TaskQueueTest, EmptynessCheckMultipleWorkers) {
 
       // Under contention queue might spuriously fail to push a new task.
       auto overflow = queue.PushFront(fn.Next(1));
-      if (overflow.hasValue()) continue;
+      if (overflow.has_value()) continue;
 
       std::this_thread::yield();
 
       // Pop back might be empty if concurrent PushFront updated front
       // index and ackquired a storage element, but did not update the state.
       llvm::Optional<TaskFunction> task = queue.PopBack();
-      while (!task.hasValue()) task = queue.PopBack();
+      while (!task.has_value()) task = queue.PopBack();
 
       // And it's never empty after we pop a task.
       post_empty.fetch_or(queue.Empty());
@@ -132,7 +132,7 @@ TEST(TaskQueueTest, EmptynessCheckMultipleWorkers) {
   ASSERT_EQ(post_empty, 0);
 
   ASSERT_EQ(queue.Size(), 1);
-  ASSERT_TRUE(queue.PopBack().hasValue());
+  ASSERT_TRUE(queue.PopBack().has_value());
 
   // Wait for worker threads completion.
   for (auto& worker_thread : worker_threads) worker_thread.join();

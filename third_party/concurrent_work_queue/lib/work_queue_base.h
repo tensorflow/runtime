@@ -297,7 +297,7 @@ class WorkQueueBase {
 
   // WaitForWork() blocks until new work is available (returns true), or if it
   // is time to exit (returns false). Can optionally return a task to execute in
-  // `task` (in such case `task.hasValue() == true` on return).
+  // `task` (in such case `task.has_value() == true` on return).
   LLVM_NODISCARD bool WaitForWork(EventCount::Waiter* waiter,
                                   llvm::Optional<TaskFunction>* task);
 
@@ -483,7 +483,7 @@ void WorkQueueBase<Derived>::Quiesce() {
   // and all worker threads are in blocked state.
   Optional<TaskFunction> task = Steal();
 
-  while (task.hasValue()) {
+  while (task.has_value()) {
     // Execute stolen task in the caller thread.
     (*task)();
 
@@ -511,7 +511,7 @@ LLVM_NODISCARD llvm::Optional<TaskFunction> WorkQueueBase<Derived>::Steal() {
   for (unsigned i = 0; i < num_threads_; i++) {
     llvm::Optional<TaskFunction> t =
         derived_.Steal(&(thread_data_[victim].queue));
-    if (t.hasValue()) return t;
+    if (t.has_value()) return t;
 
     victim += inc;
     if (victim >= num_threads_) {
@@ -539,13 +539,13 @@ void WorkQueueBase<Derived>::WorkerLoop(int thread_id) {
 
   while (!cancelled_) {
     Optional<TaskFunction> t = derived_.NextTask(q);
-    if (!t.hasValue()) {
+    if (!t.has_value()) {
       t = Steal();
-      if (!t.hasValue()) {
+      if (!t.has_value()) {
         // Maybe leave thread spinning. This reduces latency.
         const bool start_spinning = StartSpinning();
         if (start_spinning) {
-          for (int i = 0; i < spin_count && !t.hasValue(); ++i) {
+          for (int i = 0; i < spin_count && !t.has_value(); ++i) {
             t = Steal();
           }
 
@@ -555,19 +555,19 @@ void WorkQueueBase<Derived>::WorkerLoop(int thread_id) {
           // must try to steal one more time, to make sure that this task will
           // be executed. We will not necessarily find it, because it might have
           // been already stolen by some other thread.
-          if (stopped_spinning && !t.hasValue()) {
+          if (stopped_spinning && !t.has_value()) {
             t = Steal();
           }
         }
 
-        if (!t.hasValue()) {
+        if (!t.has_value()) {
           if (!WaitForWork(waiter, &t)) {
             return;
           }
         }
       }
     }
-    if (t.hasValue()) {
+    if (t.has_value()) {
       (*t)();  // Execute a task.
     }
   }
@@ -576,7 +576,7 @@ void WorkQueueBase<Derived>::WorkerLoop(int thread_id) {
 template <typename Derived>
 bool WorkQueueBase<Derived>::WaitForWork(EventCount::Waiter* waiter,
                                          llvm::Optional<TaskFunction>* task) {
-  assert(!task->hasValue());
+  assert(!task->has_value());
   // We already did best-effort emptiness check in Steal, so prepare for
   // blocking.
   event_count_.Prewait();

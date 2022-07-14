@@ -124,7 +124,7 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
   // destruction of this. We expect that such a scenario is prevented by the
   // program, that is, this is kept alive while any threads can potentially be
   // in Schedule.
-  if (!inline_task.hasValue()) {
+  if (!inline_task.has_value()) {
     if (IsNotifyParkedThreadRequired())
       event_count_.Notify(/*notify_all=*/false);
   } else {

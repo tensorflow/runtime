@@ -220,7 +220,7 @@ std::string GetOpDebugString(string_view op_name,
 
   // Long Name
   const auto& info = execution_context.location().GetDebugInfo();
-  if (info.hasValue()) {
+  if (info.has_value()) {
     trace_message << "long_name=" << info.getValue().info << ",";
   }
 

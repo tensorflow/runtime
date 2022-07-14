@@ -216,7 +216,7 @@ TEST_F(BefAttrEmitterTest, EncodeDenseAttribute) {
 
   auto dht_create_res = DenseHostTensor::CreateUninitialized<float>(
       TensorShape({1, 2}), host_context.get());
-  ASSERT_TRUE(dht_create_res.hasValue());
+  ASSERT_TRUE(dht_create_res.has_value());
   DenseHostTensor dht(std::move(*dht_create_res));
   MutableDHTArrayView<float> tensor_view(&dht);
   tensor_view.Fill(1.5f);

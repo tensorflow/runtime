@@ -156,7 +156,7 @@ class InFlightDiagnostic {
   InFlightDiagnostic &operator=(const InFlightDiagnostic &) = delete;
   InFlightDiagnostic &operator=(InFlightDiagnostic &&) = delete;
 
-  bool IsActive() const { return diagnostic_.hasValue(); }
+  bool IsActive() const { return diagnostic_.has_value(); }
   bool IsInFlight() const { return engine_ != nullptr; }
 
   // Diagnostic engine that will report this diagnostic once its ready.

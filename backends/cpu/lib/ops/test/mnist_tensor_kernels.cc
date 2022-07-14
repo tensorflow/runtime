@@ -369,7 +369,7 @@ static Expected<DenseHostTensor> Broadcast1D(const DenseHostTensor& A,
 
   auto tensor =
       DenseHostTensor::CreateUninitialized<T>(target_shape, exec_ctx.host());
-  if (!tensor.hasValue())
+  if (!tensor.has_value())
     return MakeStringError("cannot allocate result tensor");
 
   Broadcast1DKernel<T, N>(A, tensor.getPointer());
@@ -442,7 +442,7 @@ static Expected<DenseHostTensor> Argmax(const DenseHostTensor& A,
 
   auto tensor = DenseHostTensor::CreateUninitialized<int32_t>(
       TensorShape(result_dims), exec_ctx.host());
-  if (!tensor.hasValue()) {
+  if (!tensor.has_value()) {
     return MakeStringError("Cannot allocate result tensor.");
   }
 
@@ -535,7 +535,7 @@ static Expected<DenseHostTensor> ReduceMean(const DenseHostTensor& A,
 
   auto tensor = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(result_dims), exec_ctx.host());
-  if (!tensor.hasValue())
+  if (!tensor.has_value())
     return MakeStringError("cannot allocate result tensor");
 
   ReduceMeanKernel<T, Rank, Axis>(A, tensor.getPointer());

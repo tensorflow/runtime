@@ -62,7 +62,7 @@ class DenseHostTensor final : public HostTensor,
   static llvm::Optional<DenseHostTensor> CreateScalar(T value,
                                                       HostContext* host) {
     auto dht_or = CreateUninitialized(TensorMetadata(GetDType<T>(), {}), host);
-    if (!dht_or.hasValue()) return dht_or;
+    if (!dht_or.has_value()) return dht_or;
     *dht_or.getValue().data<T>() = value;
     return dht_or;
   }

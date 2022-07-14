@@ -51,7 +51,7 @@ void AlignedAllocationsPass::runOnOperation() {
   getOperation().walk([&](mlir::memref::AllocOp alloc) {
     // Add alignment attribute only if the alignment attribute is missing or the
     // current alignment is smaller.
-    if (!alloc.alignment().hasValue() || *alloc.alignment() < alignment_)
+    if (!alloc.alignment().has_value() || *alloc.alignment() < alignment_)
       alloc.alignmentAttr(alignment_attr);
   });
 }

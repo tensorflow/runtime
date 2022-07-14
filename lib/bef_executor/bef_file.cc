@@ -710,7 +710,8 @@ Error ExecuteSyncBEFFunction(const Function& func,
                              const ExecutionContext& exec_ctx,
                              ArrayRef<Value*> arguments,
                              ArrayRef<Value*> results) {
-  assert(func.function_kind() == FunctionKind::kSyncBEFFunction);
+  assert(func.function_kind() == FunctionKind::kSyncBEFFunction &&
+         "cannot run a non sync TFRT function via ExecuteSyncBEFFunction.");
   const SyncBEFFunction& sync_func = static_cast<const SyncBEFFunction&>(func);
   return sync_func.SyncExecute(exec_ctx, arguments, results);
 }

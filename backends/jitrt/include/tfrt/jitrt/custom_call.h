@@ -323,11 +323,6 @@ struct Tagged {};
 
 namespace internal {
 
-struct EncodedString {
-  int64_t size;
-  const char* data;
-};
-
 struct EncodedMemref {
   uint8_t dtype;
   uint8_t rank;
@@ -396,7 +391,7 @@ class DecodedAttrs {
     void** attr_base = attrs_ + 1 + i * 3;
 
     DecodedAttr attr;
-    auto* name = reinterpret_cast<internal::EncodedString*>(attr_base[0]);
+    auto* name = reinterpret_cast<internal::EncodedArray<char>*>(attr_base[0]);
     attr.name = llvm::StringRef(name->data, name->size);
     attr.type_id = mlir::TypeID::getFromOpaquePointer(attr_base[1]);
     attr.value = attr_base[2];
@@ -902,7 +897,7 @@ struct CustomCallAttrDecoding<llvm::StringRef, checks> {
     if (!CustomCall::CheckType<Tagged<StringRef>>(checks, type_id))
       return mlir::failure();
 
-    auto* encoded = reinterpret_cast<internal::EncodedString*>(value);
+    auto* encoded = reinterpret_cast<internal::EncodedArray<char>*>(value);
     return StringRef(encoded->data, encoded->size);
   }
 };

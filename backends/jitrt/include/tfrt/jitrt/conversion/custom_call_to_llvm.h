@@ -174,7 +174,8 @@ class CustomCallAttrEncodingSet {
 mlir::Value PackTypeId(Globals &g, mlir::ImplicitLocOpBuilder &b,
                        mlir::TypeID type_id);
 
-// Packs string as a module global constants. Returns `!llvm.ptr<EncodedStr>`.
+// Packs string as a module global constants. Returns
+// `!llvm.ptr<EncodedArray<char>>`.
 // We always pass string with the size to the runtime intrinsics, because
 // computing the length of null-terminated string can be expensive, and we need
 // it to construct llvm::StringRef at run time.

@@ -98,13 +98,13 @@ def _nccl_headers_impl(repository_ctx):
 def _nvtx_headers_impl(repository_ctx):
     build_file = Label("//third_party/cuda:nvtx_headers.BUILD")
 
-    tag = "release-v3"
-    url = "{repo}/archive/refs/heads/{tag}.tar.gz".format(
+    tag = "3.0.1"
+    url = "{repo}/archive/refs/tags/v{tag}.tar.gz".format(
         repo = "github.com/NVIDIA/NVTX",
         tag = tag,
     )
     strip_prefix = "NVTX-{tag}".format(tag = tag)
-    sha256 = "c3ec4fcd2f752445eabdba494ba2f319441d222f93480dff2a7a8f9ca4f39a96"
+    sha256 = "bb8d1536aad708ec807bc675e12e5838c2f84481dec4005cd7a9bbd49e326ba1"
     _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")

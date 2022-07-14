@@ -167,10 +167,20 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK-SAME: (dense<[1, 2, 3]> : tensor<3xi32>) : !llvm.array<3 x i32>
 
 // CHECK:   llvm.mlir.global internal constant @__rt_attr_value()
-// CHECK-SAME: : !llvm.struct<(i64, ptr<array<3 x i32>>)> {
+// CHECK-SAME: : !llvm.struct
+// CHECK-SAME: <(struct<(i64, ptr<array<3 x i32>>)>, i64, array<1 x i64>)> {
 // CHECK:   arith.constant 3 : i64
 // CHECK:   llvm.mlir.addressof
 // CHECK:   llvm.mlir.undef : !llvm.struct<(i64, ptr<array<3 x i32>>)>
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.insertvalue
+// CHECK:   arith.constant 1 : i64
+// CHECK:   llvm.mlir.undef : !llvm.array<1 x i64>
+// CHECK:   arith.constant 3 : i64
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.mlir.undef : !llvm.struct
+// CHECK-SAME: <(struct<(i64, ptr<array<3 x i32>>)>, i64, array<1 x i64>)>
+// CHECK:   llvm.insertvalue
 // CHECK:   llvm.insertvalue
 // CHECK:   llvm.insertvalue
 // CHECK: }
@@ -182,6 +192,44 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
   // CHECK: call @runtimeCustomCall
   rt.custom_call %arg0["target"] ()
     { attr_name = dense<[1, 2, 3]> : tensor<3xi32> } : () -> ()
+  func.return
+}
+
+// -----
+
+// CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
+
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value_0
+// CHECK-SAME: (dense<[1, 2]> : tensor<2xi32>) : !llvm.array<2 x i32>
+
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value()
+// CHECK-SAME: : !llvm.struct
+// CHECK-SAME: <(struct<(i64, ptr<array<2 x i32>>)>, i64, array<2 x i64>)> {
+// CHECK:   arith.constant 2 : i64
+// CHECK:   llvm.mlir.addressof
+// CHECK:   llvm.mlir.undef : !llvm.struct<(i64, ptr<array<2 x i32>>)>
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.insertvalue
+// CHECK:   arith.constant 2 : i64
+// CHECK:   llvm.mlir.undef : !llvm.array<2 x i64>
+// CHECK:   arith.constant 2 : i64
+// CHECK:   llvm.insertvalue
+// CHECK:   arith.constant 1 : i64
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.mlir.undef : !llvm.struct
+// CHECK-SAME: <(struct<(i64, ptr<array<2 x i32>>)>, i64, array<2 x i64>)>
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.insertvalue
+// CHECK: }
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] ()
+    { attr_name = dense<[[1], [2]]> : tensor<2x1xi32> } : () -> ()
   func.return
 }
 

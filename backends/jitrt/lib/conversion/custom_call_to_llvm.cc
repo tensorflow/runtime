@@ -147,36 +147,73 @@ Value PackScalarAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
   return Globals::AddrOf(b, global);
 }
 
-// Packs array attribute as a global constant. Returns `!llvm.ptr<EncodedArr>`.
-Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
-                                 Attribute value, StringRef symbol_base) {
+// Reshape dense elements as a one-dimensional array.
+static mlir::DenseElementsAttr Flatten(DenseIntOrFPElementsAttr dense) {
+  ShapedType shaped_type = dense.getType().cast<ShapedType>();
+  ShapedType new_shaped_type = shaped_type.cloneWith(
+      {shaped_type.getNumElements()}, dense.getElementType());
+  return dense.reshape(new_shaped_type);
+}
+
+// Packs dense elements attribute as a global constant. Returns
+// `!llvm.ptr<EncodedDenseElements>`.
+static Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                        Attribute value,
+                                        StringRef symbol_base) {
   MLIRContext *ctx = b.getContext();
-
   DenseIntOrFPElementsAttr dense = value.cast<DenseIntOrFPElementsAttr>();
-  int64_t size = dense.getNumElements();
 
-  // Encoded array type:
-  // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>>)>.
+  // Payload type:
+  // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>)>>.
   Type element_type = dense.getElementType();
-  Type arr_type = LLVM::LLVMArrayType::get(element_type, size);
-  Type arr_ptr_type = LLVM::LLVMPointerType::get(arr_type);
-  Type type =
-      LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr_ptr_type});
+  Type data_arr_type =
+      LLVM::LLVMArrayType::get(element_type, dense.getNumElements());
+  Type data_arr_ptr_type = LLVM::LLVMPointerType::get(data_arr_type);
+  Type payload_type = LLVM::LLVMStructType::getLiteral(
+      ctx, {b.getI64Type(), data_arr_ptr_type});
 
-  // Global constant initializer for the encoded array structure
+  int64_t rank = value.getType().cast<ShapedType>().getRank();
+  ArrayRef<int64_t> shape = value.getType().cast<ShapedType>().getShape();
+  Type shape_arr_type = LLVM::LLVMArrayType::get(b.getI64Type(), rank);
+
+  // Encoded dense elements type:
+  // !llvm.struct<encoded_array_type, i64, array<i64, rank>
+  Type type = LLVM::LLVMStructType::getLiteral(
+      ctx, {payload_type, b.getI64Type(), shape_arr_type});
+
+  // Global constant initializer for the encoded array structure.
   auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
-    // Array size and the pointer to data.
-    Value num_elements = ib.create<ConstantOp>(b.getI64IntegerAttr(size));
-    Value data_ptr =
-        Globals::AddrOf(ib, g.GetOrCreate(b, dense, arr_type, symbol_base, {}));
+    Value num_elements =
+        ib.create<ConstantOp>(b.getI64IntegerAttr(dense.getNumElements()));
+    Value data_ptr = Globals::AddrOf(
+        ib, g.GetOrCreate(b, Flatten(dense), data_arr_type, symbol_base, {}));
 
-    // Store size and pointer into the struct.
-    Value encoded = ib.create<LLVM::UndefOp>(type);
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
-                                             ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data_ptr,
+    // Create the payload struct.
+    Value payload = ib.create<LLVM::UndefOp>(payload_type);
+    payload = ib.create<LLVM::InsertValueOp>(
+        payload_type, payload, num_elements, ib.getI64ArrayAttr(0));
+    payload = ib.create<LLVM::InsertValueOp>(payload_type, payload, data_ptr,
                                              ib.getI64ArrayAttr(1));
 
+    // Get rank and shape.
+    Value rank_value = ib.create<ConstantOp>(b.getI64IntegerAttr(rank));
+    Value shape_value = ib.create<LLVM::UndefOp>(shape_arr_type);
+
+    // Store each dimension size into shape_value.
+    for (int i = 0; i < rank; i++) {
+      Value dim = ib.create<ConstantOp>(ib.getI64IntegerAttr(shape[i]));
+      shape_value = ib.create<LLVM::InsertValueOp>(shape_arr_type, shape_value,
+                                                   dim, ib.getI64ArrayAttr(i));
+    }
+
+    // Store the payload, rank, and shape into the struct.
+    Value encoded = ib.create<LLVM::UndefOp>(type);
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, payload,
+                                             ib.getI64ArrayAttr(0));
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, rank_value,
+                                             ib.getI64ArrayAttr(1));
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, shape_value,
+                                             ib.getI64ArrayAttr(2));
     ib.create<LLVM::ReturnOp>(encoded);
   };
 
@@ -374,11 +411,6 @@ static bool IsSupportedScalarType(Type type) {
   return false;
 }
 
-static bool IsSupportedShapedType(ShapedType shape) {
-  return shape.getRank() == 1 && IsSupportedScalarType(shape.getElementType());
-  return false;
-}
-
 static TypeID ScalarRuntimeTypeId(Type type) {
   if (type.isUnsignedInteger(8)) return TypeID::get<Tagged<uint8_t>>();
   if (type.isUnsignedInteger(32)) return TypeID::get<Tagged<uint32_t>>();
@@ -435,6 +467,20 @@ static TypeID ArrayRuntimeTypeId(Type elem_type) {
   return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
 }
 
+static TypeID DenseElementsRuntimeTypeId(Type elem_type) {
+  if (elem_type.isInteger(32))
+    return TypeID::get<Tagged<CustomCall::TensorRef<int32_t>>>();
+  if (elem_type.isInteger(64))
+    return TypeID::get<Tagged<CustomCall::TensorRef<int64_t>>>();
+  if (elem_type.isF32())
+    return TypeID::get<Tagged<CustomCall::TensorRef<float>>>();
+  if (elem_type.isF64())
+    return TypeID::get<Tagged<CustomCall::TensorRef<double>>>();
+
+  assert(false && "unsupported type id");
+  return TypeID::getFromOpaquePointer(reinterpret_cast<void *>(0xDEADBEEF));
+}
+
 // -------------------------------------------------------------------------- //
 // Custom call attributes encoding.
 // -------------------------------------------------------------------------- //
@@ -481,7 +527,7 @@ FailureOr<EncodedAttr> ScalarAttrEncoding::Encode(Globals &g,
 LogicalResult DenseElementsAttrEncoding::Match(StringRef name,
                                                Attribute attr) const {
   if (auto dense = attr.dyn_cast<DenseIntOrFPElementsAttr>())
-    return success(IsSupportedShapedType(dense.getType()));
+    return success(IsSupportedScalarType(dense.getElementType()));
   return failure();
 }
 
@@ -491,7 +537,7 @@ FailureOr<EncodedAttr> DenseElementsAttrEncoding::Encode(
 
   Encoded encoded;
   encoded.name = PackString(g, b, name, kAttrName);
-  encoded.type_id = PackTypeId(g, b, ArrayRuntimeTypeId(elem_type));
+  encoded.type_id = PackTypeId(g, b, DenseElementsRuntimeTypeId(elem_type));
   encoded.value = PackDenseElementsAttribute(g, b, attr, kAttrValue);
 
   return encoded;

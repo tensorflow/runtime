@@ -16,6 +16,7 @@
 
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 
+#include <iterator>
 #include <string>
 #include <utility>
 
@@ -125,13 +126,46 @@ static void print_arr(llvm::StringRef type, Array arr) {
   tfrt::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ") << "\n";
 }
 
+template <typename T>
+static void TensorToString(llvm::ArrayRef<int64_t> shapes,
+                           llvm::ArrayRef<T> data,
+                           llvm::raw_string_ostream& os) {
+  // Print all elements if it is a vector.
+  if (shapes.size() == 1) {
+    os << "(" + Join(data, ", ") + ")";
+    return;
+  }
+
+  size_t stride = data.size() / shapes[0];
+  llvm::ArrayRef<int64_t> inner_shape(std::next(shapes.begin()), shapes.end());
+
+  os << "(";
+  for (size_t i = 0; i < data.size(); i += stride) {
+    auto start = data.begin() + i;
+    llvm::ArrayRef<T> inner_data(start, start + stride);
+    TensorToString(inner_shape, inner_data, os);
+    if (i + stride < data.size()) os << ", ";
+  }
+  os << ")";
+}
+
+template <typename T>
+static void PrintTensor(llvm::StringRef type, CustomCall::TensorRef<T> tensor) {
+  std::string tensor_str;
+  llvm::raw_string_ostream os(tensor_str);
+  TensorToString<T>(tensor.shape.vec(), tensor.data.vec(), os);
+  tfrt::outs() << type << "[" << Join(tensor.shape, "x") << "] " << os.str()
+               << "\n";
+}
+
 // A custom call for testing attributes encoding/decoding.
 static LogicalResult PrintAttrs(
     const char* caller, int32_t i32, int64_t i64, float f32, double f64,
     ArrayRef<int32_t> i32_arr, ArrayRef<int64_t> i64_arr,
     ArrayRef<float> f32_arr, ArrayRef<double> f64_arr,
-    ArrayRef<int32_t> i32_array, ArrayRef<int64_t> i64_array,
-    ArrayRef<float> f32_array, ArrayRef<double> f64_array, StringRef str) {
+    CustomCall::TensorRef<int64_t> i64_2d_arr, ArrayRef<int32_t> i32_array,
+    ArrayRef<int64_t> i64_array, ArrayRef<float> f32_array,
+    ArrayRef<double> f64_array, StringRef str) {
   tfrt::outs() << caller << "\n";
 
   tfrt::outs() << "i32: " << i32 << "\n";
@@ -143,6 +177,8 @@ static LogicalResult PrintAttrs(
   print_arr<ArrayRef<int64_t>>("i64", i64_arr);
   print_arr<ArrayRef<float>>("f32", f32_arr);
   print_arr<ArrayRef<double>>("f64", f64_arr);
+  PrintTensor<int64_t>("i64", i64_2d_arr);
+
   print_arr<ArrayRef<int32_t>>("i32", i32_array);
   print_arr<ArrayRef<int64_t>>("i64", i64_array);
   print_arr<ArrayRef<float>>("f32", f32_array);
@@ -309,6 +345,7 @@ static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
                           .Attr<ArrayRef<int64_t>>("i64_dense")
                           .Attr<ArrayRef<float>>("f32_dense")
                           .Attr<ArrayRef<double>>("f64_dense")
+                          .Attr<CustomCall::TensorRef<int64_t>>("i64_2d_dense")
                           .Attr<ArrayRef<int32_t>>("i32_array")
                           .Attr<ArrayRef<int64_t>>("i64_array")
                           .Attr<ArrayRef<float>>("f32_array")
@@ -353,6 +390,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<ArrayRef<int64_t>>("i64_dense")
                          .Attr<ArrayRef<float>>("f32_dense")
                          .Attr<ArrayRef<double>>("f64_dense")
+                         .Attr<CustomCall::TensorRef<int64_t>>("i64_2d_dense")
                          .Attr<ArrayRef<int32_t>>("i32_array")
                          .Attr<ArrayRef<int64_t>>("i64_array")
                          .Attr<ArrayRef<float>>("f32_array")

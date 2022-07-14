@@ -66,6 +66,13 @@ class CustomCall {
   class VariantArg;
   class VariantAttr;
 
+  // A type for representing tensors with shapes.
+  template <typename T>
+  struct TensorRef {
+    ArrayRef<int64_t> shape;
+    ArrayRef<T> data;
+  };
+
   // Custom call handler can check arguments and attributes types and names
   // at runtime, however this comes at extra cost and can be optionally
   // disabled. If the version of the compiler that generated the JitRt program
@@ -334,6 +341,13 @@ template <typename T>
 struct EncodedArray {
   int64_t size;
   const T* data;
+};
+
+template <typename T>
+struct EncodedDenseElements {
+  struct EncodedArray<T> payload;
+  int64_t rank;
+  int64_t shape[];
 };
 
 }  // namespace internal
@@ -930,17 +944,22 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_SCALAR_ATTR_DECODING
 
-#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                \
-  template <CustomCall::RuntimeChecks checks>                                \
-  struct CustomCallAttrDecoding<ArrayRef<T>, checks> {                       \
-    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode( \
-        llvm::StringRef name, mlir::TypeID type_id, void* value) {           \
-      if (!CustomCall::CheckType<Tagged<ArrayRef<T>>>(checks, type_id))      \
-        return mlir::failure();                                              \
-                                                                             \
-      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);   \
-      return ArrayRef<T>(encoded->data, encoded->size);                      \
-    }                                                                        \
+// Both EncodedArray and 1-D EncodedDenseElements can be decoded as an ArrayRef.
+// Pointers to both EncodedArray and 1-D EncodedDenseElements can be
+// dereferenced as a pointer to EncodedArray.
+#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                  \
+  template <CustomCall::RuntimeChecks checks>                                  \
+  struct CustomCallAttrDecoding<ArrayRef<T>, checks> {                         \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode(   \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {             \
+      if (!CustomCall::CheckType<Tagged<ArrayRef<T>>>(checks, type_id) &&      \
+          (!CustomCall::CheckType<Tagged<CustomCall::TensorRef<T>>>(checks,    \
+                                                                    type_id))) \
+        return mlir::failure();                                                \
+                                                                               \
+      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);     \
+      return ArrayRef<T>(encoded->data, encoded->size);                        \
+    }                                                                          \
   }
 
 JITRT_REGISTER_ARRAY_ATTR_DECODING(int32_t);
@@ -949,6 +968,32 @@ JITRT_REGISTER_ARRAY_ATTR_DECODING(float);
 JITRT_REGISTER_ARRAY_ATTR_DECODING(double);
 
 #undef JITRT_REGISTER_ARRAY_ATTR_DECODING
+
+#define JITRT_REGISTER_DENSE_ELEMENTS_ATTR_DECODING(T)                       \
+  template <CustomCall::RuntimeChecks checks>                                \
+  struct CustomCallAttrDecoding<CustomCall::TensorRef<T>, checks> {          \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<                     \
+        CustomCall::TensorRef<T>>                                            \
+    Decode(llvm::StringRef name, mlir::TypeID type_id, void* value) {        \
+      if (!CustomCall::CheckType<Tagged<CustomCall::TensorRef<T>>>(checks,   \
+                                                                   type_id)) \
+        return mlir::failure();                                              \
+                                                                             \
+      auto* encoded =                                                        \
+          reinterpret_cast<internal::EncodedDenseElements<T>*>(value);       \
+      auto payload = encoded->payload;                                       \
+      ArrayRef<T> data(payload.data, payload.size);                          \
+      ArrayRef<int64_t> shape(encoded->shape, encoded->rank);                \
+      return CustomCall::TensorRef<T>({shape, data});                        \
+    }                                                                        \
+  }
+
+JITRT_REGISTER_DENSE_ELEMENTS_ATTR_DECODING(int32_t);
+JITRT_REGISTER_DENSE_ELEMENTS_ATTR_DECODING(int64_t);
+JITRT_REGISTER_DENSE_ELEMENTS_ATTR_DECODING(float);
+JITRT_REGISTER_DENSE_ELEMENTS_ATTR_DECODING(double);
+
+#undef JITRT_REGISTER_DENSE_ELEMENTS_ATTR_DECODING
 
 // -------------------------------------------------------------------------- //
 // Register a JitRt custom call attribute decoding for enum class. At runtime

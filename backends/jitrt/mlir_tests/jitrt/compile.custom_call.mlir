@@ -84,6 +84,7 @@ module @print_attrs attributes { tfrt.compiled } {
       i64_dense = dense<[105, 106, 107, 108]> : tensor<4xi64>,
       f32_dense = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
       f64_dense = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      i64_2d_dense = dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>,
       i32_array = [101 : i32, 102 : i32, 103 : i32, 104 : i32],
       i64_array = [105, 106, 107, 108],
       f32_array = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
@@ -147,6 +148,8 @@ module @direct_print_attrs attributes { tfrt.compiled } {
       invalid_attr_name_i64_dense = dense<[105, 106, 107, 108]> : tensor<4xi64>,
       invalid_attr_name_f32_dense = dense<[1.0, 2.0, 3.0, 4.0]> : tensor<4xf32>,
       invalid_attr_name_f64_dense = dense<[5.0, 6.0, 7.0, 8.0]> : tensor<4xf64>,
+      invalid_attr_name_i64_2d_dense =
+        dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>,
       invalid_attr_name_i32_arr = [101 : i32, 102 : i32, 103 : i32, 104 : i32],
       invalid_attr_name_i64_arr = [105, 106, 107, 108],
       invalid_attr_name_f32_arr = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
@@ -329,6 +332,7 @@ func.func @compiled_custom_call_print_attrs() {
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
+  // CHECK: i64[2x2] ((1, 2), (3, 4))
   // CHECK: i32[4] 101, 102, 103, 104
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
@@ -382,6 +386,7 @@ func.func @compiled_custom_call_direct_print_attrs() {
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
+  // CHECK: i64[2x2] ((1, 2), (3, 4))
   // CHECK: i32[4] 101, 102, 103, 104
   // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00

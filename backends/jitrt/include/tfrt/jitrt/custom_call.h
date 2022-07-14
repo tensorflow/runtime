@@ -338,7 +338,7 @@ struct EncodedMemref {
 template <typename T>
 struct EncodedArray {
   int64_t size;
-  T data[];
+  const T* data;
 };
 
 }  // namespace internal

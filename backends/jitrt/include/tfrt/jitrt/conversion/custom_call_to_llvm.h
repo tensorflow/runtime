@@ -221,7 +221,7 @@ class Globals {
                                    llvm::StringRef symbol_base);
 
   // Creates a global constant value of the given type from the attribute, using
-  // user-provided global constant initialization.
+  // optional user-provided global constant initialization.
   mlir::LLVM::GlobalOp GetOrCreate(mlir::ImplicitLocOpBuilder &b,
                                    mlir::Attribute attr, mlir::Type type,
                                    llvm::StringRef symbol_base,

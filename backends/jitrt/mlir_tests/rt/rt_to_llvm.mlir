@@ -62,9 +62,8 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
-// CHECK: global internal constant @__rt_attr_value()
-// CHECK-SAME: !llvm.struct<(i64, array<3 x i64>)> {
-// CHECK:   arith.constant 3 : i64
+// CHECK: global internal constant @__rt_attr_value_0()
+// CHECK-SAME: !llvm.array<3 x i64> {
 // CHECK:   llvm.mlir.undef : !llvm.array<3 x i64>
 // CHECK:   arith.constant 1 : i64
 // CHECK:   llvm.insertvalue
@@ -72,6 +71,17 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 // CHECK:   llvm.insertvalue
 // CHECK:   arith.constant 3 : i64
 // CHECK:   llvm.insertvalue
+// CHECK:   llvm.return
+// CHECK: }
+
+// CHECK: global internal constant @__rt_attr_value()
+// CHECK-SAME: !llvm.struct<(i64, ptr<array<3 x i64>>)> {
+// CHECK:   arith.constant 3 : i64
+// CHECK:   llvm.mlir.addressof @__rt_attr_value_0 : !llvm.ptr<array<3 x i64>>
+// CHECK:   llvm.mlir.undef : !llvm.struct<(i64, ptr<array<3 x i64>>)>
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.return
 // CHECK: }
 
 // CHECK: func @custom_call(
@@ -153,10 +163,16 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
-// CHECK: global internal constant @__rt_attr_value()
-// CHECK-SAME: : !llvm.struct<(i64, array<3 x i32>)> {
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value_0
+// CHECK-SAME: (dense<[1, 2, 3]> : tensor<3xi32>) : !llvm.array<3 x i32>
+
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value()
+// CHECK-SAME: : !llvm.struct<(i64, ptr<array<3 x i32>>)> {
 // CHECK:   arith.constant 3 : i64
-// CHECK:   llvm.mlir.constant(dense<[1, 2, 3]> : tensor<3xi32>)
+// CHECK:   llvm.mlir.addressof
+// CHECK:   llvm.mlir.undef : !llvm.struct<(i64, ptr<array<3 x i32>>)>
+// CHECK:   llvm.insertvalue
+// CHECK:   llvm.insertvalue
 // CHECK: }
 
 // CHECK: func @custom_call(

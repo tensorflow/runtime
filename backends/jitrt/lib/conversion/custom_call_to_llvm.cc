@@ -154,28 +154,53 @@ Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
   DenseIntOrFPElementsAttr dense = value.cast<DenseIntOrFPElementsAttr>();
   int64_t size = dense.getNumElements();
 
-  // Encoded array type: !llvm.struct<(i64, !llvm.array<element_type x size>)>.
+  // Encoded array type:
+  // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>>)>.
   Type element_type = dense.getElementType();
-  Type arr = LLVM::LLVMArrayType::get(element_type, size);
-  Type type = LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr});
+  Type arr_type = LLVM::LLVMArrayType::get(element_type, size);
+  Type arr_ptr_type = LLVM::LLVMPointerType::get(arr_type);
+  Type type =
+      LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr_ptr_type});
 
   // Global constant initializer for the encoded array structure
   auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
-    // Array size and values.
+    // Array size and the pointer to data.
     Value num_elements = ib.create<ConstantOp>(b.getI64IntegerAttr(size));
-    Value values = b.create<LLVM::ConstantOp>(arr, dense);
+    Value data_ptr =
+        Globals::AddrOf(ib, g.GetOrCreate(b, dense, arr_type, symbol_base, {}));
 
-    // Store size and values into the struct.
+    // Store size and pointer into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
     encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
                                              ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, values,
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data_ptr,
                                              ib.getI64ArrayAttr(1));
 
     ib.create<LLVM::ReturnOp>(encoded);
   };
 
   auto global = g.GetOrCreate(b, value, type, symbol_base, init);
+  return Globals::AddrOf(b, global);
+}
+
+// Create a global for the data array in an EncodedArray.
+// Returns `!llvm.ptr<array<element_type x size>>
+static Value CreateGlobalFromArray(Globals &g, ImplicitLocOpBuilder &b,
+                                   ArrayAttr array, StringRef symbol_base) {
+  Type element_type = array[0].getType();
+  Type arr_type = LLVM::LLVMArrayType::get(element_type, array.size());
+
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    Value data = ib.create<LLVM::UndefOp>(arr_type);
+    for (int i = 0; i < array.size(); i++) {
+      Value value = ib.create<ConstantOp>(array[i]);
+      data = ib.create<LLVM::InsertValueOp>(arr_type, data, value,
+                                            ib.getI64ArrayAttr(i));
+    }
+    ib.create<LLVM::ReturnOp>(data);
+  };
+
+  auto global = g.GetOrCreate(b, array, arr_type, symbol_base, init);
   return Globals::AddrOf(b, global);
 }
 
@@ -186,28 +211,25 @@ Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
   ArrayAttr array = value.cast<ArrayAttr>();
   int64_t size = array.size();
 
-  // Encoded array type: !llvm.struct<(i64, !llvm.array<element_type x size>)>.
+  // Encoded array type:
+  // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>)>>.
   Type element_type = array[0].getType();
-  Type arr = LLVM::LLVMArrayType::get(element_type, size);
-  Type type = LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr});
+  Type arr_type = LLVM::LLVMArrayType::get(element_type, size);
+  Type arr_ptr_type = LLVM::LLVMPointerType::get(arr_type);
+  Type type =
+      LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr_ptr_type});
 
   // Global constant initializer for the encoded array structure
   auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
-    // Array size and values.
+    // Array size and the pointer to data.
     Value num_elements = ib.create<ConstantOp>(b.getI64IntegerAttr(size));
-    Value values = ib.create<LLVM::UndefOp>(arr);
-    for (int i = 0; i < size; i++) {
-      // Insert array values.
-      Value value = ib.create<ConstantOp>(array[i]);
-      values = ib.create<LLVM::InsertValueOp>(arr, values, value,
-                                              ib.getI64ArrayAttr(i));
-    }
+    Value data = CreateGlobalFromArray(g, b, array, symbol_base);
 
     // Store size and values into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
     encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
                                              ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, values,
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data,
                                              ib.getI64ArrayAttr(1));
 
     ib.create<LLVM::ReturnOp>(encoded);
@@ -296,6 +318,13 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
   // ... otherwise create a new one.
   OpBuilder::InsertionGuard guard(b);
   b.setInsertionPointToStart(module_.getBody());
+
+  // If the initialize function is not provided, create constant directly.
+  if (!initialize) {
+    return b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
+                                    LLVM::Linkage::Internal,
+                                    UniqueSymName(symbol_base), attr);
+  }
 
   // Create an uninitialized global.
   auto global = b.create<LLVM::GlobalOp>(

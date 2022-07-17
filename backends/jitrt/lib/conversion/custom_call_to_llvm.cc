@@ -36,10 +36,13 @@ using llvm::StringRef;
 using mlir::ArrayAttr;
 using mlir::Attribute;
 using mlir::ComplexType;
+using mlir::DenseArrayBaseAttr;
 using mlir::DenseIntOrFPElementsAttr;
 using mlir::failure;
 using mlir::FailureOr;
+using mlir::FloatAttr;
 using mlir::ImplicitLocOpBuilder;
+using mlir::IntegerAttr;
 using mlir::Location;
 using mlir::LogicalResult;
 using mlir::MemRefDescriptor;
@@ -277,6 +280,102 @@ Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
   return Globals::AddrOf(b, global);
 }
 
+template <typename T, typename AttrType, typename ArrayType>
+static Value FillDataFromDenseArrayAttr(
+    ImplicitLocOpBuilder &b, AttrType (ImplicitLocOpBuilder::*get_attr)(T),
+    ArrayType array, Value data) {
+  ArrayRef<T> array_ref = array.asArrayRef();
+  for (int i = 0; i < array_ref.size(); i++) {
+    Value value = b.create<ConstantOp>((b.*get_attr)(array_ref[i]));
+    data = b.create<LLVM::InsertValueOp>(data.getType(), data, value,
+                                         b.getI64ArrayAttr(i));
+  }
+  return data;
+}
+
+static Value CreateGlobalFromDenseArray(Globals &g, ImplicitLocOpBuilder &b,
+                                        DenseArrayBaseAttr base_array,
+                                        Type arr_type, StringRef symbol_base) {
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    Value data = ib.create<LLVM::UndefOp>(arr_type);
+    switch (base_array.getElementType()) {
+      case DenseArrayBaseAttr::EltType::I8:
+        data = FillDataFromDenseArrayAttr<int8_t, IntegerAttr>(
+            b, &ImplicitLocOpBuilder::getI8IntegerAttr,
+            base_array.cast<mlir::DenseI8ArrayAttr>(), data);
+        break;
+      case DenseArrayBaseAttr::EltType::I16:
+        data = FillDataFromDenseArrayAttr<int16_t, IntegerAttr>(
+            b, &ImplicitLocOpBuilder::getI16IntegerAttr,
+            base_array.cast<mlir::DenseI16ArrayAttr>(), data);
+        break;
+      case DenseArrayBaseAttr::EltType::I32:
+        data = FillDataFromDenseArrayAttr<int32_t, IntegerAttr>(
+            b, &ImplicitLocOpBuilder::getI32IntegerAttr,
+            base_array.cast<mlir::DenseI32ArrayAttr>(), data);
+        break;
+      case DenseArrayBaseAttr::EltType::I64:
+        data = FillDataFromDenseArrayAttr<int64_t, IntegerAttr>(
+            b, &ImplicitLocOpBuilder::getI64IntegerAttr,
+            base_array.cast<mlir::DenseI64ArrayAttr>(), data);
+        break;
+      case DenseArrayBaseAttr::EltType::F32:
+        data = FillDataFromDenseArrayAttr<float, FloatAttr>(
+            b, &ImplicitLocOpBuilder::getF32FloatAttr,
+            base_array.cast<mlir::DenseF32ArrayAttr>(), data);
+        break;
+      case DenseArrayBaseAttr::EltType::F64:
+        data = FillDataFromDenseArrayAttr<double, FloatAttr>(
+            b, &ImplicitLocOpBuilder::getF64FloatAttr,
+            base_array.cast<mlir::DenseF64ArrayAttr>(), data);
+        break;
+      default:
+        assert(false && "unsupported DenseArrayAttr element type");
+    }
+    ib.create<LLVM::ReturnOp>(data);
+  };
+
+  auto global = g.GetOrCreate(b, base_array, arr_type, symbol_base, init);
+  return Globals::AddrOf(b, global);
+}
+
+static Value PackDenseArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                     Attribute value, StringRef symbol_base) {
+  MLIRContext *ctx = b.getContext();
+
+  DenseArrayBaseAttr base_array = value.cast<DenseArrayBaseAttr>();
+  int64_t size = base_array.size();
+
+  // Encoded array type:
+  // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>>)>.
+  Type element_type =
+      base_array.getType().cast<mlir::VectorType>().getElementType();
+  Type arr_type = LLVM::LLVMArrayType::get(element_type, size);
+  Type arr_ptr_type = LLVM::LLVMPointerType::get(arr_type);
+  Type type =
+      LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), arr_ptr_type});
+
+  // Global constant initializer for the encoded array structure
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    // Array size and values.
+    Value num_elements = ib.create<ConstantOp>(b.getI64IntegerAttr(size));
+    Value data =
+        CreateGlobalFromDenseArray(g, ib, base_array, arr_type, symbol_base);
+
+    // Store size and values into the struct.
+    Value encoded = ib.create<LLVM::UndefOp>(type);
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
+                                             ib.getI64ArrayAttr(0));
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data,
+                                             ib.getI64ArrayAttr(1));
+
+    ib.create<LLVM::ReturnOp>(encoded);
+  };
+
+  auto global = g.GetOrCreate(b, value, type, symbol_base, init);
+  return Globals::AddrOf(b, global);
+}
+
 // Packs value on the stack. Returns `!llvm.ptr<ValueType>`.
 Value PackValue(ImplicitLocOpBuilder &b, Value value) {
   Type ptr = LLVM::LLVMPointerType::get(value.getType());
@@ -458,6 +557,8 @@ static DType ScalarDType(Type type) {
 }
 
 static TypeID ArrayRuntimeTypeId(Type elem_type) {
+  if (elem_type.isInteger(8)) return TypeID::get<Tagged<ArrayRef<int8_t>>>();
+  if (elem_type.isInteger(16)) return TypeID::get<Tagged<ArrayRef<int16_t>>>();
   if (elem_type.isInteger(32)) return TypeID::get<Tagged<ArrayRef<int32_t>>>();
   if (elem_type.isInteger(64)) return TypeID::get<Tagged<ArrayRef<int64_t>>>();
   if (elem_type.isF32()) return TypeID::get<Tagged<ArrayRef<float>>>();
@@ -570,6 +671,31 @@ FailureOr<EncodedAttr> ArrayAttrEncoding::Encode(Globals &g,
   encoded.name = PackString(g, b, name, kAttrName);
   encoded.type_id = PackTypeId(g, b, ArrayRuntimeTypeId(elem_type));
   encoded.value = PackArrayAttribute(g, b, attr, kAttrValue);
+
+  return encoded;
+}
+
+// -------------------------------------------------------------------------- //
+
+LogicalResult DenseArrayAttrEncoding::Match(StringRef name,
+                                            Attribute attr) const {
+  if (auto array = attr.dyn_cast<mlir::DenseArrayBaseAttr>()) {
+    return success();
+  }
+  return failure();
+}
+
+FailureOr<EncodedAttr> DenseArrayAttrEncoding::Encode(Globals &g,
+                                                      ImplicitLocOpBuilder &b,
+                                                      StringRef name,
+                                                      Attribute attr) const {
+  auto array = attr.dyn_cast<DenseArrayBaseAttr>();
+  Type elem_type = array.getType().cast<mlir::VectorType>().getElementType();
+
+  Encoded encoded;
+  encoded.name = PackString(g, b, name, kAttrName);
+  encoded.type_id = PackTypeId(g, b, ArrayRuntimeTypeId(elem_type));
+  encoded.value = PackDenseArrayAttribute(g, b, attr, kAttrValue);
 
   return encoded;
 }
@@ -771,8 +897,9 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
 
 CustomCallAttrEncodingSet DefaultAttrEncodings() {
   CustomCallAttrEncodingSet encodings;
-  encodings.Add<StringAttrEncoding, ScalarAttrEncoding,
-                DenseElementsAttrEncoding, ArrayAttrEncoding>();
+  encodings
+      .Add<StringAttrEncoding, ScalarAttrEncoding, DenseElementsAttrEncoding,
+           ArrayAttrEncoding, DenseArrayAttrEncoding>();
   return encodings;
 }
 

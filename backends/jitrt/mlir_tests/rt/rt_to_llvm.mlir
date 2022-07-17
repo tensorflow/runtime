@@ -96,6 +96,40 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 
 // -----
 
+// CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
+
+// CHECK: global internal constant @__rt_attr_value_0()
+// CHECK-SAME: : !llvm.array<3 x i64> {
+// CHECK:   llvm.mlir.undef : !llvm.array<3 x i64>
+// CHECK:   arith.constant 1 : i64
+// CHECK:   llvm.insertvalue
+// CHECK:   arith.constant 2 : i64
+// CHECK:   llvm.insertvalue
+// CHECK:   arith.constant 3 : i64
+// CHECK:   llvm.insertvalue
+// CHECK: }
+
+// CHECK: global internal constant @__rt_attr_value()
+// CHECK-SAME: !llvm.struct<(i64, ptr<array<3 x i64>>)> {
+// CHECK    arith.constant 3 : i64
+// CHECK    llvm.mlir.addressof @__rt_attr_value_0
+// CHECK    llvm.mlir.undef : !llvm.struct<(i64, ptr<array<3 x i64>>)>
+// CHECK    llvm.mlir.insertvalue
+// CHECK    llvm.mlir.insertvalue
+// CHECK: }
+
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] ()
+    { attr_name = [:i64 1, 2, 3] } : () -> ()
+  func.return
+}
+
+// -----
+
 // CHECK: global internal constant @__rt_custom_call_callee("target\00")
 // CHECK: global internal constant @__rt_num_attrs(0 : i64) : i64
 

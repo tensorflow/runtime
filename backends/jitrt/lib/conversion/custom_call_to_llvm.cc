@@ -97,11 +97,9 @@ FailureOr<EncodedAttr> CustomCallAttrEncodingSet::Encode(
 }
 
 // -------------------------------------------------------------------------- //
-// A set of helper functions for packing primitive types.
+// A set of helper functions for packing primitive attributes.
 // -------------------------------------------------------------------------- //
 
-// Packs TypeID as `i64` constant value and casts it to the `!llvm.ptr<i8>`,
-// because type id internally is implemented as an opaque pointer.
 Value PackTypeId(Globals &g, ImplicitLocOpBuilder &b, TypeID type_id) {
   auto i64 = reinterpret_cast<std::uintptr_t>(type_id.getAsOpaquePointer());
   auto cst = b.create<ConstantOp>(b.getI64IntegerAttr(i64));
@@ -109,11 +107,6 @@ Value PackTypeId(Globals &g, ImplicitLocOpBuilder &b, TypeID type_id) {
   return b.create<LLVM::IntToPtrOp>(ptr, cst);
 }
 
-// Packs string as a module global constants. Returns
-// `!llvm.ptr<EncodedArray<char>>`.
-// We always pass string with the size to the runtime intrinsics, because
-// computing the length of null-terminated string can be expensive, and we need
-// it to construct llvm::StringRef at run time.
 Value PackString(Globals &g, ImplicitLocOpBuilder &b, StringRef strref,
                  StringRef symbol_base) {
   MLIRContext *ctx = b.getContext();
@@ -144,6 +137,7 @@ Value PackString(Globals &g, ImplicitLocOpBuilder &b, StringRef strref,
   return Globals::AddrOf(b, global);
 }
 
+// Packs scalar attribute as a global constant. Returns `!llvm.ptr<AttrType>`.
 Value PackScalarAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
                           StringRef symbol_base) {
   auto global = g.GetOrCreate(b, value, symbol_base);
@@ -157,6 +151,10 @@ static mlir::DenseElementsAttr Flatten(DenseIntOrFPElementsAttr dense) {
       {shaped_type.getNumElements()}, dense.getElementType());
   return dense.reshape(new_shaped_type);
 }
+
+// -------------------------------------------------------------------------- //
+// A set of helper functions for packing dense and array-like attributes.
+// -------------------------------------------------------------------------- //
 
 // Packs dense elements attribute as a global constant. Returns
 // `!llvm.ptr<EncodedDenseElements>`.
@@ -245,8 +243,9 @@ static Value CreateGlobalFromArray(Globals &g, ImplicitLocOpBuilder &b,
   return Globals::AddrOf(b, global);
 }
 
-Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
-                         StringRef symbol_base) {
+// Packs array attribute as a global constant. Returns `!llvm.ptr<EncodedArr>`.
+static Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                Attribute value, StringRef symbol_base) {
   MLIRContext *ctx = b.getContext();
 
   ArrayAttr array = value.cast<ArrayAttr>();
@@ -376,8 +375,12 @@ static Value PackDenseArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
   return Globals::AddrOf(b, global);
 }
 
+// -------------------------------------------------------------------------- //
+// Packing primitive values on the stack.
+// -------------------------------------------------------------------------- //
+
 // Packs value on the stack. Returns `!llvm.ptr<ValueType>`.
-Value PackValue(ImplicitLocOpBuilder &b, Value value) {
+static Value PackValue(ImplicitLocOpBuilder &b, Value value) {
   Type ptr = LLVM::LLVMPointerType::get(value.getType());
   Value one = b.create<ConstantOp>(b.getI32IntegerAttr(1));
   Value mem = b.create<LLVM::AllocaOp>(ptr, one, 0);

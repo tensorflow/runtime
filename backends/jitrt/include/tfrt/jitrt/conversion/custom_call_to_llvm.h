@@ -166,7 +166,7 @@ class CustomCallAttrEncodingSet {
 };
 
 // -------------------------------------------------------------------------- //
-// A set of helper functions for packing attributes and values.
+// A set of helper functions for packing primitive attributes.
 // -------------------------------------------------------------------------- //
 
 // Packs TypeID as `i64` constant value and casts it to the `!llvm.ptr<i8>`,
@@ -174,11 +174,11 @@ class CustomCallAttrEncodingSet {
 mlir::Value PackTypeId(Globals &g, mlir::ImplicitLocOpBuilder &b,
                        mlir::TypeID type_id);
 
-// Packs string as a module global constants. Returns
-// `!llvm.ptr<EncodedArray<char>>`.
-// We always pass string with the size to the runtime intrinsics, because
-// computing the length of null-terminated string can be expensive, and we need
-// it to construct llvm::StringRef at run time.
+// Packs string as a module global null-terminated string constant. We reuse
+// the encoding scheme for arrays to store sting with its size, to avoid
+// computing the length of the null-terminated string at run tine.
+//
+// Returns `!llvm.ptr<EncodedArray<char>>`.
 mlir::Value PackString(Globals &g, mlir::ImplicitLocOpBuilder &b,
                        llvm::StringRef strref, llvm::StringRef symbol_base);
 
@@ -186,14 +186,6 @@ mlir::Value PackString(Globals &g, mlir::ImplicitLocOpBuilder &b,
 mlir::Value PackScalarAttribute(Globals &g, mlir::ImplicitLocOpBuilder &b,
                                 mlir::Attribute value,
                                 mlir::StringRef symbol_base);
-
-// Packs array attribute as a global constant. Returns `!llvm.ptr<EncodedArr>`.
-mlir::Value PackArrayAttribute(Globals &g, mlir::ImplicitLocOpBuilder &b,
-                               mlir::Attribute value,
-                               llvm::StringRef symbol_base);
-
-// Packs value on the stack. Returns `!llvm.ptr<ValueType>`.
-mlir::Value PackValue(mlir::ImplicitLocOpBuilder &b, mlir::Value value);
 
 // -------------------------------------------------------------------------- //
 // A helper class to create global constants in the module.

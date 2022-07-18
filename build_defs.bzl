@@ -96,6 +96,7 @@ TFRT_LINKOPTS = select({
         "-ldl",
         "-lm",
         "-lpthread",  # copybara:comment
+        "-lrt",  # copybara:comment
     ],
 })
 

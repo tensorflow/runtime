@@ -195,7 +195,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/host_context/static_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":support",

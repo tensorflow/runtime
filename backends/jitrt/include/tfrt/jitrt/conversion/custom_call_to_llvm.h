@@ -22,6 +22,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -97,8 +98,7 @@ class CustomCallArgEncodingSet {
 
   template <typename... Ts, typename = std::enable_if_t<sizeof...(Ts) != 0>>
   CustomCallArgEncodingSet &Add() {
-    (void)std::initializer_list<int>{
-        0, (encodings_.emplace_back(std::make_shared<Ts>()), 0)...};
+    (encodings_.emplace_back(std::make_shared<Ts>()), ...);
     return *this;
   }
 
@@ -146,8 +146,7 @@ class CustomCallAttrEncodingSet {
 
   template <typename... Ts, typename = std::enable_if_t<sizeof...(Ts) != 0>>
   CustomCallAttrEncodingSet &Add() {
-    (void)std::initializer_list<int>{
-        0, (encodings_.emplace_back(std::make_shared<Ts>()), 0)...};
+    (encodings_.emplace_back(std::make_shared<Ts>()), ...);
     return *this;
   }
 
@@ -156,8 +155,7 @@ class CustomCallAttrEncodingSet {
             typename = std::enable_if_t<sizeof...(Ts) != 0>>
   CustomCallAttrEncodingSet &Add(ConstructorArg &&arg,
                                  ConstructorArgs &&...args) {
-    (void)std::initializer_list<int>{
-        0, (encodings_.emplace_back(std::make_shared<Ts>(arg, args...)), 0)...};
+    (encodings_.emplace_back(std::make_shared<Ts>(arg, args...)), ...);
     return *this;
   }
 
@@ -356,7 +354,7 @@ struct AggregateAttrDef {
   AggregateAttrDef &Add(std::string name, Extract<T> extract,
                         Encode<T, Attr> encode) {
     bindings.emplace_back([=](AttrType attr, mlir::Builder &b) {
-      auto encoded = (b.*encode)((attr.*extract)());  // C++17 std::invoke
+      auto encoded = std::invoke(encode, b, std::invoke(extract, attr));
       return mlir::NamedAttribute(b.getStringAttr(name), encoded);
     });
     return *this;
@@ -383,8 +381,7 @@ template <typename AttrType, typename RuntimeType = AttrType>
 struct AggregateAttrEncoding : public CustomCallAttrEncoding {
   using AttrDef = AggregateAttrDef<AttrType>;
 
-  // TODO(ezhulenev): `Encode` function should get a `CustomCallAttrEncodingSet`
-  // as an argument, so we wouldn't have to make a copy here.
+  // TODO(ezhulenev): Capture attr encoding set by refefence.
   AggregateAttrEncoding(CustomCallAttrEncodingSet encoding, AttrDef attrdef)
       : encoding(std::move(encoding)), attrdef(std::move(attrdef)) {}
 

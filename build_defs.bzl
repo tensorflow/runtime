@@ -92,11 +92,16 @@ TFRT_COPTS = select({
 
 TFRT_LINKOPTS = select({
     "@tf_runtime//:windows": [],
-    "//conditions:default": [
+    "@tf_runtime//:linux_x86_64": [
         "-ldl",
         "-lm",
         "-lpthread",  # copybara:comment
         "-lrt",  # copybara:comment
+    ],
+    "//conditions:default": [
+        "-ldl",
+        "-lm",
+        "-lpthread",  # copybara:comment
     ],
 })
 

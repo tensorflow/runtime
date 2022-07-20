@@ -14,12 +14,11 @@ limitations under the License.
 ==============================================================================*/
 
 #include <iterator>
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "mlir/Conversion/LLVMCommon/MemRefBuilder.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -38,7 +37,6 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
-#include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 
 namespace tfrt {
@@ -49,21 +47,16 @@ using llvm::DenseMap;
 
 using mlir::ArrayAttr;
 using mlir::Attribute;
-using mlir::ComplexType;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
-using mlir::DenseIntOrFPElementsAttr;
 using mlir::failure;
 using mlir::FailureOr;
 using mlir::FunctionType;
-using mlir::getStridesAndOffset;
 using mlir::ImplicitLocOpBuilder;
 using mlir::IntegerType;
 using mlir::LLVMTypeConverter;
 using mlir::Location;
 using mlir::LogicalResult;
-using mlir::MemRefDescriptor;
-using mlir::MemRefType;
 using mlir::MLIRContext;
 using mlir::ModuleOp;
 using mlir::NamedAttribute;
@@ -71,13 +64,11 @@ using mlir::OpBuilder;
 using mlir::OpConversionPattern;
 using mlir::OperationPass;
 using mlir::RewritePatternSet;
-using mlir::ShapedType;
 using mlir::StringAttr;
 using mlir::StringRef;
 using mlir::success;
 using mlir::Type;
 using mlir::TypeConverter;
-using mlir::TypeID;
 using mlir::TypeRange;
 using mlir::UnrealizedConversionCastOp;
 using mlir::Value;
@@ -498,15 +489,17 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
 class ConvertRuntimeToLLVMPass
     : public ConvertRuntimeToLLVMPassBase<ConvertRuntimeToLLVMPass> {
  public:
-  ConvertRuntimeToLLVMPass(CustomCallArgEncodingSet arg_encoding,
-                           CustomCallAttrEncodingSet attr_encoding)
+  ConvertRuntimeToLLVMPass(
+      std::unique_ptr<CustomCallArgEncodingSet> arg_encoding,
+      std::unique_ptr<CustomCallAttrEncodingSet> attr_encoding)
       : arg_encoding_(std::move(arg_encoding)),
         attr_encoding_(std::move(attr_encoding)) {}
 
   void runOnOperation() override;
 
-  CustomCallArgEncodingSet arg_encoding_;
-  CustomCallAttrEncodingSet attr_encoding_;
+  // Keep encoding as `shared_ptr` to make pass copyable.
+  std::shared_ptr<CustomCallArgEncodingSet> arg_encoding_;
+  std::shared_ptr<CustomCallAttrEncodingSet> attr_encoding_;
 };
 
 void ConvertRuntimeToLLVMPass::runOnOperation() {
@@ -534,7 +527,7 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   patterns.add<SetOutputOpLowering, IsOkOpLowering>(llvm_converter, ctx);
   patterns.add<SetErrorOpLowering>(llvm_converter, ctx, globals);
   patterns.add<CustomCallOpLowering>(llvm_converter, ctx, globals,
-                                     arg_encoding_, attr_encoding_,
+                                     *arg_encoding_, *attr_encoding_,
                                      encoded_args);
 
   // Convert function signatures and call sites.
@@ -560,8 +553,8 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
 }  // namespace
 
 std::unique_ptr<OperationPass<ModuleOp>> CreateConvertRuntimeToLLVMPass(
-    CustomCallArgEncodingSet arg_encoding,
-    CustomCallAttrEncodingSet attr_encoding) {
+    std::unique_ptr<CustomCallArgEncodingSet> arg_encoding,
+    std::unique_ptr<CustomCallAttrEncodingSet> attr_encoding) {
   return std::make_unique<ConvertRuntimeToLLVMPass>(std::move(arg_encoding),
                                                     std::move(attr_encoding));
 }

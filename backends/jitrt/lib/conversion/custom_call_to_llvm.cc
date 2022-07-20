@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 
+#include <memory>
 #include <string>
 
 #include "llvm/ADT/StringRef.h"
@@ -898,17 +899,17 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
 // Default encodings for arguments and attributes.
 // -------------------------------------------------------------------------- //
 
-CustomCallAttrEncodingSet DefaultAttrEncodings() {
-  CustomCallAttrEncodingSet encodings;
+std::unique_ptr<CustomCallAttrEncodingSet> DefaultAttrEncodings() {
+  auto encodings = std::make_unique<CustomCallAttrEncodingSet>();
   encodings
-      .Add<StringAttrEncoding, ScalarAttrEncoding, DenseElementsAttrEncoding,
-           ArrayAttrEncoding, DenseArrayAttrEncoding>();
+      ->Add<StringAttrEncoding, ScalarAttrEncoding, DenseElementsAttrEncoding,
+            ArrayAttrEncoding, DenseArrayAttrEncoding>();
   return encodings;
 }
 
-CustomCallArgEncodingSet DefaultArgEncodings() {
-  CustomCallArgEncodingSet encodings;
-  encodings.Add<ScalarArgEncoding, MemrefArgEncoding>();
+std::unique_ptr<CustomCallArgEncodingSet> DefaultArgEncodings() {
+  auto encodings = std::make_unique<CustomCallArgEncodingSet>();
+  encodings->Add<ScalarArgEncoding, MemrefArgEncoding>();
   return encodings;
 }
 

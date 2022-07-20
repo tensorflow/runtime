@@ -98,12 +98,12 @@ class CustomCallArgEncodingSet {
 
   template <typename... Ts, typename = std::enable_if_t<sizeof...(Ts) != 0>>
   CustomCallArgEncodingSet &Add() {
-    (encodings_.emplace_back(std::make_shared<Ts>()), ...);
+    (encodings_.emplace_back(std::make_unique<Ts>()), ...);
     return *this;
   }
 
  private:
-  std::vector<std::shared_ptr<CustomCallArgEncoding>> encodings_;
+  std::vector<std::unique_ptr<CustomCallArgEncoding>> encodings_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -146,7 +146,7 @@ class CustomCallAttrEncodingSet {
 
   template <typename... Ts, typename = std::enable_if_t<sizeof...(Ts) != 0>>
   CustomCallAttrEncodingSet &Add() {
-    (encodings_.emplace_back(std::make_shared<Ts>()), ...);
+    (encodings_.emplace_back(std::make_unique<Ts>()), ...);
     return *this;
   }
 
@@ -155,12 +155,12 @@ class CustomCallAttrEncodingSet {
             typename = std::enable_if_t<sizeof...(Ts) != 0>>
   CustomCallAttrEncodingSet &Add(ConstructorArg &&arg,
                                  ConstructorArgs &&...args) {
-    (encodings_.emplace_back(std::make_shared<Ts>(arg, args...)), ...);
+    (encodings_.emplace_back(std::make_unique<Ts>(arg, args...)), ...);
     return *this;
   }
 
  private:
-  std::vector<std::shared_ptr<CustomCallAttrEncoding>> encodings_;
+  std::vector<std::unique_ptr<CustomCallAttrEncoding>> encodings_;
 };
 
 // -------------------------------------------------------------------------- //
@@ -381,9 +381,9 @@ template <typename AttrType, typename RuntimeType = AttrType>
 struct AggregateAttrEncoding : public CustomCallAttrEncoding {
   using AttrDef = AggregateAttrDef<AttrType>;
 
-  // TODO(ezhulenev): Capture attr encoding set by refefence.
-  AggregateAttrEncoding(CustomCallAttrEncodingSet encoding, AttrDef attrdef)
-      : encoding(std::move(encoding)), attrdef(std::move(attrdef)) {}
+  AggregateAttrEncoding(const CustomCallAttrEncodingSet &encoding,
+                        AttrDef attrdef)
+      : encoding(encoding), attrdef(std::move(attrdef)) {}
 
   mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute attr) const final {
     return mlir::success(attr.isa<AttrType>());
@@ -410,7 +410,7 @@ struct AggregateAttrEncoding : public CustomCallAttrEncoding {
     return encoded;
   }
 
-  CustomCallAttrEncodingSet encoding;
+  const CustomCallAttrEncodingSet &encoding;
   AttrDef attrdef;
 };
 
@@ -451,8 +451,8 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
 // Default encodings for arguments and attributes.
 // -------------------------------------------------------------------------- //
 
-CustomCallArgEncodingSet DefaultArgEncodings();
-CustomCallAttrEncodingSet DefaultAttrEncodings();
+std::unique_ptr<CustomCallArgEncodingSet> DefaultArgEncodings();
+std::unique_ptr<CustomCallAttrEncodingSet> DefaultAttrEncodings();
 
 }  // namespace jitrt
 }  // namespace tfrt

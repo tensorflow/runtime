@@ -28,8 +28,10 @@ namespace jitrt {
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 CreateConvertRuntimeToLLVMPass(
-    CustomCallArgEncodingSet arg_encoding = DefaultArgEncodings(),
-    CustomCallAttrEncodingSet attr_encoding = DefaultAttrEncodings());
+    std::unique_ptr<CustomCallArgEncodingSet> arg_encoding =
+        DefaultArgEncodings(),
+    std::unique_ptr<CustomCallAttrEncodingSet> attr_encoding =
+        DefaultAttrEncodings());
 
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/conversion/rt_gen_passes.h.inc"

@@ -20,13 +20,13 @@
 
 #include "tfrt/jitrt/jitrt_compiler.h"
 
+#include <memory>
 #include <utility>
 
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
 #include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVMPass.h"
-#include "mlir/Conversion/LLVMCommon/LoweringOptions.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Conversion/MathToLibm/MathToLibm.h"
@@ -136,12 +136,11 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(CreateConvertToKernelFunction());
 
   // Set up user-defined arguments and attributes encoding.
-  CustomCallArgEncodingSet arg_encoding = DefaultArgEncodings();
-  CustomCallAttrEncodingSet attr_encoding = DefaultAttrEncodings();
-  if (opts.populate_arg_encodings) opts.populate_arg_encodings(arg_encoding);
-  if (opts.populate_attr_encodings) opts.populate_attr_encodings(attr_encoding);
-  pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(arg_encoding),
-                                            std::move(attr_encoding)));
+  std::unique_ptr<CustomCallArgEncodingSet> args = DefaultArgEncodings();
+  std::unique_ptr<CustomCallAttrEncodingSet> attrs = DefaultAttrEncodings();
+  if (opts.populate_arg_encodings) opts.populate_arg_encodings(*args);
+  if (opts.populate_attr_encodings) opts.populate_attr_encodings(*attrs);
+  pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(args), std::move(attrs)));
 
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();

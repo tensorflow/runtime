@@ -665,6 +665,7 @@ tfrt_cc_library(
     srcs = ["lib/conversion/custom_call_to_llvm.cc"],
     hdrs = ["include/tfrt/jitrt/conversion/custom_call_to_llvm.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
     deps = [
         ":custom_call",
         "@llvm-project//llvm:Support",

@@ -90,6 +90,7 @@ module @print_attrs attributes { tfrt.compiled } {
       f32_array = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
       f64_array = [5.0, 6.0, 7.0, 8.0],
       i64_dense_array = [:i64 1, 2, 3],
+      empty_array = [],
       str = "some string",
       aaa = "these are unused attributes to test",
       mmm = "that custom call only decodes attributes",
@@ -156,6 +157,7 @@ module @direct_print_attrs attributes { tfrt.compiled } {
       invalid_attr_name_f32_arr = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
       invalid_attr_name_f64_arr = [5.0, 6.0, 7.0, 8.0],
       invalid_attr_name_i64_dense_arr = [:i64 1, 2, 3],
+      invalid_attr_name_empty_arr = [],
       invalid_attr_name_str = "some string"
     } : () -> ()
 
@@ -340,6 +342,7 @@ func.func @compiled_custom_call_print_attrs() {
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: i64[3] 1, 2, 3
+  // CHECK: i64[0]
   // CHECK: str: some string
 
   // Check that attributes not in the custom call signature are ignored.
@@ -395,6 +398,7 @@ func.func @compiled_custom_call_direct_print_attrs() {
   // CHECK: f32[4] 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00
   // CHECK: f64[4] 5.000000e+00, 6.000000e+00, 7.000000e+00, 8.000000e+00
   // CHECK: i64[3] 1, 2, 3
+  // CHECK: i64[0]
   // CHECK: str: some string
 
   %executable = jitrt.compile { kernel = @direct_print_attrs::@main }

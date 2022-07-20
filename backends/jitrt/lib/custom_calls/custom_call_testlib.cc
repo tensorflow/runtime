@@ -167,7 +167,7 @@ static LogicalResult PrintAttrs(
     CustomCall::TensorRef<int64_t> i64_2d_arr, ArrayRef<int32_t> i32_array,
     ArrayRef<int64_t> i64_array, ArrayRef<float> f32_array,
     ArrayRef<double> f64_array, ArrayRef<int64_t> i64_dense_array,
-    StringRef str) {
+    ArrayRef<int64_t> empty_array, StringRef str) {
   tfrt::outs() << caller << "\n";
 
   tfrt::outs() << "i32: " << i32 << "\n";
@@ -186,6 +186,7 @@ static LogicalResult PrintAttrs(
   print_arr<ArrayRef<float>>("f32", f32_array);
   print_arr<ArrayRef<double>>("f64", f64_array);
   print_arr<ArrayRef<int64_t>>("i64", i64_dense_array);
+  print_arr<ArrayRef<int64_t>>("i64", empty_array);
 
   tfrt::outs() << "str: " << str << "\n";
   tfrt::outs().flush();
@@ -354,6 +355,7 @@ static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
                           .Attr<ArrayRef<float>>("f32_array")
                           .Attr<ArrayRef<double>>("f64_array")
                           .Attr<ArrayRef<int64_t>>("i64_dense_array")
+                          .Attr<ArrayRef<int64_t>>("empty_array")
                           .Attr<StringRef>("str")
                           .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
                           .release();
@@ -400,6 +402,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<ArrayRef<float>>("f32_array")
                          .Attr<ArrayRef<double>>("f64_array")
                          .Attr<ArrayRef<int64_t>>("i64_dense_array")
+                         .Attr<ArrayRef<int64_t>>("empty_array")
                          .Attr<StringRef>("str")
                          .To(PrintAttrs));
 

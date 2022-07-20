@@ -324,6 +324,9 @@ struct CustomCallAttrDecoding;
 template <typename T>
 struct Tagged {};
 
+// A type tag to represent empty arrays of unknown element type.
+struct EmptyArrayRef {};
+
 // -------------------------------------------------------------------------- //
 // C structures corresponding to the `rt-to-llvm` pass LLVM structs encoding
 // various types of arguments/attributes.
@@ -947,19 +950,20 @@ JITRT_REGISTER_SCALAR_ATTR_DECODING(double);
 // Both EncodedArray and 1-D EncodedDenseElements can be decoded as an ArrayRef.
 // Pointers to both EncodedArray and 1-D EncodedDenseElements can be
 // dereferenced as a pointer to EncodedArray.
-#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                  \
-  template <CustomCall::RuntimeChecks checks>                                  \
-  struct CustomCallAttrDecoding<ArrayRef<T>, checks> {                         \
-    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode(   \
-        llvm::StringRef name, mlir::TypeID type_id, void* value) {             \
-      if (!CustomCall::CheckType<Tagged<ArrayRef<T>>>(checks, type_id) &&      \
-          (!CustomCall::CheckType<Tagged<CustomCall::TensorRef<T>>>(checks,    \
-                                                                    type_id))) \
-        return mlir::failure();                                                \
-                                                                               \
-      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);     \
-      return ArrayRef<T>(encoded->data, encoded->size);                        \
-    }                                                                          \
+#define JITRT_REGISTER_ARRAY_ATTR_DECODING(T)                                \
+  template <CustomCall::RuntimeChecks checks>                                \
+  struct CustomCallAttrDecoding<ArrayRef<T>, checks> {                       \
+    LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<ArrayRef<T>> Decode( \
+        llvm::StringRef name, mlir::TypeID type_id, void* value) {           \
+      if ((!CustomCall::CheckType<Tagged<ArrayRef<T>>>(checks, type_id)) &&  \
+          (!CustomCall::CheckType<Tagged<CustomCall::TensorRef<T>>>(         \
+              checks, type_id)) &&                                           \
+          (!CustomCall::CheckType<Tagged<EmptyArrayRef>>(checks, type_id)))  \
+        return mlir::failure();                                              \
+                                                                             \
+      auto* encoded = reinterpret_cast<internal::EncodedArray<T>*>(value);   \
+      return ArrayRef<T>(encoded->data, encoded->size);                      \
+    }                                                                        \
   }
 
 JITRT_REGISTER_ARRAY_ATTR_DECODING(int32_t);

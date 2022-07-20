@@ -376,6 +376,36 @@ static Value PackDenseArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
   return Globals::AddrOf(b, global);
 }
 
+static Value PackEmptyArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
+                                     Attribute value, StringRef symbol_base) {
+  MLIRContext *ctx = b.getContext();
+
+  // Encoded array type: !llvm.struct<(i64, !llvm.ptr<i8>)>.
+  // The pointer is always null. We use i8 as a placeholder type.
+  Type data_type = LLVM::LLVMPointerType::get(b.getI8Type());
+  Type type =
+      LLVM::LLVMStructType::getLiteral(ctx, {b.getI64Type(), data_type});
+
+  // Global constant initializer for the encoded array structure
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    // Array size and the pointer to data.
+    Value num_elements = ib.create<ConstantOp>(b.getI64IntegerAttr(0));
+    Value data = ib.create<LLVM::NullOp>(data_type);
+
+    // Store size and values into the struct.
+    Value encoded = ib.create<LLVM::UndefOp>(type);
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
+                                             ib.getI64ArrayAttr(0));
+    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data,
+                                             ib.getI64ArrayAttr(1));
+
+    ib.create<LLVM::ReturnOp>(encoded);
+  };
+
+  auto global = g.GetOrCreate(b, value, type, symbol_base, init);
+  return Globals::AddrOf(b, global);
+}
+
 // -------------------------------------------------------------------------- //
 // Packing primitive values on the stack.
 // -------------------------------------------------------------------------- //
@@ -705,6 +735,28 @@ FailureOr<EncodedAttr> DenseArrayAttrEncoding::Encode(Globals &g,
 }
 
 // -------------------------------------------------------------------------- //
+
+LogicalResult EmptyArrayAttrEncoding::Match(StringRef name,
+                                            Attribute attr) const {
+  if (auto array = attr.dyn_cast<ArrayAttr>()) {
+    if (array.empty()) return success();
+  }
+  return failure();
+}
+
+FailureOr<EncodedAttr> EmptyArrayAttrEncoding::Encode(Globals &g,
+                                                      ImplicitLocOpBuilder &b,
+                                                      StringRef name,
+                                                      Attribute attr) const {
+  Encoded encoded;
+  encoded.name = PackString(g, b, name, kAttrName);
+  encoded.type_id = PackTypeId(g, b, TypeID::get<Tagged<EmptyArrayRef>>());
+  encoded.value = PackEmptyArrayAttribute(g, b, attr, kAttrValue);
+
+  return encoded;
+}
+
+// -------------------------------------------------------------------------- //
 // Encoding for aggregate attributes.
 // -------------------------------------------------------------------------- //
 
@@ -901,9 +953,9 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
 
 std::unique_ptr<CustomCallAttrEncodingSet> DefaultAttrEncodings() {
   auto encodings = std::make_unique<CustomCallAttrEncodingSet>();
-  encodings
-      ->Add<StringAttrEncoding, ScalarAttrEncoding, DenseElementsAttrEncoding,
-            ArrayAttrEncoding, DenseArrayAttrEncoding>();
+  encodings->Add<StringAttrEncoding, ScalarAttrEncoding,
+                 DenseElementsAttrEncoding, ArrayAttrEncoding,
+                 DenseArrayAttrEncoding, EmptyArrayAttrEncoding>();
   return encodings;
 }
 

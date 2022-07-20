@@ -23,7 +23,7 @@ tfrt_dependencies()
 
 load("@bazel_skylib//lib:versions.bzl", "versions")
 
-versions.check(minimum_bazel_version = "4.0.0")
+versions.check(minimum_bazel_version = "5.1.0")
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
@@ -46,3 +46,7 @@ protobuf_deps()
 load("@rules_cc//cc:repositories.bzl", "rules_cc_toolchains")
 
 rules_cc_toolchains()
+
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "use_cpp_toolchain")
+
+use_cpp_toolchain()

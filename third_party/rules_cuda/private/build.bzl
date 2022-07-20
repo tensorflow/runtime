@@ -2,7 +2,7 @@
 
 load("//cuda:defs.bzl", "CudaTargetsInfo", "cuda_targets")
 load("//cuda:toolchain.bzl", "CudaToolchainInfo")
-load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain", "use_cpp_toolchain")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@local_cuda//:defs.bzl", "if_local_cuda")
 
@@ -39,7 +39,7 @@ detect_cuda_toolchain = rule(
             default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),
         ),
     },
-    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+    toolchains = use_cpp_toolchain(),
     fragments = ["cpp"],
 )
 

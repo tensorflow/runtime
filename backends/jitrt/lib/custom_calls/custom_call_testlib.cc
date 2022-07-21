@@ -20,6 +20,7 @@
 #include <iterator>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm_derived/Support/raw_ostream.h"
@@ -196,8 +197,11 @@ static LogicalResult PrintAttrs(
 
 static LogicalResult PrintVariantAttrs(CustomCall::VariantAttr attr1,
                                        CustomCall::VariantAttr attr2,
-                                       CustomCall::VariantAttr attr3) {
-  std::vector<CustomCall::VariantAttr> attrs = {attr1, attr2, attr3};
+                                       CustomCall::VariantAttr attr3,
+                                       CustomCall::VariantAttr attr4,
+                                       CustomCall::VariantAttr attr5) {
+  std::vector<CustomCall::VariantAttr> attrs = {attr1, attr2, attr3, attr4,
+                                                attr5};
   for (auto attr : attrs) {
     if (attr.isa<int32_t>()) {
       tfrt::outs() << "i32: " << attr.get<int32_t>();
@@ -210,12 +214,12 @@ static LogicalResult PrintVariantAttrs(CustomCall::VariantAttr attr1,
     } else if (attr.isa<ArrayRef<int32_t>>()) {
       print_arr<ArrayRef<int32_t>>("i32",
                                    attr.get<ArrayRef<int32_t>>().getValue());
-    } else if (attr.isa<ArrayRef<int32_t>>()) {
+    } else if (attr.isa<ArrayRef<int64_t>>()) {
       print_arr<ArrayRef<int64_t>>("i64",
                                    attr.get<ArrayRef<int64_t>>().getValue());
-    } else if (attr.isa<ArrayRef<int32_t>>()) {
+    } else if (attr.isa<ArrayRef<float>>()) {
       print_arr("f32", attr.get<ArrayRef<float>>().getValue());
-    } else if (attr.isa<ArrayRef<int32_t>>()) {
+    } else if (attr.isa<ArrayRef<double>>()) {
       print_arr<ArrayRef<double>>("f64",
                                   attr.get<ArrayRef<double>>().getValue());
     } else if (attr.isa<StringRef>()) {
@@ -430,6 +434,8 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("testlib.print_variant_attrs")
                          .Attr<CustomCall::VariantAttr>("i32")
                          .Attr<CustomCall::VariantAttr>("f32")
+                         .Attr<CustomCall::VariantAttr>("i32_array")
+                         .Attr<CustomCall::VariantAttr>("i64_array")
                          .Attr<CustomCall::VariantAttr>("str")
                          .To(PrintVariantAttrs));
 }

@@ -110,6 +110,8 @@ module @print_variant_attrs attributes { tfrt.compiled } {
     func.call @print_variant_attrs.cc() {
       i32 = 101 : i32,
       f32 = 1.0 : f32,
+      i32_array = [101 : i32, 102 : i32, 103 : i32, 104 : i32],
+      i64_array = [105, 106, 107, 108],
       str = "some string"
     } : () -> ()
 
@@ -359,6 +361,8 @@ func.func @compiled_custom_call_print_variant_attrs() {
 
   // CHECK: i32: 101
   // CHECK: f32: 1.000000e+00
+  // CHECK: i32[4] 101, 102, 103, 104
+  // CHECK: i64[4] 105, 106, 107, 108
   // CHECK: str: some string
   %executable = jitrt.compile { kernel = @print_variant_attrs::@main }
   jitrt.execute %executable[%ch0]() : () -> ()

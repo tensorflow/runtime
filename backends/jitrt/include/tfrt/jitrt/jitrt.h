@@ -954,7 +954,7 @@ class Executable {
   // Requirements for passing arguments to the compiled function.
   struct ArgumentsMemoryLayout {
     // Currently we always pass arguments as an array of pointers.
-    size_t num_args_ptrs;
+    size_t num_args_ptrs = 0;
   };
 
   // Requirements for the contiguous block of memory to store compiled function
@@ -962,8 +962,8 @@ class Executable {
   // and pass pointers to pre-computed offsets as output arguments to the
   // function.
   struct ResultsMemoryLayout {
-    bool has_async_results;             // true iff returns async results
-    size_t size;                        // number of bytes required
+    bool has_async_results = false;     // true iff returns async results
+    size_t size = 0;                    // number of bytes required
     llvm::SmallVector<size_t> offsets;  // offsets in the block of memory
   };
 

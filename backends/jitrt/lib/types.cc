@@ -80,9 +80,49 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type) {
   return os;
 }
 
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
+// ABI definition for canonical types.
+//===----------------------------------------------------------------------===//
+
+using ArgumentAbi = Type::ArgumentAbi;
+using ResultAbi = Type::ResultAbi;
+
+// Async token returned as a pointer to the runtime async token.
+mlir::FailureOr<ResultAbi> AsyncTokenType::AsResult() const {
+  return ResultAbi{sizeof(void*)};
+}
+
+// Async value returned as a pointer to the runtime async token.
+mlir::FailureOr<ResultAbi> AsyncValueType::AsResult() const {
+  return ResultAbi{sizeof(void*)};
+}
+
+// Memref passed as an unrolled strided memref type.
+mlir::FailureOr<ArgumentAbi> MemrefType::AsArgument() const {
+  return ArgumentAbi{3 + 2 * rank()};
+}
+
+// TODO(ezhulenev): We should query the size of the `StridedMemrefType`
+// directly, however it introduces dependency on the MLIR C runner utils.
+//
+// Memrefs are returned as StridedMemref<T, rank> type:
+//   basePtr, data, offset, sizes[rank], strides[rank]
+mlir::FailureOr<ResultAbi> MemrefType::AsResult() const {
+  return ResultAbi{
+      sizeof(void*) * 2 +           // pointers
+      sizeof(int64_t) +             // offset
+      sizeof(int64_t) * 2 * rank()  // sizes and strides
+  };
+}
+
+// Kernel context passed as a single opaque pointer.
+mlir::FailureOr<ArgumentAbi> KernelContextOperandType::AsArgument() const {
+  return ArgumentAbi{1};
+}
+
+//===----------------------------------------------------------------------===//
 // Compiled function signature types conversion from the MLIR types.
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
 
 Expected<DType> ConvertElementType(mlir::Type type) {
   if (type.isF32()) return DType::F32;

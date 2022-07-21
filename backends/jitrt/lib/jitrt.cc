@@ -72,8 +72,8 @@
 namespace tfrt {
 namespace jitrt {
 
-// PRE-C++17: Static constexpr class members are required to have a definition.
-constexpr int64_t MemrefType::kDynamicSize;
+using mlir::FailureOr;
+using mlir::succeeded;
 
 // Enable IR printing during the kernel compilation pipeline execution.
 static bool DebugJitrtCompile() {
@@ -180,85 +180,52 @@ ExecutionEngine::SymbolsBinding JiRtSymbolsBinding(
 // Get compiled function arguments and results memory layouts.
 //----------------------------------------------------------------------------//
 
-using ArgumentsMemoryLayout = Executable::ArgumentsMemoryLayout;
-using ResultsMemoryLayout = Executable::ResultsMemoryLayout;
+/*static*/ Expected<Executable::ArgumentsMemoryLayout>
+Executable::GetArgumentsMemoryLayout(const FunctionType& signature) {
+  // Requirements for passing function arguments.
+  ArgumentsMemoryLayout layout;
 
-Expected<ArgumentsMemoryLayout> Executable::GetArgumentsMemoryLayout(
-    const FunctionType& signature) {
-  // Size of the arguments pointers array.
-  size_t num_args_ptrs = 0;
-
-  // Verify all operands types and record memory requirements.
   for (unsigned i = 0; i < signature.num_operands(); ++i) {
-    auto* type = signature.operand(i);
+    const Type* type = signature.operand(i);
 
-    // Kernel context passed as an opaque pointer.
-    if (auto* ctx = dyn_cast<KernelContextOperandType>(type)) {
-      ++num_args_ptrs;
+    // Check if the type defines the ABI for passing it as an argument.
+    if (FailureOr<Type::ArgumentAbi> abi = type->AsArgument(); succeeded(abi)) {
+      layout.num_args_ptrs += abi->num_ptrs;
       continue;
     }
 
-    // Memref passed as: 2 pointers + offset + rank * (size + stride)
-    if (auto* memref = llvm::dyn_cast<MemrefType>(type)) {
-      num_args_ptrs += 3 + 2 * memref->rank();
-      continue;
-    }
-
-    return MakeStringError("unknown operand #", i,
-                           " type memory layout: ", *type);
+    return MakeStringError("unknown operand #", i, " argument ABI: ", *type);
   }
 
-  return ArgumentsMemoryLayout{num_args_ptrs};
+  return layout;
 }
 
-Expected<ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
-    const FunctionType& signature) {
-  // Size of the memory block required for storing results, and offsets for
-  // each function result.
-  bool has_async_results = false;
-  size_t results_size_bytes = 0;
-  llvm::SmallVector<size_t> results_offsets_bytes;
-  results_offsets_bytes.reserve(signature.num_results());
+/*static*/ Expected<Executable::ResultsMemoryLayout>
+Executable::GetResultsMemoryLayout(const FunctionType& signature) {
+  // Requirements for returning function results.
+  ResultsMemoryLayout layout;
+  layout.offsets.reserve(signature.num_results());
 
-  // Allocate `size_bytes` block of memory to store the function result.
-  auto allocate_result = [&](size_t size_bytes) {
-    results_offsets_bytes.emplace_back(results_size_bytes);
-    results_size_bytes += size_bytes;
-  };
+  // TODO(ezhulenev): We should support allocating storage for results with non
+  // standard alignment requirements.
 
-  // Verify all result types and record memory requirements.
   for (unsigned i = 0; i < signature.num_results(); ++i) {
-    auto* type = signature.result(i);
+    const Type* type = signature.result(i);
 
-    // Async tokens stored as void* pointers.
-    if (llvm::isa<AsyncTokenType>(type)) {
-      allocate_result(sizeof(void*));
-      has_async_results = true;
+    // Keep track if the function has asynchronous results.
+    layout.has_async_results |= llvm::isa<AsyncTokenType, AsyncValueType>(type);
+
+    // Check if the type defines the ABI for returning it as a result.
+    if (FailureOr<Type::ResultAbi> abi = type->AsResult(); succeeded(abi)) {
+      layout.offsets.emplace_back(layout.size);
+      layout.size += abi->size;
       continue;
     }
 
-    // Async values stored as void* pointers.
-    if (llvm::isa<AsyncValueType>(type)) {
-      allocate_result(sizeof(void*));
-      has_async_results = true;
-      continue;
-    }
-
-    // Memrefs are stored as StridedMemref<T, rank> type:
-    //   basePtr, data, offset, sizes[rank], strides[rank]
-    if (auto* memref = llvm::dyn_cast<MemrefType>(type)) {
-      allocate_result(/*pointers*/ 2 * sizeof(void*) +
-                      /*offset*/ sizeof(int64_t) +
-                      /*sizes/strides*/ sizeof(int64_t) * 2 * memref->rank());
-      continue;
-    }
-
-    return MakeStringError("unknown result #", i,
-                           " type memory layout: ", *type);
+    return MakeStringError("unknown result #", i, " type result ABI: ", *type);
   }
 
-  return ResultsMemoryLayout{has_async_results, results_size_bytes,
-                             std::move(results_offsets_bytes)};
+  return layout;
 }
 
 // -------------------------------------------------------------------------- //
@@ -1212,7 +1179,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // We rely on the hash code to find the specialized executable. In case of
   // a collision (practically impossible) incompatible arguments will be
   // rejected by the executable arguments verification.
-  mlir::FailureOr<llvm::hash_code> hash =
+  FailureOr<llvm::hash_code> hash =
       symbolic_shapes_resolver_.ResolveHash(arguments);
 
   // If we failed to resolve the symbolic shapes hash, then we need to verify
@@ -1275,7 +1242,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
-  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
+  FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
       symbolic_shapes_resolver_.Resolve(arguments);
   if (auto err = (*ctx)->Specialize(arguments, *symbolic_shapes, constraints_,
                                     listener)) {

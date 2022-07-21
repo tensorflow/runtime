@@ -40,9 +40,40 @@ namespace jitrt {
 //
 // We rely on the RTTI for the open class hierarchies, because we want to allow
 // users to define their own types for the arguments.
+//
+// If the type can be passed to the compiled function as an argument or returned
+// as a result, it must define its own ABI. The ABI is defined by the MLIR to
+// LLVM lowering pipeline and the runtime integration (see `runtime.h`).
 class Type : public llvm::RTTIExtends<Type, llvm::RTTIRoot> {
  public:
   static constexpr char ID = 0;  // NOLINT
+
+  // Arguments to compiled functions passed as a set of pointers. For example
+  // memref descriptor passed in as a set of pointers to data, sizes and
+  // strides. See `Argument::Pack` implementation for details (in `argument.h`).
+  struct ArgumentAbi {
+    size_t num_ptrs;
+  };
+
+  // Compiled function returns results by writing into the pre-allocated storage
+  // of the given size with the requested alignment. Runtime pre-allocates
+  // memory required for all results in the call frame.
+  struct ResultAbi {
+    size_t size;
+
+    // TODO(ezhulenev): Add alignment to the result ABI. Alignment is an
+    // important part of the result ABI that we ignore today. It all doesn't
+    // crash only because all results happen to have a size that is multiple of
+    // 8 bytes, and because of that all of the results are properly aligned.
+    // Results memory layout in the call frame should take in account base
+    // pointer alignment and alignment requirements of all results.
+  };
+
+  // Returns an Abi if the type can be used as an argument.
+  virtual mlir::FailureOr<ArgumentAbi> AsArgument() const { return {}; }
+
+  // Returns an Abi if the type can be returned as a result.
+  virtual mlir::FailureOr<ResultAbi> AsResult() const { return {}; }
 
  protected:
   Type() = default;
@@ -57,6 +88,8 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type);
 class AsyncTokenType : public llvm::RTTIExtends<AsyncTokenType, Type> {
  public:
   static constexpr char ID = 0;  // NOLINT
+
+  mlir::FailureOr<ResultAbi> AsResult() const final;
 };
 
 //===----------------------------------------------------------------------===//
@@ -71,6 +104,8 @@ class AsyncValueType : public llvm::RTTIExtends<AsyncValueType, Type> {
       : value_type_(std::move(value_type)) {}
 
   const Type& value_type() const { return *value_type_; }
+
+  mlir::FailureOr<ResultAbi> AsResult() const final;
 
  private:
   std::unique_ptr<Type> value_type_;
@@ -130,6 +165,9 @@ class MemrefType : public llvm::RTTIExtends<MemrefType, Type> {
   unsigned rank() const { return sizes_.size(); }
   DType element_type() const { return element_type_; }
 
+  mlir::FailureOr<ArgumentAbi> AsArgument() const final;
+  mlir::FailureOr<ResultAbi> AsResult() const final;
+
  private:
   llvm::SmallVector<Index> sizes_;
   DType element_type_;
@@ -160,6 +198,8 @@ class KernelContextOperandType
     : public llvm::RTTIExtends<KernelContextOperandType, Type> {
  public:
   static constexpr char ID = 0;  // NOLINT
+
+  mlir::FailureOr<ArgumentAbi> AsArgument() const final;
 };
 
 //===----------------------------------------------------------------------===//

@@ -701,8 +701,8 @@ class CustomCallHandler : public CustomCall {
     int64_t num_attrs = decoded_attrs.size();
 
     // Unpoison the rest of the of args and attrs data.
-    TFRT_MSAN_MEMORY_IS_INITIALIZED(args, num_args * sizeof(void*));
-    TFRT_MSAN_MEMORY_IS_INITIALIZED(attrs, num_attrs * sizeof(void*));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(args, (1 + 2 * num_args) * sizeof(void*));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(attrs, (1 + 3 * num_attrs) * sizeof(void*));
 
     if (LLVM_UNLIKELY(diagnostic == nullptr))
       diagnostic = DiagnosticEngine::DefaultDiagnosticEngine();
@@ -860,6 +860,10 @@ struct CustomCallArgDecoding<StridedMemrefView, checks> {
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(encoded, sizeof(EncodedMemref));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(
+        encoded, sizeof(EncodedMemref) + encoded->rank * sizeof(int64_t));
+
     DType dtype = static_cast<DType>(encoded->dtype);
     return StridedMemrefView{dtype,
                              encoded->data,
@@ -878,6 +882,10 @@ struct CustomCallArgDecoding<MemrefView, checks> {
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(encoded, sizeof(EncodedMemref));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(
+        encoded, sizeof(EncodedMemref) + encoded->rank * sizeof(int64_t));
+
     DType dtype = static_cast<DType>(encoded->dtype);
     return MemrefView{dtype, encoded->data, {encoded->dims, encoded->rank}};
   }
@@ -894,6 +902,10 @@ struct CustomCallArgDecoding<FlatMemrefView, checks> {
       return mlir::failure();
 
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(encoded, sizeof(EncodedMemref));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(
+        encoded, sizeof(EncodedMemref) + encoded->rank * sizeof(int64_t));
+
     DType dtype = static_cast<DType>(encoded->dtype);
     int64_t size_in_bytes = GetHostSize(dtype);
     for (int d = 0; d < encoded->rank; ++d) size_in_bytes *= encoded->dims[d];

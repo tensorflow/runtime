@@ -47,6 +47,7 @@
 namespace tfrt {
 namespace jitrt {
 
+using llvm::Error;
 using mlir::failure;
 using mlir::LogicalResult;
 using mlir::succeeded;
@@ -105,11 +106,11 @@ static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
   return success();
 }
 
-static LogicalResult Multiply(MemrefView input, MemrefView output, float cst) {
+static Error Multiply(MemrefView input, MemrefView output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
   if (input.dtype != output.dtype || input.sizes != output.sizes ||
       input.dtype != DType::F32)
-    return failure();
+    return MakeStringError("Unsupported floating point dtype");
 
   int64_t num_elements = 1;
   for (int64_t d : input.sizes) num_elements *= d;
@@ -120,7 +121,7 @@ static LogicalResult Multiply(MemrefView input, MemrefView output, float cst) {
   for (int64_t i = 0; i < num_elements; ++i)
     output_data[i] = input_data[i] * cst;
 
-  return success();
+  return Error::success();
 }
 
 template <typename Array>

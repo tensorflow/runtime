@@ -34,6 +34,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/Error.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "tfrt/dtype/dtype.h"
@@ -671,9 +672,16 @@ class CustomCallHandler : public CustomCall {
   template <typename T>
   using FnArgType = typename internal::FnArgType<T>::Type;
 
-  static_assert(
-      std::is_invocable_r<mlir::LogicalResult, Fn, FnArgType<Ts>...>::value,
-      "incompatible custom call handler types");
+  // Custom call can signal error using a LogicalError result.
+  static constexpr bool kIsLogicalErr =
+      std::is_invocable_r_v<mlir::LogicalResult, Fn, FnArgType<Ts>...>;
+
+  // Custom call can signal error together with a detailed error message.
+  static constexpr bool kIsDetailedErr =
+      std::is_invocable_r_v<llvm::Error, Fn, FnArgType<Ts>...>;
+
+  static_assert(kIsLogicalErr || kIsDetailedErr,
+                "incompatible custom call handler types");
 
  public:
   llvm::StringRef name() const final { return callee_; }
@@ -754,8 +762,18 @@ class CustomCallHandler : public CustomCall {
       return diagnostic->EmitError()
              << "Failed to decode all custom call arguments and attributes";
 
-    // Forward unpacked arguments to the callback.
-    return fn_(std::move(*std::get<Is>(fn_args))...);
+    // Custom call returns logical result to signal failures.
+    if constexpr (kIsLogicalErr)
+      return fn_(std::move(*std::get<Is>(fn_args))...);
+
+    // Custom call returns detailed error to signal failures.
+    if constexpr (kIsDetailedErr) {
+      if (auto err = fn_(std::move(*std::get<Is>(fn_args))...))
+        return diagnostic->EmitError() << std::move(err);
+      return mlir::success();
+    }
+
+    llvm_unreachable("unexpected custom call type");
   }
 
  private:

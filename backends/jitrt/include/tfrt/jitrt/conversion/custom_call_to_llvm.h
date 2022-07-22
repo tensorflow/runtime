@@ -366,6 +366,10 @@ struct AggregateAttrDef {
     return *this;
   }
 
+  AggregateAttrDef &Add(std::string name, Extract<bool> extract) {
+    return Add(name, extract, &mlir::Builder::getBoolAttr);
+  }
+
   AggregateAttrDef &Add(std::string name, Extract<int64_t> extract) {
     return Add(name, extract, &mlir::Builder::getI64IntegerAttr);
   }

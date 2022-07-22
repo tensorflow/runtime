@@ -862,7 +862,7 @@ struct CustomCallArgDecoding<StridedMemrefView, checks> {
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
     TFRT_MSAN_MEMORY_IS_INITIALIZED(encoded, sizeof(EncodedMemref));
     TFRT_MSAN_MEMORY_IS_INITIALIZED(
-        encoded, sizeof(EncodedMemref) + sizeof(int64_t[encoded->rank]));
+        encoded, sizeof(EncodedMemref) + encoded->rank * sizeof(int64_t));
 
     DType dtype = static_cast<DType>(encoded->dtype);
     return StridedMemrefView{dtype,
@@ -884,7 +884,7 @@ struct CustomCallArgDecoding<MemrefView, checks> {
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
     TFRT_MSAN_MEMORY_IS_INITIALIZED(encoded, sizeof(EncodedMemref));
     TFRT_MSAN_MEMORY_IS_INITIALIZED(
-        encoded, sizeof(EncodedMemref) + sizeof(int64_t[encoded->rank]));
+        encoded, sizeof(EncodedMemref) + encoded->rank * sizeof(int64_t));
 
     DType dtype = static_cast<DType>(encoded->dtype);
     return MemrefView{dtype, encoded->data, {encoded->dims, encoded->rank}};
@@ -904,7 +904,7 @@ struct CustomCallArgDecoding<FlatMemrefView, checks> {
     auto* encoded = reinterpret_cast<EncodedMemref*>(value);
     TFRT_MSAN_MEMORY_IS_INITIALIZED(encoded, sizeof(EncodedMemref));
     TFRT_MSAN_MEMORY_IS_INITIALIZED(
-        encoded, sizeof(EncodedMemref) + sizeof(int64_t[encoded->rank]));
+        encoded, sizeof(EncodedMemref) + encoded->rank * sizeof(int64_t));
 
     DType dtype = static_cast<DType>(encoded->dtype);
     int64_t size_in_bytes = GetHostSize(dtype);

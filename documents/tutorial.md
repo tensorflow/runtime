@@ -18,7 +18,7 @@ in
 Create a file called `hello.mlir` with the following content:
 
 ```c++
-func @hello() {
+func.func @hello() {
   %chain = tfrt.new.chain
 
   // Create a string containing "hello world" and store it in %hello.
@@ -99,7 +99,7 @@ arguments. We can add another function to `hello.mlir` by appending the
 following to `hello.mlir`:
 
 ```c++
-func @hello_integers() {
+func.func @hello_integers() {
   %chain = tfrt.new.chain
 
   // Create an integer containing 42.

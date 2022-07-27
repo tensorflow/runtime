@@ -32,6 +32,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/SourceMgr.h"
+#include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"

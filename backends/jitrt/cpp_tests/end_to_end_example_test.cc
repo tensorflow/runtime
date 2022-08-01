@@ -143,6 +143,10 @@ struct CustomArgRtType : public llvm::RTTIExtends<CustomArgRtType, Type> {
 
   // We pass custom argument as an opaque pointer (`void*` or `!llvm.ptr`).
   FailureOr<ArgumentAbi> AsArgument() const final { return ArgumentAbi{1}; }
+
+  raw_ostream& print(raw_ostream& os) const final {
+    return os << "!testlib.custom_arg";
+  }
 };
 
 // Run time argument corresponding to the `!testlib.custom_arg` type. In this

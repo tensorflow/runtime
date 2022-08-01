@@ -25,6 +25,7 @@
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/support/error_util.h"
@@ -32,53 +33,41 @@
 namespace tfrt {
 namespace jitrt {
 
-raw_ostream& operator<<(raw_ostream& os, const Type& type) {
-  auto print_arr = [&](ArrayRef<Index> arr) {
-    if (!arr.empty()) {
-      os << arr[0];
-      for (int i = 1; i < arr.size(); ++i) os << "x" << arr[i];
-    }
-  };
+//===----------------------------------------------------------------------===//
+// Pretty printing for canonical types.
+//===----------------------------------------------------------------------===//
 
-  if (isa<AsyncTokenType>(&type)) {
-    os << "!async.token";
+static raw_ostream& operator<<(raw_ostream& os, const ArrayRef<Index>& arr) {
+  auto str = llvm::map_range(arr, [](Index i) { return std::to_string(i); });
+  return os << llvm::join(str, "x") << (arr.empty() ? "" : "x");
+}
 
-  } else if (auto* value = dyn_cast<AsyncValueType>(&type)) {
-    os << "!async.value<";
-    os << value->value_type();
-    os << ">";
+raw_ostream& AsyncTokenType::print(raw_ostream& os) const {
+  return os << "!async.token";
+}
 
-  } else if (auto* tensor = dyn_cast<RankedTensorType>(&type)) {
-    os << "tensor<";
-    print_arr(tensor->sizes());
-    os << "x" << tensor->element_type();
-    os << ">";
+raw_ostream& AsyncValueType::print(raw_ostream& os) const {
+  return os << "!async.value<" << value_type() << ">";
+}
 
-  } else if (auto* tensor = dyn_cast<UnrankedTensorType>(&type)) {
-    os << "tensor<";
-    os << "*x" << tensor->element_type();
-    os << ">";
+raw_ostream& RankedTensorType::print(raw_ostream& os) const {
+  return os << "tensor<" << sizes() << element_type() << ">";
+}
 
-  } else if (auto* memref = dyn_cast<MemrefType>(&type)) {
-    os << "memref<";
-    print_arr(memref->sizes());
-    os << "x" << memref->element_type();
-    os << ">";
+raw_ostream& UnrankedTensorType::print(raw_ostream& os) const {
+  return os << "tensor<*x" << element_type() << ">";
+}
 
-  } else if (auto* memref = dyn_cast<UnrankedMemrefType>(&type)) {
-    os << "memref<";
-    os << "*x" << memref->element_type();
-    os << ">";
+raw_ostream& MemrefType::print(raw_ostream& os) const {
+  return os << "memref<" << sizes() << element_type() << ">";
+}
 
-  } else if (auto* kernel_context = dyn_cast<KernelContextOperandType>(&type)) {
-    os << "!rt.kernel_context";
+raw_ostream& UnrankedMemrefType::print(raw_ostream& os) const {
+  return os << "memref<*x" << element_type() << ">";
+}
 
-  } else {
-    assert(false && "pretty printing is not implemented");
-    os << "<unknown type>";
-  }
-
-  return os;
+raw_ostream& KernelContextOperandType::print(raw_ostream& os) const {
+  return os << "!rt.kernel_context";
 }
 
 //===----------------------------------------------------------------------===//

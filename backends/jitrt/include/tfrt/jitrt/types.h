@@ -76,11 +76,15 @@ class Type : public llvm::RTTIExtends<Type, llvm::RTTIRoot> {
   // Returns an Abi if the type can be returned as a result.
   virtual mlir::FailureOr<ResultAbi> AsResult() const { return {}; }
 
+  virtual raw_ostream& print(raw_ostream& os) const = 0;
+
  protected:
   Type() = default;
 };
 
-raw_ostream& operator<<(raw_ostream& os, const Type& type);
+inline raw_ostream& operator<<(raw_ostream& os, const Type& type) {
+  return type.print(os);
+}
 
 //===----------------------------------------------------------------------===//
 // Async Token type corresponding to the mlir::async::TokenType
@@ -91,6 +95,8 @@ class AsyncTokenType : public llvm::RTTIExtends<AsyncTokenType, Type> {
   static constexpr char ID = 0;  // NOLINT
 
   mlir::FailureOr<ResultAbi> AsResult() const final;
+
+  raw_ostream& print(raw_ostream& os) const final;
 };
 
 //===----------------------------------------------------------------------===//
@@ -107,6 +113,8 @@ class AsyncValueType : public llvm::RTTIExtends<AsyncValueType, Type> {
   const Type& value_type() const { return *value_type_; }
 
   mlir::FailureOr<ResultAbi> AsResult() const final;
+
+  raw_ostream& print(raw_ostream& os) const final;
 
  private:
   std::unique_ptr<Type> value_type_;
@@ -128,6 +136,8 @@ class RankedTensorType : public llvm::RTTIExtends<RankedTensorType, Type> {
   unsigned rank() const { return sizes_.size(); }
   DType element_type() const { return element_type_; }
 
+  raw_ostream& print(raw_ostream& os) const final;
+
  private:
   llvm::SmallVector<Index> sizes_;
   DType element_type_;
@@ -145,6 +155,8 @@ class UnrankedTensorType : public llvm::RTTIExtends<UnrankedTensorType, Type> {
       : element_type_(element_type) {}
 
   DType element_type() const { return element_type_; }
+
+  raw_ostream& print(raw_ostream& os) const final;
 
  private:
   DType element_type_;
@@ -169,6 +181,8 @@ class MemrefType : public llvm::RTTIExtends<MemrefType, Type> {
   mlir::FailureOr<ArgumentAbi> AsArgument() const final;
   mlir::FailureOr<ResultAbi> AsResult() const final;
 
+  raw_ostream& print(raw_ostream& os) const final;
+
  private:
   llvm::SmallVector<Index> sizes_;
   DType element_type_;
@@ -187,6 +201,8 @@ class UnrankedMemrefType : public llvm::RTTIExtends<UnrankedMemrefType, Type> {
 
   DType element_type() const { return element_type_; }
 
+  raw_ostream& print(raw_ostream& os) const final;
+
  private:
   DType element_type_;
 };
@@ -201,6 +217,8 @@ class KernelContextOperandType
   static constexpr char ID = 0;  // NOLINT
 
   mlir::FailureOr<ArgumentAbi> AsArgument() const final;
+
+  raw_ostream& print(raw_ostream& os) const final;
 };
 
 //===----------------------------------------------------------------------===//

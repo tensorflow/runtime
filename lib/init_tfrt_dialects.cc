@@ -33,8 +33,6 @@
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
 #include "tfrt/data/opdefs/data_ops.h"
 #include "tfrt/distributed_runtime/opdefs/kernels.h"
-#include "tfrt/jitrt/opdefs/jitrt_ops.h"
-#include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/tensor/opdefs/coo_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor_sync.h"
@@ -49,7 +47,6 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<compiler::TFRTDialect>();
   registry.insert<corert::CoreRTDialect>();
   registry.insert<corert_sync::CoreRTSyncDialect>();
-  registry.insert<jitrt::JitRuntimeDialect>();
   registry.insert<data::DataDialect>();
   registry.insert<ts::TensorShapeDialect>();
   registry.insert<dht::DenseHostTensorDialect>();
@@ -63,7 +60,6 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
 }
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
-  registry.insert<jitrt::RuntimeDialect>();
   registry.insert<mlir::func::FuncDialect, mlir::arith::ArithmeticDialect,
                   mlir::cf::ControlFlowDialect>();
   registry.insert<mlir::async::AsyncDialect>();

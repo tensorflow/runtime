@@ -1711,8 +1711,8 @@ tfrt_cc_library(
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:VectorDialect",
-        "@tf_runtime//backends/jitrt:jitrt_opdefs",
-        "@tf_runtime//backends/jitrt:rt_opdefs",
+        # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_opdefs",
+        # copybara:uncomment "@tf_runtime//backends/jitrt:rt_opdefs",
     ],
 )
 

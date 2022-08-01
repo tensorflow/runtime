@@ -141,13 +141,14 @@ tfrt_cc_library(
 # Op/Kernel dependencies belong here rather than directly adding them in
 # tools:bef_executor. This ensures other bef_executor binaries can easily use
 # the same kernels as tools:bef_executor
+
 tfrt_cc_library(
     name = "bef_executor_jit_kernels",
     visibility = [":friends"],
     deps = [
-        "@tf_runtime//backends/jitrt:custom_call_testlib_alwayslink",
-        "@tf_runtime//backends/jitrt:jitrt_corert_kernels_alwayslink",
-        "@tf_runtime//backends/jitrt:jitrt_kernels_alwayslink",
+        # copybara:uncomment "@tf_runtime//backends/jitrt:custom_call_testlib_alwayslink",
+        # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_corert_kernels_alwayslink",
+        # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_kernels_alwayslink",
     ],
 )
 

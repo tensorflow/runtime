@@ -951,17 +951,17 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
 // Default encodings for arguments and attributes.
 // -------------------------------------------------------------------------- //
 
-std::unique_ptr<CustomCallAttrEncodingSet> DefaultAttrEncodings() {
-  auto encodings = std::make_unique<CustomCallAttrEncodingSet>();
-  encodings->Add<StringAttrEncoding, ScalarAttrEncoding,
-                 DenseElementsAttrEncoding, ArrayAttrEncoding,
-                 DenseArrayAttrEncoding, EmptyArrayAttrEncoding>();
+CustomCallAttrEncodingSet DefaultAttrEncodings() {
+  CustomCallAttrEncodingSet encodings;
+  encodings
+      .Add<StringAttrEncoding, ScalarAttrEncoding, DenseElementsAttrEncoding,
+           ArrayAttrEncoding, DenseArrayAttrEncoding, EmptyArrayAttrEncoding>();
   return encodings;
 }
 
-std::unique_ptr<CustomCallArgEncodingSet> DefaultArgEncodings() {
-  auto encodings = std::make_unique<CustomCallArgEncodingSet>();
-  encodings->Add<ScalarArgEncoding, MemrefArgEncoding>();
+CustomCallArgEncodingSet DefaultArgEncodings() {
+  CustomCallArgEncodingSet encodings;
+  encodings.Add<ScalarArgEncoding, MemrefArgEncoding>();
   return encodings;
 }
 

@@ -135,12 +135,10 @@ void CreateDefaultJitRtCompilationPipeline(
   // errors returned via the runtime API calls).
   pm.addPass(CreateConvertToKernelFunction());
 
-  // Set up user-defined arguments and attributes encoding.
-  std::unique_ptr<CustomCallArgEncodingSet> args = DefaultArgEncodings();
-  std::unique_ptr<CustomCallAttrEncodingSet> attrs = DefaultAttrEncodings();
-  if (opts.populate_arg_encodings) opts.populate_arg_encodings(*args);
-  if (opts.populate_attr_encodings) opts.populate_attr_encodings(*attrs);
-  pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(args), std::move(attrs)));
+  // Convert runtime operations and custom calls to LLVM dialect.
+  ConvertRuntimeToLLvmOpts rt_opts = {opts.populate_arg_encodings,
+                                      opts.populate_attr_encodings};
+  pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
 
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();

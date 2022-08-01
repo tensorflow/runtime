@@ -461,8 +461,8 @@ class MemrefArgEncoding : public CustomCallArgEncoding {
 // Default encodings for arguments and attributes.
 // -------------------------------------------------------------------------- //
 
-std::unique_ptr<CustomCallArgEncodingSet> DefaultArgEncodings();
-std::unique_ptr<CustomCallAttrEncodingSet> DefaultAttrEncodings();
+CustomCallArgEncodingSet DefaultArgEncodings();
+CustomCallAttrEncodingSet DefaultAttrEncodings();
 
 }  // namespace jitrt
 }  // namespace tfrt

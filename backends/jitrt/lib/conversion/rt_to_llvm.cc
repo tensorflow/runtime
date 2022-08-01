@@ -489,17 +489,13 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
 class ConvertRuntimeToLLVMPass
     : public ConvertRuntimeToLLVMPassBase<ConvertRuntimeToLLVMPass> {
  public:
-  ConvertRuntimeToLLVMPass(
-      std::unique_ptr<CustomCallArgEncodingSet> arg_encoding,
-      std::unique_ptr<CustomCallAttrEncodingSet> attr_encoding)
-      : arg_encoding_(std::move(arg_encoding)),
-        attr_encoding_(std::move(attr_encoding)) {}
+  explicit ConvertRuntimeToLLVMPass(ConvertRuntimeToLLvmOpts opts)
+      : opts_(std::move(opts)) {}
 
   void runOnOperation() override;
 
-  // Keep encoding as `shared_ptr` to make pass copyable.
-  std::shared_ptr<CustomCallArgEncodingSet> arg_encoding_;
-  std::shared_ptr<CustomCallAttrEncodingSet> attr_encoding_;
+ private:
+  ConvertRuntimeToLLvmOpts opts_;
 };
 
 void ConvertRuntimeToLLVMPass::runOnOperation() {
@@ -526,8 +522,16 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   // Lower from the runtime operations to the runtime API function calls.
   patterns.add<SetOutputOpLowering, IsOkOpLowering>(llvm_converter, ctx);
   patterns.add<SetErrorOpLowering>(llvm_converter, ctx, globals);
-  patterns.add<CustomCallOpLowering>(llvm_converter, ctx, globals,
-                                     *arg_encoding_, *attr_encoding_,
+
+  // Use default custom call encoding for canonical types.
+  CustomCallArgEncodingSet args = DefaultArgEncodings();
+  CustomCallAttrEncodingSet attrs = DefaultAttrEncodings();
+
+  // Add user-defined arg and attr encodings.
+  if (opts_.populate_arg_encodings) opts_.populate_arg_encodings(args);
+  if (opts_.populate_attr_encodings) opts_.populate_attr_encodings(attrs);
+
+  patterns.add<CustomCallOpLowering>(llvm_converter, ctx, globals, args, attrs,
                                      encoded_args);
 
   // Convert function signatures and call sites.
@@ -553,10 +557,8 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
 }  // namespace
 
 std::unique_ptr<OperationPass<ModuleOp>> CreateConvertRuntimeToLLVMPass(
-    std::unique_ptr<CustomCallArgEncodingSet> arg_encoding,
-    std::unique_ptr<CustomCallAttrEncodingSet> attr_encoding) {
-  return std::make_unique<ConvertRuntimeToLLVMPass>(std::move(arg_encoding),
-                                                    std::move(attr_encoding));
+    ConvertRuntimeToLLvmOpts opts) {
+  return std::make_unique<ConvertRuntimeToLLVMPass>(std::move(opts));
 }
 
 }  // namespace jitrt

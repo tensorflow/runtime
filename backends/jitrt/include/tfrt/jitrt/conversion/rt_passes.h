@@ -17,6 +17,7 @@
 #ifndef TFRT_BACKENDS_JITRT_CONVERSION_RT_PASSES_H_
 #define TFRT_BACKENDS_JITRT_CONVERSION_RT_PASSES_H_
 
+#include <functional>
 #include <memory>
 
 #include "mlir/IR/BuiltinOps.h"
@@ -26,12 +27,29 @@
 namespace tfrt {
 namespace jitrt {
 
+// Extension points for converting `rt` dialect to the LLVM dialect.
+//
+// Runtime custom calls is an extension mechanism for enabling compiled programs
+// to call into the APIs provided by the user. It relies on converting
+// values and attributes to the LLVM types (structs and pointers) with a
+// well-defined memory layout, so that they can be passed across the function
+// boundary and safely decoded (without dependency on C++ ABI).
+//
+// All user-defined types (values and attributes) that are passed to the custom
+// calls must define the way to convert/encode them as valid LLVM types.
+struct ConvertRuntimeToLLvmOpts {
+  // TODO(ezhulenev): User should be able to add custom type conversions to the
+  // LLVM type converter used for the entrypoint arguments conversion.
+
+  // Add user-defined arguments encoding to the custom call lowering.
+  std::function<void(CustomCallArgEncodingSet&)> populate_arg_encodings;
+
+  // Add user-defined attributes type encoding to the custom call lowering.
+  std::function<void(CustomCallAttrEncodingSet&)> populate_attr_encodings;
+};
+
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-CreateConvertRuntimeToLLVMPass(
-    std::unique_ptr<CustomCallArgEncodingSet> arg_encoding =
-        DefaultArgEncodings(),
-    std::unique_ptr<CustomCallAttrEncodingSet> attr_encoding =
-        DefaultAttrEncodings());
+CreateConvertRuntimeToLLVMPass(ConvertRuntimeToLLvmOpts opts = {});
 
 #define GEN_PASS_REGISTRATION
 #include "tfrt/jitrt/conversion/rt_gen_passes.h.inc"

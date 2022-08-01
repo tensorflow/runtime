@@ -20,6 +20,7 @@
 #include <functional>
 
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -49,6 +50,11 @@ struct CompilationPipelineOptions {
 #else
   bool math_avx2 = false;
 #endif
+
+  // Add type conversions from user-defined types to LLVM types. These
+  // conversions are required for lowering runtime operations to the
+  // corresponding runtime APIs (including custom calls).
+  std::function<void(mlir::TypeConverter&)> populate_type_conversions;
 
   // Add user-defined encoding for JitRt custom call arguments and attributes.
   //

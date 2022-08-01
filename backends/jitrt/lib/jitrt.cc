@@ -857,6 +857,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
     std::unique_ptr<JitCompilationContext> ctx, string_view memory_region_name,
     Optional<size_t> specialization) {
+  const CompilationOptions& opts = ctx->options();
   mlir::func::FuncOp entry_func = ctx->entrypoint();
   std::string entrypoint = entry_func.getName().str();
 
@@ -864,21 +865,20 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   auto compilation_start = std::chrono::steady_clock::now();
 
   // Get the signature of the entrypoint function.
-  auto signature = FunctionType::Convert(entry_func.getFunctionType());
+  auto signature = opts.type_converter.Convert(entry_func.getFunctionType());
   if (auto err = signature.takeError()) return std::move(err);
 
   // Get the calling convention for the entrypoint function.
-  if (!ctx->options().calling_convention)
+  if (!opts.calling_convention)
     return ctx->Error("calling convention is not defined");
 
   // Calling convention conversion can fail if some types are not supported.
-  auto runtime_type =
-      ctx->options().calling_convention(entry_func.getFunctionType());
+  auto runtime_type = opts.calling_convention(entry_func.getFunctionType());
   if (!runtime_type)
     return ctx->Error("calling convention failed to convert entrypoint type");
 
   // Get the runtime signature of the entrypoint function.
-  auto runtime_signature = FunctionType::Convert(runtime_type);
+  auto runtime_signature = opts.type_converter.Convert(runtime_type);
   if (auto err = runtime_signature.takeError()) return std::move(err);
 
   // Get the memory layout for passing function arguments.
@@ -897,7 +897,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   entry_func->setAttr(kJitRtEntrypointAttrName, unit_attr);
 
   // Run the compilation pipeline to lower the module to LLVM dialect.
-  if (failed(RunCompilationPipeline(ctx->module(), ctx->options())))
+  if (failed(RunCompilationPipeline(ctx->module(), opts)))
     return ctx->Error("failed to run compilation pipeline");
 
   if (EnablePassTiming()) llvm::TimePassesIsEnabled = true;
@@ -997,18 +997,8 @@ static bool HasValueConstraints(ArrayRef<OperandConstraint> constraints) {
 
 // Returns true if all function operands have statically known shape.
 static bool HasStaticShapeOperands(const FunctionType& signature) {
-  auto is_static = [](ArrayRef<Index> sizes) -> bool {
-    return llvm::none_of(sizes, mlir::ShapedType::isDynamic);
-  };
-
-  auto is_shaped_static = [&](auto* type) -> Optional<bool> {
-    if (auto* memref = dyn_cast<MemrefType>(type))
-      return is_static(memref->sizes());
-
-    if (auto* tensor = dyn_cast<RankedTensorType>(type))
-      return is_static(tensor->sizes());
-
-    return llvm::None;
+  auto is_dynamic = [](ArrayRef<Index> sizes) -> bool {
+    return llvm::any_of(sizes, mlir::ShapedType::isDynamic);
   };
 
   for (unsigned i = 0; i < signature.num_operands(); ++i) {
@@ -1018,20 +1008,23 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
     while (auto* value = dyn_cast<AsyncValueType>(type))
       type = &value->value_type();
 
-    // Skip types that do not have shape.
-    if (isa<AsyncTokenType, KernelContextOperandType>(type)) continue;
-
     // Unranked types do not have statically known shape.
     if (isa<UnrankedTensorType, UnrankedMemrefType>(type)) return false;
 
-    // Check if the type is a shaped type with static sizes.
-    if (Optional<bool> shaped_static = is_shaped_static(type)) {
-      if (*shaped_static) continue;
-      return false;
-    }
+    // For ranked memrefs and tensors check known sizes.
+    if (auto* memref = dyn_cast<MemrefType>(type))
+      if (is_dynamic(memref->sizes())) return false;
+    if (auto* tensor = dyn_cast<RankedTensorType>(type))
+      if (is_dynamic(tensor->sizes())) return false;
 
-    assert(false && "unsupported operand type");
-    return false;
+    // All other types are non-shaped and thus have "statically known shape".
+
+    // TODO(ezhulenev): Run time types might need to support type interfaces or
+    // a hierarchy with a base `ShapedType` so that users can define their own
+    // types that can participate in shape specialization. This becomes
+    // complicated for container-like types (e.g. async value) that might
+    // contain a nested type that is shaped (e.g. memref). For now only the
+    // canonical types can participate in shape specialization.
   }
 
   return true;
@@ -1062,8 +1055,8 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
   // Get the entrypoint function signature, it will be later required to
   // compute the specialized function signature from the operands at runtime.
-  auto signature =
-      FunctionType::Convert((*ctx)->entrypoint().getFunctionType());
+  auto signature = compilation_opts.type_converter.Convert(
+      (*ctx)->entrypoint().getFunctionType());
   if (auto err = signature.takeError()) return std::move(err);
 
   // If all of the operands have static shape, then we can always use default
@@ -1174,6 +1167,11 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
 
+  // The number of arguments must match the entrypoint signature.
+  if (LLVM_UNLIKELY(arguments.size() != signature_.num_operands()))
+    return MakeStringError("expected ", signature_.num_operands(),
+                           " arguments, got: ", arguments.size());
+
   // Resolve symbolic shapes hash based on the static and runtime information.
   //
   // We rely on the hash code to find the specialized executable. In case of
@@ -1201,7 +1199,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
           return std::move(err);
 
       } else {
-        return MakeStringError("expected memref operand at #", i,
+        return MakeStringError("expected shaped operand at #", i,
                                ", got: ", *signature_.operand(i));
       }
     }

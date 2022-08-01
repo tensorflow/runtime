@@ -244,6 +244,10 @@ struct CompilationOptions {
   // it tells the JitRt how to call the compiled kernel at run time, and how to
   // return results back to the JitRt.
   //
+  // All types in the converted function signature should have a registered
+  // type conversion (see `type_converter` below) to a type with defined
+  // argument or result ABI (see Type::ArgumentAbi and Type::ResultAbi).
+  //
   // If conversion is not possible, calling convention must return a null value.
   //
   // Example: abstract kernel defined in high level dialect, e.g. MHLO
@@ -277,6 +281,24 @@ struct CompilationOptions {
   // results memory into the high level types (e.g. convert returned memref
   // descriptor to a Tensorfow tensor).
   CallingConvention calling_convention = DefaultCallingConvention();
+
+  // Type converter converts MLIR types to the corresponding run time types.
+  // Executable uses its own type hierarchy, parallel to MLIR's, so that it
+  // doesn't depend on any parts of the MLIR after compilation produces an
+  // executable artifact, because keeping MLIR context alive can be expensive in
+  // terms of memory usage.
+  //
+  // As a side effect, it allows loading AOT compiled executables from the obj
+  // files without any dependencies on MLIR.
+  //
+  // Default type converter knows how to convert canonical MLIR types (memrefs,
+  // tensors, etc...). All user-defined types used at the compiled function
+  // boundary (arguments or results) should register a custom type conversion.
+  //
+  // When we compile the input IR, we first apply the `calling_convention` to
+  // get the MLIR function type for the entrypoint, and then we convert it to
+  // the corresponding run time function type.
+  TypeConverter type_converter;
 };
 
 //----------------------------------------------------------------------------//

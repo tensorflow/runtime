@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <string>
+#include <type_traits>
 
 #include "tfrt/jitrt/types.h"
 #include "tfrt/support/error_util.h"
@@ -161,7 +162,7 @@ Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
 
 Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
                           const MemrefDesc& memref) {
-  auto element_type = ConvertElementType(type.getElementType());
+  auto element_type = TypeConverter::ConvertElementType(type.getElementType());
   if (auto err = element_type.takeError()) return err;
 
   // We do not support unranked memrefs at runtime, however we need to verify

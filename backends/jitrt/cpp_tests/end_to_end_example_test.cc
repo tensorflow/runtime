@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/ExtensibleRTTI.h"
 #include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
 #include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
-#include "mlir/Dialect/Bufferization/Transforms/Passes.h"
 #include "mlir/Dialect/Func/Transforms/Passes.h"
+#include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Transforms/Passes.h"
-#include "tfrt/host_context/concurrent_work_queue.h"
-#include "tfrt/host_context/host_allocator.h"
 #include "tfrt/jitrt/custom_call_registry.h"
+#include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
-#include "tfrt/support/logging.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -41,14 +41,21 @@ namespace jitrt {
 namespace {
 
 using llvm::SmallVector;
+using mlir::FailureOr;
 using mlir::LogicalResult;
 using mlir::success;
+
+namespace LLVM = mlir::LLVM;
 
 // Features supported in JitRt but missing in this example:
 //   1. Launching async tasks.
 //   2. Returning async results from the compiled function.
 
 // TODO(ezhulenev): Show all the features supported by JitRt?
+
+//===----------------------------------------------------------------------===//
+// Compiled program written in a mix of MLIR dialects.
+//===----------------------------------------------------------------------===//
 
 // JitRt input program can be defined in arbitrary dialects, the only
 // requirement is that the user must pass a pipeline that can lower the input
@@ -59,6 +66,10 @@ using mlir::success;
 // specialization: Tosa can lower to Linalg (and then to LLVM) only transpose
 // operations with constant permutation, without input value specialization this
 // program can't be lowered to LLVM and executed.
+//
+// We also use `testlib` dialect for showing how to register custom type for
+// passing in as a compiled function argument, and passing it back to the
+// custom call handler, which requires to specify its lowering to LLVM.
 static const char* mlir_module = R"(
   module {
     // Declare your own "runtime" intrinsics library in the compiled module.
@@ -70,6 +81,7 @@ static const char* mlir_module = R"(
     // function body as a constant. Otherwise tosa.transpose will not be lowered
     // to Linalg operation.
     func.func @compute(
+      %arg: !testlib.custom_arg,
       %input: tensor<?x?xf32>,
       %perm: tensor<2xi32> { jitrt.constraint = "value" }
     ) -> tensor<?x?xf32> {
@@ -86,6 +98,10 @@ static const char* mlir_module = R"(
   })";
 
 static const char* entrypoint = "compute";
+
+//===----------------------------------------------------------------------===//
+// Register custom call with a runtime.
+//===----------------------------------------------------------------------===//
 
 // Context structure that encapsulats all the state that has to be available
 // to your runtime intrinsics.
@@ -108,6 +124,60 @@ void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
 // Static registration with the JitRt global registry.
 JITRT_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
 
+//===----------------------------------------------------------------------===//
+// Declare run-time type/argument for user-defined type.
+//===----------------------------------------------------------------------===//
+
+// Convert custom argument type to the LLVM type that will be used during module
+// compilation. For simplicity we will pass custom arguments as an opaque LLVM
+// pointer (`!llvm.ptr`).
+static mlir::Type ConvertCustomArg(CustomArgType type) {
+  return LLVM::LLVMPointerType::get(type.getContext());
+}
+
+// Run time type corresponding to the `!testlib.custom_arg` type. Run time type
+// definition decouples Executable from the MLIR dependency, and also defines
+// the `ArgumentAbi` for passing values of this type to the compiled executable.
+struct CustomArgRtType : public llvm::RTTIExtends<CustomArgRtType, Type> {
+  static constexpr char ID = 0;  // NOLINT
+
+  // We pass custom argument as an opaque pointer (`void*` or `!llvm.ptr`).
+  FailureOr<ArgumentAbi> AsArgument() const final { return ArgumentAbi{1}; }
+};
+
+// Run time argument corresponding to the `!testlib.custom_arg` type. In this
+// particular example the `!testlib.custom_arg` at run time is a `std::string`
+// that we want to pass back to our custom call. However we decided that we want
+// to hide it behind the opaque pointer, so the packing function adds a pointer
+// to the string to the arguments array (as a `void*` C++ pointer).
+struct CustomArgument : public llvm::RTTIExtends<CustomArgument, Argument> {
+  static constexpr char ID = 0;  // NOLINT
+
+  explicit CustomArgument(std::string message) : message(std::move(message)) {}
+
+  // Check that argument matches the expected type.
+  Error Verify(const Type& type) const final {
+    if (isa<CustomArgRtType>(type)) return Error::success();
+    return MakeStringError("expected custom arg type, got: ", type);
+  }
+
+  // Packs an opaque pointer to the string message to the arguments array.
+  size_t Pack(MutableArrayRef<void*> args, size_t offset) const final {
+    args[offset] = const_cast<void*>(reinterpret_cast<const void*>(&message));
+    return ++offset;
+  }
+
+  raw_ostream& print(raw_ostream& os) const final {
+    return os << "custom_arg: " << message << "\n";
+  }
+
+  std::string message;
+};
+
+//===----------------------------------------------------------------------===//
+// The end-to-end test itself that compiles and executes the MLIR module.
+//===----------------------------------------------------------------------===//
+
 TEST(EndToEndExampleTest, CompiledAndExecute) {
   // Step by step guide for compiling and executing your programs on top of the
   // JitRt library.
@@ -127,7 +197,12 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   //
   // In this example in addition to "standard" JitRt dialects we add only Tosa.
   opts.register_dialects = [](mlir::DialectRegistry& registry) {
+    // For testing value specialization.
     registry.insert<mlir::tosa::TosaDialect>();
+
+    // For testing passing custom arguments back to custom calls.
+    registry.insert<TestlibDialect>();
+
     RegisterDefaultJitRtDialects(registry);
   };
 
@@ -138,6 +213,11 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // function signature.
   opts.calling_convention = CompilationOptions::DefaultCallingConvention(
       mlir::bufferization::BufferizeTypeConverter());
+
+  // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time
+  // type corresponding to a custom argument.
+  opts.type_converter.AddConversion(
+      [](CustomArgType arg) { return std::make_unique<CustomArgRtType>(); });
 
   // ------------------------------------------------------------------------ //
   // 2. Set up compilation pipeline that lowers input module to LLVM.
@@ -159,6 +239,12 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
     // 4. Continue compilation using the default JitRt pipeline.
     CompilationPipelineOptions copts;
+
+    // Register type conversions from custom types (!testlib.custom_arg).
+    copts.populate_type_conversions = [](mlir::TypeConverter& converter) {
+      converter.addConversion(ConvertCustomArg);
+    };
+
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 
@@ -189,6 +275,9 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // JitRt Executable knows how to pass MemrefDesc to the compiled program
   // according to the MLIR C ABI (memrefs passed as `StridedMemRefType` struct).
   //
+  // For the custom argument (!testlib.custom_arg) it relies on the ABI and
+  // argument packing defined by the `CustomArgument` type above.
+  //
   // For "real" programs instead of vectors we should have tensors flying
   // around.
 
@@ -200,10 +289,11 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   std::array<int64_t, 2> sizes = {2, 2};
   std::array<int64_t, 2> strides = {2, 1};
 
-  // Prepare memref descriptors for the executable.
-  llvm::SmallVector<MemrefDesc> args;
-  args.emplace_back(DType::F32, input.data(), 0, sizes, strides);
-  args.emplace_back(DType::I32, perm.data(), 0, 2, 1);
+  // Prepare arguments for the executable.
+  Arguments<CustomArgument, MemrefDesc> args(3);
+  args.emplace_back<CustomArgument>("hello from the other side");
+  args.emplace_back<MemrefDesc>(DType::F32, input.data(), 0, sizes, strides);
+  args.emplace_back<MemrefDesc>(DType::I32, perm.data(), 0, 2, 1);
 
   // ------------------------------------------------------------------------ //
   // 5. Prepare options for executing the JitRt executable.

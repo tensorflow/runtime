@@ -17,6 +17,7 @@
 #ifndef TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_TYPES_H_
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_TYPES_H_
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -214,10 +215,6 @@ class FunctionType {
   unsigned num_operands() const { return operands_.size(); }
   unsigned num_results() const { return results_.size(); }
 
-  // Converts MLIR function type to the runtime function type. Returns error if
-  // function has unsupported operands or results types.
-  static Expected<FunctionType> Convert(mlir::FunctionType type);
-
   FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
                llvm::SmallVector<std::unique_ptr<Type>> results)
       : operands_(std::move(operands)), results_(std::move(results)) {}
@@ -227,11 +224,53 @@ class FunctionType {
   llvm::SmallVector<std::unique_ptr<Type>> results_;
 };
 
-// Converts MLIR element type to the TFRT DType.
-Expected<DType> ConvertElementType(mlir::Type type);
+//===----------------------------------------------------------------------===//
+// Type conversion from the compile time types to the run time types.
+//===----------------------------------------------------------------------===//
 
-// Converts MLIR type to the corresponding JitRt type.
-Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type);
+// Type converter converts MLIR types known at compile time to the corresponding
+// types used at run time. It provides default conversions for the canonical
+// types (memrefs, tensors, etc...) and allows users to register custom
+// conversions for user-defined types.
+class TypeConverter {
+ public:
+  // Conversion function must return run time type corresponding to the compile
+  // time type if the conversion is successful, or `nullptr` if failed.
+  using ConversionFn = std::function<std::unique_ptr<Type>(mlir::Type)>;
+
+  // Adds a type conversion function with a type predicate.
+  //
+  // Example:
+  //
+  //   AddConversion([](mlir::TensorType) -> std::unique_ptr<Type> { ... });
+  //
+  // The conversion function will match only the tensor type, and return empty
+  // result for all other types, and the type converter will try the next
+  // conversion function (see `Convert` implementation).
+  template <typename Fn, typename FnTraits = llvm::function_traits<Fn>>
+  void AddConversion(Fn fn) {
+    using ArgType = typename FnTraits::template arg_t<0>;
+    conversions_.emplace_back(
+        [fn = std::forward<Fn>(fn)](mlir::Type type) -> std::unique_ptr<Type> {
+          if (auto arg = type.dyn_cast<ArgType>()) return fn(arg);
+          return {};
+        });
+  }
+
+  // Converts MLIR element type to the TFRT DType.
+  static Expected<DType> ConvertElementType(mlir::Type type);
+
+  // Converts MLIR type to the runtime type. Returns error if conversion was not
+  // successfull and the type has no corresponding run time type.
+  Expected<std::unique_ptr<Type>> Convert(mlir::Type type) const;
+
+  // Converts MLIR function type to the runtime function type. Returns error if
+  // function has unsupported operands or results types.
+  Expected<FunctionType> Convert(mlir::FunctionType type) const;
+
+ private:
+  llvm::SmallVector<ConversionFn> conversions_;
+};
 
 }  // namespace jitrt
 }  // namespace tfrt

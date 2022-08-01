@@ -513,6 +513,12 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   llvm_converter.addConversion(RuntimeTypeConverter::ConvertKernelContextType);
   llvm_converter.addConversion(RuntimeTypeConverter::ConvertStatusType);
 
+  // Add type conversions for user-defined types so that we can properly convert
+  // all function signatures in the module and prepare values for custom calls.
+  if (opts_.populate_type_conversions) {
+    opts_.populate_type_conversions(converter);
+  }
+
   // A helper class to create unique global constants.
   Globals globals(module);
 

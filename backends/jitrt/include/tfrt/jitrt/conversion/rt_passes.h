@@ -22,6 +22,7 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 
 namespace tfrt {
@@ -36,10 +37,14 @@ namespace jitrt {
 // boundary and safely decoded (without dependency on C++ ABI).
 //
 // All user-defined types (values and attributes) that are passed to the custom
-// calls must define the way to convert/encode them as valid LLVM types.
+// calls must define the argument or attribute encoding.
 struct ConvertRuntimeToLLvmOpts {
-  // TODO(ezhulenev): User should be able to add custom type conversions to the
-  // LLVM type converter used for the entrypoint arguments conversion.
+  // Add type conversions for user-defined types to the corresponding LLVM
+  // types. Conversion pass uses these extra conversions to convert arguments
+  // of the entrypoint function and values passed to the custom calls. Custom
+  // call argument encoding can further refine how values of LLVM types passed
+  // to the custom call handlers by passing custom encoding (see below).
+  std::function<void(mlir::TypeConverter&)> populate_type_conversions;
 
   // Add user-defined arguments encoding to the custom call lowering.
   std::function<void(CustomCallArgEncodingSet&)> populate_arg_encodings;

@@ -98,6 +98,10 @@ Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
 
 Expected<OperandConstraint> ResolveOperandConstraint(
     OperandConstraint operand_constraint, mlir::Type operand_type) {
+  // Skip already resolved constraints.
+  if (operand_constraint == OperandConstraint::kResolved)
+    return operand_constraint;
+
   // Operand must be a shaped type: memref or tensor.
   auto shaped = operand_type.dyn_cast<mlir::ShapedType>();
   if (!shaped)

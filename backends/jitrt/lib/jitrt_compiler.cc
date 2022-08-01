@@ -136,7 +136,8 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(CreateConvertToKernelFunction());
 
   // Convert runtime operations and custom calls to LLVM dialect.
-  ConvertRuntimeToLLvmOpts rt_opts = {opts.populate_arg_encodings,
+  ConvertRuntimeToLLvmOpts rt_opts = {opts.populate_type_conversions,
+                                      opts.populate_arg_encodings,
                                       opts.populate_attr_encodings};
   pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
 

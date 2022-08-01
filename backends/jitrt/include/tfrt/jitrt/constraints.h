@@ -17,7 +17,6 @@
 #ifndef TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_CONSTRAINTS_H_
 #define TFRT_BACKENDS_JITRT_INCLUDE_TFRT_JITRT_CONSTRAINTS_H_
 
-#include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Types.h"
 #include "tfrt/support/forward_decls.h"

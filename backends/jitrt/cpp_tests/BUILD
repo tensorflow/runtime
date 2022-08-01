@@ -75,6 +75,7 @@ tfrt_cc_test(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:BufferizationTransforms",
         "@llvm-project//mlir:FuncTransforms",
+        "@llvm-project//mlir:LLVMDialect",
         "@llvm-project//mlir:LinalgTransforms",
         "@llvm-project//mlir:TosaDialect",
         "@llvm-project//mlir:TosaToLinalg",
@@ -85,6 +86,7 @@ tfrt_cc_test(
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/jitrt",
         "@tf_runtime//backends/jitrt:custom_call_registry",
+        "@tf_runtime//backends/jitrt:custom_call_testlib",
         "@tf_runtime//backends/jitrt:jitrt_compiler",
     ],
 )

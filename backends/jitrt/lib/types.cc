@@ -20,6 +20,7 @@
 
 #include "tfrt/jitrt/types.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -124,7 +125,52 @@ mlir::FailureOr<ArgumentAbi> KernelContextOperandType::AsArgument() const {
 // Compiled function signature types conversion from the MLIR types.
 //===----------------------------------------------------------------------===//
 
-Expected<DType> ConvertElementType(mlir::Type type) {
+// Type conversion for the canonical MLIR types supported by the runtime.
+static std::unique_ptr<Type> ConvertCanonicalType(
+    mlir::Type type, const TypeConverter& convert) {
+  // KernelContextType -> KernelContextOperandType (both in tfrt::jitrt).
+  if (auto ctx = type.dyn_cast<KernelContextType>())
+    return std::make_unique<KernelContextOperandType>();
+
+  // mlir::async::TokenType -> tfrt::jitrt::AsyncTokenType
+  if (type.isa<mlir::async::TokenType>())
+    return std::make_unique<AsyncTokenType>();
+
+  // mlir::async::ValueType -> tfrt::jitrt::AsyncValueType
+  if (auto value = type.dyn_cast<mlir::async::ValueType>()) {
+    if (auto value_type = convert.Convert(value.getValueType()))
+      return std::make_unique<AsyncValueType>(std::move(*value_type));
+  }
+
+  // mlir::RankedTensorType -> tfrt::jitrt::RankedTensorType
+  if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
+    if (auto dtype = TypeConverter::ConvertElementType(tensor.getElementType()))
+      return std::make_unique<RankedTensorType>(tensor.getShape(), *dtype);
+  }
+
+  // mlir::UnrankedTensorType -> tfrt::jitrt::UnrankedTensorType
+  if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
+    if (auto dtype = TypeConverter::ConvertElementType(tensor.getElementType()))
+      return std::make_unique<UnrankedTensorType>(*dtype);
+  }
+
+  // mlir::MemrefType -> tfrt::jitrt::MemrefType
+  if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
+    if (auto dtype = TypeConverter::ConvertElementType(memref.getElementType()))
+      return std::make_unique<MemrefType>(memref.getShape(), *dtype);
+  }
+
+  // mlir::UnrankedMemrefType -> tfrt::jitrt::UnrankedMemrefType
+  if (auto memref = type.dyn_cast<mlir::UnrankedMemRefType>()) {
+    if (auto dtype = TypeConverter::ConvertElementType(memref.getElementType()))
+      return std::make_unique<UnrankedMemrefType>(*dtype);
+  }
+
+  // For non-canonical types the user must provide type conversion function.
+  return {};
+}
+
+/*static*/ Expected<DType> TypeConverter::ConvertElementType(mlir::Type type) {
   if (type.isF32()) return DType::F32;
   if (type.isF64()) return DType::F64;
   if (type.isUnsignedInteger(8)) return DType::UI8;
@@ -138,70 +184,23 @@ Expected<DType> ConvertElementType(mlir::Type type) {
   if (type.isInteger(64)) return DType::I64;
   if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
     auto element_type = complex_type.getElementType();
-    if (element_type.isF32()) {
-      return DType::Complex64;
-    }
-    if (element_type.isF64()) {
-      return DType::Complex128;
-    }
+    if (element_type.isF32()) return DType::Complex64;
+    if (element_type.isF64()) return DType::Complex128;
   }
 
   return MakeStringError("unsupported element type: ", type);
 }
 
-Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
-  // mlir::async::TokenType -> tfrt::jitrt::AsyncTokenType
-  if (type.isa<mlir::async::TokenType>())
-    return std::make_unique<AsyncTokenType>();
+Expected<std::unique_ptr<Type>> TypeConverter::Convert(mlir::Type type) const {
+  if (auto converted = ConvertCanonicalType(type, *this)) return converted;
 
-  // mlir::async::ValueType -> tfrt::jitrt::AsyncValueType
-  if (auto value = type.dyn_cast<mlir::async::ValueType>()) {
-    if (!value.getValueType().isa<mlir::MemRefType>())
-      return MakeStringError("async value can only hold memref type");
+  for (const ConversionFn& conversion : conversions_)
+    if (auto converted = conversion(type)) return converted;
 
-    auto value_type = ConvertType(value.getValueType());
-    if (auto err = value_type.takeError()) return std::move(err);
-
-    return std::make_unique<AsyncValueType>(std::move(*value_type));
-  }
-
-  // mlir::RankedTensorType -> tfrt::jitrt::RankedTensorType
-  if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
-    auto element_type = ConvertElementType(tensor.getElementType());
-    if (auto err = element_type.takeError()) return std::move(err);
-    return std::make_unique<RankedTensorType>(tensor.getShape(), *element_type);
-  }
-
-  // mlir::UnrankedTensorType -> tfrt::jitrt::UnrankedTensorType
-  if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
-    auto element_type = ConvertElementType(tensor.getElementType());
-    if (auto err = element_type.takeError()) return std::move(err);
-    return std::make_unique<UnrankedTensorType>(*element_type);
-  }
-
-  // mlir::MemrefType -> tfrt::jitrt::MemrefType
-  if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
-    auto element_type = ConvertElementType(memref.getElementType());
-    if (auto err = element_type.takeError()) return std::move(err);
-    return std::make_unique<MemrefType>(memref.getShape(), *element_type);
-  }
-
-  // mlir::UnrankedMemrefType -> tfrt::jitrt::UnrankedMemrefType
-  if (auto memref = type.dyn_cast<mlir::UnrankedMemRefType>()) {
-    auto element_type = ConvertElementType(memref.getElementType());
-    if (auto err = element_type.takeError()) return std::move(err);
-    return std::make_unique<UnrankedMemrefType>(*element_type);
-  }
-
-  // KernelContextType -> KernelContextOperandType (both in tfrt::jitrt).
-  if (auto ctx = type.dyn_cast<KernelContextType>())
-    return std::make_unique<KernelContextOperandType>();
-
-  return MakeStringError("unsupported type: ", type);
+  return MakeStringError("can't convert type: ", type, " to the run time type");
 }
 
-/*static*/ Expected<FunctionType> FunctionType::Convert(
-    mlir::FunctionType type) {
+Expected<FunctionType> TypeConverter::Convert(mlir::FunctionType type) const {
   assert(type && "function type must be not null");
 
   llvm::SmallVector<std::unique_ptr<Type>> operands;
@@ -210,22 +209,20 @@ Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
   operands.reserve(type.getNumInputs());
   results.reserve(type.getNumResults());
 
-  auto error = [](string_view kind, unsigned i, mlir::Type type, Error err) {
+  auto error = [](string_view kind, unsigned i, mlir::Type type) {
     return MakeStringError("can't convert ", kind, " #", i, " type ", type,
-                           " to the runtime type: ", err);
+                           " to the run time type");
   };
 
   for (unsigned i = 0; i < type.getNumInputs(); ++i) {
-    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getInput(i));
-    if (auto err = converted.takeError())
-      return error("input", i, type.getInput(i), std::move(err));
+    Expected<std::unique_ptr<Type>> converted = Convert(type.getInput(i));
+    if (!converted) return error("input", i, type.getInput(i));
     operands.push_back(std::move(*converted));
   }
 
   for (unsigned i = 0; i < type.getNumResults(); ++i) {
-    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getResult(i));
-    if (auto err = converted.takeError())
-      return error("result", i, type.getResult(i), std::move(err));
+    Expected<std::unique_ptr<Type>> converted = Convert(type.getResult(i));
+    if (!converted) return error("result", i, type.getResult(i));
     results.push_back(std::move(*converted));
   }
 

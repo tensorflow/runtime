@@ -30,6 +30,7 @@
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Transforms/Passes.h"
+#include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt.h"
@@ -38,12 +39,13 @@
 
 namespace tfrt {
 namespace jitrt {
-namespace {
 
 using llvm::SmallVector;
+using mlir::failure;
 using mlir::FailureOr;
 using mlir::LogicalResult;
 using mlir::success;
+using mlir::TypeID;
 
 namespace LLVM = mlir::LLVM;
 
@@ -73,7 +75,7 @@ namespace LLVM = mlir::LLVM;
 static const char* mlir_module = R"(
   module {
     // Declare your own "runtime" intrinsics library in the compiled module.
-    func.func private @my.runtime.intrinsic()
+    func.func private @my.runtime.intrinsic(%arg: !testlib.custom_arg)
       attributes { rt.custom_call = "my.runtime.intrinsic" }
 
     // Permutation argument annotated with a jitrt constraint, which means that
@@ -86,8 +88,9 @@ static const char* mlir_module = R"(
       %perm: tensor<2xi32> { jitrt.constraint = "value" }
     ) -> tensor<?x?xf32> {
 
-      // Pass attributes to the runtime intrinsics.
-      func.call @my.runtime.intrinsic() { api_version = 1 : i32 } : () -> ()
+      // Pass custom argument and attributes to the runtime intrinsics.
+      func.call @my.runtime.intrinsic(%arg) { api_version = 1 : i32 }
+        : (!testlib.custom_arg) -> ()
 
       // Transpose input tensor and return result to the caller.
       %transposed = "tosa.transpose"(%input, %perm)
@@ -98,31 +101,6 @@ static const char* mlir_module = R"(
   })";
 
 static const char* entrypoint = "compute";
-
-//===----------------------------------------------------------------------===//
-// Register custom call with a runtime.
-//===----------------------------------------------------------------------===//
-
-// Context structure that encapsulats all the state that has to be available
-// to your runtime intrinsics.
-struct MyRuntimeContext {};
-
-// Implement your runtime intrinsic as a regular C++ function.
-static LogicalResult MyRuntimeIntrinsic(MyRuntimeContext* ctx,
-                                        int32_t api_version) {
-  return success();
-}
-
-// Register your runtime support library with JitRt as custom calls.
-void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
-  registry->Register(CustomCall::Bind("my.runtime.intrinsic")
-                         .UserData<MyRuntimeContext*>()
-                         .Attr<int32_t>("api_version")
-                         .To(MyRuntimeIntrinsic));
-}
-
-// Static registration with the JitRt global registry.
-JITRT_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
 
 //===----------------------------------------------------------------------===//
 // Declare run-time type/argument for user-defined type.
@@ -153,7 +131,7 @@ struct CustomArgRtType : public llvm::RTTIExtends<CustomArgRtType, Type> {
 // particular example the `!testlib.custom_arg` at run time is a `std::string`
 // that we want to pass back to our custom call. However we decided that we want
 // to hide it behind the opaque pointer, so the packing function adds a pointer
-// to the string to the arguments array (as a `void*` C++ pointer).
+// to the pointer to a string to the arguments array (as a `void*` C++ pointer).
 struct CustomArgument : public llvm::RTTIExtends<CustomArgument, Argument> {
   static constexpr char ID = 0;  // NOLINT
 
@@ -165,9 +143,9 @@ struct CustomArgument : public llvm::RTTIExtends<CustomArgument, Argument> {
     return MakeStringError("expected custom arg type, got: ", type);
   }
 
-  // Packs an opaque pointer to the string message to the arguments array.
+  // Packs an indirect pointer to the string message to the arguments array.
   size_t Pack(MutableArrayRef<void*> args, size_t offset) const final {
-    args[offset] = const_cast<void*>(reinterpret_cast<const void*>(&message));
+    args[offset] = const_cast<void*>(reinterpret_cast<const void*>(&ptr));
     return ++offset;
   }
 
@@ -176,7 +154,93 @@ struct CustomArgument : public llvm::RTTIExtends<CustomArgument, Argument> {
   }
 
   std::string message;
+
+  // This is the pointer that we'll pass to the compiled module as a "custom
+  // argument representation" (opaque pointer). The semantics of compiled
+  // function arguments is "pointers to arguments", and because the argument is
+  // not a string, but the pointer to it, we should not be packing the pointer
+  // to `message`, but a pointer to the pointer to message.
+  std::string* ptr = &message;
 };
+
+//===----------------------------------------------------------------------===//
+// Define encoding of custom arguments to custom call arguments.
+//===----------------------------------------------------------------------===//
+
+// Forward declare.
+struct CustomArg;
+
+// Custom argument encoding passed to the `rt-to-llvm` pipeline and responsible
+// for encoding custom argument value for passing to the custom call. Because we
+// chose an opaque pointer implementation, we just pass it directly to the call.
+//
+// TODO(ezhulenev): This opaque pointer encoding with a user TypeID can be added
+// to the `custom_call_to_llvm` library if required in some other place.
+class CustomArgEncoding : public CustomCallArgEncoding {
+ public:
+  LogicalResult Match(mlir::Value value, mlir::Value) const final {
+    return success(value.getType().isa<CustomArgType>());
+  }
+
+  FailureOr<Encoded> Encode(Globals& g, mlir::ImplicitLocOpBuilder& b,
+                            mlir::Value, mlir::Value converted) const final {
+    Encoded encoded;
+    encoded.type_id = PackTypeId(g, b, TypeID::get<Tagged<CustomArg>>());
+    encoded.value = converted;
+    return encoded;
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Register custom call with a runtime.
+//===----------------------------------------------------------------------===//
+
+// Context structure that encapsulats all the state that has to be available
+// to your runtime intrinsics.
+struct MyRuntimeContext {
+  std::vector<std::string> custom_args;
+};
+
+// Custom argument passed to the compiled function as it seen by the custom call
+// handler. We encode custom argument as a single pointer to the `message`, and
+// in the custom call we decode it back to the C++ type.
+
+// Custom argument (defined above) passed  to the compiled function as a pointer
+// to the `message`. When this pointer passed to the custom call, we "decode" it
+// to the structure that wraps the pointer.
+struct CustomArg {
+  const std::string* message;
+};
+
+// Register custom argument decoding (must be in ::tfrt::jitrt namespace).
+template <CustomCall::RuntimeChecks checks>
+struct CustomCallArgDecoding<CustomArg, checks> {
+  static FailureOr<CustomArg> Decode(TypeID type_id, void* value) {
+    if (!CustomCall::CheckType<Tagged<CustomArg>>(checks, type_id))
+      return failure();
+    return CustomArg{reinterpret_cast<const std::string*>(value)};
+  }
+};
+
+// Implement your runtime intrinsic as a regular C++ function.
+static LogicalResult MyRuntimeIntrinsic(MyRuntimeContext* ctx,
+                                        CustomArg custom_arg,
+                                        int32_t api_version) {
+  ctx->custom_args.push_back(*custom_arg.message);
+  return success();
+}
+
+// Register your runtime support library with JitRt as custom calls.
+void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
+  registry->Register(CustomCall::Bind("my.runtime.intrinsic")
+                         .UserData<MyRuntimeContext*>()
+                         .Arg<CustomArg>()
+                         .Attr<int32_t>("api_version")
+                         .To(MyRuntimeIntrinsic));
+}
+
+// Static registration with the JitRt global registry.
+JITRT_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
 
 //===----------------------------------------------------------------------===//
 // The end-to-end test itself that compiles and executes the MLIR module.
@@ -247,6 +311,12 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
     // Register type conversions from custom types (!testlib.custom_arg).
     copts.populate_type_conversions = [](mlir::TypeConverter& converter) {
       converter.addConversion(ConvertCustomArg);
+    };
+
+    // Add custom call arguments encoding for custom types
+    // (!testlib.custom_arg).
+    copts.populate_arg_encodings = [](CustomCallArgEncodingSet& encoding) {
+      encoding.Add<CustomArgEncoding>();
     };
 
     CreateDefaultJitRtCompilationPipeline(pm, copts);
@@ -373,6 +443,10 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   std::vector<float> expected = {1.0, 3.0, 2.0, 4.0};
   EXPECT_EQ(data.vec(), std::vector<float>(expected.begin(), expected.end()));
 
+  // Check that custom argument was correctly passed to the custom call.
+  ASSERT_EQ(runtime_context.custom_args.size(), 1);
+  EXPECT_EQ(runtime_context.custom_args[0], "hello from the other side");
+
   // ------------------------------------------------------------------------ //
   // 8. Saving/Restoring JitRt executable to/from object file.
   // ------------------------------------------------------------------------ //
@@ -381,6 +455,5 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // as an object file.
 }
 
-}  // namespace
 }  // namespace jitrt
 }  // namespace tfrt

@@ -88,6 +88,7 @@ licenses(["notice"])
 #         "@tf_runtime//backends/jitrt",
 #         "@tf_runtime//backends/jitrt:custom_call_registry",
 #         "@tf_runtime//backends/jitrt:custom_call_testlib",
+#         "@tf_runtime//backends/jitrt:custom_call_to_llvm",
 #         "@tf_runtime//backends/jitrt:jitrt_compiler",
 #     ],
 # )

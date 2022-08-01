@@ -517,6 +517,7 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   // all function signatures in the module and prepare values for custom calls.
   if (opts_.populate_type_conversions) {
     opts_.populate_type_conversions(converter);
+    opts_.populate_type_conversions(llvm_converter);
   }
 
   // A helper class to create unique global constants.

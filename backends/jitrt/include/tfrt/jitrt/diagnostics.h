@@ -202,7 +202,7 @@ class DiagnosticEngine {
 
     // Dump unhandled errors to llvm::errs() stream.
     if (diagnostic.severity() == DiagnosticSeverity::kError)
-      llvm::errs() << diagnostic.str();
+      llvm::errs() << "Error: " << diagnostic.str() << "\n";
   }
 
  private:

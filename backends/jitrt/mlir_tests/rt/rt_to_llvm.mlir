@@ -368,6 +368,18 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?x256xf32>) {
 
 // -----
 
+// CHECK: func @custom_call(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>,
+// CHECK:   %[[ARG:.*]]: f16
+// CHECK: )
+func.func @custom_call(%arg0: !rt.kernel_context, %arg1: f16) {
+  // CHECK: call @target
+  rt.custom_call direct %arg0["target"] (%arg1) : (f16) -> ()
+  func.return
+}
+
+// -----
+
 // CHECK: func @direct_custom_call(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )

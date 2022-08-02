@@ -27,6 +27,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "Eigen/Core"  // from @eigen_archive
 #include "llvm/ADT/Any.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
@@ -925,12 +926,25 @@ struct CustomCallArgDecoding<FlatMemrefView, checks> {
     }                                                              \
   }
 
+JITRT_REGISTER_SCALAR_ARG_DECODING(bool);
 JITRT_REGISTER_SCALAR_ARG_DECODING(int32_t);
 JITRT_REGISTER_SCALAR_ARG_DECODING(int64_t);
 JITRT_REGISTER_SCALAR_ARG_DECODING(float);
 JITRT_REGISTER_SCALAR_ARG_DECODING(double);
 
 #undef JITRT_REGISTER_SCALAR_ARG_DECODING
+
+template <CustomCall::RuntimeChecks checks>
+struct CustomCallArgDecoding<Eigen::half, checks> {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::FailureOr<Eigen::half> Decode(
+      mlir::TypeID type_id, void* value) {
+    if (!CustomCall::CheckType<Tagged<Eigen::half>>(checks, type_id))
+      return mlir::failure();
+
+    auto* src = reinterpret_cast<uint16_t*>(value);
+    return Eigen::numext::bit_cast<Eigen::half>(*src);
+  }
+};
 
 // -------------------------------------------------------------------------- //
 // Custom call attributes decoding.

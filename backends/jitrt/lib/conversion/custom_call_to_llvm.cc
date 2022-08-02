@@ -29,6 +29,10 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
 
+namespace Eigen {
+struct half;
+}  // namespace Eigen
+
 namespace tfrt {
 namespace jitrt {
 
@@ -535,11 +539,12 @@ static bool IsSupportedScalarType(Type type) {
     return llvm::any_of(supported, [&](unsigned w) { return w == width; });
   };
 
-  if (auto integer = type.dyn_cast<mlir::IntegerType>())
-    return is_supported_width(integer.getWidth(), {1, 32, 64});
+  if (auto i = type.dyn_cast<mlir::IntegerType>())
+    return i.isUnsigned() ? is_supported_width(i.getWidth(), {8, 32, 64})
+                          : is_supported_width(i.getWidth(), {1, 32, 64});
 
   if (auto fp = type.dyn_cast<mlir::FloatType>())
-    return is_supported_width(fp.getWidth(), {32, 64});
+    return is_supported_width(fp.getWidth(), {16, 32, 64});
 
   return false;
 }
@@ -553,6 +558,7 @@ static TypeID ScalarRuntimeTypeId(Type type) {
   if (type.isInteger(32)) return TypeID::get<Tagged<int32_t>>();
   if (type.isInteger(64)) return TypeID::get<Tagged<int64_t>>();
 
+  if (type.isF16()) return TypeID::get<Tagged<Eigen::half>>();
   if (type.isF32()) return TypeID::get<Tagged<float>>();
   if (type.isF64()) return TypeID::get<Tagged<double>>();
 

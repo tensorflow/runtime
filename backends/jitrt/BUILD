@@ -357,6 +357,7 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":diagnostics",
+#         "@eigen_archive//:eigen3",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:Support",
 #         "@tf_runtime//:dtype",

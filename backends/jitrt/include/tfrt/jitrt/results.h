@@ -64,8 +64,8 @@ class ResultConverter {
                                           const Type* runtime_type,
                                           void* ret) const = 0;
 
-  // Returns error for all results (copy of the `error` argument).
-  virtual void ReturnErrors(RCReference<ErrorAsyncValue> error) const = 0;
+  // Returns error for all results.
+  virtual void ReturnError(const Error& error) const = 0;
 };
 
 //===----------------------------------------------------------------------===//
@@ -80,7 +80,7 @@ struct NoResultConverter : public ResultConverter {
     return mlir::failure();
   }
 
-  void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
+  void ReturnError(const Error&) const final {
     assert(false && "no result converter must never be called");
   }
 };
@@ -99,8 +99,7 @@ class RemainingResultsConverter : public ResultConverter {
  public:
   // A user provided function to augment all emitted errors, e.g. it can be used
   // to attach diagnostics collected at runtime to the error message.
-  using AugmentError =
-      std::function<RCReference<ErrorAsyncValue>(const DecodedDiagnostic&)>;
+  using AugmentError = std::function<Error(const Error&)>;
 
   // It is the caller's responsibility to guarantee that conversion context
   // will outlive all pending conversions (in case of returning async values).
@@ -124,10 +123,11 @@ class RemainingResultsConverter : public ResultConverter {
     return mlir::failure();
   }
 
-  void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
+  void ReturnError(const Error& error) const final {
     if (results_.empty()) return;
-    results_[0] =
-        augment_error_ ? augment_error_(error->GetError()) : std::move(error);
+    results_[0] = MakeErrorAsyncValueRef(
+        augment_error_ ? DecodedDiagnostic(augment_error_(error))
+                       : DecodedDiagnostic(error));
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 
@@ -212,9 +212,9 @@ class StaticRemainingResultsConverter : public ResultConverter {
     return convert_(context_, results_, result_index, type, runtime_type, ret);
   }
 
-  void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
+  void ReturnError(const Error& error) const final {
     if (results_.empty()) return;
-    results_[0] = std::move(error);
+    results_[0] = MakeErrorAsyncValueRef(DecodedDiagnostic(error));
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 
@@ -590,16 +590,12 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
 }
 
 //===----------------------------------------------------------------------===//
-// Helper functions for handling errors at runtime.
+// Helper functions for forwarding errors to remaining results.
 //===----------------------------------------------------------------------===//
 
 // Constructs error async value from the `error` and returns it for all results.
 void ReturnErrors(RemainingResults results, Error error);
 void ReturnErrors(RemainingResults results, DecodedDiagnostic error);
-
-// Constructs error async value from the `error` and returns it for all results.
-// Returns the original error to the caller.
-Error ReturnErrors(const ResultConverter& results, Error error);
 
 }  // namespace jitrt
 }  // namespace tfrt

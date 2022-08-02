@@ -127,11 +127,5 @@ void ReturnErrors(RemainingResults results, DecodedDiagnostic error) {
   return ReturnErrors(results, MakeStringError(error));
 }
 
-Error ReturnErrors(const ResultConverter& results, Error error) {
-  auto async_error = MakeErrorAsyncValueRef(StrCat(error));
-  results.ReturnErrors(async_error);
-  return error;
-}
-
 }  // namespace jitrt
 }  // namespace tfrt

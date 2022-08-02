@@ -300,7 +300,7 @@ func.func @compiled_custom_call_error() -> !t.tensor {
   // Execute compiled kernel with tensor operands.
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
 
-  // CHECK: returned <<error: compiled kernel run time error:
+  // CHECK: returned <<error: run time error:
   // CHECK-SAME: custom call 'testlib.multiply' failed:
   // CHECK-SAME: Unsupported floating point dtype>>
   tfrt.return %output : !t.tensor
@@ -320,7 +320,7 @@ func.func @compiled_custom_call_error_args() -> !t.tensor {
   // Execute compiled kernel with tensor operands.
   %output = jitrt.execute %executable[%ch1](%input) : (!t.tensor) -> !t.tensor
 
-  // CHECK: returned <<error: compiled kernel run time error:
+  // CHECK: returned <<error: run time error:
   // CHECK-SAME: custom call 'testlib.multiply' failed:
   // CHECK-SAME: Wrong number of arguments: expected 2 got 3>>
   tfrt.return %output : !t.tensor

@@ -64,7 +64,6 @@
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
 #include "tfrt/support/error_util.h"
-#include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -366,7 +365,7 @@ Error Executable::Execute(ArgumentsRef arguments,
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
   if (auto err = InitializeCallFrame(arguments, &call_frame, verify_arguments))
-    return ReturnErrors(results, std::move(err));
+    return (results.ReturnError(err), std::move(err));
 
   Execute(call_frame, opts);
 
@@ -401,9 +400,8 @@ Error Executable::ReturnResults(const ResultConverter& results,
                                 CallFrame* call_frame) const {
   // If execution failed, forward error to all results.
   if (call_frame->is_error) {
-    auto err = StrCat("compiled kernel run time error: ", call_frame->error);
-    results.ReturnErrors(MakeErrorAsyncValueRef(err));
-    return MakeStringError(std::move(err));
+    auto err = MakeStringError("run time error: ", call_frame->error);
+    return (results.ReturnError(err), std::move(err));
   }
 
   // Try to convert results using registered conversion functions.

@@ -43,7 +43,7 @@ func.func @runtime_error() -> !t.tensor {
   %output = jitrt.execute %executable[%input_ready](%input)
               : (!t.tensor) -> (!t.tensor)
 
-  // CHECK: returned <<error: compiled kernel run time error:
+  // CHECK: returned <<error: run time error:
   // CHECK-SAME: Dimension 0 must have size 0>>
   tfrt.return %output : !t.tensor
 }

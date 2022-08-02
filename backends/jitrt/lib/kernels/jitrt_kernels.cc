@@ -173,9 +173,9 @@ static void ExecuteImpl(const Executable& executable,
   });
 
   // Attach diagnostics to all errors emitted through the result converter.
-  auto augment_errors = [&](const DecodedDiagnostic& err) {
-    if (diagnostic.empty()) return MakeErrorAsyncValueRef(err);
-    return MakeErrorAsyncValueRef(StrCat(err.message, ": ", diagnostic));
+  auto augment_errors = [&](const Error& error) {
+    return MakeStringError(error,
+                           diagnostic.empty() ? "" : StrCat(": ", diagnostic));
   };
 
   Executable::ExecuteOpts opts;

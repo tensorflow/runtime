@@ -171,6 +171,7 @@ licenses(["notice"])
 #         ":diagnostics",
 #         ":execution_engine",
 #         ":memory_mapper",
+#         ":results",
 #         ":rt_transforms",
 #         ":specialization",
 #         ":support",
@@ -191,7 +192,6 @@ licenses(["notice"])
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",
 #         "@tf_runtime//:tensor",
-#         "@tf_runtime//:tracing",
 #     ],
 # )
 #
@@ -254,6 +254,24 @@ licenses(["notice"])
 #         "@llvm-project//mlir:IR",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "results",
+#     srcs = ["lib/results.cc"],
+#     hdrs = ["include/tfrt/jitrt/results.h"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+#     visibility = ["@tf_runtime//:friends"],
+#     deps = [
+#         ":async_runtime",
+#         ":async_runtime_api",
+#         ":types",
+#         "@llvm-project//llvm:Support",
+#         "@llvm-project//mlir:mlir_c_runner_utils",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
 #     ],
 # )
 #

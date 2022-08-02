@@ -51,8 +51,6 @@
 #include "mlir/Support/Timing.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/host_context/diagnostic.h"
-#include "tfrt/host_context/host_buffer.h"
 #include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_runtime_api.h"
@@ -60,6 +58,7 @@
 #include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
+#include "tfrt/jitrt/results.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
@@ -67,7 +66,6 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
-#include "tfrt/tensor/tensor.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -324,124 +322,8 @@ Error Executable::InitializeCallFrame(ArgumentsRef arguments,
 }
 
 // -------------------------------------------------------------------------- //
-// Executable return values unpacking.
-// -------------------------------------------------------------------------- //
-
-void ReturnValueConverterBase::ReturnErrors(
-    RCReference<ErrorAsyncValue> error) const {
-  if (results_.empty()) return;
-  results_[0] = std::move(error);
-  for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
-}
-
-namespace {
-// Do not record any operands information for results conversion.
-struct ConversionCtx {};
-
-template <typename T, int rank>
-static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
-  return llvm::makeArrayRef(memref->sizes);
-}
-
-template <typename T>
-static ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
-  return {};
-}
-
-// The returned memref can point into statically allocated memory that we can't
-// pass to `free` (memref.global). The LLVM lowering of `memref.global` sets the
-// allocated pointer to the magic value 0xDEADBEEF.
-template <typename T, int rank>
-static bool IsStaticStorageDuration(StridedMemRefType<T, rank>* memref) {
-  return reinterpret_cast<std::intptr_t>(memref->basePtr) == 0xDEADBEEF;
-}
-
-// Converts StridedMemref to the DenseHostTensor. This struct satisfies
-// ReturnStridedMemref's concept (see jitrt.h).
-//
-// This converter always creates a new DenseHostTensor from the memref, and it
-// must be used only when it is guaranteed that the compiled region can't
-// return global constant memref or forward one of the operands.
-struct ConvertDenseHostTensor {
-  using ResultType = DenseHostTensor;
-  using ConversionContext = ConversionCtx;
-
-  template <typename T, int rank>
-  static DenseHostTensor Convert(ConversionContext& ctx, void* memref_ptr) {
-    auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
-    TFRT_MSAN_MEMORY_IS_INITIALIZED(memref, sizeof(StridedMemRefType<T, rank>));
-    TensorMetadata metadata(GetDType<T>(), Sizes(memref));
-    TFRT_MSAN_MEMORY_IS_INITIALIZED(memref->data,
-                                    metadata.GetHostSizeInBytes());
-
-    // Deallocate memref only if it has dynamic storage duration.
-    void* ptr = IsStaticStorageDuration(memref) ? nullptr : memref->basePtr;
-    HostBuffer::Deallocator deallocator = [ptr](void*, size_t) { free(ptr); };
-
-    return DenseHostTensor(
-        metadata, HostBuffer::CreateFromExternal(memref->data,
-                                                 metadata.GetHostSizeInBytes(),
-                                                 std::move(deallocator)));
-  }
-};
-}  // namespace
-
-namespace internal {
-
-mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
-                                     unsigned result_index, const Type* type,
-                                     const Type* runtime_type,
-                                     void* result_ptr) {
-  if (!isa<AsyncTokenType>(type)) return mlir::failure();
-
-  // Load the pointer to the async token from a pointer to result storage.
-  TFRT_MSAN_MEMORY_IS_INITIALIZED(result_ptr, sizeof(void*));
-  void* ret = *reinterpret_cast<void**>(result_ptr);
-  auto* token = static_cast<mlir::runtime::AsyncToken*>(ret);
-  results[result_index] = ConvertAsyncTokenToChain(token);
-  return mlir::success();
-}
-
-mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
-                                                       unsigned result_index,
-                                                       const Type* type,
-                                                       const Type* runtime_type,
-                                                       void* result_ptr) {
-  ConversionCtx ctx;
-  return ReturnAsyncStridedMemref<ConvertDenseHostTensor>(
-      ctx, results, result_index, type, runtime_type, result_ptr);
-}
-
-mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
-                                                  unsigned result_index,
-                                                  const Type* type,
-                                                  const Type* runtime_type,
-                                                  void* result_ptr) {
-  ConversionCtx ctx;
-  return ReturnStridedMemref<ConvertDenseHostTensor>(
-      ctx, results, result_index, type, runtime_type, result_ptr);
-}
-
-}  // namespace internal
-
-// -------------------------------------------------------------------------- //
 // Execute compiled function with kernel operands.
 // -------------------------------------------------------------------------- //
-
-void ReturnErrors(RemainingResults results, Error error) {
-  auto async_error = MakeErrorAsyncValueRef(StrCat(error));
-  for (int i = 0; i < results.size(); ++i) results[i] = async_error;
-}
-
-void ReturnErrors(RemainingResults results, DecodedDiagnostic error) {
-  return ReturnErrors(results, MakeStringError(error));
-}
-
-Error ReturnErrors(const ReturnValueConverterBase& results, Error error) {
-  auto async_error = MakeErrorAsyncValueRef(StrCat(error));
-  results.ReturnErrors(async_error);
-  return error;
-}
 
 // TODO(ezhulenev): Execute should override alloc/free function calls used by
 // codegened kernels to allocate/deallocate memrefs at runtime to use the host

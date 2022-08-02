@@ -279,7 +279,7 @@ class TypeConverter {
   static Expected<DType> ConvertElementType(mlir::Type type);
 
   // Converts MLIR type to the runtime type. Returns error if conversion was not
-  // successfull and the type has no corresponding run time type.
+  // successful and the type has no corresponding run time type.
   Expected<std::unique_ptr<Type>> Convert(mlir::Type type) const;
 
   // Converts MLIR function type to the runtime function type. Returns error if

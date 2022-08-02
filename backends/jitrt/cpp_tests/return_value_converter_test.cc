@@ -29,7 +29,7 @@ namespace jitrt {
 
 struct Context {};
 
-static void BM_ReturnValueConverter(benchmark::State& state) {
+static void BM_RemainingResultsConverter(benchmark::State& state) {
   Context context;
 
   auto dims = std::array<int64_t, 4>({1, 1, 1, 1});
@@ -40,7 +40,7 @@ static void BM_ReturnValueConverter(benchmark::State& state) {
     std::array<RCReference<AsyncValue>, 1> storage;
     RemainingResults results(storage);
 
-    ReturnValueConverter<Context> converter(results, context);
+    RemainingResultsConverter<Context> converter(results, context);
     converter.AddConversion(ReturnMemrefAsDenseHostTensor<Context>);
     converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<Context>);
     converter.AddConversion(ReturnAsyncToken<Context>);
@@ -50,7 +50,7 @@ static void BM_ReturnValueConverter(benchmark::State& state) {
   }
 }
 
-static void BM_StaticReturnValueConverter(benchmark::State& state) {
+static void BM_StaticRemainingResultsConverter(benchmark::State& state) {
   Context context;
 
   using ReturnToken = ReturnValueConversion<Context, ReturnAsyncToken<Context>>;
@@ -62,9 +62,9 @@ static void BM_StaticReturnValueConverter(benchmark::State& state) {
   using ReturnMemref =
       ReturnValueConversion<Context, ReturnMemrefAsDenseHostTensor<Context>>;
 
-  using BenchmarkedReturnValueConverter =
-      StaticReturnValueConverter<Context, ReturnToken, ReturnAsyncMemref,
-                                 ReturnMemref>;
+  using BenchmarkedRemainingResultsConverter =
+      StaticRemainingResultsConverter<Context, ReturnToken, ReturnAsyncMemref,
+                                      ReturnMemref>;
 
   auto dims = std::array<int64_t, 4>({1, 1, 1, 1});
   auto type = std::make_unique<MemrefType>(dims, DType::F32);
@@ -74,15 +74,15 @@ static void BM_StaticReturnValueConverter(benchmark::State& state) {
     std::array<RCReference<AsyncValue>, 1> storage;
     RemainingResults results(storage);
 
-    BenchmarkedReturnValueConverter converter(results, context);
+    BenchmarkedRemainingResultsConverter converter(results, context);
 
     auto converted = converter.ReturnValue(0, type.get(), type.get(), &memref);
     if (mlir::failed(converted)) TFRT_LOG(FATAL) << "Failed to convert memref";
   }
 }
 
-BENCHMARK(BM_ReturnValueConverter);
-BENCHMARK(BM_StaticReturnValueConverter);
+BENCHMARK(BM_RemainingResultsConverter);
+BENCHMARK(BM_StaticRemainingResultsConverter);
 
 }  // namespace jitrt
 }  // namespace tfrt

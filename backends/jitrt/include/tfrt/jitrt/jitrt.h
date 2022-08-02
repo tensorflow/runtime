@@ -340,13 +340,10 @@ class Executable {
   Error InitializeCallFrame(ArgumentsRef arguments, CallFrame* call_frame,
                             bool verify_arguments = true) const;
 
-  // Converts returned values owned by the call frame using provided value
-  // converter. If result conversion fails (e.g. result type is not supported)
-  // emits error async value for that result.
-  //
-  // If compiled function execution finished with an error (error flag is `true`
-  // in the call frame) emits error async value for all results.
-  Error ReturnResults(const ReturnValueConverterBase& results,
+  // Converts returned values owned by the call frame using provided result
+  // converter. If compiled function execution finished with an error (error
+  // flag is `true` in the call frame) returns error for all results.
+  Error ReturnResults(const ResultConverter& results,
                       CallFrame* call_frame) const;
 
   // Executes compiled function with given arguments.
@@ -358,9 +355,8 @@ class Executable {
   // async values for all results and returns an error.
   //
   // Returns compiled function results via the user-provided results converter.
-  // If compiled function execution completed in the error state, emits error
-  // async value for all results.
-  Error Execute(ArgumentsRef arguments, const ReturnValueConverterBase& results,
+  // If execution completed in the error state, returns error for all results.
+  Error Execute(ArgumentsRef arguments, const ResultConverter& results,
                 const ExecuteOpts& opts, bool verify_arguments = true) const;
 
   // Executes compiled function using user provided call frame.

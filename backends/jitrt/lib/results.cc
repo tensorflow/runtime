@@ -28,13 +28,6 @@
 namespace tfrt {
 namespace jitrt {
 
-void ReturnValueConverterBase::ReturnErrors(
-    RCReference<ErrorAsyncValue> error) const {
-  if (results_.empty()) return;
-  results_[0] = std::move(error);
-  for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
-}
-
 namespace {
 // Do not record any operands information for results conversion.
 struct ConversionCtx {};
@@ -134,7 +127,7 @@ void ReturnErrors(RemainingResults results, DecodedDiagnostic error) {
   return ReturnErrors(results, MakeStringError(error));
 }
 
-Error ReturnErrors(const ReturnValueConverterBase& results, Error error) {
+Error ReturnErrors(const ResultConverter& results, Error error) {
   auto async_error = MakeErrorAsyncValueRef(StrCat(error));
   results.ReturnErrors(async_error);
   return error;

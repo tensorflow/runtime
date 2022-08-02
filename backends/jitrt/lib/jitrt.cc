@@ -330,7 +330,7 @@ Error Executable::InitializeCallFrame(ArgumentsRef arguments,
 // context allocator.
 
 Error Executable::Execute(ArgumentsRef arguments,
-                          const ReturnValueConverterBase& results,
+                          const ResultConverter& results,
                           const ExecuteOpts& opts,
                           bool verify_arguments) const {
   // CallFrame can be allocated on the stack because compiled function will
@@ -397,7 +397,7 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
   (*fptr_)(call_frame.args.data());
 }
 
-Error Executable::ReturnResults(const ReturnValueConverterBase& results,
+Error Executable::ReturnResults(const ResultConverter& results,
                                 CallFrame* call_frame) const {
   // If execution failed, forward error to all results.
   if (call_frame->is_error) {

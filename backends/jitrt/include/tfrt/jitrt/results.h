@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -47,45 +48,51 @@ namespace jitrt {
 //
 // See https://en.cppreference.com/w/cpp/types/is_standard_layout
 
-// Return value converter is responsible for taking the pointer to memory
-// where executable writes the result, and converting it to the AsyncValue of
-// some C++ type and returning through the `results`.
-//
-// TODO(b/234191435): We over specialize for returning async values through the
-// `RemainingResults` and it's too tightly coupled with a TFRT host context and
-// kernels. We should be able to return C++ types as any other type-erasing
-// container, e.g. as an array of `std::any` types, or maybe as an array of
-// `Tensor` types if we know that all results have the same type.
-class ReturnValueConverterBase {
+// Result converter is responsible for taking a pointer to the memory location
+// where the executable wrote the result, and converting it to the corresponding
+// run time value expected by the caller (e.g. memref descriptor to Tensor).
+class ResultConverter {
  public:
-  explicit ReturnValueConverterBase(RemainingResults results)
-      : results_(results) {}
-  virtual ~ReturnValueConverterBase() = default;
+  virtual ~ResultConverter() = default;
 
   // Converts value `ret` of type `runtime_type` (runtime type derived from the
-  // original `type`) returned from the compiled function at `result_index`
-  // return position using registered conversion functions, and emplaces the
-  // result async value. If the conversion failed returns a failure and sets the
-  // result async value to error.
+  // original `type`) returned from the executable at `result_index` result
+  // position using registered conversion functions. Returns a logical result
+  // telling if the conversion was successful.
   virtual mlir::LogicalResult ReturnValue(unsigned result_index,
                                           const Type* type,
                                           const Type* runtime_type,
                                           void* ret) const = 0;
 
-  // Returns error for all remaining results (copy of the `error` argument).
-  virtual void ReturnErrors(RCReference<ErrorAsyncValue> error) const;
-
- protected:
-  RemainingResults results() const { return results_; }
-
- private:
-  RemainingResults results_;
+  // Returns error for all results (copy of the `error` argument).
+  virtual void ReturnErrors(RCReference<ErrorAsyncValue> error) const = 0;
 };
 
-// Return value converter class allows to register custom functions for
-// converting compiled kernel execution results to returned async values.
+//===----------------------------------------------------------------------===//
+// Result converter for functions without results (returning void).
+//===----------------------------------------------------------------------===//
+
+struct NoResultConverter : public ResultConverter {
+  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  mlir::LogicalResult ReturnValue(unsigned, const Type*, const Type*,
+                                  void*) const final {
+    assert(false && "no result converter must never be called");
+    return mlir::failure();
+  }
+
+  void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
+    assert(false && "no result converter must never be called");
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Result converters for integrating with TFRT/BEF kernels (RemainingResults).
+//===----------------------------------------------------------------------===//
+
+// Result converter that returns converted values through the RemainingResults,
+// and allows adding user-provided conversion functions dynamically.
 template <typename ConversionContext>
-class ReturnValueConverter : public ReturnValueConverterBase {
+class RemainingResultsConverter : public ResultConverter {
   static_assert(!std::is_void<ConversionContext>::value,
                 "Conversion context can't be void");
 
@@ -97,32 +104,31 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
   // It is the caller's responsibility to guarantee that conversion context
   // will outlive all pending conversions (in case of returning async values).
-  ReturnValueConverter(RemainingResults results, ConversionContext& context,
-                       AugmentError augment_error = {})
-      : ReturnValueConverterBase(results),
-        context_(context),
-        augment_error_(augment_error) {
+  RemainingResultsConverter(RemainingResults results,
+                            ConversionContext& context,
+                            AugmentError augment_error = {})
+      : results_(results), context_(context), augment_error_(augment_error) {
     AddConversion(UnsupportedReturnType);
   }
 
-  ~ReturnValueConverter() override = default;
+  ~RemainingResultsConverter() override = default;
 
   mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
                                   const Type* runtime_type,
                                   void* ret) const final {
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
       auto converted =
-          convert(context_, results(), result_index, type, runtime_type, ret);
+          convert(context_, results_, result_index, type, runtime_type, ret);
       if (mlir::succeeded(converted)) return mlir::success();
     }
     return mlir::failure();
   }
 
   void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
-    if (augment_error_)
-      ReturnValueConverterBase::ReturnErrors(augment_error_(error->GetError()));
-    else
-      ReturnValueConverterBase::ReturnErrors(error);
+    if (results_.empty()) return;
+    results_[0] =
+        augment_error_ ? augment_error_(error->GetError()) : std::move(error);
+    for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 
   // Adds a conversion function to this converter. Conversion callback must be
@@ -142,8 +148,8 @@ class ReturnValueConverter : public ReturnValueConverterBase {
     conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
   }
 
-  ReturnValueConverter(ReturnValueConverter&&) = default;
-  ReturnValueConverter& operator=(ReturnValueConverter&&) = default;
+  RemainingResultsConverter(RemainingResultsConverter&&) = default;
+  RemainingResultsConverter& operator=(RemainingResultsConverter&&) = default;
 
  private:
   using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
@@ -160,9 +166,10 @@ class ReturnValueConverter : public ReturnValueConverterBase {
     return mlir::failure();
   }
 
+  RemainingResults results_;
   ConversionContext& context_;  // must outlive all pending result conversions
-  llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
   AugmentError augment_error_;
+  llvm::SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
 };
 
 // A template that converts function pointer passed as non-type template
@@ -180,7 +187,7 @@ struct ReturnValueConversion {
   }
 };
 
-// Return value converter class with statically registered conversion functions.
+// Remaining results converter with statically registered conversion functions.
 //
 // Conversion function type must define `operator()` with a signature:
 //
@@ -191,22 +198,24 @@ struct ReturnValueConversion {
 // Conversion function must return `success` if it successfully handled the
 // return type and set the result async value. If conversion function returns
 // `failure` converter will try the next conversion function.
-//
-// TODO(ezhulenev): Currently we only support default constructed conversion
-// functions, however we can potentially pass conversion functions with
-// non-empty captures.
 template <typename ConversionContext, typename... ConversionFns>
-class StaticReturnValueConverter : public ReturnValueConverterBase {
+class StaticRemainingResultsConverter : public ResultConverter {
  public:
-  StaticReturnValueConverter(RemainingResults results,
-                             ConversionContext& context)
-      : ReturnValueConverterBase(results), context_(context) {}
+  StaticRemainingResultsConverter(RemainingResults results,
+                                  ConversionContext& context)
+      : results_(results), context_(context) {}
 
   LLVM_ATTRIBUTE_ALWAYS_INLINE
   mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
                                   const Type* runtime_type,
                                   void* ret) const final {
-    return convert_(context_, results(), result_index, type, runtime_type, ret);
+    return convert_(context_, results_, result_index, type, runtime_type, ret);
+  }
+
+  void ReturnErrors(RCReference<ErrorAsyncValue> error) const final {
+    if (results_.empty()) return;
+    results_[0] = std::move(error);
+    for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 
  private:
@@ -246,26 +255,14 @@ class StaticReturnValueConverter : public ReturnValueConverterBase {
     Fn convert;
   };
 
+  RemainingResults results_;
   ConversionContext& context_;  // must outlive all pending result conversions
   Impl<ConversionFns...> convert_;
 };
 
-// No-op return value converter for compiled executables that do not return any
-// results. Run time errors will be reported through the CallFrame error flag.
-struct NoOpReturnValueConverter : public ReturnValueConverterBase {
-  NoOpReturnValueConverter() : ReturnValueConverterBase(RemainingResults({})) {}
-
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
-  mlir::LogicalResult ReturnValue(unsigned, const Type*, const Type*,
-                                  void*) const final {
-    assert(false && "no-op return value converter must never be called");
-    return mlir::failure();
-  }
-};
-
-// -------------------------------------------------------------------------- //
+//===----------------------------------------------------------------------===//
 // Default conversion functions that do not require conversion context.
-// -------------------------------------------------------------------------- //
+//===----------------------------------------------------------------------===//
 
 namespace internal {
 
@@ -592,9 +589,9 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
   return mlir::success();
 }
 
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
 // Helper functions for handling errors at runtime.
-//----------------------------------------------------------------------------//
+//===----------------------------------------------------------------------===//
 
 // Constructs error async value from the `error` and returns it for all results.
 void ReturnErrors(RemainingResults results, Error error);
@@ -602,7 +599,7 @@ void ReturnErrors(RemainingResults results, DecodedDiagnostic error);
 
 // Constructs error async value from the `error` and returns it for all results.
 // Returns the original error to the caller.
-Error ReturnErrors(const ReturnValueConverterBase& results, Error error);
+Error ReturnErrors(const ResultConverter& results, Error error);
 
 }  // namespace jitrt
 }  // namespace tfrt

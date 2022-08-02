@@ -420,7 +420,8 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   RemainingResults results(result_values);
 
   // If execution failed errors will be automatically allocated for all results.
-  ReturnValueConverter<ResultConversionCtx> converter(results, conversion_ctx);
+  RemainingResultsConverter<ResultConversionCtx> converter(results,
+                                                           conversion_ctx);
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ResultConversionCtx>);
 
   // ------------------------------------------------------------------------ //

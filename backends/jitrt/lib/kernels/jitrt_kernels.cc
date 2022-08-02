@@ -185,8 +185,8 @@ static void ExecuteImpl(const Executable& executable,
 
   // If execution failed errors will be automatically allocated for all results.
   ConversionCtx conversion_ctx;
-  ReturnValueConverter<ConversionCtx> converter(results, conversion_ctx,
-                                                std::move(augment_errors));
+  RemainingResultsConverter<ConversionCtx> converter(results, conversion_ctx,
+                                                     std::move(augment_errors));
   converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);

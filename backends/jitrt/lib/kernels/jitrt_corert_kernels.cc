@@ -159,8 +159,8 @@ static void ExecuteImpl(const Executable& executable,
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
   ConversionCtx conversion_ctx;
-  ReturnValueConverter<ConversionCtx> converter{RemainingResults(kernel_ret),
-                                                conversion_ctx};
+  RemainingResultsConverter<ConversionCtx> converter{
+      RemainingResults(kernel_ret), conversion_ctx};
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
 

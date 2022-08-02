@@ -83,7 +83,7 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   execute_opts.async_task_runner =
       reinterpret_cast<jitrt::AsyncTaskRunner*>(0XDEADBEEF);
 
-  NoOpReturnValueConverter converter;
+  NoResultConverter converter;
 
   // Execute Jit compiled executable.
   ASSERT_FALSE(executable->Execute(args, converter, execute_opts));

@@ -80,9 +80,7 @@ struct NoResultConverter : public ResultConverter {
     return mlir::failure();
   }
 
-  void ReturnError(const Error&) const final {
-    assert(false && "no result converter must never be called");
-  }
+  void ReturnError(const Error&) const final {}
 };
 
 //===----------------------------------------------------------------------===//

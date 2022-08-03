@@ -37,7 +37,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
-#include "tfrt/jitrt/opdefs/rt_ops.h"
+#include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/rt_ops.h"
 
 namespace tfrt {
 namespace jitrt {

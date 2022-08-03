@@ -205,7 +205,6 @@ licenses(["notice"])
 #         ":codegen_transforms",
 #         ":custom_call_to_llvm",
 #         ":rt_conversion",
-#         ":rt_opdefs",
 #         ":rt_transforms",
 #         "@llvm-project//mlir:AMXToLLVMIRTranslation",
 #         "@llvm-project//mlir:AffineDialect",
@@ -238,6 +237,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Transforms",
 #         "@llvm-project//mlir:VectorToLLVM",
 #         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #     ],
 #     alwayslink = 1,
 # )
@@ -413,13 +413,21 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":rt_opdefs",
+#         ":xla",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:AsyncDialect",
 #         "@llvm-project//mlir:IR",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
 #     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "xla",
+#     hdrs = ["include/tfrt/jitrt/xla.h"],
+#     compatible_with = ["//buildenv/target:non_prod"],
+#     visibility = ["@tf_runtime//:friends"],
 # )
 #
 # tfrt_cc_library(
@@ -563,60 +571,6 @@ licenses(["notice"])
 # # Note: run_lit.sh does not exist in open-source environment.
 # exports_files(["tools/run_lit.sh"])
 #
-# td_library(
-#     name = "rt_ops_td_files",
-#     srcs = [
-#         "include/tfrt/jitrt/opdefs/rt_base.td",
-#         "include/tfrt/jitrt/opdefs/rt_ops.td",
-#     ],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     includes = ["include"],
-#     visibility = ["//visibility:private"],
-#     deps = [
-#         "@llvm-project//mlir:OpBaseTdFiles",
-#     ],
-# )
-#
-# gentbl_cc_library(
-#     name = "rt_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     tbl_outs = [
-#         (
-#             [
-#                 "-gen-dialect-decls",
-#                 "-dialect=rt",
-#             ],
-#             "include/tfrt/jitrt/opdefs/rt_dialect.h.inc",
-#         ),
-#         (
-#             [
-#                 "-gen-dialect-defs",
-#                 "-dialect=rt",
-#             ],
-#             "include/tfrt/jitrt/opdefs/rt_dialect.cpp.inc",
-#         ),
-#         (
-#             ["-gen-op-decls"],
-#             "include/tfrt/jitrt/opdefs/rt_ops.h.inc",
-#         ),
-#         (
-#             ["-gen-op-defs"],
-#             "include/tfrt/jitrt/opdefs/rt_ops.cpp.inc",
-#         ),
-#         (
-#             ["-gen-typedef-decls"],
-#             "include/tfrt/jitrt/opdefs/rt_types.h.inc",
-#         ),
-#         (
-#             ["-gen-typedef-defs"],
-#             "include/tfrt/jitrt/opdefs/rt_types.cpp.inc",
-#         ),
-#     ],
-#     tblgen = "@llvm-project//mlir:mlir-tblgen",
-#     td_file = "include/tfrt/jitrt/opdefs/rt_ops.td",
-#     deps = [":rt_ops_td_files"],
-# )
-#
 # gentbl_cc_library(
 #     name = "rt_conversion_passes_inc_gen",
 #     compatible_with = ["//buildenv/target:non_prod"],
@@ -669,20 +623,6 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_library(
-#     name = "rt_opdefs",
-#     srcs = ["lib/opdefs/rt_ops.cc"],
-#     hdrs = ["include/tfrt/jitrt/opdefs/rt_ops.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":rt_inc_gen",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:Support",
-#     ],
-# )
-#
-# tfrt_cc_library(
 #     name = "custom_call_to_llvm",
 #     srcs = ["lib/conversion/custom_call_to_llvm.cc"],
 #     hdrs = ["include/tfrt/jitrt/conversion/custom_call_to_llvm.h"],
@@ -708,7 +648,7 @@ licenses(["notice"])
 #         ":custom_call",
 #         ":custom_call_to_llvm",
 #         ":rt_conversion_passes_inc_gen",
-#         ":rt_opdefs",
+#         ":xla",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:ArithmeticDialect",
 #         "@llvm-project//mlir:FuncDialect",
@@ -720,6 +660,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Pass",
 #         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:Transforms",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #     ],
 # )
 #
@@ -729,14 +670,15 @@ licenses(["notice"])
 #     hdrs = ["include/tfrt/jitrt/transforms/rt_passes.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     deps = [
-#         ":rt_opdefs",
 #         ":rt_transforms_passes_inc_gen",
+#         ":xla",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:ControlFlowDialect",
 #         "@llvm-project//mlir:FuncDialect",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:Pass",
 #         "@llvm-project//mlir:Support",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #     ],
 # )
 #

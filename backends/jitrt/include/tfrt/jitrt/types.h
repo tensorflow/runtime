@@ -25,6 +25,7 @@
 #include "llvm/Support/ExtensibleRTTI.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/jitrt/xla.h"
 
 namespace tfrt {
 namespace jitrt {

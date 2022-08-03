@@ -27,8 +27,8 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
-#include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/support/error_util.h"
+#include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/rt_ops.h"
 
 namespace tfrt {
 namespace jitrt {

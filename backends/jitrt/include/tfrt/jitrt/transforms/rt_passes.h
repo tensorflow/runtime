@@ -21,7 +21,8 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
-#include "tfrt/jitrt/opdefs/rt_ops.h"
+#include "tfrt/jitrt/xla.h"
+#include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/rt_ops.h"
 
 namespace tfrt {
 namespace jitrt {

@@ -24,6 +24,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
+#include "tfrt/jitrt/xla.h"
 
 namespace tfrt {
 namespace jitrt {

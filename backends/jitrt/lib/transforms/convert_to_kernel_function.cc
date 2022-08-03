@@ -19,8 +19,8 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
-#include "tfrt/jitrt/opdefs/rt_ops.h"
 #include "tfrt/jitrt/transforms/rt_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/rt_ops.h"
 
 namespace tfrt {
 namespace jitrt {

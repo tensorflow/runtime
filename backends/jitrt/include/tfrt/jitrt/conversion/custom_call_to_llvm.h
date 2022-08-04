@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -216,7 +217,7 @@ class Globals {
   mlir::LLVM::GlobalOp GetOrCreate(mlir::ImplicitLocOpBuilder &b,
                                    mlir::Attribute attr, mlir::Type type,
                                    llvm::StringRef symbol_base,
-                                   GlobalInitializer initialize);
+                                   GlobalInitializer initialize = {});
 
   // Returns the address of the global value.
   static mlir::Value AddrOf(mlir::ImplicitLocOpBuilder &b,
@@ -233,7 +234,7 @@ class Globals {
   // constants of one of the LLVM types, and there could be multiple ways to
   // encode an attribute as an LLVM type, e.g. strings can be stored as null
   // terminated array of bytes, or a pair of string size and and array of bytes.
-  using Key = std::tuple<mlir::Attribute, mlir::Type, llvm::StringRef>;
+  using Key = std::tuple<mlir::Attribute, mlir::Type, mlir::StringAttr>;
 
   mlir::LLVM::GlobalOp Find(Key key);
 

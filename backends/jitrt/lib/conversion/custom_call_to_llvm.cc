@@ -192,7 +192,7 @@ static Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
     Value num_elements =
         ib.create<ConstantOp>(b.getI64IntegerAttr(dense.getNumElements()));
     Value data_ptr = Globals::AddrOf(
-        ib, g.GetOrCreate(b, Flatten(dense), data_arr_type, symbol_base, {}));
+        ib, g.GetOrCreate(b, Flatten(dense), data_arr_type, symbol_base));
 
     // Create the payload struct.
     Value payload = ib.create<LLVM::UndefOp>(payload_type);
@@ -452,19 +452,14 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, StringRef strref,
 
   // Create a string reference that captures the null terminator.
   StringRef ref(str.data(), str.size() + 1);
-  auto arr = LLVM::LLVMArrayType::get(b.getI8Type(), ref.size());
-
-  OpBuilder::InsertionGuard guard(b);
-  b.setInsertionPointToStart(module_.getBody());
-
-  return b.create<LLVM::GlobalOp>(
-      arr, /*isConstant=*/true, LLVM::Linkage::Internal,
-      UniqueSymName(symbol_base), b.getStringAttr(ref));
+  StringAttr attr = b.getStringAttr(ref);
+  Type arr = LLVM::LLVMArrayType::get(b.getI8Type(), ref.size());
+  return GetOrCreate(b, attr, arr, symbol_base);
 }
 
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
                                     StringRef symbol_base) {
-  Key key(attr, attr.getType(), symbol_base);
+  Key key(attr, attr.getType(), b.getStringAttr(symbol_base));
 
   // Check if global value already exists ...
   if (auto global = Find(key)) return global;
@@ -476,16 +471,15 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
   auto global = b.create<LLVM::GlobalOp>(attr.getType(), /*isConstant=*/true,
                                          LLVM::Linkage::Internal,
                                          UniqueSymName(symbol_base), attr);
-  auto emplaced = globals_.try_emplace(key, global);
-  assert(emplaced.second && "must be a new global");
-
-  return emplaced.first->second;
+  return globals_[key] = global;
 }
 
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
                                     Type type, StringRef symbol_base,
                                     GlobalInitializer initialize) {
-  Key key(attr, type, symbol_base);
+  // We assume that this triple uniquely identifies the global value and the
+  // global initializer always produces the same value for given inputs.
+  Key key(attr, type, b.getStringAttr(symbol_base));
 
   // Check if global value already exists ...
   if (auto global = Find(key)) return global;
@@ -496,17 +490,16 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
 
   // If the initialize function is not provided, create constant directly.
   if (!initialize) {
-    return b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
-                                    LLVM::Linkage::Internal,
-                                    UniqueSymName(symbol_base), attr);
+    auto global = b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
+                                           LLVM::Linkage::Internal,
+                                           UniqueSymName(symbol_base), attr);
+    return globals_[key] = global;
   }
 
   // Create an uninitialized global.
-  auto global = b.create<LLVM::GlobalOp>(
-      type, /*isConstant=*/true, LLVM::Linkage::Internal,
-      UniqueSymName(symbol_base), Attribute());
-  auto emplaced = globals_.try_emplace(key, global);
-  assert(emplaced.second && "must be a new global");
+  auto global = b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
+                                         LLVM::Linkage::Internal,
+                                         UniqueSymName(symbol_base), nullptr);
 
   // Call user-provided global initializer.
   mlir::Region &region = global.getInitializerRegion();
@@ -515,7 +508,7 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
   b.setInsertionPointToStart(block);
   initialize(b, attr);
 
-  return emplaced.first->second;
+  return globals_[key] = global;
 }
 
 /*static*/ Value Globals::AddrOf(ImplicitLocOpBuilder &b,

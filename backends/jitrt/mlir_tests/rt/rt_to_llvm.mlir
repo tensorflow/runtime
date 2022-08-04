@@ -60,6 +60,22 @@ func.func @set_error(%arg0: !rt.kernel_context) {
 
 // -----
 
+// CHECK: llvm.mlir.global {{.*}} @[[ERR:.*]]("Failed precondition\00")
+// CHECK-NOT: Failed precondition
+
+// CHECK: func @dedup_error_message(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @dedup_error_message(%arg0: !rt.kernel_context) {
+  // CHECK: %[[ADDR:.*]] = llvm.mlir.addressof @[[ERR]]
+  rt.set_error %arg0, "Failed precondition"
+  // CHECK: %[[ADDR:.*]] = llvm.mlir.addressof @[[ERR]]
+  rt.set_error %arg0, "Failed precondition"
+  func.return
+}
+
+// -----
+
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
 // CHECK: global internal constant @__rt_attr_value_0()

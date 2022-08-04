@@ -478,6 +478,17 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
                                     Type type, StringRef symbol_base,
                                     GlobalInitializer initialize) {
+  if (!initialize) return *TryGetOrCreate(b, attr, type, symbol_base);
+
+  return *TryGetOrCreate(b, attr, type, symbol_base,
+                         [&](ImplicitLocOpBuilder &b, Attribute) {
+                           return (initialize(b, attr), success());
+                         });
+}
+
+mlir::FailureOr<mlir::LLVM::GlobalOp> Globals::TryGetOrCreate(
+    mlir::ImplicitLocOpBuilder &b, mlir::Attribute attr, mlir::Type type,
+    llvm::StringRef symbol_base, FailureOrGlobalInitializer initialize) {
   // We assume that this triple uniquely identifies the global value and the
   // global initializer always produces the same value for given inputs.
   Key key(attr, type, b.getStringAttr(symbol_base));
@@ -507,7 +518,7 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
   mlir::Block *block = b.createBlock(&region);
 
   b.setInsertionPointToStart(block);
-  initialize(b, attr);
+  if (failed(initialize(b, attr))) return failure();
 
   return globals_[key] = global;
 }

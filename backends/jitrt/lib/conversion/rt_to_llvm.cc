@@ -330,16 +330,14 @@ static FailureOr<Value> EncodeAttributes(CustomCallAttrEncodingSet &encodings,
   Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
   Type type = LLVM::LLVMArrayType::get(ptr, 1 + n_attrs * 3);
 
-  // TODO(ezhulenev): Global value initializer can't signal a failure to the
-  // `GetOrCreate` function, and we have to ignore individual attr encoding.
-
   // Global initializer that encodes all attributes as an array of pointers.
-  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) -> LogicalResult {
     // Try to encode all individual attributes as a set of pointers.
     llvm::SmallVector<EncodedAttr> encoded;
     for (auto &attr : llvm::make_filter_range(attrs, std::not_fn(skip))) {
       auto encoded_attr =
           encodings.Encode(g, b, attr.getName(), attr.getValue());
+      if (failed(encoded_attr)) return failure();
       encoded.emplace_back(attr.getName(), *encoded_attr);
     }
 
@@ -370,18 +368,21 @@ static FailureOr<Value> EncodeAttributes(CustomCallAttrEncodingSet &encodings,
 
     // Return attributes array from the global initializer block.
     ib.create<LLVM::ReturnOp>(arr);
+
+    return success();
   };
 
   // Put all attributes in a dictionary attribute, so we can use it as a part of
   // the `Globals` cache key.
   auto attrs_map = DictionaryAttr::get(b.getContext(), attrs);
   auto global =
-      g.GetOrCreate(b, attrs_map, type, "__rt_custom_call_attrs", init);
+      g.TryGetOrCreate(b, attrs_map, type, "__rt_custom_call_attrs", init);
+  if (failed(global)) return failure();
 
   // Get a pointer to the first element of the array: !llvm.ptr<ptr<i8>>.
   Type ptr_ptr = LLVM::LLVMPointerType::get(ptr);
   Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
-  Value addr = Globals::AddrOf(b, global);
+  Value addr = Globals::AddrOf(b, *global);
   Value gep = b.create<LLVM::GEPOp>(ptr_ptr, addr, ValueRange({c0, c0}));
 
   // Return a pointer to the encoded attributes: `!llvm.ptr<ptr<i8>>` (void**).

@@ -196,6 +196,11 @@ class Globals {
   using GlobalInitializer =
       std::function<void(mlir::ImplicitLocOpBuilder &, mlir::Attribute)>;
 
+  // Global value initializer that can return failure if it can't initialize the
+  // global value from the given attribute.
+  using FailureOrGlobalInitializer = std::function<mlir::LogicalResult(
+      mlir::ImplicitLocOpBuilder &, mlir::Attribute)>;
+
   explicit Globals(mlir::ModuleOp module) : module_(module) {}
 
   // Returns a unique symbol name for a given `symbol_base`.
@@ -218,6 +223,13 @@ class Globals {
                                    mlir::Attribute attr, mlir::Type type,
                                    llvm::StringRef symbol_base,
                                    GlobalInitializer initialize = {});
+
+  // Creates a global constant value of the given type from the attribute, using
+  // optional user-provided global constant initialization. Returns failure if
+  // user-provided initialization failed to initialize the global value.
+  mlir::FailureOr<mlir::LLVM::GlobalOp> TryGetOrCreate(
+      mlir::ImplicitLocOpBuilder &b, mlir::Attribute attr, mlir::Type type,
+      llvm::StringRef symbol_base, FailureOrGlobalInitializer initialize = {});
 
   // Returns the address of the global value.
   static mlir::Value AddrOf(mlir::ImplicitLocOpBuilder &b,

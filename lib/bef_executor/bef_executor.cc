@@ -27,6 +27,7 @@
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/location.h"
@@ -211,6 +212,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   // `results` will be populated with unavailable AsyncValues that are served as
   // futures (i.e. emplace() or SetError must not be called on these async
   // values).
+  // If this fails, the results are set to errors and null is returned.
   static RCReference<BEFExecutor> Create(
       ExecutionContext exec_ctx, const BEFFunction& fn,
       ArrayRef<AsyncValue*> arguments,
@@ -681,7 +683,14 @@ RCReference<BEFExecutor> BEFExecutor::Create(
   bool success = bef_file->ReadFunction(fn.function_offset(), fn.result_types(),
                                         &location_offset, &exec->function_info_,
                                         &result_regs, host->allocator());
-  if (!success) return {};
+  if (!success) {
+    for (size_t i = 0, e = results.size(); i != e; ++i) {
+      assert(!results[i] && "result AsyncValue is not nullptr");
+      results[i]->SetError(DecodedDiagnostic("Could not read BEF function."));
+    }
+    return {};
+  };
+
   assert(result_regs.size() == fn.result_types().size());
 
   MutableArrayRef<BEFFileImpl::RegisterInfo> register_array =

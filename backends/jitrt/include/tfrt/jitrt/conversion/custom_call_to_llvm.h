@@ -340,9 +340,6 @@ struct EnumAttrEncoding : public CustomCallAttrEncoding {
 //
 // Returns a value of `!llvm.ptr<ptr<i8>>` (void**) type pointing to the encoded
 // aggregate.
-//
-// TODO(ezhulenev): Use this function to encode custom call attributes in the
-// rt-to-llvm pass.
 mlir::FailureOr<mlir::Value> EncodeAggregateAttr(
     Globals &g, mlir::ImplicitLocOpBuilder &b,
     const CustomCallAttrEncodingSet &encoding, mlir::TypeID type_id,

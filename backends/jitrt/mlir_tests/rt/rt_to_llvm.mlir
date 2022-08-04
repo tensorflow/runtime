@@ -105,8 +105,7 @@ func.func @dedup_error_message(%arg0: !rt.kernel_context) {
 // CHECK: )
 func.func @custom_call(%arg0: !rt.kernel_context) {
   // CHECK: call @runtimeCustomCall
-  rt.custom_call %arg0["target"] ()
-    { arr = [1, 2, 3] } : () -> ()
+  rt.custom_call %arg0["target"] () { arr = [1, 2, 3] } : () -> ()
   func.return
 }
 
@@ -139,8 +138,7 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK: )
 func.func @custom_call(%arg0: !rt.kernel_context) {
   // CHECK: call @runtimeCustomCall
-  rt.custom_call %arg0["target"] ()
-    { attr_name = [:i64 1, 2, 3] } : () -> ()
+  rt.custom_call %arg0["target"] () { attr_name = [:i64 1, 2, 3] } : () -> ()
   func.return
 }
 
@@ -162,8 +160,7 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK: )
 func.func @custom_call(%arg0: !rt.kernel_context) {
   // CHECK: call @runtimeCustomCall
-  rt.custom_call %arg0["target"] ()
-    { arr = [] } : () -> ()
+  rt.custom_call %arg0["target"] () { arr = [] } : () -> ()
   func.return
 }
 
@@ -391,6 +388,22 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?x256xf32>) {
 func.func @custom_call(%arg0: !rt.kernel_context, %arg1: f16) {
   // CHECK: call @target
   rt.custom_call direct %arg0["target"] (%arg1) : (f16) -> ()
+  func.return
+}
+
+// -----
+
+// CHECK: internal constant @__rt_custom_call_attrs() : !llvm.array<4 x ptr<i8>>
+// CHECK-NOT: internal constant @__rt_custom_call_attrs
+
+// CHECK: func @dedup_custom_call_attrs(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func.func @dedup_custom_call_attrs(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] () { arr = [1, 2, 3] } : () -> ()
+  // CHECK: call @runtimeCustomCall
+  rt.custom_call %arg0["target"] () { arr = [1, 2, 3] } : () -> ()
   func.return
 }
 

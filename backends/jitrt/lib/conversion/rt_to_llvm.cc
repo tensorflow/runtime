@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -49,6 +50,7 @@ using mlir::ArrayAttr;
 using mlir::Attribute;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
+using mlir::DictionaryAttr;
 using mlir::failure;
 using mlir::FailureOr;
 using mlir::FunctionType;
@@ -303,7 +305,7 @@ static FailureOr<Value> EncodeArguments(
   b.create<LLVM::StoreOp>(arr, mem);
 
   // Return a pointer to the first element of the arguments array.
-  Type ptr_ptr = mlir::LLVM::LLVMPointerType::get(ptr);
+  Type ptr_ptr = LLVM::LLVMPointerType::get(ptr);
   Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
   Value gep = b.create<LLVM::GEPOp>(ptr_ptr, mem, ValueRange({c0, c0}));
   return gep;
@@ -328,67 +330,59 @@ static FailureOr<Value> EncodeAttributes(CustomCallAttrEncodingSet &encodings,
   Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
   Type type = LLVM::LLVMArrayType::get(ptr, 1 + n_attrs * 3);
 
-  // Prepare a global constant for storing encoded attributes.
-  LLVM::GlobalOp global = [&]() {
-    OpBuilder::InsertionGuard guard(b);
-    b.setInsertionPointToStart(g.module().getBody());
-    return b.create<LLVM::GlobalOp>(
-        type, /*isConstant=*/true, LLVM::Linkage::Internal,
-        g.UniqueSymName("__rt_custom_call_attrs"), Attribute());
-  }();
+  // TODO(ezhulenev): Global value initializer can't signal a failure to the
+  // `GetOrCreate` function, and we have to ignore individual attr encoding.
+
+  // Global initializer that encodes all attributes as an array of pointers.
+  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
+    // Try to encode all individual attributes as a set of pointers.
+    llvm::SmallVector<EncodedAttr> encoded;
+    for (auto &attr : llvm::make_filter_range(attrs, std::not_fn(skip))) {
+      auto encoded_attr =
+          encodings.Encode(g, b, attr.getName(), attr.getValue());
+      encoded.emplace_back(attr.getName(), *encoded_attr);
+    }
+
+    // Sort encoded attributes in lexicographical order.
+    llvm::sort(encoded, [](auto &a, auto &b) { return a.first < b.first; });
+
+    // Prepare an array for encoding attributes.
+    Value arr = ib.create<LLVM::UndefOp>(type);
+    auto insert_value = [&](Value value, int64_t offset) {
+      Value bcasted = ib.createOrFold<LLVM::BitcastOp>(ptr, value);
+      arr = ib.create<LLVM::InsertValueOp>(type, arr, bcasted,
+                                           ib.getI64ArrayAttr(offset));
+    };
+
+    // Insert the number of encoded attributes.
+    Attribute num_attrs = ib.getI64IntegerAttr(n_attrs);
+    insert_value(PackScalarAttribute(g, ib, num_attrs, "__rt_num_attrs"), 0);
+
+    // Insert encoded attributes into the allocated storage.
+    for (auto &pair : llvm::enumerate(encoded)) {
+      CustomCallAttrEncoding::Encoded encoded = pair.value().second;
+      int64_t offset = 1 + pair.index() * 3;
+
+      insert_value(encoded.name, offset + 0);
+      insert_value(encoded.type_id, offset + 1);
+      insert_value(encoded.value, offset + 2);
+    }
+
+    // Return attributes array from the global initializer block.
+    ib.create<LLVM::ReturnOp>(arr);
+  };
+
+  // Put all attributes in a dictionary attribute, so we can use it as a part of
+  // the `Globals` cache key.
+  auto attrs_map = DictionaryAttr::get(b.getContext(), attrs);
+  auto global =
+      g.GetOrCreate(b, attrs_map, type, "__rt_custom_call_attrs", init);
 
   // Get a pointer to the first element of the array: !llvm.ptr<ptr<i8>>.
-  Type ptr_ptr = mlir::LLVM::LLVMPointerType::get(ptr);
+  Type ptr_ptr = LLVM::LLVMPointerType::get(ptr);
   Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
   Value addr = Globals::AddrOf(b, global);
   Value gep = b.create<LLVM::GEPOp>(ptr_ptr, addr, ValueRange({c0, c0}));
-
-  OpBuilder::InsertionGuard guard(b);
-
-  // Create a global constant initializer block.
-  mlir::Region &region = global.getInitializerRegion();
-  mlir::Block *block = b.createBlock(&region);
-
-  // Build attributes encoding inside the initializer block.
-  b.setInsertionPointToStart(block);
-
-  llvm::SmallVector<EncodedAttr> encoded;
-  for (auto &attr : attrs) {
-    if (skip(attr)) continue;
-
-    // Try to encode the attribute as a set of pointers.
-    auto encoded_attr = encodings.Encode(g, b, attr.getName(), attr.getValue());
-    if (failed(encoded_attr)) return failure();
-    encoded.emplace_back(attr.getName(), *encoded_attr);
-  }
-
-  // Sort encoded attributes in lexicographical order.
-  llvm::sort(encoded, [](auto &a, auto &b) { return a.first < b.first; });
-
-  // Prepare an array for encoding attributes.
-  Value arr = b.create<LLVM::UndefOp>(type);
-  auto insert_value = [&](Value value, int64_t offset) {
-    Value bcasted = b.createOrFold<LLVM::BitcastOp>(ptr, value);
-    arr = b.create<LLVM::InsertValueOp>(type, arr, bcasted,
-                                        b.getI64ArrayAttr(offset));
-  };
-
-  // Insert the number of encoded attributes.
-  Attribute num_attrs = b.getI64IntegerAttr(n_attrs);
-  insert_value(PackScalarAttribute(g, b, num_attrs, "__rt_num_attrs"), 0);
-
-  // Insert encoded attributes into the allocated storage.
-  for (auto &pair : llvm::enumerate(encoded)) {
-    CustomCallAttrEncoding::Encoded encoded = pair.value().second;
-    int64_t offset = 1 + pair.index() * 3;
-
-    insert_value(encoded.name, offset + 0);
-    insert_value(encoded.type_id, offset + 1);
-    insert_value(encoded.value, offset + 2);
-  }
-
-  // Return attributes array from the global initializer block.
-  b.create<LLVM::ReturnOp>(arr);
 
   // Return a pointer to the encoded attributes: `!llvm.ptr<ptr<i8>>` (void**).
   return gep;

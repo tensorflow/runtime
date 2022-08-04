@@ -62,9 +62,10 @@
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
-#include "tfrt/jitrt/transforms/rt_passes.h"
+#include "tfrt/jitrt/xla.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -771,10 +772,10 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
       Executable::GetResultsMemoryLayout(*runtime_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
 
-  // Mark entrypoint function with a JitRt attribute, so it can be converted
-  // to a kernel function (see `rt-to-kernel-function` pass).
+  // Mark entry function with an attribute, so it can be converted to an Xla
+  // entrypoint (see `rt-convert-to-entrypoint` pass).
   auto unit_attr = mlir::UnitAttr::get(entry_func.getContext());
-  entry_func->setAttr(kJitRtEntrypointAttrName, unit_attr);
+  entry_func->setAttr(xla::runtime::kEntrypointAttrName, unit_attr);
 
   // Run the compilation pipeline to lower the module to LLVM dialect.
   if (failed(RunCompilationPipeline(ctx->module(), opts)))

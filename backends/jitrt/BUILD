@@ -172,11 +172,11 @@ licenses(["notice"])
 #         ":execution_engine",
 #         ":memory_mapper",
 #         ":results",
-#         ":rt_transforms",
 #         ":specialization",
 #         ":support",
 #         ":symbolic_shape",
 #         ":types",
+#         ":xla",
 #         "@llvm-project//llvm:Core",
 #         "@llvm-project//llvm:OrcJIT",
 #         "@llvm-project//llvm:Support",
@@ -188,6 +188,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:Transforms",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",
@@ -205,7 +206,6 @@ licenses(["notice"])
 #         ":codegen_transforms",
 #         ":custom_call_to_llvm",
 #         ":rt_conversion",
-#         ":rt_transforms",
 #         "@llvm-project//mlir:AMXToLLVMIRTranslation",
 #         "@llvm-project//mlir:AffineDialect",
 #         "@llvm-project//mlir:AffineToStandard",
@@ -238,6 +238,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:VectorToLLVM",
 #         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
 #     ],
 #     alwayslink = 1,
 # )
@@ -561,9 +562,9 @@ licenses(["notice"])
 #         ":custom_call_testlib",
 #         ":jitrt_compiler",
 #         ":rt_conversion",
-#         ":rt_transforms",
 #         "@llvm-project//mlir:MlirOptLib",
 #         "@llvm-project//mlir:Transforms",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
 #         "@tf_runtime//:init_tfrt_dialects",
 #     ],
 # )
@@ -585,23 +586,6 @@ licenses(["notice"])
 #     ],
 #     tblgen = "@llvm-project//mlir:mlir-tblgen",
 #     td_file = "include/tfrt/jitrt/conversion/rt_passes.td",
-#     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
-# )
-#
-# gentbl_cc_library(
-#     name = "rt_transforms_passes_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     tbl_outs = [
-#         (
-#             [
-#                 "-gen-pass-decls",
-#                 "-name=RuntimeTransforms",
-#             ],
-#             "include/tfrt/jitrt/transforms/rt_gen_passes.h.inc",
-#         ),
-#     ],
-#     tblgen = "@llvm-project//mlir:mlir-tblgen",
-#     td_file = "include/tfrt/jitrt/transforms/rt_passes.td",
 #     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
 # )
 #
@@ -660,24 +644,6 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Pass",
 #         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:Transforms",
-#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
-#     ],
-# )
-#
-# tfrt_cc_library(
-#     name = "rt_transforms",
-#     srcs = ["lib/transforms/convert_to_kernel_function.cc"],
-#     hdrs = ["include/tfrt/jitrt/transforms/rt_passes.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     deps = [
-#         ":rt_transforms_passes_inc_gen",
-#         ":xla",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:ControlFlowDialect",
-#         "@llvm-project//mlir:FuncDialect",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:Pass",
-#         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #     ],
 # )

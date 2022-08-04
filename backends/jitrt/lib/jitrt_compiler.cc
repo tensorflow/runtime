@@ -54,10 +54,12 @@
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
-#include "tfrt/jitrt/transforms/rt_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
 
 namespace tfrt {
 namespace jitrt {
+
+using xla::runtime::CreateConvertToEntrypoint;
 
 void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
   // Register MLIR dialects supported by the compiled kernels.
@@ -131,9 +133,8 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(mlir::createLowerAffinePass());
   pm.addPass(mlir::createConvertSCFToCFPass());
 
-  // Convert the entrypoint function to a kernel function (all results and
-  // errors returned via the runtime API calls).
-  pm.addPass(CreateConvertToKernelFunction());
+  // Convert entry function to the XLA entrypoint.
+  pm.addPass(CreateConvertToEntrypoint());
 
   // Convert runtime operations and custom calls to LLVM dialect.
   ConvertRuntimeToLLvmOpts rt_opts = {opts.populate_type_conversions,

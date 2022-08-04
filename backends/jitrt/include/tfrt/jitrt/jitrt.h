@@ -270,7 +270,7 @@ struct CompilationOptions {
   //    primitive fields when passed as inputs.
   //
   // 2) Compiled kernel function always returns void, and uses runtime API to
-  //    return results back to the caller (see `rt-to-kernel-function` pass).
+  //    return results back to the caller (see `rt-convert-to-entrypoint` pass).
   //
   // Calling convention function type is a JitRt-compatible description of the
   // compiled kernel ABI, so that JitRt can correctly initialize CallFrame

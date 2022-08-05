@@ -50,7 +50,6 @@ using mlir::ArrayAttr;
 using mlir::Attribute;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
-using mlir::DictionaryAttr;
 using mlir::failure;
 using mlir::FailureOr;
 using mlir::FunctionType;
@@ -305,7 +304,7 @@ static FailureOr<Value> EncodeArguments(
   b.create<LLVM::StoreOp>(arr, mem);
 
   // Return a pointer to the first element of the arguments array.
-  Type ptr_ptr = LLVM::LLVMPointerType::get(ptr);
+  Type ptr_ptr = mlir::LLVM::LLVMPointerType::get(ptr);
   Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
   Value gep = b.create<LLVM::GEPOp>(ptr_ptr, mem, ValueRange({c0, c0}));
   return gep;
@@ -316,77 +315,22 @@ static FailureOr<Value> EncodeArguments(
 static FailureOr<Value> EncodeAttributes(CustomCallAttrEncodingSet &encodings,
                                          Globals &g, ImplicitLocOpBuilder &b,
                                          ArrayRef<NamedAttribute> attrs) {
-  using EncodedAttr = std::pair<StringRef, CustomCallAttrEncoding::Encoded>;
-
   // Skip attributes passed explicitly as a custom call argument.
   auto skip = [](NamedAttribute attr) {
     return attr.getName() == "callee" || attr.getName() == "direct";
   };
 
-  // In addition to encoded attribues we encode the number of attributes.
-  int64_t n_attrs = attrs.size() - llvm::count_if(attrs, skip);
+  llvm::SmallVector<NamedAttribute> custom_call_attrs =
+      llvm::to_vector(llvm::make_filter_range(attrs, std::not_fn(skip)));
 
-  // We store encoded attributes as `!llvm.array<ptr<i8> x len>`.
-  Type ptr = LLVM::LLVMPointerType::get(b.getI8Type());
-  Type type = LLVM::LLVMArrayType::get(ptr, 1 + n_attrs * 3);
+  // Sort encoded attributes in lexicographical order so that when decoding we
+  // can efficiently find attributes by name.
+  llvm::sort(custom_call_attrs, [](NamedAttribute &a, NamedAttribute &b) {
+    return a.getName().strref() < b.getName().strref();
+  });
 
-  // Global initializer that encodes all attributes as an array of pointers.
-  auto init = [&](ImplicitLocOpBuilder &ib, Attribute) -> LogicalResult {
-    // Try to encode all individual attributes as a set of pointers.
-    llvm::SmallVector<EncodedAttr> encoded;
-    for (auto &attr : llvm::make_filter_range(attrs, std::not_fn(skip))) {
-      auto encoded_attr =
-          encodings.Encode(g, b, attr.getName(), attr.getValue());
-      if (failed(encoded_attr)) return failure();
-      encoded.emplace_back(attr.getName(), *encoded_attr);
-    }
-
-    // Sort encoded attributes in lexicographical order.
-    llvm::sort(encoded, [](auto &a, auto &b) { return a.first < b.first; });
-
-    // Prepare an array for encoding attributes.
-    Value arr = ib.create<LLVM::UndefOp>(type);
-    auto insert_value = [&](Value value, int64_t offset) {
-      Value bcasted = ib.createOrFold<LLVM::BitcastOp>(ptr, value);
-      arr = ib.create<LLVM::InsertValueOp>(type, arr, bcasted,
-                                           ib.getI64ArrayAttr(offset));
-    };
-
-    // Insert the number of encoded attributes.
-    Attribute num_attrs = ib.getI64IntegerAttr(n_attrs);
-    insert_value(PackScalarAttribute(g, ib, num_attrs, "__rt_num_attrs"), 0);
-
-    // Insert encoded attributes into the allocated storage.
-    for (auto &pair : llvm::enumerate(encoded)) {
-      CustomCallAttrEncoding::Encoded encoded = pair.value().second;
-      int64_t offset = 1 + pair.index() * 3;
-
-      insert_value(encoded.name, offset + 0);
-      insert_value(encoded.type_id, offset + 1);
-      insert_value(encoded.value, offset + 2);
-    }
-
-    // Return attributes array from the global initializer block.
-    ib.create<LLVM::ReturnOp>(arr);
-
-    return success();
-  };
-
-  // Put all attributes in a dictionary attribute, so we can use it as a part of
-  // the `Globals` cache key.
-  auto attrs_map = DictionaryAttr::get(b.getContext(), attrs);
-  auto global =
-      g.TryGetOrCreate(b, attrs_map, type, "__rt_custom_call_attrs", init);
-  if (failed(global)) return failure();
-
-  // Get a pointer to the first element of the array: !llvm.ptr<ptr<i8>>.
-  Type ptr_ptr = LLVM::LLVMPointerType::get(ptr);
-  Value c0 = b.create<ConstantOp>(b.getI64IntegerAttr(0));
-  Value addr = Globals::AddrOf(b, *global);
-  Value gep = b.create<LLVM::GEPOp>(ptr_ptr, addr, ValueRange({c0, c0}));
-
-  // Return a pointer to the encoded attributes: `!llvm.ptr<ptr<i8>>` (void**).
-  return gep;
+  return EncodeAttributes(g, b, encodings, "__rt_custom_call_attrs",
+                          custom_call_attrs);
 }
 
 class CustomCallOpLowering : public OpConversionPattern<CustomCallOp> {

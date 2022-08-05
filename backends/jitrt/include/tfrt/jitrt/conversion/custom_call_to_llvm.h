@@ -258,6 +258,26 @@ class Globals {
 // Custom call attributes encoding.
 // -------------------------------------------------------------------------- //
 
+// Encodes attribute using a scheme compatible with run time attributes decoding
+// (see `internal::DecodedAttrs` in the custom call header file).
+//
+// Returns a value of `!llvm.ptr<ptr<i8>>` (void**) type pointing to the encoded
+// attributes array (array of pointers).
+//
+// This function is used to encode:
+//
+//   1. Struct attributes as aggregates of nested attributes, where the order of
+//      attributes matches the order defined with the `AggregateAttrDef` schema
+//      defined below.
+//
+//   2. Custom call attributes, where the attributes sorted lexicographically by
+//      name, to be able to efficiently decode named attributes.
+//
+mlir::FailureOr<mlir::Value> EncodeAttributes(
+    Globals &g, mlir::ImplicitLocOpBuilder &b,
+    const CustomCallAttrEncodingSet &encoding, llvm::StringRef symbol_base,
+    llvm::ArrayRef<mlir::NamedAttribute> attrs);
+
 struct StringAttrEncoding : public CustomCallAttrEncoding {
   mlir::LogicalResult Match(llvm::StringRef, mlir::Attribute) const final;
   mlir::FailureOr<Encoded> Encode(Globals &g, mlir::ImplicitLocOpBuilder &b,
@@ -347,16 +367,6 @@ struct EnumAttrEncoding : public CustomCallAttrEncoding {
   Converter convert;
 };
 
-// Encodes aggregate attribute using a scheme compatibe with runtime attributes
-// decoding (see `internal::DecodedAttrs` in the custom call header file).
-//
-// Returns a value of `!llvm.ptr<ptr<i8>>` (void**) type pointing to the encoded
-// aggregate.
-mlir::FailureOr<mlir::Value> EncodeAggregateAttr(
-    Globals &g, mlir::ImplicitLocOpBuilder &b,
-    const CustomCallAttrEncodingSet &encoding, mlir::TypeID type_id,
-    llvm::StringRef type_name, llvm::ArrayRef<mlir::NamedAttribute> attrs);
-
 // A helper type to define `AttrType` encoding scheme.
 template <typename AttrType>
 struct AggregateAttrDef {
@@ -419,8 +429,8 @@ struct AggregateAttrEncoding : public CustomCallAttrEncoding {
 
     // Encode extracted attributes as an aggregate.
     auto type_id = mlir::TypeID::get<Tagged<RuntimeType>>();
-    auto aggregate = EncodeAggregateAttr(g, b, encoding, type_id,
-                                         AttrType::getMnemonic(), attrs);
+    auto sym = "__rt_aggregate_" + AttrType::getMnemonic();
+    auto aggregate = EncodeAttributes(g, b, encoding, sym.str(), attrs);
     if (mlir::failed(aggregate)) return mlir::failure();
 
     Encoded encoded;

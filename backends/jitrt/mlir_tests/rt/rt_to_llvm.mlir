@@ -78,7 +78,7 @@ func.func @dedup_error_message(%arg0: !rt.kernel_context) {
 
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
-// CHECK: global internal constant @__rt_attr_value_0()
+// CHECK: global internal constant @__rt_attr_value()
 // CHECK-SAME: !llvm.array<3 x i64> {
 // CHECK:   llvm.mlir.undef : !llvm.array<3 x i64>
 // CHECK:   arith.constant 1 : i64
@@ -90,10 +90,10 @@ func.func @dedup_error_message(%arg0: !rt.kernel_context) {
 // CHECK:   llvm.return
 // CHECK: }
 
-// CHECK: global internal constant @__rt_attr_value()
+// CHECK: global internal constant @__rt_attr_value_0()
 // CHECK-SAME: !llvm.struct<(i64, ptr<array<3 x i64>>)> {
 // CHECK:   arith.constant 3 : i64
-// CHECK:   llvm.mlir.addressof @__rt_attr_value_0 : !llvm.ptr<array<3 x i64>>
+// CHECK:   llvm.mlir.addressof @__rt_attr_value : !llvm.ptr<array<3 x i64>>
 // CHECK:   llvm.mlir.undef : !llvm.struct<(i64, ptr<array<3 x i64>>)>
 // CHECK:   llvm.insertvalue
 // CHECK:   llvm.insertvalue
@@ -113,7 +113,7 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
-// CHECK: global internal constant @__rt_attr_value_0()
+// CHECK: global internal constant @__rt_attr_value()
 // CHECK-SAME: : !llvm.array<3 x i64> {
 // CHECK:   llvm.mlir.undef : !llvm.array<3 x i64>
 // CHECK:   arith.constant 1 : i64
@@ -124,10 +124,10 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK:   llvm.insertvalue
 // CHECK: }
 
-// CHECK: global internal constant @__rt_attr_value()
+// CHECK: global internal constant @__rt_attr_value_0()
 // CHECK-SAME: !llvm.struct<(i64, ptr<array<3 x i64>>)> {
 // CHECK    arith.constant 3 : i64
-// CHECK    llvm.mlir.addressof @__rt_attr_value_0
+// CHECK    llvm.mlir.addressof @__rt_attr_value
 // CHECK    llvm.mlir.undef : !llvm.struct<(i64, ptr<array<3 x i64>>)>
 // CHECK    llvm.mlir.insertvalue
 // CHECK    llvm.mlir.insertvalue
@@ -233,10 +233,10 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
-// CHECK:   llvm.mlir.global internal constant @__rt_attr_value_0
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value
 // CHECK-SAME: (dense<[1, 2, 3]> : tensor<3xi32>) : !llvm.array<3 x i32>
 
-// CHECK:   llvm.mlir.global internal constant @__rt_attr_value()
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value_0()
 // CHECK-SAME: : !llvm.struct
 // CHECK-SAME: <(struct<(i64, ptr<array<3 x i32>>)>, i64, array<1 x i64>)> {
 // CHECK:   arith.constant 3 : i64
@@ -269,10 +269,10 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 
 // CHECK: global internal constant @__rt_num_attrs(1 : i64) : i64
 
-// CHECK:   llvm.mlir.global internal constant @__rt_attr_value_0
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value
 // CHECK-SAME: (dense<[1, 2]> : tensor<2xi32>) : !llvm.array<2 x i32>
 
-// CHECK:   llvm.mlir.global internal constant @__rt_attr_value()
+// CHECK:   llvm.mlir.global internal constant @__rt_attr_value_0()
 // CHECK-SAME: : !llvm.struct
 // CHECK-SAME: <(struct<(i64, ptr<array<2 x i32>>)>, i64, array<2 x i64>)> {
 // CHECK:   arith.constant 2 : i64

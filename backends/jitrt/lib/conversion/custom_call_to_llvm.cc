@@ -430,17 +430,6 @@ static Value PackValue(ImplicitLocOpBuilder &b, Value value) {
 // A helper class to create global constants in the module.
 // -------------------------------------------------------------------------- //
 
-std::string Globals::UniqueSymName(StringRef symbol_base) {
-  int cnt = 0;
-  std::string str = symbol_base.str();
-
-  mlir::SymbolTable sym_table(module_);
-  while (sym_table.lookup(str))
-    str = llvm::formatv("{0}_{1}", symbol_base, cnt++);
-
-  return str;
-}
-
 LLVM::GlobalOp Globals::Find(Key key) {
   auto it = globals_.find(key);
   if (it != globals_.end()) return it->second;
@@ -491,16 +480,14 @@ mlir::FailureOr<mlir::LLVM::GlobalOp> Globals::TryGetOrCreate(
 
   // If the initialize function is not provided, create constant directly.
   if (!initialize) {
-    auto global = b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
-                                           LLVM::Linkage::Internal,
-                                           UniqueSymName(symbol_base), attr);
-    return globals_[key] = global;
+    auto global = b.create<LLVM::GlobalOp>(
+        type, /*isConstant=*/true, LLVM::Linkage::Internal, symbol_base, attr);
+    return (sym_table_.insert(global), globals_[key] = global);
   }
 
   // Create an uninitialized global.
-  auto global = b.create<LLVM::GlobalOp>(type, /*isConstant=*/true,
-                                         LLVM::Linkage::Internal,
-                                         UniqueSymName(symbol_base), nullptr);
+  auto global = b.create<LLVM::GlobalOp>(
+      type, /*isConstant=*/true, LLVM::Linkage::Internal, symbol_base, nullptr);
 
   // Call user-provided global initializer.
   mlir::Region &region = global.getInitializerRegion();
@@ -509,7 +496,7 @@ mlir::FailureOr<mlir::LLVM::GlobalOp> Globals::TryGetOrCreate(
   b.setInsertionPointToStart(block);
   if (failed(initialize(b, attr))) return failure();
 
-  return globals_[key] = global;
+  return (sym_table_.insert(global), globals_[key] = global);
 }
 
 /*static*/ Value Globals::AddrOf(ImplicitLocOpBuilder &b,

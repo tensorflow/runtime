@@ -30,6 +30,7 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/custom_call.h"
 
@@ -201,10 +202,8 @@ class Globals {
   using FailureOrGlobalInitializer = std::function<mlir::LogicalResult(
       mlir::ImplicitLocOpBuilder &, mlir::Attribute)>;
 
-  explicit Globals(mlir::ModuleOp module) : module_(module) {}
-
-  // Returns a unique symbol name for a given `symbol_base`.
-  std::string UniqueSymName(llvm::StringRef symbol_base);
+  explicit Globals(mlir::ModuleOp module)
+      : module_(module), sym_table_(module_) {}
 
   // Creates a global null-terminated string constant.
   mlir::LLVM::GlobalOp GetOrCreate(mlir::ImplicitLocOpBuilder &b,
@@ -251,6 +250,7 @@ class Globals {
   mlir::LLVM::GlobalOp Find(Key key);
 
   mlir::ModuleOp module_;
+  mlir::SymbolTable sym_table_;  // symbol table for the `module_`
   llvm::DenseMap<Key, mlir::LLVM::GlobalOp> globals_;
 };
 

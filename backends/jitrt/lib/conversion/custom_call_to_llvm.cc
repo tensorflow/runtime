@@ -461,19 +461,7 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, StringRef strref,
 
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
                                     StringRef symbol_base) {
-  Key key(attr, attr.getType(), b.getStringAttr(symbol_base));
-
-  // Check if global value already exists ...
-  if (auto global = Find(key)) return global;
-
-  // ... otherwise create a new one.
-  OpBuilder::InsertionGuard guard(b);
-  b.setInsertionPointToStart(module_.getBody());
-
-  auto global = b.create<LLVM::GlobalOp>(attr.getType(), /*isConstant=*/true,
-                                         LLVM::Linkage::Internal,
-                                         UniqueSymName(symbol_base), attr);
-  return globals_[key] = global;
+  return GetOrCreate(b, attr, attr.getType(), symbol_base);
 }
 
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,

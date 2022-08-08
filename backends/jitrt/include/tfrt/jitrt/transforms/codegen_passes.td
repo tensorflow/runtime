@@ -17,20 +17,6 @@
 
 include "mlir/Pass/PassBase.td"
 
-def AlignedAllocationsPass : Pass<"codegen-aligned-allocations", "mlir::func::FuncOp"> {
-  let summary = "Add alignment attribute to all `alloc` operations.";
-  let description = [{
-    This pass adds an alignment attribute to all `alloc` operations which don't
-    have such an attribute yet, or which have a smaller alignment than the one
-    configured for this pass.
-  }];
-  let constructor = "::tfrt::jitrt::CreateAlignedAllocationsPass()";
-  let options = [
-   Option<"alignment_", "alignment", "int64_t", "64",
-          "Byte alignment for allocated memrefs.">
-  ];
-}
-
 def MathOptimizationPass : Pass<"codegen-math-optimization", "mlir::func::FuncOp"> {
   let summary = "Optimize operations from the `math` dialect.";
   let description = [{

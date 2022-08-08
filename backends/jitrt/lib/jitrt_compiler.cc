@@ -54,6 +54,7 @@
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
 
 namespace tfrt {
@@ -125,7 +126,7 @@ void CreateDefaultJitRtCompilationPipeline(
 
   // Add alignment attribute to all memref allocations.
   pm.addNestedPass<mlir::func::FuncOp>(
-      CreateAlignedAllocationsPass(opts.alignment));
+      xla::runtime::CreateAlignedAllocationsPass(opts.alignment));
 
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());

@@ -239,6 +239,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:VectorToLLVM",
 #         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/memref:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
 #     ],
 #     alwayslink = 1,
@@ -669,7 +670,6 @@ licenses(["notice"])
 # tfrt_cc_library(
 #     name = "codegen_transforms",
 #     srcs = [
-#         "lib/transforms/aligned_allocations.cc",
 #         "lib/transforms/cost_driven_async_parallel_for.cc",
 #         "lib/transforms/math_optimization.cc",
 #     ],

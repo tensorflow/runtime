@@ -22,6 +22,7 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/types.h"
 

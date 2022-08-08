@@ -70,6 +70,7 @@
 namespace tfrt {
 namespace jitrt {
 
+using llvm::ErrorOr;
 using mlir::FailureOr;
 using mlir::succeeded;
 
@@ -187,7 +188,7 @@ Executable::GetArgumentsMemoryLayout(const FunctionType& signature) {
     const Type* type = signature.operand(i);
 
     // Check if the type defines the ABI for passing it as an argument.
-    if (FailureOr<Type::ArgumentAbi> abi = type->AsArgument(); succeeded(abi)) {
+    if (ErrorOr<Type::ArgumentAbi> abi = type->AsArgument()) {
       layout.num_args_ptrs += abi->num_ptrs;
       continue;
     }
@@ -214,7 +215,7 @@ Executable::GetResultsMemoryLayout(const FunctionType& signature) {
     layout.has_async_results |= llvm::isa<AsyncTokenType, AsyncValueType>(type);
 
     // Check if the type defines the ABI for returning it as a result.
-    if (FailureOr<Type::ResultAbi> abi = type->AsResult(); succeeded(abi)) {
+    if (ErrorOr<Type::ResultAbi> abi = type->AsResult()) {
       layout.offsets.emplace_back(layout.size);
       layout.size += abi->size;
       continue;

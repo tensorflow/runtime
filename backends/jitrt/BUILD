@@ -175,6 +175,7 @@ licenses(["notice"])
 #         ":specialization",
 #         ":support",
 #         ":symbolic_shape",
+#         ":type_converter",
 #         ":types",
 #         ":xla",
 #         "@llvm-project//llvm:Core",
@@ -250,6 +251,7 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
+#         ":type_converter",
 #         ":types",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:IR",
@@ -269,6 +271,7 @@ licenses(["notice"])
 #         ":async_runtime_api",
 #         ":types",
 #         "@llvm-project//llvm:Support",
+#         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",
@@ -414,6 +417,21 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
+#         "@llvm-project//llvm:Support",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:support",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "type_converter",
+#     srcs = ["lib/type_converter.cc"],
+#     hdrs = ["include/tfrt/jitrt/type_converter.h"],
+#     compatible_with = ["//buildenv/target:non_prod"],
+#     visibility = ["@tf_runtime//:friends"],
+#     deps = [
+#         ":types",
 #         ":xla",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:AsyncDialect",

@@ -24,6 +24,8 @@
 #include <string>
 #include <type_traits>
 
+#include "mlir/IR/BuiltinTypes.h"
+#include "tfrt/jitrt/type_converter.h"
 #include "tfrt/jitrt/types.h"
 #include "tfrt/support/error_util.h"
 

@@ -48,6 +48,7 @@
 #include "tfrt/jitrt/results.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
+#include "tfrt/jitrt/type_converter.h"
 #include "tfrt/jitrt/types.h"
 #include "tfrt/support/forward_decls.h"
 

@@ -21,11 +21,12 @@
 #include <memory>
 #include <utility>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/ExtensibleRTTI.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/xla.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -72,10 +73,14 @@ class Type : public llvm::RTTIExtends<Type, llvm::RTTIRoot> {
   };
 
   // Returns an Abi if the type can be used as an argument.
-  virtual mlir::FailureOr<ArgumentAbi> AsArgument() const { return {}; }
+  virtual llvm::ErrorOr<ArgumentAbi> AsArgument() const {
+    return llvm::errc::not_supported;
+  }
 
   // Returns an Abi if the type can be returned as a result.
-  virtual mlir::FailureOr<ResultAbi> AsResult() const { return {}; }
+  virtual llvm::ErrorOr<ResultAbi> AsResult() const {
+    return llvm::errc::not_supported;
+  }
 
   virtual raw_ostream& print(raw_ostream& os) const = 0;
 
@@ -95,7 +100,7 @@ class AsyncTokenType : public llvm::RTTIExtends<AsyncTokenType, Type> {
  public:
   static constexpr char ID = 0;  // NOLINT
 
-  mlir::FailureOr<ResultAbi> AsResult() const final;
+  llvm::ErrorOr<ResultAbi> AsResult() const final;
 
   raw_ostream& print(raw_ostream& os) const final;
 };
@@ -113,7 +118,7 @@ class AsyncValueType : public llvm::RTTIExtends<AsyncValueType, Type> {
 
   const Type& value_type() const { return *value_type_; }
 
-  mlir::FailureOr<ResultAbi> AsResult() const final;
+  llvm::ErrorOr<ResultAbi> AsResult() const final;
 
   raw_ostream& print(raw_ostream& os) const final;
 
@@ -128,7 +133,7 @@ class AsyncValueType : public llvm::RTTIExtends<AsyncValueType, Type> {
 class RankedTensorType : public llvm::RTTIExtends<RankedTensorType, Type> {
  public:
   static constexpr char ID = 0;  // NOLINT
-  static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
+  static constexpr int64_t kDynamicSize = -1;
 
   RankedTensorType(ArrayRef<Index> sizes, DType element_type)
       : sizes_(sizes.begin(), sizes.end()), element_type_(element_type) {}
@@ -170,7 +175,7 @@ class UnrankedTensorType : public llvm::RTTIExtends<UnrankedTensorType, Type> {
 class MemrefType : public llvm::RTTIExtends<MemrefType, Type> {
  public:
   static constexpr char ID = 0;  // NOLINT
-  static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
+  static constexpr int64_t kDynamicSize = -1;
 
   MemrefType(ArrayRef<Index> sizes, DType element_type)
       : sizes_(sizes.begin(), sizes.end()), element_type_(element_type) {}
@@ -179,8 +184,8 @@ class MemrefType : public llvm::RTTIExtends<MemrefType, Type> {
   unsigned rank() const { return sizes_.size(); }
   DType element_type() const { return element_type_; }
 
-  mlir::FailureOr<ArgumentAbi> AsArgument() const final;
-  mlir::FailureOr<ResultAbi> AsResult() const final;
+  llvm::ErrorOr<ArgumentAbi> AsArgument() const final;
+  llvm::ErrorOr<ResultAbi> AsResult() const final;
 
   raw_ostream& print(raw_ostream& os) const final;
 
@@ -217,7 +222,7 @@ class KernelContextOperandType
  public:
   static constexpr char ID = 0;  // NOLINT
 
-  mlir::FailureOr<ArgumentAbi> AsArgument() const final;
+  llvm::ErrorOr<ArgumentAbi> AsArgument() const final;
 
   raw_ostream& print(raw_ostream& os) const final;
 };
@@ -241,54 +246,6 @@ class FunctionType {
  private:
   llvm::SmallVector<std::unique_ptr<Type>> operands_;
   llvm::SmallVector<std::unique_ptr<Type>> results_;
-};
-
-//===----------------------------------------------------------------------===//
-// Type conversion from the compile time types to the run time types.
-//===----------------------------------------------------------------------===//
-
-// Type converter converts MLIR types known at compile time to the corresponding
-// types used at run time. It provides default conversions for the canonical
-// types (memrefs, tensors, etc...) and allows users to register custom
-// conversions for user-defined types.
-class TypeConverter {
- public:
-  // Conversion function must return run time type corresponding to the compile
-  // time type if the conversion is successful, or `nullptr` if failed.
-  using ConversionFn = std::function<std::unique_ptr<Type>(mlir::Type)>;
-
-  // Adds a type conversion function with a type predicate.
-  //
-  // Example:
-  //
-  //   AddConversion([](mlir::TensorType) -> std::unique_ptr<Type> { ... });
-  //
-  // The conversion function will match only the tensor type, and return empty
-  // result for all other types, and the type converter will try the next
-  // conversion function (see `Convert` implementation).
-  template <typename Fn, typename FnTraits = llvm::function_traits<Fn>>
-  void AddConversion(Fn fn) {
-    using ArgType = typename FnTraits::template arg_t<0>;
-    conversions_.emplace_back(
-        [fn = std::forward<Fn>(fn)](mlir::Type type) -> std::unique_ptr<Type> {
-          if (auto arg = type.dyn_cast<ArgType>()) return fn(arg);
-          return {};
-        });
-  }
-
-  // Converts MLIR element type to the TFRT DType.
-  static Expected<DType> ConvertElementType(mlir::Type type);
-
-  // Converts MLIR type to the runtime type. Returns error if conversion was not
-  // successful and the type has no corresponding run time type.
-  Expected<std::unique_ptr<Type>> Convert(mlir::Type type) const;
-
-  // Converts MLIR function type to the runtime function type. Returns error if
-  // function has unsupported operands or results types.
-  Expected<FunctionType> Convert(mlir::FunctionType type) const;
-
- private:
-  llvm::SmallVector<ConversionFn> conversions_;
 };
 
 }  // namespace jitrt

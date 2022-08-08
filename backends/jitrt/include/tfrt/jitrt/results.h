@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "llvm/Support/Compiler.h"
+#include "mlir/Support/LogicalResult.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/types.h"

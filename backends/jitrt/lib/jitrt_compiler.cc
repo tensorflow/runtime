@@ -54,6 +54,7 @@
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/conversion/rt_passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
 
@@ -91,7 +92,7 @@ void CreateDefaultJitRtCompilationPipeline(
   // Optimize operations from the math dialect before outlining compute regions
   // into functions to see all constant operands.
   pm.addNestedPass<mlir::func::FuncOp>(
-      CreateMathOptimizationPass(opts.math_avx2));
+      xla::runtime::CreateMathOptimizationPass(opts.math_avx2));
 
   // Convert all linalg operations to parallel loops.
   pm.addNestedPass<mlir::func::FuncOp>(

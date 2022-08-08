@@ -17,23 +17,6 @@
 
 include "mlir/Pass/PassBase.td"
 
-def MathOptimizationPass : Pass<"codegen-math-optimization", "mlir::func::FuncOp"> {
-  let summary = "Optimize operations from the `math` dialect.";
-  let description = [{
-    This pass performs algebraic simplification and polynomial approximation for
-    ops from the Math dialect.
-  }];
-  let constructor = "::tfrt::jitrt::CreateMathOptimizationPass()";
-  let dependentDialects = [
-    "mlir::vector::VectorDialect",
-    "mlir::x86vector::X86VectorDialect"
-  ];
-  let options = [
-   Option<"enable_avx2_", "enable-avx2", "bool", "false",
-          "Enable math approximations that emit AVX2 intrinsics.">
-  ];
-}
-
 def CostDrivenAsyncParallelFor : Pass<"cost-driven-async-parallel-for", "mlir::ModuleOp"> {
   let summary = "Convert scf.parallel operations to multiple async compute ops "
                 "executed concurrently for non-overlapping iteration ranges "

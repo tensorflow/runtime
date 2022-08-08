@@ -239,6 +239,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:VectorToLLVM",
 #         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/math:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/memref:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
 #     ],
@@ -669,10 +670,7 @@ licenses(["notice"])
 #
 # tfrt_cc_library(
 #     name = "codegen_transforms",
-#     srcs = [
-#         "lib/transforms/cost_driven_async_parallel_for.cc",
-#         "lib/transforms/math_optimization.cc",
-#     ],
+#     srcs = ["lib/transforms/cost_driven_async_parallel_for.cc"],
 #     hdrs = ["include/tfrt/jitrt/transforms/codegen_passes.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     deps = [

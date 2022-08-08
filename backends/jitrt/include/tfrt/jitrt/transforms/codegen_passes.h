@@ -30,9 +30,6 @@
 namespace tfrt {
 namespace jitrt {
 
-std::unique_ptr<mlir::OperationPass<mlir::func::FuncOp>>
-CreateMathOptimizationPass(bool enable_avx2 = false);
-
 std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass();
 
 std::unique_ptr<mlir::Pass> CreateCostDrivenAsyncParallelForPass(

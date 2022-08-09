@@ -24,7 +24,8 @@
 #include "llvm/Support/Error.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/types.h"
+#include "tfrt/jitrt/xla.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

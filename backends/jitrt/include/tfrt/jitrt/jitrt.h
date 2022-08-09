@@ -48,9 +48,9 @@
 #include "tfrt/jitrt/results.h"
 #include "tfrt/jitrt/specialization.h"
 #include "tfrt/jitrt/symbolic_shape.h"
-#include "tfrt/jitrt/type_converter.h"
-#include "tfrt/jitrt/types.h"
 #include "tfrt/support/forward_decls.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 // Forward declare Eigen types.
 namespace Eigen {

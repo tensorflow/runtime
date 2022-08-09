@@ -24,7 +24,7 @@
 #include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/symbolic_shape.h"
-#include "tfrt/jitrt/types.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

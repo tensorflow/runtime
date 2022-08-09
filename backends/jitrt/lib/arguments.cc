@@ -25,9 +25,9 @@
 #include <type_traits>
 
 #include "mlir/IR/BuiltinTypes.h"
-#include "tfrt/jitrt/type_converter.h"
-#include "tfrt/jitrt/types.h"
 #include "tfrt/support/error_util.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

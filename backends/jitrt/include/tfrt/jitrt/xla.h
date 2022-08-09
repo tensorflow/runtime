@@ -31,6 +31,16 @@ class CustomCallOp;
 class IsOkOp;
 class SetOutputOp;
 class SetErrorOp;
+class Type;
+class RankedTensorType;
+class MemrefType;
+class FunctionType;
+class UnrankedTensorType;
+class UnrankedMemrefType;
+class TypeConverter;
+class AsyncTokenType;
+class AsyncValueType;
+class KernelContextOperandType;
 
 }  // namespace runtime
 }  // namespace xla
@@ -38,13 +48,7 @@ class SetErrorOp;
 namespace tfrt {
 namespace jitrt {
 
-using ::xla::runtime::CustomCallOp;       // NOLINT
-using ::xla::runtime::IsOkOp;             // NOLINT
-using ::xla::runtime::KernelContextType;  // NOLINT
-using ::xla::runtime::RuntimeDialect;     // NOLINT
-using ::xla::runtime::SetErrorOp;         // NOLINT
-using ::xla::runtime::SetOutputOp;        // NOLINT
-using ::xla::runtime::StatusType;         // NOLINT
+using namespace ::xla::runtime;  // NOLINT
 
 }  // namespace jitrt
 }  // namespace tfrt

@@ -28,9 +28,9 @@ licenses(["notice"])
 #     deps = [
 #         "@com_google_googletest//:gtest_main",
 #         "@llvm-project//llvm:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//backends/jitrt:arguments",
-#         "@tf_runtime//backends/jitrt:types",
 #     ],
 # )
 #
@@ -126,11 +126,11 @@ licenses(["notice"])
 #     deps = [
 #         "@com_google_googletest//:gtest_main",
 #         "@llvm-project//llvm:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//backends/jitrt:arguments",
 #         "@tf_runtime//backends/jitrt:constraints",
 #         "@tf_runtime//backends/jitrt:symbolic_shape",
-#         "@tf_runtime//backends/jitrt:types",
 #     ],
 # )
 #

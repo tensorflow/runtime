@@ -189,7 +189,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:Transforms",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
-#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",
@@ -242,7 +242,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/math:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/memref:passes",
-#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #     ],
 #     alwayslink = 1,
 # )
@@ -585,7 +585,7 @@ licenses(["notice"])
 #         ":rt_conversion",
 #         "@llvm-project//mlir:MlirOptLib",
 #         "@llvm-project//mlir:Transforms",
-#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:rt_transforms",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #         "@tf_runtime//:init_tfrt_dialects",
 #     ],
 # )

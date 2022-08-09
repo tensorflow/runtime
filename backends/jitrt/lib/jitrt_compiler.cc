@@ -57,7 +57,7 @@
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 
 namespace tfrt {
 namespace jitrt {

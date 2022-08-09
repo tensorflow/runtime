@@ -65,7 +65,7 @@
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 
 namespace tfrt {
 namespace jitrt {

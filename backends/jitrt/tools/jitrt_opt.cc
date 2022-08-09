@@ -22,7 +22,7 @@
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/rt_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;

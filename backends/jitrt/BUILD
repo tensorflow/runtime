@@ -256,7 +256,6 @@ licenses(["notice"])
 #     deps = [
 #         ":xla",
 #         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:IR",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
@@ -338,6 +337,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:FuncDialect",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:TensorDialect",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:support",
 #     ],

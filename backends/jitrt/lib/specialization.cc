@@ -33,11 +33,33 @@
 #include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/support/error_util.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
 
 namespace tfrt {
 namespace jitrt {
 
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
+
+static llvm::Error VerifyMemrefOperand(unsigned index, mlir::ShapedType shaped,
+                                       const MemrefDesc& memref) {
+  auto element_ty = TypeConverter::ConvertElementType(shaped.getElementType());
+  if (auto err = element_ty.takeError()) return err;
+
+  // TODO(ezhulenev): Pass an instance of TypeConverter so we can convert shaped
+  // type to the corresponding run-time type. For now we convert all shaped
+  // types to memrefs, because for the verification function it doesn't really
+  // matter if it's a tensor or a memref.
+
+  // We do not support unranked memrefs at runtime, however we need to verify
+  // operand types when we do compiled kernel specialization to shape.
+  if (shaped.hasRank()) {
+    MemrefType type(shaped.getShape(), *element_ty);
+    return VerifyMemrefArgument(index, type, memref);
+  } else {
+    UnrankedMemrefType type(*element_ty);
+    return VerifyMemrefArgument(index, type, memref);
+  }
+}
 
 // Return input `type` specialized to the argument and its symbolic shape.
 static llvm::Expected<mlir::Type> SpecializeOperandType(

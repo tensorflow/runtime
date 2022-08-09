@@ -24,9 +24,7 @@
 #include <string>
 #include <type_traits>
 
-#include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/support/error_util.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
@@ -53,9 +51,23 @@ raw_ostream& MemrefDesc::print(raw_ostream& os) const {
   return os;
 }
 
-// -------------------------------------------------------------------------- //
-// Verify that operands types are matching runtime values.
-// -------------------------------------------------------------------------- //
+//===----------------------------------------------------------------------===//
+// OpaqueArg.
+//===----------------------------------------------------------------------===//
+
+Error OpaqueArg::Verify(const Type& type) const {
+  if (isa<AsyncTokenType>(type)) return Error::success();
+  return MakeStringError("unsupported opaque argument type: ", type);
+}
+
+size_t OpaqueArg::Pack(MutableArrayRef<void*> args, size_t offset) const {
+  args[offset] = ptr_;
+  return ++offset;
+}
+
+//===----------------------------------------------------------------------===//
+// MemrefDesc.
+//===----------------------------------------------------------------------===//
 
 static bool AreCompatibleTypes(DType type1, DType type2) {
   auto compatible = [&](DType fromType, DType toType) {
@@ -118,7 +130,8 @@ static Error VerifyMemrefArgument(DType element_type,
         memref.dtype(), " vs ", element_type, " (", pretty_print(), ")");
   }
 
-  // Skip sizes verification if they are not available.
+  // Skip sizes verification if they are not available (unranked tensor or
+  // memref type is compatible with run-time arguments of any shape).
   if (!sizes.has_value()) return Error::success();
 
   // Check that memref rank is the same as the expected rank.
@@ -132,7 +145,7 @@ static Error VerifyMemrefArgument(DType element_type,
     Index argument_dim = std::get<0>(pair.value());
     Index expected_dim = std::get<1>(pair.value());
 
-    bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
+    bool is_dynamic_dim = MemrefType::IsDynamic(expected_dim);
 
     if (LLVM_UNLIKELY(argument_dim != expected_dim && !is_dynamic_dim))
       return MakeStringError(
@@ -144,56 +157,8 @@ static Error VerifyMemrefArgument(DType element_type,
   return Error::success();
 }
 
-Error VerifyMemrefOperand(unsigned index, DType element_type,
-                          Optional<ArrayRef<Index>> sizes,
-                          const MemrefDesc& memref) {
-  if (auto err = VerifyMemrefArgument(element_type, sizes, memref))
-    return MakeStringError("argument #", index, " ", err);
-  return Error::success();
-}
-
-Error VerifyMemrefOperand(unsigned index, const RankedTensorType& type,
-                          const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.element_type(), type.sizes(), memref);
-}
-
-Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
-                          const MemrefDesc& memref) {
-  return VerifyMemrefOperand(index, type.element_type(), type.sizes(), memref);
-}
-
-Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
-                          const MemrefDesc& memref) {
-  auto element_type = TypeConverter::ConvertElementType(type.getElementType());
-  if (auto err = element_type.takeError()) return err;
-
-  // We do not support unranked memrefs at runtime, however we need to verify
-  // operand types when we do compiled kernel specialization to shape.
-  return VerifyMemrefOperand(
-      index, *element_type,
-      type.hasRank() ? Optional<ArrayRef<Index>>{type.getShape()} : llvm::None,
-      memref);
-}
-
-// -------------------------------------------------------------------------- //
-// OpaqueArg.
-// -------------------------------------------------------------------------- //
-
-Error OpaqueArg::Verify(const Type& type) const {
-  if (isa<AsyncTokenType>(type)) return Error::success();
-  return MakeStringError("unsupported opaque argument type: ", type);
-}
-
-size_t OpaqueArg::Pack(MutableArrayRef<void*> args, size_t offset) const {
-  args[offset] = ptr_;
-  return ++offset;
-}
-
-// -------------------------------------------------------------------------- //
-// MemrefDesc.
-// -------------------------------------------------------------------------- //
-
 Error MemrefDesc::Verify(const Type& type) const {
+  // Only ranked memrefs have a defined ABI and can be passed as an argument.
   if (auto* memref = dyn_cast<MemrefType>(&type))
     return VerifyMemrefArgument(memref->element_type(), memref->sizes(), *this);
   return MakeStringError("unsupported memref type: ", type);
@@ -242,6 +207,31 @@ size_t MemrefDesc::Pack(MutableArrayRef<void*> args, size_t offset) const {
     default:
       return pack_memref(rank_);
   }
+}
+
+//===----------------------------------------------------------------------===//
+// Verify that argument type is compatible with the run-time memref argument.
+//===----------------------------------------------------------------------===//
+
+static Error VerifyMemrefArgument(const Type& type, const MemrefDesc& arg) {
+  if (auto* memref = dyn_cast<MemrefType>(&type))
+    return VerifyMemrefArgument(memref->element_type(), memref->sizes(), arg);
+  if (auto* memref = dyn_cast<UnrankedMemrefType>(&type))
+    return VerifyMemrefArgument(memref->element_type(), llvm::None, arg);
+
+  if (auto* tensor = dyn_cast<RankedTensorType>(&type))
+    return VerifyMemrefArgument(tensor->element_type(), tensor->sizes(), arg);
+  if (auto* tensor = dyn_cast<UnrankedTensorType>(&type))
+    return VerifyMemrefArgument(tensor->element_type(), llvm::None, arg);
+
+  return MakeStringError("unsupported memref type: ", type);
+}
+
+Error VerifyMemrefArgument(unsigned index, const Type& type,
+                           const MemrefDesc& arg) {
+  if (auto err = VerifyMemrefArgument(type, arg))
+    return MakeStringError("argument #", index, " ", err);
+  return Error::success();
 }
 
 }  // namespace jitrt

@@ -62,11 +62,10 @@ static MemrefDesc GetFakeMemref(ArrayRef<int64_t> sizes) {
 
 static void BenchmarkVerifyMemrefOperand(benchmark::State& state,
                                          const MemrefDesc& memref) {
-  auto sizes = memref.sizes();
-  auto dtype = memref.dtype();
+  MemrefType type(memref.sizes(), memref.dtype());
 
   for (auto _ : state) {
-    if (auto err = VerifyMemrefOperand(0, dtype, {sizes}, memref)) break;
+    if (auto err = VerifyMemrefArgument(0, type, memref)) break;
   }
 }
 

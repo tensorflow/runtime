@@ -1073,11 +1073,11 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
       if (!memref_arg) continue;
 
       if (auto* memref = dyn_cast<MemrefType>(type)) {
-        if (auto err = VerifyMemrefOperand(i, *memref, *memref_arg))
+        if (auto err = VerifyMemrefArgument(i, *memref, *memref_arg))
           return std::move(err);
 
       } else if (auto* tensor = dyn_cast<RankedTensorType>(type)) {
-        if (auto err = VerifyMemrefOperand(i, *tensor, *memref_arg))
+        if (auto err = VerifyMemrefArgument(i, *tensor, *memref_arg))
           return std::move(err);
 
       } else {

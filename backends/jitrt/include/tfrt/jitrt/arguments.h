@@ -22,7 +22,6 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/xla.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
@@ -294,24 +293,15 @@ MemrefDesc::MemrefDesc(unsigned rank, DType dtype, void* data, Index offset,
 }
 
 //===----------------------------------------------------------------------===//
-// Verify that operands types are matching runtime arguments.
+// Verify that argument type is compatible with the run-time memref argument.
 //===----------------------------------------------------------------------===//
 
-// We pass operand index to all verification functions to get a user-friendly
-// error messages in case of an error.
-
-Error VerifyMemrefOperand(unsigned index, DType element_type,
-                          Optional<ArrayRef<Index>> sizes,
-                          const MemrefDesc& memref);
-
-Error VerifyMemrefOperand(unsigned index, const RankedTensorType& type,
-                          const MemrefDesc& memref);
-
-Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
-                          const MemrefDesc& memref);
-
-Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
-                          const MemrefDesc& memref);
+// Verifies that the type at the given `index` matches the run-time memref
+// argument: type is a tensor of a memref with compatible element type, and all
+// statically known dimensions match the run-time sizes. Returns user-friendly
+// error message in case of an error.
+Error VerifyMemrefArgument(unsigned index, const Type& type,
+                           const MemrefDesc& arg);
 
 }  // namespace jitrt
 }  // namespace tfrt

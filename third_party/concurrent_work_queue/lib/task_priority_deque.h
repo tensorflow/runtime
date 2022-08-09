@@ -95,8 +95,8 @@ class TaskPriorityDeque {
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushFront(TaskFunction task,
-                                                        TaskPriority priority) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task,
+                                                       TaskPriority priority) {
     assert(static_cast<int>(priority) < kNumTaskPriorities);
 
     PointerState front(front_.load(std::memory_order_relaxed));
@@ -115,7 +115,7 @@ class TaskPriorityDeque {
     return llvm::None;
   }
 
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
     return PushFront(std::move(task), TaskPriority::kDefault);
   }
 
@@ -123,7 +123,7 @@ class TaskPriorityDeque {
   // and returns the first element from the first non-empty queue.
   //
   // If all queues are empty returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PopFront() {
+  [[nodiscard]] llvm::Optional<TaskFunction> PopFront() {
     PointerState front(front_.load(std::memory_order_relaxed));
 
     for (TaskPriority priority : kTaskPriorities) {
@@ -155,8 +155,8 @@ class TaskPriorityDeque {
   //
   // If all queues are full, returns passed in task wrapped in optional,
   // otherwise returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushBack(TaskFunction task,
-                                                       TaskPriority priority) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushBack(TaskFunction task,
+                                                      TaskPriority priority) {
     assert(static_cast<int>(priority) < kNumTaskPriorities);
 
     mutex_lock lock(mutex_);
@@ -177,7 +177,7 @@ class TaskPriorityDeque {
     return llvm::None;
   }
 
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushBack(TaskFunction task) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushBack(TaskFunction task) {
     return PushBack(std::move(task), TaskPriority::kDefault);
   }
 
@@ -185,7 +185,7 @@ class TaskPriorityDeque {
   // and returns the last elements from the first non-empty queue.
   //
   // If all queues are empty returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PopBack() {
+  [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
     if (Empty()) return llvm::None;
 
     mutex_lock lock(mutex_);
@@ -295,34 +295,34 @@ class TaskPriorityDeque {
   struct PointerState {
     explicit PointerState(uint64_t state) : state(state) {}
 
-    LLVM_NODISCARD uint64_t Index(TaskPriority priority) const {
+    [[nodiscard]] uint64_t Index(TaskPriority priority) const {
       const int idx = static_cast<int>(priority);
       return (state & kIndexMasks[idx]) >> kIndexShift[idx];
     }
 
     template <TaskPriority priority>
-    LLVM_NODISCARD uint64_t Index() const {
+    [[nodiscard]] uint64_t Index() const {
       return Index(priority);
     }
 
-    LLVM_NODISCARD uint64_t IndexExt(TaskPriority priority) const {
+    [[nodiscard]] uint64_t IndexExt(TaskPriority priority) const {
       const int idx = static_cast<int>(priority);
       return (state & kIndexMasksExt[idx]) >> kIndexShift[idx];
     }
 
     template <TaskPriority priority>
-    LLVM_NODISCARD uint64_t IndexExt() const {
+    [[nodiscard]] uint64_t IndexExt() const {
       return IndexExt(priority);
     }
 
-    LLVM_NODISCARD uint64_t WithIndexExt(uint64_t index,
-                                         TaskPriority priority) const {
+    [[nodiscard]] uint64_t WithIndexExt(uint64_t index,
+                                        TaskPriority priority) const {
       const int idx = static_cast<int>(priority);
       assert((index & ~kIndexMaskExt) == 0);
       return (index << kIndexShift[idx]) | (state & ~kIndexMasksExt[idx]);
     }
 
-    LLVM_NODISCARD uint64_t Inc(TaskPriority priority) const {
+    [[nodiscard]] uint64_t Inc(TaskPriority priority) const {
       const int idx = static_cast<int>(priority);
 
       // Index for the given priority.

@@ -108,8 +108,8 @@ void EnqueueWork(const ExecutionContext& exec_ctx,
 // AsyncValueRef<int> r = EnqueueWork(exec_ctx, [a, b] { return a + b; });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
-LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(const ExecutionContext& exec_ctx,
-                                            F&& work) {
+[[nodiscard]] AsyncValueRef<R> EnqueueWork(const ExecutionContext& exec_ctx,
+                                           F&& work) {
   auto result = MakeUnconstructedAsyncValueRef<R>(exec_ctx.host());
   EnqueueWork(exec_ctx, [result = result.CopyRef(),
                          work = std::forward<F>(work)]() mutable {
@@ -132,7 +132,7 @@ void EnqueueWork(HostContext* host, llvm::unique_function<void()> work);
 // AsyncValueRef<int> r = EnqueueWork(host_ctx, [a, b] { return a + b; });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
-LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(HostContext* host, F&& work) {
+[[nodiscard]] AsyncValueRef<R> EnqueueWork(HostContext* host, F&& work) {
   auto result = MakeUnconstructedAsyncValueRef<R>(host);
   EnqueueWork(host, [result = result.CopyRef(),
                      work = std::forward<F>(work)]() mutable {
@@ -141,8 +141,8 @@ LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(HostContext* host, F&& work) {
   return result;
 }
 
-LLVM_NODISCARD bool EnqueueBlockingWork(HostContext* host,
-                                        llvm::unique_function<void()> work);
+[[nodiscard]] bool EnqueueBlockingWork(HostContext* host,
+                                       llvm::unique_function<void()> work);
 
 // Overload of EnqueueBlockingWork that return AsyncValueRef<R> for work that
 // returns R when R is not void.
@@ -153,8 +153,8 @@ LLVM_NODISCARD bool EnqueueBlockingWork(HostContext* host,
 // });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
-LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(HostContext* host,
-                                                    F&& work) {
+[[nodiscard]] AsyncValueRef<R> EnqueueBlockingWork(HostContext* host,
+                                                   F&& work) {
   auto result = MakeUnconstructedAsyncValueRef<R>(host);
   bool enqueued = EnqueueBlockingWork(
       host,
@@ -167,8 +167,8 @@ LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(HostContext* host,
   return result;
 }
 
-LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
-                                    llvm::unique_function<void()> work);
+[[nodiscard]] bool RunBlockingWork(HostContext* host,
+                                   llvm::unique_function<void()> work);
 
 // Overload of RunBlockingWork that return AsyncValueRef<R> for work that
 // returns R when R is not void.
@@ -179,7 +179,7 @@ LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
 // });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
-LLVM_NODISCARD AsyncValueRef<R> RunBlockingWork(HostContext* host, F&& work) {
+[[nodiscard]] AsyncValueRef<R> RunBlockingWork(HostContext* host, F&& work) {
   auto result = MakeUnconstructedAsyncValueRef<R>(host);
   bool enqueued = RunBlockingWork(
       host,

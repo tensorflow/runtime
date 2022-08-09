@@ -45,16 +45,16 @@ void EnqueueWork(HostContext* host, llvm::unique_function<void()> work) {
   work_queue.AddTask(TaskFunction(std::move(work)));
 }
 
-LLVM_NODISCARD bool EnqueueBlockingWork(HostContext* host,
-                                        llvm::unique_function<void()> work) {
+[[nodiscard]] bool EnqueueBlockingWork(HostContext* host,
+                                       llvm::unique_function<void()> work) {
   auto& work_queue = host->work_queue();
   Optional<TaskFunction> task = work_queue.AddBlockingTask(
       TaskFunction(std::move(work)), /*allow_queuing=*/true);
   return !task.has_value();
 }
 
-LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
-                                    llvm::unique_function<void()> work) {
+[[nodiscard]] bool RunBlockingWork(HostContext* host,
+                                   llvm::unique_function<void()> work) {
   auto& work_queue = host->work_queue();
   Optional<TaskFunction> task = work_queue.AddBlockingTask(
       TaskFunction(std::move(work)), /*allow_queuing=*/false);

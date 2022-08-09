@@ -59,7 +59,7 @@ class TaskQueue {
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
     unsigned front = front_.load(std::memory_order_relaxed);
     Elem* e;
 
@@ -91,7 +91,7 @@ class TaskQueue {
   // PopBack() removes and returns the last elements in the queue.
   //
   // If the queue is empty returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PopBack() {
+  [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
     unsigned back = back_.load(std::memory_order_relaxed);
     Elem* e;
 

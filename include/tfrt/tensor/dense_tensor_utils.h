@@ -92,7 +92,7 @@ DenseHostTensor Flatten(const DenseHostTensor& tensor);
 
 // Copies the data of a DHT to another DHT. Returns false if the metadatas of
 // the DHTs do not match.
-LLVM_NODISCARD bool CopyTo(const DenseHostTensor& src, DenseHostTensor* dst);
+[[nodiscard]] bool CopyTo(const DenseHostTensor& src, DenseHostTensor* dst);
 
 }  // namespace tfrt
 

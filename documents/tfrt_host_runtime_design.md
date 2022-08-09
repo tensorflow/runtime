@@ -753,7 +753,7 @@ class ConcurrentWorkQueue {
   //
   // Return empty optional if the work is enqueued successfully, otherwise,
   // returns the argument wrapped in an optional.
-  LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
+  [[nodiscard]] virtual Optional<TaskFunction> AddBlockingTask(
       TaskFunction work, bool allow_queuing) = 0;
   // Block until the specified values are available (either with a value
   // or an error result).

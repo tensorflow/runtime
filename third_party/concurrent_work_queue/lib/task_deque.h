@@ -74,7 +74,7 @@ class TaskDeque {
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
     unsigned front = front_.load(std::memory_order_relaxed);
     Elem* e = &array_[front & kMask];
     uint8_t s = e->state.load(std::memory_order_relaxed);
@@ -91,7 +91,7 @@ class TaskDeque {
   // PopFront() removes and returns the first element in the queue.
   //
   // If the queue is empty returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PopFront() {
+  [[nodiscard]] llvm::Optional<TaskFunction> PopFront() {
     unsigned front = front_.load(std::memory_order_relaxed);
     Elem* e = &array_[(front - 1) & kMask];
     uint8_t s = e->state.load(std::memory_order_relaxed);
@@ -110,7 +110,7 @@ class TaskDeque {
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PushBack(TaskFunction task) {
+  [[nodiscard]] llvm::Optional<TaskFunction> PushBack(TaskFunction task) {
     mutex_lock lock(mutex_);
     unsigned back = back_.load(std::memory_order_relaxed);
     Elem* e = &array_[(back - 1) & kMask];
@@ -129,7 +129,7 @@ class TaskDeque {
   // PopBack() removes and returns the last elements in the queue.
   //
   // If the queue is empty returns empty optional.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> PopBack() {
+  [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
     if (Empty()) return llvm::None;
 
     mutex_lock lock(mutex_);

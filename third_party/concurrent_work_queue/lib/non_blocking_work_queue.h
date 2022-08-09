@@ -77,9 +77,9 @@ class NonBlockingWorkQueue
   using Base::num_threads_;
   using Base::thread_data_;
 
-  LLVM_NODISCARD Optional<TaskFunction> NextTask(Queue* queue);
-  LLVM_NODISCARD Optional<TaskFunction> Steal(Queue* queue);
-  LLVM_NODISCARD bool Empty(Queue* queue);
+  [[nodiscard]] Optional<TaskFunction> NextTask(Queue* queue);
+  [[nodiscard]] Optional<TaskFunction> Steal(Queue* queue);
+  [[nodiscard]] bool Empty(Queue* queue);
 };
 
 template <typename ThreadingEnvironment>
@@ -133,19 +133,19 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
 }
 
 template <typename ThreadingEnvironment>
-LLVM_NODISCARD Optional<TaskFunction>
+[[nodiscard]] Optional<TaskFunction>
 NonBlockingWorkQueue<ThreadingEnvironment>::NextTask(Queue* queue) {
   return queue->PopFront();
 }
 
 template <typename ThreadingEnvironment>
-LLVM_NODISCARD Optional<TaskFunction>
+[[nodiscard]] Optional<TaskFunction>
 NonBlockingWorkQueue<ThreadingEnvironment>::Steal(Queue* queue) {
   return queue->PopBack();
 }
 
 template <typename ThreadingEnvironment>
-LLVM_NODISCARD bool NonBlockingWorkQueue<ThreadingEnvironment>::Empty(
+[[nodiscard]] bool NonBlockingWorkQueue<ThreadingEnvironment>::Empty(
     Queue* queue) {
   return queue->Empty();
 }

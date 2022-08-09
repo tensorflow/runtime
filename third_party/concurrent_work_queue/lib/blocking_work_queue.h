@@ -80,9 +80,9 @@ class BlockingWorkQueue
   using Base::num_threads_;
   using Base::thread_data_;
 
-  LLVM_NODISCARD Optional<TaskFunction> NextTask(Queue* queue);
-  LLVM_NODISCARD Optional<TaskFunction> Steal(Queue* queue);
-  LLVM_NODISCARD bool Empty(Queue* queue);
+  [[nodiscard]] Optional<TaskFunction> NextTask(Queue* queue);
+  [[nodiscard]] Optional<TaskFunction> Steal(Queue* queue);
+  [[nodiscard]] bool Empty(Queue* queue);
 
   // If the blocking task does not allow queuing, it is executed in one of the
   // dynamically spawned threads. These threads have 1-to-1 task-to-thread
@@ -322,19 +322,19 @@ void BlockingWorkQueue<ThreadingEnvironment>::Quiesce() {
 }
 
 template <typename ThreadingEnvironment>
-LLVM_NODISCARD Optional<TaskFunction>
+[[nodiscard]] Optional<TaskFunction>
 BlockingWorkQueue<ThreadingEnvironment>::NextTask(Queue* queue) {
   return queue->PopBack();
 }
 
 template <typename ThreadingEnvironment>
-LLVM_NODISCARD Optional<TaskFunction>
+[[nodiscard]] Optional<TaskFunction>
 BlockingWorkQueue<ThreadingEnvironment>::Steal(Queue* queue) {
   return queue->PopBack();
 }
 
 template <typename ThreadingEnvironment>
-LLVM_NODISCARD bool BlockingWorkQueue<ThreadingEnvironment>::Empty(
+[[nodiscard]] bool BlockingWorkQueue<ThreadingEnvironment>::Empty(
     Queue* queue) {
   return queue->Empty();
 }

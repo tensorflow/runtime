@@ -220,7 +220,7 @@ class WorkQueueBase {
 
   // Steal() tries to steal task from any worker managed by this queue. Returns
   // llvm::None if it was not able to find task to steal.
-  LLVM_NODISCARD llvm::Optional<TaskFunction> Steal();
+  [[nodiscard]] llvm::Optional<TaskFunction> Steal();
 
   // Returns `true` if all worker threads are parked. This is a weak signal of
   // work queue emptyness, because worker thread might be notified, but not
@@ -298,27 +298,27 @@ class WorkQueueBase {
   // WaitForWork() blocks until new work is available (returns true), or if it
   // is time to exit (returns false). Can optionally return a task to execute in
   // `task` (in such case `task.has_value() == true` on return).
-  LLVM_NODISCARD bool WaitForWork(EventCount::Waiter* waiter,
-                                  llvm::Optional<TaskFunction>* task);
+  [[nodiscard]] bool WaitForWork(EventCount::Waiter* waiter,
+                                 llvm::Optional<TaskFunction>* task);
 
   // StartSpinning() checks if the number of threads in the spin loop is less
   // than the allowed maximum, if so increments the number of spinning threads
   // by one and returns true (caller must enter the spin loop). Otherwise
   // returns false, and the caller must not enter the spin loop.
-  LLVM_NODISCARD bool StartSpinning();
+  [[nodiscard]] bool StartSpinning();
 
   // StopSpinning() decrements the number of spinning threads by one. It also
   // checks if there were any tasks submitted into the pool without notifying
   // parked threads, and decrements the count by one. Returns true if the number
   // of tasks submitted without notification was decremented, in this case
   // caller thread might have to call Steal() one more time.
-  LLVM_NODISCARD bool StopSpinning();
+  [[nodiscard]] bool StopSpinning();
 
   // IsNotifyParkedThreadRequired() returns true if parked thread must be
   // notified about new added task. If there are threads spinning in the steal
   // loop, there is no need to unpark any of the waiting threads, the task will
   // be picked up by one of the spinning threads.
-  LLVM_NODISCARD bool IsNotifyParkedThreadRequired();
+  [[nodiscard]] bool IsNotifyParkedThreadRequired();
 
   void Notify() { event_count_.Notify(false); }
 
@@ -328,9 +328,9 @@ class WorkQueueBase {
 
   // NonEmptyQueueIndex() returns the index of a non-empty worker queue, or `-1`
   // if all queues are empty.
-  LLVM_NODISCARD int NonEmptyQueueIndex();
+  [[nodiscard]] int NonEmptyQueueIndex();
 
-  LLVM_NODISCARD static PerThread* GetPerThread() {
+  [[nodiscard]] static PerThread* GetPerThread() {
     static thread_local PerThread per_thread_;
     PerThread* pt = &per_thread_;
     return pt;
@@ -502,7 +502,7 @@ void WorkQueueBase<Derived>::Quiesce() {
 }
 
 template <typename Derived>
-LLVM_NODISCARD llvm::Optional<TaskFunction> WorkQueueBase<Derived>::Steal() {
+[[nodiscard]] llvm::Optional<TaskFunction> WorkQueueBase<Derived>::Steal() {
   PerThread* pt = GetPerThread();
   unsigned r = pt->rng();
   unsigned victim = FastReduce(r, num_threads_);

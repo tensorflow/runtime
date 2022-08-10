@@ -353,6 +353,7 @@ licenses(["notice"])
 #         "@eigen_archive//:eigen3",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:type_id",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
 #     ],

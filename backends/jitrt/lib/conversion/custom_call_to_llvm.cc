@@ -62,6 +62,7 @@ using mlir::StringAttr;
 using mlir::succeeded;
 using mlir::success;
 using mlir::Type;
+using mlir::TypedAttr;
 using mlir::TypeID;
 using mlir::Value;
 using mlir::ValueRange;
@@ -153,7 +154,7 @@ Value PackScalarAttribute(Globals &g, ImplicitLocOpBuilder &b, Attribute value,
 
 // Reshape dense elements as a one-dimensional array.
 static mlir::DenseElementsAttr Flatten(DenseIntOrFPElementsAttr dense) {
-  ShapedType shaped_type = dense.getType().cast<ShapedType>();
+  ShapedType shaped_type = dense.cast<TypedAttr>().getType().cast<ShapedType>();
   ShapedType new_shaped_type = shaped_type.cloneWith(
       {shaped_type.getNumElements()}, dense.getElementType());
   return dense.reshape(new_shaped_type);
@@ -180,8 +181,9 @@ static Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
   Type payload_type = LLVM::LLVMStructType::getLiteral(
       ctx, {b.getI64Type(), data_arr_ptr_type});
 
-  int64_t rank = value.getType().cast<ShapedType>().getRank();
-  ArrayRef<int64_t> shape = value.getType().cast<ShapedType>().getShape();
+  int64_t rank = value.cast<TypedAttr>().getType().cast<ShapedType>().getRank();
+  ArrayRef<int64_t> shape =
+      value.cast<TypedAttr>().getType().cast<ShapedType>().getShape();
   Type shape_arr_type = LLVM::LLVMArrayType::get(b.getI64Type(), rank);
 
   // Encoded dense elements type:
@@ -233,7 +235,7 @@ static Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
 // Returns `!llvm.ptr<array<element_type x size>>
 static Value CreateGlobalFromArray(Globals &g, ImplicitLocOpBuilder &b,
                                    ArrayAttr array, StringRef symbol_base) {
-  Type element_type = array[0].getType();
+  Type element_type = array[0].cast<TypedAttr>().getType();
   Type arr_type = LLVM::LLVMArrayType::get(element_type, array.size());
 
   auto init = [&](ImplicitLocOpBuilder &ib, Attribute) {
@@ -260,7 +262,7 @@ static Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
 
   // Encoded array type:
   // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>)>>.
-  Type element_type = array[0].getType();
+  Type element_type = array[0].cast<TypedAttr>().getType();
   Type arr_type = LLVM::LLVMArrayType::get(element_type, size);
   Type arr_ptr_type = LLVM::LLVMPointerType::get(arr_type);
   Type type =
@@ -354,8 +356,10 @@ static Value PackDenseArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
 
   // Encoded array type:
   // !llvm.struct<(i64, !llvm.ptr<array<element_type x size>>)>.
-  Type element_type =
-      base_array.getType().cast<mlir::VectorType>().getElementType();
+  Type element_type = base_array.cast<TypedAttr>()
+                          .getType()
+                          .cast<mlir::VectorType>()
+                          .getElementType();
   Type arr_type = LLVM::LLVMArrayType::get(element_type, size);
   Type arr_ptr_type = LLVM::LLVMPointerType::get(arr_type);
   Type type =
@@ -450,7 +454,7 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, StringRef strref,
 
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
                                     StringRef symbol_base) {
-  return GetOrCreate(b, attr, attr.getType(), symbol_base);
+  return GetOrCreate(b, attr, attr.cast<TypedAttr>().getType(), symbol_base);
 }
 
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
@@ -627,14 +631,14 @@ FailureOr<EncodedAttr> StringAttrEncoding::Encode(Globals &g,
 // -------------------------------------------------------------------------- //
 
 LogicalResult ScalarAttrEncoding::Match(StringRef name, Attribute attr) const {
-  return success(IsSupportedScalarType(attr.getType()));
+  return success(IsSupportedScalarType(attr.cast<TypedAttr>().getType()));
 }
 
 FailureOr<EncodedAttr> ScalarAttrEncoding::Encode(Globals &g,
                                                   ImplicitLocOpBuilder &b,
                                                   StringRef name,
                                                   Attribute attr) const {
-  Type type = attr.getType();
+  Type type = attr.cast<TypedAttr>().getType();
 
   Encoded encoded;
   encoded.name = PackString(g, b, name, kAttrName);
@@ -655,7 +659,8 @@ LogicalResult DenseElementsAttrEncoding::Match(StringRef name,
 
 FailureOr<EncodedAttr> DenseElementsAttrEncoding::Encode(
     Globals &g, ImplicitLocOpBuilder &b, StringRef name, Attribute attr) const {
-  Type elem_type = attr.getType().cast<ShapedType>().getElementType();
+  Type elem_type =
+      attr.cast<TypedAttr>().getType().cast<ShapedType>().getElementType();
 
   Encoded encoded;
   encoded.name = PackString(g, b, name, kAttrName);
@@ -670,7 +675,7 @@ FailureOr<EncodedAttr> DenseElementsAttrEncoding::Encode(
 LogicalResult ArrayAttrEncoding::Match(StringRef name, Attribute attr) const {
   if (auto array = attr.dyn_cast<ArrayAttr>()) {
     if (array.empty()) return failure();
-    return success(IsSupportedScalarType(array[0].getType()));
+    return success(IsSupportedScalarType(array[0].cast<TypedAttr>().getType()));
   }
   return failure();
 }
@@ -680,10 +685,10 @@ FailureOr<EncodedAttr> ArrayAttrEncoding::Encode(Globals &g,
                                                  StringRef name,
                                                  Attribute attr) const {
   ArrayAttr array = attr.dyn_cast<ArrayAttr>();
-  Type elem_type = array[0].getType();
+  Type elem_type = array[0].cast<TypedAttr>().getType();
   // We only support array attributes with elements of same type.
   for (Attribute attr : array) {
-    if (attr.getType() != elem_type) {
+    if (attr.cast<TypedAttr>().getType() != elem_type) {
       return failure();
     }
   }
@@ -711,7 +716,10 @@ FailureOr<EncodedAttr> DenseArrayAttrEncoding::Encode(Globals &g,
                                                       StringRef name,
                                                       Attribute attr) const {
   auto array = attr.dyn_cast<DenseArrayBaseAttr>();
-  Type elem_type = array.getType().cast<mlir::VectorType>().getElementType();
+  Type elem_type = array.cast<TypedAttr>()
+                       .getType()
+                       .cast<mlir::VectorType>()
+                       .getElementType();
 
   Encoded encoded;
   encoded.name = PackString(g, b, name, kAttrName);

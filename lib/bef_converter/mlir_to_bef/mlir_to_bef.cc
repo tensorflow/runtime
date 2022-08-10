@@ -41,6 +41,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Block.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Operation.h"
@@ -285,8 +286,8 @@ unsigned EntityTable::GetKernelID(mlir::Operation* kernel) const {
 }
 
 void EntityTable::AddAttributeType(mlir::Attribute attr) {
-  if (auto int_type = attr.getType().dyn_cast<mlir::IntegerType>()) {
-    AddType(int_type);
+  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
+    AddType(int_attr.getType());
   }
 
   if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {

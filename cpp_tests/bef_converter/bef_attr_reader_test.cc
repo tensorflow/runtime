@@ -160,7 +160,7 @@ TEST_F(BefAttrReaderTest, ReadI32TypeAttribute) {
   auto read_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  EXPECT_EQ(read_attr.cast<mlir::TypeAttr>().getType(), mlir_attr.getType());
+  EXPECT_EQ(read_attr.cast<mlir::TypeAttr>().getValue(), mlir_attr.getValue());
 }
 
 constexpr int64_t kTestShape[] = {1, 2, 3};

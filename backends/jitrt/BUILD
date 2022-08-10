@@ -161,7 +161,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":arguments",
 #         ":async_runtime",
 #         ":async_runtime_api",
 #         ":async_values_cache",
@@ -189,6 +188,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
+#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
@@ -245,22 +245,6 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #     ],
 #     alwayslink = 1,
-# )
-#
-# tfrt_cc_library(
-#     name = "arguments",
-#     srcs = ["lib/arguments.cc"],
-#     hdrs = ["include/tfrt/jitrt/arguments.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":xla",
-#         "@llvm-project//llvm:Support",
-#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
-#         "//third_party/tensorflow/compiler/xla/runtime:types",
-#         "@tf_runtime//:dtype",
-#         "@tf_runtime//:support",
-#     ],
 # )
 #
 # tfrt_cc_library(
@@ -328,7 +312,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":arguments",
 #         ":constraints",
 #         ":support",
 #         ":symbolic_shape",
@@ -338,6 +321,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:TensorDialect",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
+#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:support",
 #     ],
@@ -408,9 +392,10 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":arguments",
 #         ":constraints",
+#         ":xla",
 #         "@llvm-project//llvm:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "@tf_runtime//:support",
 #     ],
 # )

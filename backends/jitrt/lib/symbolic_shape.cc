@@ -27,7 +27,7 @@
 
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/Compiler.h"
-#include "tfrt/jitrt/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
 namespace jitrt {

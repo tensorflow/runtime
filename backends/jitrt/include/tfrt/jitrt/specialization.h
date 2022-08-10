@@ -20,10 +20,10 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
-#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/support/forward_decls.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
 namespace jitrt {

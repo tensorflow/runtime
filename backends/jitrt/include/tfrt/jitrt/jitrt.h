@@ -37,7 +37,6 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/host_context/task_function.h"
-#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/async_runtime.h"
 #include "tfrt/jitrt/async_values_cache.h"
 #include "tfrt/jitrt/constraints.h"
@@ -50,6 +49,7 @@
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/support/forward_decls.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 // Forward declare Eigen types.

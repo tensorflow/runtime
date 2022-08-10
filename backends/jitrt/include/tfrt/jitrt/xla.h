@@ -41,6 +41,9 @@ class TypeConverter;
 class AsyncTokenType;
 class AsyncValueType;
 class KernelContextOperandType;
+class Argument;
+class MemrefDesc;
+class OpaqueArgument;
 
 }  // namespace runtime
 }  // namespace xla

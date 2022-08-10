@@ -20,9 +20,10 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/SmallVector.h"
-#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/constraints.h"
+#include "tfrt/jitrt/xla.h"
 #include "tfrt/support/forward_decls.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
 namespace jitrt {

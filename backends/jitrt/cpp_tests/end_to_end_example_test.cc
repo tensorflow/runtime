@@ -35,6 +35,7 @@
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
+#include "tfrt/jitrt/xla.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -133,7 +134,8 @@ struct CustomArgRtType : public llvm::RTTIExtends<CustomArgRtType, Type> {
 // that we want to pass back to our custom call. However we decided that we want
 // to hide it behind the opaque pointer, so the packing function adds a pointer
 // to the pointer to a string to the arguments array (as a `void*` C++ pointer).
-struct CustomArgument : public llvm::RTTIExtends<CustomArgument, Argument> {
+struct CustomArgument
+    : public llvm::RTTIExtends<CustomArgument, xla::runtime::Argument> {
   static constexpr char ID = 0;  // NOLINT
 
   explicit CustomArgument(std::string message) : message(std::move(message)) {}

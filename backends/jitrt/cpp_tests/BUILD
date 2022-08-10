@@ -23,18 +23,6 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_test(
-#     name = "arguments_test",
-#     srcs = ["arguments_test.cc"],
-#     deps = [
-#         "@com_google_googletest//:gtest_main",
-#         "@llvm-project//llvm:Support",
-#         "//third_party/tensorflow/compiler/xla/runtime:types",
-#         "@tf_runtime//:dtype",
-#         "@tf_runtime//backends/jitrt:arguments",
-#     ],
-# )
-#
-# tfrt_cc_test(
 #     name = "custom_call_test",
 #     srcs = ["custom_call_test.cc"],
 #     tags = ["no_oss"],  # TODO(b/197262906)
@@ -90,6 +78,7 @@ licenses(["notice"])
 #         "@tf_runtime//backends/jitrt:custom_call_testlib",
 #         "@tf_runtime//backends/jitrt:custom_call_to_llvm",
 #         "@tf_runtime//backends/jitrt:jitrt_compiler",
+#         "@tf_runtime//backends/jitrt:xla",
 #     ],
 # )
 #
@@ -126,11 +115,12 @@ licenses(["notice"])
 #     deps = [
 #         "@com_google_googletest//:gtest_main",
 #         "@llvm-project//llvm:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
-#         "@tf_runtime//backends/jitrt:arguments",
 #         "@tf_runtime//backends/jitrt:constraints",
 #         "@tf_runtime//backends/jitrt:symbolic_shape",
+#         "@tf_runtime//backends/jitrt:xla",
 #     ],
 # )
 #

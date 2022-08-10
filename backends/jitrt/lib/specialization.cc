@@ -29,11 +29,11 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
-#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/support/error_util.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
 namespace jitrt {

@@ -369,8 +369,8 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?x256xf32>) {
   // llvm.mlir.undef : !llvm.struct<(i8, i8, ptr<i8>, array<2 x i64>)>
   // CHECK: llvm.insertvalue
   // CHECK: llvm.insertvalue
-  // CHECK: llvm.insertvalue
   // CHECK: llvm.insertvalue %[[SIZES]]
+  // CHECK: llvm.insertvalue
 
   // CHECK: %[[N_ARGS:.*]] = llvm.mlir.addressof @__rt_num_args
 

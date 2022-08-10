@@ -926,8 +926,12 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
   Value memref = b.create<LLVM::UndefOp>(type);
   memref = b.create<LLVM::InsertValueOp>(type, memref, dtype, offset(0));
   memref = b.create<LLVM::InsertValueOp>(type, memref, rank, offset(1));
-  memref = b.create<LLVM::InsertValueOp>(type, memref, data, offset(2));
   memref = b.create<LLVM::InsertValueOp>(type, memref, payload, offset(3));
+
+  // Previous values almost always are known at compile time, and inserting
+  // dynamic values into the struct after all statically know values leads to a
+  // better canonicalization and cleaner final LLVM IR.
+  memref = b.create<LLVM::InsertValueOp>(type, memref, data, offset(2));
 
   return memref;
 }

@@ -569,7 +569,7 @@ static llvm::Expected<DenseGpuTensor> ComputeSoftMaxGpuOp(
   auto rank = input.shape().GetRank();
   auto channel_order = ChannelOrder::ChannelLast;
 
-  int axis = attrs.GetOptional<int>("axis").getValueOr(-1);
+  int axis = attrs.GetOptional<int>("axis").value_or(-1);
 
   // TODO(csigg): pad shape so that axis==1 and use ChannelFirst.
   if (axis != -1 && axis != rank - 1)

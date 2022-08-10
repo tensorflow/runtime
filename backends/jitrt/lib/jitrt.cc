@@ -639,7 +639,7 @@ class JitCompilationContext {
   }
 
   llvm::StringRef name() const {
-    return module().getName().getValueOr("<unknown>");
+    return module().getName().value_or("<unknown>");
   }
 
   mlir::ModuleOp module() const {
@@ -792,7 +792,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   if (!target_machine) return target_machine.takeError();
 
   // Name of the compiled module if available.
-  auto module_name = ctx->module().getSymName().getValueOr("<unknown>");
+  auto module_name = ctx->module().getSymName().value_or("<unknown>");
 
   // Memory region name to mmap executable code.
   std::string mapper_name = llvm::formatv(

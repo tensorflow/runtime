@@ -671,7 +671,7 @@ SmallVector<Value, 4> OneToAnyConversion::CastToSourceTypes(
       [&](const auto &pair) {
         auto mapping =
             conversion_.getInputMapping(pair.index())
-                .getValueOr(TypeConverter::SignatureConversion::InputMapping{});
+                .value_or(TypeConverter::SignatureConversion::InputMapping{});
         if (mapping.replacementValue) return mapping.replacementValue;
         auto operands = target_values.take_front(mapping.size);
         target_values = target_values.drop_front(mapping.size);

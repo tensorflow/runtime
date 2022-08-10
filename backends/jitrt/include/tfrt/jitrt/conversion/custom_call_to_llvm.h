@@ -213,7 +213,7 @@ class Globals {
   // Creates a global constant value from the attribute. Attribute type must be
   // a valid type compatible with LLVM globals.
   mlir::LLVM::GlobalOp GetOrCreate(mlir::ImplicitLocOpBuilder &b,
-                                   mlir::Attribute attr,
+                                   mlir::TypedAttr attr,
                                    llvm::StringRef symbol_base);
 
   // Creates a global constant value of the given type from the attribute, using

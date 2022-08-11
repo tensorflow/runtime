@@ -51,8 +51,6 @@
 #include "mlir/Support/Timing.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/jitrt/async_runtime.h"
-#include "tfrt/jitrt/async_runtime_api.h"
 #include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/diagnostics.h"
@@ -65,7 +63,9 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/async_runtime_api.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 
 namespace tfrt {
 namespace jitrt {

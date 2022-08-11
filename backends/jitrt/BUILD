@@ -1,5 +1,5 @@
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
-load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_binary", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 
 package(
     default_visibility = [":__subpackages__"],
@@ -11,48 +11,6 @@ licenses(["notice"])
 # and while we are doing this we can't keep it buildable/testable in OSS.
 
 # copybara:uncomment_begin
-#
-# tfrt_cc_library(
-#     name = "async_runtime",
-#     srcs = [
-#         "lib/async_runtime.cc",
-#     ],
-#     hdrs = [
-#         "include/tfrt/jitrt/async_runtime.h",
-#     ],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@eigen_archive//:eigen3",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:mlir_async_runtime_api",
-#         "@tf_runtime//:hostcontext",
-#         "@tf_runtime//:support",
-#     ] + if_google([
-#         # TODO(b/161569340): Short-term fix. Remove.
-#         "//third_party/tensorflow/core/platform:types",
-#         "//third_party/tensorflow/core/platform:mutex",
-#     ]),
-# )
-#
-# tfrt_cc_library(
-#     name = "async_runtime_api",
-#     srcs = [
-#         "lib/async_runtime_api.cc",
-#     ],
-#     hdrs = [
-#         "include/tfrt/jitrt/async_runtime_api.h",
-#     ],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":async_runtime",
-#         "@llvm-project//llvm:OrcJIT",
-#         "@llvm-project//llvm:Support",
-#         "@tf_runtime//:hostcontext",
-#         "@tf_runtime//:support",
-#     ],
-# )
 #
 # td_library(
 #     name = "jitrt_ops_td_files",
@@ -161,8 +119,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":async_runtime",
-#         ":async_runtime_api",
 #         ":async_values_cache",
 #         ":constraints",
 #         ":custom_call",
@@ -188,7 +144,9 @@ licenses(["notice"])
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
+#         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:async_runtime_api",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
+#         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
@@ -254,12 +212,12 @@ licenses(["notice"])
 #     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":async_runtime",
-#         ":async_runtime_api",
 #         ":xla",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
+#         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:async_runtime_api",
+#         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",

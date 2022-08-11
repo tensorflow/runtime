@@ -281,8 +281,7 @@ static FailureOr<Value> EncodeArguments(
   Value arr = b.create<LLVM::UndefOp>(type);
   auto insert_value = [&](Value value, int64_t offset) {
     Value bcasted = b.createOrFold<LLVM::BitcastOp>(ptr, value);
-    arr = b.create<LLVM::InsertValueOp>(type, arr, bcasted,
-                                        b.getI64ArrayAttr(offset));
+    arr = b.create<LLVM::InsertValueOp>(arr, bcasted, offset);
   };
 
   // Insert the number of encoded arguments.

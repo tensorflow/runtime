@@ -132,10 +132,8 @@ Value PackString(Globals &g, ImplicitLocOpBuilder &b, StringRef strref,
 
     // Store size and pointer into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
-                                             ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, str,
-                                             ib.getI64ArrayAttr(1));
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, num_elements, 0);
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, str, 1);
     ib.create<LLVM::ReturnOp>(encoded);
   };
 
@@ -198,10 +196,8 @@ static Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
 
     // Create the payload struct.
     Value payload = ib.create<LLVM::UndefOp>(payload_type);
-    payload = ib.create<LLVM::InsertValueOp>(
-        payload_type, payload, num_elements, ib.getI64ArrayAttr(0));
-    payload = ib.create<LLVM::InsertValueOp>(payload_type, payload, data_ptr,
-                                             ib.getI64ArrayAttr(1));
+    payload = ib.create<LLVM::InsertValueOp>(payload, num_elements, 0);
+    payload = ib.create<LLVM::InsertValueOp>(payload, data_ptr, 1);
 
     // Get rank and shape.
     Value rank_value = ib.create<ConstantOp>(b.getI64IntegerAttr(rank));
@@ -210,18 +206,14 @@ static Value PackDenseElementsAttribute(Globals &g, ImplicitLocOpBuilder &b,
     // Store each dimension size into shape_value.
     for (int i = 0; i < rank; i++) {
       Value dim = ib.create<ConstantOp>(ib.getI64IntegerAttr(shape[i]));
-      shape_value = ib.create<LLVM::InsertValueOp>(shape_arr_type, shape_value,
-                                                   dim, ib.getI64ArrayAttr(i));
+      shape_value = ib.create<LLVM::InsertValueOp>(shape_value, dim, i);
     }
 
     // Store the payload, rank, and shape into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, payload,
-                                             ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, rank_value,
-                                             ib.getI64ArrayAttr(1));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, shape_value,
-                                             ib.getI64ArrayAttr(2));
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, payload, 0);
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, rank_value, 1);
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, shape_value, 2);
     ib.create<LLVM::ReturnOp>(encoded);
   };
 
@@ -240,8 +232,7 @@ static Value CreateGlobalFromArray(Globals &g, ImplicitLocOpBuilder &b,
     Value data = ib.create<LLVM::UndefOp>(arr_type);
     for (int i = 0; i < array.size(); i++) {
       Value value = ib.create<ConstantOp>(array[i]);
-      data = ib.create<LLVM::InsertValueOp>(arr_type, data, value,
-                                            ib.getI64ArrayAttr(i));
+      data = ib.create<LLVM::InsertValueOp>(data, value, i);
     }
     ib.create<LLVM::ReturnOp>(data);
   };
@@ -273,10 +264,8 @@ static Value PackArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
 
     // Store size and values into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
-                                             ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data,
-                                             ib.getI64ArrayAttr(1));
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, num_elements, 0);
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, data, 1);
 
     ib.create<LLVM::ReturnOp>(encoded);
   };
@@ -292,8 +281,7 @@ static Value FillDataFromDenseArrayAttr(
   ArrayRef<T> array_ref = array.asArrayRef();
   for (int i = 0; i < array_ref.size(); i++) {
     Value value = b.create<ConstantOp>((b.*get_attr)(array_ref[i]));
-    data = b.create<LLVM::InsertValueOp>(data.getType(), data, value,
-                                         b.getI64ArrayAttr(i));
+    data = b.create<LLVM::InsertValueOp>(data, value, i);
   }
   return data;
 }
@@ -368,10 +356,8 @@ static Value PackDenseArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
 
     // Store size and values into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
-                                             ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data,
-                                             ib.getI64ArrayAttr(1));
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, num_elements, 0);
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, data, 1);
 
     ib.create<LLVM::ReturnOp>(encoded);
   };
@@ -398,10 +384,8 @@ static Value PackEmptyArrayAttribute(Globals &g, ImplicitLocOpBuilder &b,
 
     // Store size and values into the struct.
     Value encoded = ib.create<LLVM::UndefOp>(type);
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, num_elements,
-                                             ib.getI64ArrayAttr(0));
-    encoded = ib.create<LLVM::InsertValueOp>(type, encoded, data,
-                                             ib.getI64ArrayAttr(1));
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, num_elements, 0);
+    encoded = ib.create<LLVM::InsertValueOp>(encoded, data, 1);
 
     ib.create<LLVM::ReturnOp>(encoded);
   };
@@ -779,8 +763,7 @@ FailureOr<Value> EncodeAttributes(Globals &g, ImplicitLocOpBuilder &b,
     Value arr = b.create<LLVM::UndefOp>(type);
     auto insert_value = [&](Value value, int64_t offset) {
       Value bcasted = b.createOrFold<LLVM::BitcastOp>(ptr, value);
-      arr = b.create<LLVM::InsertValueOp>(type, arr, bcasted,
-                                          b.getI64ArrayAttr(offset));
+      arr = b.create<LLVM::InsertValueOp>(arr, bcasted, offset);
     };
 
     // Insert the number of encoded attributes.
@@ -892,7 +875,6 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
   Value rank = b.create<ConstantOp>(b.getI8IntegerAttr(memref_ty.getRank()));
   Value data = b.create<LLVM::BitcastOp>(ptr, desc.alignedPtr(b, loc));
 
-  auto offset = [&](int64_t i) { return b.getI64ArrayAttr(i); };
   auto i64 = [&](int64_t i) { return b.getI64IntegerAttr(i); };
 
   // Get the statically known strides and offset from the memref type.
@@ -915,23 +897,22 @@ Value MemrefArgEncoding::EncodeMemRef(ImplicitLocOpBuilder &b,
                        ? desc.stride(b, loc, i)
                        : b.create<ConstantOp>(i64(stride_size));
 
-    auto size_pos = offset(i);
-    auto stride_pos = offset(memref_ty.getRank() + i);
+    auto stride_pos = memref_ty.getRank() + i;
 
-    payload = b.create<LLVM::InsertValueOp>(arr, payload, dim, size_pos);
-    payload = b.create<LLVM::InsertValueOp>(arr, payload, stride, stride_pos);
+    payload = b.create<LLVM::InsertValueOp>(payload, dim, i);
+    payload = b.create<LLVM::InsertValueOp>(payload, stride, stride_pos);
   }
 
   // Construct encoded memref value.
   Value memref = b.create<LLVM::UndefOp>(type);
-  memref = b.create<LLVM::InsertValueOp>(type, memref, dtype, offset(0));
-  memref = b.create<LLVM::InsertValueOp>(type, memref, rank, offset(1));
-  memref = b.create<LLVM::InsertValueOp>(type, memref, payload, offset(3));
+  memref = b.create<LLVM::InsertValueOp>(memref, dtype, 0);
+  memref = b.create<LLVM::InsertValueOp>(memref, rank, 1);
+  memref = b.create<LLVM::InsertValueOp>(memref, payload, 3);
 
   // Previous values almost always are known at compile time, and inserting
   // dynamic values into the struct after all statically know values leads to a
   // better canonicalization and cleaner final LLVM IR.
-  memref = b.create<LLVM::InsertValueOp>(type, memref, data, offset(2));
+  memref = b.create<LLVM::InsertValueOp>(memref, data, 2);
 
   return memref;
 }

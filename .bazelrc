@@ -43,8 +43,7 @@ build:gcc --cxxopt=-Wno-sign-compare
 build:nvcc --@rules_cuda//cuda:compiler=nvcc
 build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
 build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
-# TODO(ezhulenev): Currently nvcc can't compile some of the kernels with c++17.
-build:nvcc --@rules_cuda//cuda:copts=-std=c++14
+build:nvcc --@rules_cuda//cuda:copts=-std=c++17
 
 # Default to an optimized build.
 # Override via: "-c dbg" or --compilation_mode=dbg
@@ -56,7 +55,8 @@ build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs
 build --copt=-U_FORTIFY_SOURCE  # TODO(csigg): fix and remove
 
 # CUDA support
-build:cuda --//:enable_gpu  # Link //backends/gpu to //tools targets.
+# TODO(ezhulenev): NVCC fails to compiled some of the kernels with C++17.
+# build:cuda --//:enable_gpu  # Link //backends/gpu to //tools targets.
 build:cuda --@rules_cuda//cuda:enable_cuda  # Build CUDA device code.
 test:cuda  --test_env=CUDA_CACHE_DISABLE=1  # Do not cache CUDA JIT
 test:cuda  --test_strategy=exclusive  # Run tests serially to avoid GPU OOM.

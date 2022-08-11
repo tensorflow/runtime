@@ -439,297 +439,302 @@ tfrt_cc_library(
     }),
 )
 
-tfrt_cc_library(
-    name = "gpu_tf_ops",
-    srcs = [
-        "lib/ops/tf/gpu_ops.cc",
-    ],
-    hdrs = [
-        "include/tfrt/gpu/ops/tf/gpu_ops.h",
-    ],
-    alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
-    local_defines = select({
-        ":cuda_enabled": ["TFRT_GPU_CUDA_ENABLED"],
-        "//conditions:default": [],
-    }),
-    visibility = ["@tf_runtime//:friends"],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_wrapper",
-        ":tf_gpu_matmul_op",
-        ":tf_gpu_mlir_ops",
-        ":tf_gpu_nullary_ops",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-        "@tf_runtime//backends/common:tf_metadata_functions",
-    ] + select({
-        ":cuda_enabled": [
-            ":tf_gpu_binary_ops",
-            ":tf_gpu_dnn_ops",
-            ":tf_gpu_pad_op",
-            ":tf_gpu_reduction_ops",
-            ":tf_gpu_transpose_op",
-            ":tf_gpu_unary_ops",
-        ],
-        "//conditions:default": [],
-    }),
-)
+# TODO(tfrt-devs): GPU kernels are not buildable with nvcc and C++17.
 
-tfrt_cc_library(
-    name = "tf_gpu_nullary_ops",
-    srcs = ["lib/ops/tf/nullary_ops.cc"],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-    ],
-)
-
-cuda_library(
-    name = "tf_gpu_transpose_op",
-    srcs = ["lib/ops/tf/transpose_op.cu.cc"],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-    ],
-)
-
-cuda_library(
-    name = "tf_gpu_reduction_ops",
-    srcs = [
-        "lib/ops/tf/eigen_helper.cu.h",
-        "lib/ops/tf/reduction_ops.cu.cc",
-    ],
-    deps = [
-        "@tf_runtime//:core_runtime",
-        ":gpu_op_handler",
-        ":gpu_memory",
-        ":gpu_tensor",
-        ":gpu_wrapper",
-        ":gpu_types",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//backends/common:eigencompat",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//backends/common:tf_dnn_ops_util",
-        "@eigen_archive//:eigen3",
-        # TODO(ezhulenev): Figure out how to use hipcub.
-        "@cub_archive//:cub",
-        "@llvm-project//llvm:Support",
-    ],
-)
-
-cuda_library(
-    name = "tf_gpu_unary_ops",
-    srcs = [
-        "lib/ops/tf/eigen_helper.cu.h",
-        "lib/ops/tf/unary_ops.cu.cc",
-    ],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        "@eigen_archive//:eigen3",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-    ],
-)
-
-tfrt_cc_library(
-    name = "generated_kernel_images",
-    hdrs = [
-        "include/tfrt/gpu/ops/tf/bias_add_f16_kernel.h",
-        "include/tfrt/gpu/ops/tf/bias_add_f32_kernel.h",
-        "include/tfrt/gpu/ops/tf/bias_add_f64_kernel.h",
-        "include/tfrt/gpu/ops/tf/relu_f16_kernel.h",
-        "include/tfrt/gpu/ops/tf/relu_f32_kernel.h",
-        "include/tfrt/gpu/ops/tf/relu_f64_kernel.h",
-    ],
-)
-
-tfrt_cc_library(
-    name = "tf_gpu_mlir_ops",
-    srcs = ["lib/ops/tf/mlir_ops.cc"],
-    deps = [
-        ":generated_kernel_images",
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-    ],
-)
-
-tfrt_cc_library(
-    name = "tf_gpu_dnn_ops",
-    srcs = [
-        "lib/ops/tf/dnn_ops.cc",
-    ],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        ":pad_op_noncuda",
-        ":tf_gpu_dnn_ops_cu",
-        ":tf_gpu_matmul_op",  # TODO(iga): For GEMM-calling utility only.
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-        "@tf_runtime//backends/common:shape_functions",
-        "@tf_runtime//backends/common:tf_dnn_ops_util",
-    ],
-)
-
-cuda_library(
-    name = "tf_gpu_dnn_ops_cu",
-    srcs = [
-        "lib/ops/tf/dnn_ops.cu.cc",
-    ],
-    hdrs = ["lib/ops/tf/dnn_ops_cu.h"],
-    deps = [
-        ":gpu_memory",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-        "@tf_runtime//backends/common:tf_dnn_ops_util",
-    ],
-)
-
-cuda_library(
-    name = "tf_gpu_binary_ops",
-    srcs = [
-        "lib/ops/tf/binary_ops.cu.cc",
-        "lib/ops/tf/eigen_helper.cu.h",
-    ],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        "@eigen_archive//:eigen3",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-    ],
-)
-
-tfrt_cc_library(
-    name = "tf_gpu_matmul_op",
-    srcs = ["lib/ops/tf/matmul_op.cc"],
-    hdrs = ["lib/ops/tf/matmul_op.h"],
-    copts = ["-mf16c"],
-    deps = [
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//:tracing",
-    ],
-)
-
-cuda_library(
-    name = "tf_gpu_pad_op",
-    srcs = [
-        "lib/ops/tf/pad_op.cc",
-        "lib/ops/tf/pad_op.cu.cc",
-    ],
-    hdrs = ["lib/ops/tf/pad_op.h"],
-    defines = if_oss([
-        # TODO(b/161569340): Short-term fix. Remove
-        "EIGEN_MUTEX=std::mutex",
-        "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
-        "EIGEN_CONDVAR=std::condition_variable",
-        "EIGEN_AVOID_STL_ARRAY",
-    ]),
-    deps = [
-        ":gpu_device_eigen_support",
-        ":gpu_memory",
-        ":gpu_op_handler",
-        ":gpu_tensor",
-        ":gpu_types",
-        ":gpu_wrapper",
-        "@eigen_archive//:eigen3",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-        "@tf_runtime//backends/common:tf_dnn_ops_util",
-    ],
-)
-
-tfrt_cc_library(
-    name = "pad_op_noncuda",
-    srcs = [
-        "lib/ops/tf/pad_op_noncuda.cc",
-    ],
-    hdrs = [
-        "lib/ops/tf/pad_op_noncuda.h",
-    ],
-    deps = [
-        ":gpu_tensor",
-        ":tf_gpu_pad_op",
-        "@tf_runtime//:support",
-    ],
-)
+# copybara:uncomment_begin
+# tfrt_cc_library(
+#     name = "gpu_tf_ops",
+#     srcs = [
+#         "lib/ops/tf/gpu_ops.cc",
+#     ],
+#     hdrs = [
+#         "include/tfrt/gpu/ops/tf/gpu_ops.h",
+#     ],
+#     alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
+#     local_defines = select({
+#         ":cuda_enabled": ["TFRT_GPU_CUDA_ENABLED"],
+#         "//conditions:default": [],
+#     }),
+#     visibility = ["@tf_runtime//:friends"],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_wrapper",
+#         ":tf_gpu_matmul_op",
+#         ":tf_gpu_mlir_ops",
+#         ":tf_gpu_nullary_ops",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#         "@tf_runtime//backends/common:tf_metadata_functions",
+#     ] + select({
+#         ":cuda_enabled": [
+#             ":tf_gpu_binary_ops",
+#             ":tf_gpu_dnn_ops",
+#             ":tf_gpu_pad_op",
+#             ":tf_gpu_reduction_ops",
+#             ":tf_gpu_transpose_op",
+#             ":tf_gpu_unary_ops",
+#         ],
+#         "//conditions:default": [],
+#     }),
+# )
+#
+# tfrt_cc_library(
+#     name = "tf_gpu_nullary_ops",
+#     srcs = ["lib/ops/tf/nullary_ops.cc"],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#     ],
+# )
+#
+# cuda_library(
+#     name = "tf_gpu_transpose_op",
+#     srcs = ["lib/ops/tf/transpose_op.cu.cc"],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#     ],
+# )
+#
+# cuda_library(
+#     name = "tf_gpu_reduction_ops",
+#     srcs = [
+#         "lib/ops/tf/eigen_helper.cu.h",
+#         "lib/ops/tf/reduction_ops.cu.cc",
+#     ],
+#     deps = [
+#         "@tf_runtime//:core_runtime",
+#         ":gpu_op_handler",
+#         ":gpu_memory",
+#         ":gpu_tensor",
+#         ":gpu_wrapper",
+#         ":gpu_types",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//backends/common:eigencompat",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//backends/common:tf_dnn_ops_util",
+#         "@eigen_archive//:eigen3",
+#         # TODO(ezhulenev): Figure out how to use hipcub.
+#         "@cub_archive//:cub",
+#         "@llvm-project//llvm:Support",
+#     ],
+# )
+#
+# cuda_library(
+#     name = "tf_gpu_unary_ops",
+#     srcs = [
+#         "lib/ops/tf/eigen_helper.cu.h",
+#         "lib/ops/tf/unary_ops.cu.cc",
+#     ],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         "@eigen_archive//:eigen3",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "generated_kernel_images",
+#     hdrs = [
+#         "include/tfrt/gpu/ops/tf/bias_add_f16_kernel.h",
+#         "include/tfrt/gpu/ops/tf/bias_add_f32_kernel.h",
+#         "include/tfrt/gpu/ops/tf/bias_add_f64_kernel.h",
+#         "include/tfrt/gpu/ops/tf/relu_f16_kernel.h",
+#         "include/tfrt/gpu/ops/tf/relu_f32_kernel.h",
+#         "include/tfrt/gpu/ops/tf/relu_f64_kernel.h",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "tf_gpu_mlir_ops",
+#     srcs = ["lib/ops/tf/mlir_ops.cc"],
+#     deps = [
+#         ":generated_kernel_images",
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "tf_gpu_dnn_ops",
+#     srcs = [
+#         "lib/ops/tf/dnn_ops.cc",
+#     ],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         ":pad_op_noncuda",
+#         ":tf_gpu_dnn_ops_cu",
+#         ":tf_gpu_matmul_op",  # TODO(iga): For GEMM-calling utility only.
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#         "@tf_runtime//backends/common:shape_functions",
+#         "@tf_runtime//backends/common:tf_dnn_ops_util",
+#     ],
+# )
+#
+# cuda_library(
+#     name = "tf_gpu_dnn_ops_cu",
+#     srcs = [
+#         "lib/ops/tf/dnn_ops.cu.cc",
+#     ],
+#     hdrs = ["lib/ops/tf/dnn_ops_cu.h"],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#         "@tf_runtime//backends/common:tf_dnn_ops_util",
+#     ],
+# )
+#
+# cuda_library(
+#     name = "tf_gpu_binary_ops",
+#     srcs = [
+#         "lib/ops/tf/binary_ops.cu.cc",
+#         "lib/ops/tf/eigen_helper.cu.h",
+#     ],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         "@eigen_archive//:eigen3",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "tf_gpu_matmul_op",
+#     srcs = ["lib/ops/tf/matmul_op.cc"],
+#     hdrs = ["lib/ops/tf/matmul_op.h"],
+#     copts = ["-mf16c"],
+#     deps = [
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//:tracing",
+#     ],
+# )
+#
+# cuda_library(
+#     name = "tf_gpu_pad_op",
+#     srcs = [
+#         "lib/ops/tf/pad_op.cc",
+#         "lib/ops/tf/pad_op.cu.cc",
+#     ],
+#     hdrs = ["lib/ops/tf/pad_op.h"],
+#     defines = if_oss([
+#         # TODO(b/161569340): Short-term fix. Remove
+#         "EIGEN_MUTEX=std::mutex",
+#         "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
+#         "EIGEN_CONDVAR=std::condition_variable",
+#         "EIGEN_AVOID_STL_ARRAY",
+#     ]),
+#     deps = [
+#         ":gpu_device_eigen_support",
+#         ":gpu_memory",
+#         ":gpu_op_handler",
+#         ":gpu_tensor",
+#         ":gpu_types",
+#         ":gpu_wrapper",
+#         "@eigen_archive//:eigen3",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:core_runtime",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//backends/common:eigencompat",
+#         "@tf_runtime//backends/common:tf_dnn_ops_util",
+#     ],
+# )
+#
+# tfrt_cc_library(
+#     name = "pad_op_noncuda",
+#     srcs = [
+#         "lib/ops/tf/pad_op_noncuda.cc",
+#     ],
+#     hdrs = [
+#         "lib/ops/tf/pad_op_noncuda.h",
+#     ],
+#     deps = [
+#         ":gpu_tensor",
+#         ":tf_gpu_pad_op",
+#         "@tf_runtime//:support",
+#     ],
+# )
+#
+# copybara:uncomment_end
 
 td_library(
     name = "GpuOpBaseTdFile",

@@ -31,12 +31,12 @@
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
-#include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -215,16 +215,6 @@ struct CustomArg {
   const std::string* message;
 };
 
-// Register custom argument decoding (must be in ::tfrt::jitrt namespace).
-template <CustomCall::RuntimeChecks checks>
-struct CustomCallArgDecoding<CustomArg, checks> {
-  static FailureOr<CustomArg> Decode(TypeID type_id, void* value) {
-    if (!CustomCall::CheckType<Tagged<CustomArg>>(checks, type_id))
-      return failure();
-    return CustomArg{reinterpret_cast<const std::string*>(value)};
-  }
-};
-
 // Implement your runtime intrinsic as a regular C++ function.
 static LogicalResult MyRuntimeIntrinsic(MyRuntimeContext* ctx,
                                         CustomArg custom_arg,
@@ -243,7 +233,7 @@ void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
 }
 
 // Static registration with the JitRt global registry.
-JITRT_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
+XLA_RUNTIME_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
 
 //===----------------------------------------------------------------------===//
 // The end-to-end test itself that compiles and executes the MLIR module.
@@ -461,3 +451,21 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
 }  // namespace jitrt
 }  // namespace tfrt
+
+namespace xla {
+namespace runtime {
+
+using tfrt::jitrt::CustomArg;
+
+// Register custom argument decoding (must be in ::xla::runtime namespace).
+template <CustomCall::RuntimeChecks checks>
+struct CustomCallArgDecoding<CustomArg, checks> {
+  static FailureOr<CustomArg> Decode(TypeID type_id, void* value) {
+    if (!CustomCall::CheckType<Tagged<CustomArg>>(checks, type_id))
+      return failure();
+    return CustomArg{reinterpret_cast<const std::string*>(value)};
+  }
+};
+
+}  // namespace runtime
+}  // namespace xla

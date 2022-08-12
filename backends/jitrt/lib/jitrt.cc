@@ -51,7 +51,6 @@
 #include "mlir/Support/Timing.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/jitrt/xla.h"
@@ -64,6 +63,7 @@
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
 #include "third_party/tensorflow/compiler/xla/runtime/runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
@@ -462,7 +462,7 @@ DiagnosticEngine* Executable::GetDiagnosticEngine(
 }
 
 mlir::LogicalResult Executable::Call(xla::runtime::KernelContext* ctx,
-                                     CustomCall& call, void** args,
+                                     class CustomCall& call, void** args,
                                      void** attrs) {
   return call.call(args, attrs, ctx->custom_call_data, ctx->diagnostic_engine);
 }

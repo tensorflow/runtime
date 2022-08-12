@@ -21,7 +21,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/Types.h"
-#include "tfrt/jitrt/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 
 // clang-format off
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.h.inc"
@@ -39,7 +39,7 @@ namespace jitrt {
 
 class CustomCallAttrEncodingSet;
 
-DirectCustomCallLibrary CustomCallTestlib();
+xla::runtime::DirectCustomCallLibrary CustomCallTestlib();
 
 // Declare runtime enums corresponding to compile time enums to test
 // attributes enum conversion.
@@ -56,17 +56,23 @@ struct RuntimePairOfDims {
 // Populate encoding for custom dialect attributes (enums and structs).
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet &encoding);
 
-// Explicitly register attributes decoding for enums passed to the custom calls.
-JITRT_REGISTER_ENUM_ATTR_DECODING(EnumType);
-JITRT_REGISTER_ENUM_ATTR_DECODING(RuntimeEnumType);
-
-// Explicitly register aggregate attributes decoding for structs.
-JITRT_REGISTER_AGGREGATE_ATTR_DECODING(RuntimePairOfDims,
-                                       JITRT_AGGREGATE_FIELDS("rank", "a", "b"),
-                                       int64_t, ArrayRef<int64_t>,
-                                       ArrayRef<int64_t>);
-
 }  // namespace jitrt
 }  // namespace tfrt
+
+namespace xla {
+namespace runtime {
+
+// Explicitly register attributes decoding for enums passed to the custom calls.
+XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(tfrt::jitrt::EnumType);
+XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(tfrt::jitrt::RuntimeEnumType);
+
+// Explicitly register aggregate attributes decoding for structs.
+XLA_RUNTIME_REGISTER_AGGREGATE_ATTR_DECODING(
+    tfrt::jitrt::RuntimePairOfDims,
+    XLA_RUNTIME_AGGREGATE_FIELDS("rank", "a", "b"), int64_t,
+    llvm::ArrayRef<int64_t>, llvm::ArrayRef<int64_t>);
+
+}  // namespace runtime
+}  // namespace xla
 
 #endif  // TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_

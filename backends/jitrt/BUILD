@@ -104,8 +104,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":custom_call",
-#         ":custom_call_registry",
 #         ":execution_engine",
 #         ":results",
 #         ":xla",
@@ -130,6 +128,8 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_values_cache",
 #         "//third_party/tensorflow/compiler/xla/runtime:constraints",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
 #         "//third_party/tensorflow/compiler/xla/runtime:memory_mapper",
 #         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
@@ -212,38 +212,6 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_library(
-#     name = "custom_call",
-#     srcs = ["lib/custom_call.cc"],
-#     hdrs = ["include/tfrt/jitrt/custom_call.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@eigen_archive//:eigen3",
-#         "@llvm-project//llvm:Support",
-#         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
-#         "//third_party/tensorflow/compiler/xla/runtime:logical_result",
-#         "//third_party/tensorflow/compiler/xla/runtime:type_id",
-#         "@tf_runtime//:dtype",
-#         "@tf_runtime//:support",
-#     ],
-# )
-#
-# tfrt_cc_library(
-#     name = "custom_call_registry",
-#     srcs = ["lib/custom_call_registry.cc"],
-#     hdrs = ["include/tfrt/jitrt/custom_call_registry.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":custom_call",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:Support",
-#         "@tf_runtime//:dtype",
-#         "@tf_runtime//:support",
-#     ],
-# )
-#
-# tfrt_cc_library(
 #     name = "xla",
 #     hdrs = ["include/tfrt/jitrt/xla.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
@@ -315,8 +283,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":custom_call",
-#         ":custom_call_registry",
 #         ":custom_call_testlib_inc_gen",
 #         ":custom_call_to_llvm",
 #         ":jitrt",
@@ -324,6 +290,8 @@ licenses(["notice"])
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "@tf_runtime//:support",
 #         "@tf_runtime//third_party/llvm_derived:raw_ostream",
 #     ],
@@ -422,13 +390,13 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":custom_call",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:ArithmeticDialect",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:LLVMCommonConversion",
 #         "@llvm-project//mlir:LLVMDialect",
 #         "@llvm-project//mlir:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #     ],
 # )
 #
@@ -438,7 +406,6 @@ licenses(["notice"])
 #     hdrs = ["include/tfrt/jitrt/conversion/rt_passes.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     deps = [
-#         ":custom_call",
 #         ":custom_call_to_llvm",
 #         ":rt_conversion_passes_inc_gen",
 #         ":xla",
@@ -454,6 +421,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Support",
 #         "@llvm-project//mlir:Transforms",
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #     ],
 # )
 #

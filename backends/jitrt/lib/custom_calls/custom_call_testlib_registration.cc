@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-#include "tfrt/jitrt/custom_call_registry.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 
 namespace tfrt {
 namespace jitrt {
 
+using xla::runtime::CustomCallRegistry;
+
 void RegisterCustomCallTestLib(CustomCallRegistry* registry);
 
-JITRT_STATIC_CUSTOM_CALL_REGISTRATION(RegisterCustomCallTestLib);
+XLA_RUNTIME_STATIC_CUSTOM_CALL_REGISTRATION(RegisterCustomCallTestLib);
 
 }  // namespace jitrt
 }  // namespace tfrt

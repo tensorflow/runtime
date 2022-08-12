@@ -32,10 +32,12 @@
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/LogicalResult.h"
-#include "tfrt/jitrt/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 
 namespace tfrt {
 namespace jitrt {
+
+using xla::runtime::Tagged;  // NOLINT
 
 // -------------------------------------------------------------------------- //
 // Helper classes to build a JitRt custom calls lowering to the LLVM dialect.

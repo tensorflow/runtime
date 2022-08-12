@@ -27,7 +27,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Support/LogicalResult.h"
-#include "tfrt/jitrt/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 
 namespace Eigen {
 struct half;
@@ -67,6 +67,8 @@ using mlir::Value;
 using mlir::ValueRange;
 
 using mlir::arith::ConstantOp;
+
+using namespace xla::runtime;  // NOLINT
 
 namespace LLVM = mlir::LLVM;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "tfrt/jitrt/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 
 #include <utility>
 

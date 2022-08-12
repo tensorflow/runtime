@@ -27,10 +27,10 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
-#include "tfrt/jitrt/custom_call.h"
-#include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/support/string_util.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 
 // clang-format off
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.cc.inc"
@@ -53,6 +53,8 @@ using mlir::succeeded;
 using mlir::success;
 
 using llvm::StringRef;
+
+using namespace xla::runtime;  // NOLINT
 
 void TestlibDialect::initialize() {
   addAttributes<
@@ -311,8 +313,8 @@ static LogicalResult PrintMemrefAndVariadicArgs(
 // Custom call handler for testing direct custom call compilation.
 static bool DirectCustomCall(xla::runtime::KernelContext* ctx, void** args,
                              void** attrs) {
-  internal::DecodedArgs decoded_args(args);
-  internal::DecodedAttrs decoded_attrs(attrs);
+  xla::runtime::internal::DecodedArgs decoded_args(args);
+  xla::runtime::internal::DecodedAttrs decoded_attrs(attrs);
   CustomCall::UserData* user_data = Executable::GetUserData(ctx);
   const char* caller = user_data->getIfExists<const char>();
   tfrt::outs() << "Direct custom call: num_args=" << decoded_args.size()

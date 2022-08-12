@@ -550,6 +550,33 @@ using CallingConvention = CompilationOptions::CallingConvention;
   };
 }
 
+/*static*/ CallingConvention CompilationOptions::ResultsToOutsCallingConvention(
+    mlir::TypeConverter type_converter) {
+  return [c = std::move(type_converter)](mlir::FunctionType func) mutable {
+    mlir::MLIRContext* ctx = func.getContext();
+
+    // Track if all type conversions were successful.
+    bool failed_conversion = false;
+
+    auto convert = [&](mlir::Type type) -> mlir::Type {
+      auto converted = c.convertType(type);
+      if (!converted) failed_conversion = true;
+      return converted;
+    };
+
+    llvm::SmallVector<mlir::Type> inputs;
+    inputs.reserve(1 + func.getNumInputs() + func.getNumResults());
+    inputs.push_back(KernelContextType::get(ctx));
+    llvm::transform(func.getInputs(), std::back_inserter(inputs), convert);
+    llvm::transform(func.getResults(), std::back_inserter(inputs), convert);
+
+    // Return null if any of the type conversions failed.
+    if (failed_conversion) return mlir::FunctionType();
+
+    return mlir::FunctionType::get(ctx, inputs, {});
+  };
+}
+
 //----------------------------------------------------------------------------//
 // Setup MLIR pass pipeline to lower to LLVM dialect, and use ORC JIT to codegen
 // functions at runtime.

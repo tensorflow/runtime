@@ -192,6 +192,12 @@ struct CompilationOptions {
   // convert all inputs and results types, and adds the kernel context argument.
   static CallingConvention DefaultCallingConvention(mlir::TypeConverter);
 
+  // Returns a calling convention that (1) prepends the kernel context argument,
+  // (2) uses the user-provided type converter to convert all inputs and results
+  // types, and (3) converts result types into out-params by appending them
+  // to the arguments.
+  static CallingConvention ResultsToOutsCallingConvention(mlir::TypeConverter);
+
   // Compiled kernel can be specialized and recompiled at runtime to the
   // concrete input shapes and sometimes values (e.g. reduciton dimension).
   enum class Specialization {

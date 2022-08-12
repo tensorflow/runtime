@@ -120,6 +120,10 @@ INSTANTIATE_TEST_SUITE_P(
          CompilationOptions::DefaultCallingConvention(
              mlir::bufferization::BufferizeTypeConverter()),
          /*expected_num_results=*/1, /*expected_num_operands=*/2},
+        {"ResultsToOutsCallingConvention",
+         CompilationOptions::ResultsToOutsCallingConvention(
+             mlir::bufferization::BufferizeTypeConverter()),
+         /*expected_num_results=*/0, /*expected_num_operands=*/3},
     }),
     [](const testing::TestParamInfo<CallingConventionTest::ParamType>& info) {
       return info.param.test_name;

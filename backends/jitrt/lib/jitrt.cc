@@ -43,12 +43,14 @@
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
+#include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/Timing.h"
+#include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/jitrt/execution_engine.h"
@@ -856,13 +858,20 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Construct options for the JitRt execution engine.
   ExecutionEngine::JitOptions engine_options;
   engine_options.opt_level = ctx->options().jit_code_opt_level;
-  engine_options.section_memory_mapper = memory_mapper.get();
   engine_options.target_machine = target_machine->get();
+  engine_options.make_optimizing_transformer = mlir::makeOptimizingTransformer;
+  engine_options.section_memory_mapper = memory_mapper.get();
   engine_options.symbols_binding = std::move(symbols);
 
+  // Translate MLIR module to the LLVM module.
+  auto llvm_ctx = std::make_unique<llvm::LLVMContext>();
+  auto llvm_module = mlir::translateModuleToLLVMIR(ctx->module(), *llvm_ctx);
+  if (!llvm_module)
+    return MakeStringError("failed to translate module to LLVM IR");
+
   // Compile input module to the native function.
-  auto engine = ExecutionEngine::CreateFromSource(ctx->module(), entrypoint,
-                                                  std::move(engine_options));
+  auto engine = ExecutionEngine::CreateFromModule(
+      std::move(llvm_ctx), std::move(llvm_module), entrypoint, engine_options);
   if (auto err = engine.takeError()) return std::move(err);
 
   // At this point compilation is completed, and all symbols in the LLVM module

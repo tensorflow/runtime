@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/ObjectCache.h"
@@ -28,11 +29,10 @@
 #include "llvm/ExecutionEngine/Orc/IRTransformLayer.h"
 #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -85,7 +85,7 @@ std::unique_ptr<MemoryBuffer> ExecutionEngine::obj_file() const {
 // -------------------------------------------------------------------------- //
 
 static std::string GetEntrypointName(StringRef name) {
-  return llvm::formatv("__jitrt__{0}", name);
+  return llvm::formatv("__xla__{0}", name);
 }
 
 // Converts entrypoint function to an interface function that wraps all the
@@ -102,15 +102,15 @@ static llvm::Error SetUpEntrypointFunction(llvm::Module &module,
   if (!func->getReturnType()->isVoidTy())
     return MakeStringError("entrypoint function must return void");
 
-  // Add a JitRt interface function for the entrypoint.
-  llvm::FunctionType *jitrt_type = llvm::FunctionType::get(
+  // Add an XLA interface function for the entrypoint.
+  llvm::FunctionType *xla_runtime_type = llvm::FunctionType::get(
       builder.getVoidTy(), builder.getInt8PtrTy()->getPointerTo(),
       /*isVarArg=*/false);
 
-  llvm::FunctionCallee jitrt_func = module.getOrInsertFunction(
-      GetEntrypointName(func->getName()), jitrt_type);
+  llvm::FunctionCallee xla_runtime_func = module.getOrInsertFunction(
+      GetEntrypointName(func->getName()), xla_runtime_type);
 
-  llvm::Function *callee = cast<llvm::Function>(jitrt_func.getCallee());
+  llvm::Function *callee = cast<llvm::Function>(xla_runtime_func.getCallee());
   llvm::Value *packed_args = callee->arg_begin();
 
   // Load arguments from the type erased pointer array and cast them to the
@@ -146,7 +146,7 @@ static llvm::Error SetUpEntrypointFunction(llvm::Module &module,
 
 namespace {
 // Intercept object compilation to save the object file corresponding to the
-// JitRt executable in the execution engine.
+// XLA executable in the execution engine.
 class ExecutionEngineObjectCache : public llvm::ObjectCache {
  public:
   void notifyObjectCompiled(const llvm::Module *m,
@@ -186,34 +186,29 @@ std::unique_ptr<llvm::MemoryBuffer> ExecutionEngineObjectCache::stealObject(
 // -------------------------------------------------------------------------- //
 
 /*static*/ Expected<std::unique_ptr<ExecutionEngine>>
-ExecutionEngine::CreateFromSource(mlir::ModuleOp module, StringRef entrypoint,
-                                  JitOptions options) {
+ExecutionEngine::CreateFromModule(std::unique_ptr<llvm::LLVMContext> ctx,
+                                  std::unique_ptr<llvm::Module> module,
+                                  StringRef entrypoint, JitOptions options) {
   auto engine = std::unique_ptr<ExecutionEngine>(new ExecutionEngine(
       options.enable_gdb_listener, options.enable_perf_listener));
 
-  // Translate JitRt MLIR module to the LLVM proper.
-  auto ctx = std::make_unique<llvm::LLVMContext>();
-  auto llvm_module = mlir::translateModuleToLLVMIR(module, *ctx);
-  if (!llvm_module)
-    return MakeStringError("failed to convert module to LLVM IR");
-
   // We'll need module pointer later to lookup object file in the cache.
-  llvm::Module *module_ptr = llvm_module.get();
+  llvm::Module *module_ptr = module.get();
 
   // Set up the target machine details.
   if (!options.target_machine)
     return MakeStringError("target machine was not provided");
-  llvm_module->setDataLayout(options.target_machine->createDataLayout());
-  llvm_module->setTargetTriple(options.target_machine->getTargetTriple().str());
+  module->setDataLayout(options.target_machine->createDataLayout());
+  module->setTargetTriple(options.target_machine->getTargetTriple().str());
 
   // Run an optimization pipeline over the LLVM module.
-  auto transformer = mlir::makeOptimizingTransformer(
+  auto transformer = options.make_optimizing_transformer(
       options.opt_level, /*sizeLevel=*/0, options.target_machine);
-  if (auto err = transformer(llvm_module.get()))
+  if (auto err = transformer(module_ptr))
     return MakeStringError("failed to run optimization pipeline: ", err);
 
-  // Set up the entry point function compatible with JitRt ABI.
-  if (auto err = SetUpEntrypointFunction(*llvm_module, entrypoint))
+  // Set up the entry point function compatible with XLA ABI.
+  if (auto err = SetUpEntrypointFunction(*module, entrypoint))
     return MakeStringError("failed to set up entrypoint ABI: ", err);
 
   // Callback to create the object layer with a user-provided section memory
@@ -258,7 +253,7 @@ ExecutionEngine::CreateFromSource(mlir::ModuleOp module, StringRef entrypoint,
     return MakeStringError("failed to construct LLJIT: ", err);
 
   // Register input module with the LLJIT.
-  ThreadSafeModule tsm(std::move(llvm_module), std::move(ctx));
+  ThreadSafeModule tsm(std::move(module), std::move(ctx));
   if (auto err = (*jit)->addIRModule(std::move(tsm)))
     return MakeStringError("failed to add source module: ", err);
 
@@ -296,7 +291,7 @@ ExecutionEngine::CreateFromSource(mlir::ModuleOp module, StringRef entrypoint,
       options.save_compiled_obj_file ? obj_cache->stealObject(module_ptr)
                                      : nullptr;
   if (options.save_compiled_obj_file && !obj_file)
-    return MakeStringError("could not find object file for the JitRt module");
+    return MakeStringError("could not find object file for the XLA module");
 
   // Fill remaining fields and return constructed ExecutionEngine to the caller.
   engine->jit_ = std::move(*jit);

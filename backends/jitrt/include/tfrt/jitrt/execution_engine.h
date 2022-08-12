@@ -27,31 +27,30 @@
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include "mlir/IR/BuiltinOps.h"
 
 namespace tfrt {
 namespace jitrt {
 
-// A pre-fabricated wrapper around ORC JIT stack for running JitRt programs.
+// A pre-fabricated wrapper around ORC JIT stack for running XLA executables.
 //
-// It allows to run jit-compiled JitRt programs, AOT compile them or load
-// previously AOT compiled JitRt programs.
+// It allows to run jit-compiled XLA executables, AOT compile them or load
+// previously AOT compiled executables.
 //
-// JitRt Executable is responsible for the function signature verification,
+// XLA executable itself is responsible for the function signature verification,
 // arguments packing according to the ABI, results decoding and linking the
 // executable with runtime intrinsics. Execution engine only helps with setting
 // up ORC JIT stack to support the execution, but itself doesn't know what it is
 // executing.
 class ExecutionEngine {
  public:
-  // Pointer to a compiled JitRt entrypoint function.
+  // Pointer to a compiled XLA entrypoint function.
   //
-  // JitRt entrypoint function expects all arguments to be passed as an array of
+  // XLA entrypoint function expects all arguments to be passed as an array of
   // opaque pointers to the actual values. In C++ it would look like this:
   //
   //   void entrypoint(int32_t arg0, float arg1, ...);
   //
-  //   void __jitrt_entrypoint(void** args) {
+  //   void __xla_entrypoint(void** args) {
   //      int32_t arg0 = *reinterpret_cast<int32_t*>(args[0]);
   //      float arg1 = *reinterpret_cast<float*>(args[1]);
   //      ...
@@ -67,11 +66,19 @@ class ExecutionEngine {
   using SymbolsBinding =
       std::function<llvm::orc::SymbolMap(llvm::orc::MangleAndInterner)>;
 
+  // Callback to run optimization passes on the compiled LLVM module.
+  using OptimizingTransformer = std::function<llvm::Error(llvm::Module *)>;
+
+  // Callback to construct an optimizing transformer for the given options.
+  using MakeOptimizingTransformer = std::function<OptimizingTransformer(
+      unsigned opt_level, unsigned size_level,
+      llvm::TargetMachine *targetMachine)>;
+
   // Compose multiple symbol bindings into a single symbol binding function.
   static SymbolsBinding BindAll(std::vector<SymbolsBinding> bindings);
 
   //------------------------------------------------------------------------- //
-  // Options for creating execution engine from an MLIR source.
+  // Options for creating execution engine from an LLVM module.
   //------------------------------------------------------------------------- //
 
   struct JitOptions {
@@ -80,6 +87,9 @@ class ExecutionEngine {
 
     // User-provided target machine specification.
     llvm::TargetMachine *target_machine = nullptr;
+
+    // User-provided builder for the optimizing transformer.
+    MakeOptimizingTransformer make_optimizing_transformer;
 
     // User-provided memory mapper for allocating memory for executables.
     llvm::SectionMemoryManager::MemoryMapper *section_memory_mapper = nullptr;
@@ -97,10 +107,12 @@ class ExecutionEngine {
     bool save_compiled_obj_file = true;
   };
 
-  // Creates a new execution engine by compiling the provided MLIR module to
+  // Creates a new execution engine by compiling the provided LLVM module to
   // a native function using LLVM ORC stack.
-  static llvm::Expected<std::unique_ptr<ExecutionEngine>> CreateFromSource(
-      mlir::ModuleOp module, llvm::StringRef entrypoint, JitOptions options);
+  static llvm::Expected<std::unique_ptr<ExecutionEngine>> CreateFromModule(
+      std::unique_ptr<llvm::LLVMContext> ctx,
+      std::unique_ptr<llvm::Module> module, llvm::StringRef entrypoint,
+      JitOptions options);
 
   //------------------------------------------------------------------------- //
   // Options for creating execution engine from an AOT compiled object file.
@@ -120,7 +132,7 @@ class ExecutionEngine {
     bool enable_perf_listener = true;
   };
 
-  // Creates a new execution engine by loading AOT compiled JitRt executable
+  // Creates a new execution engine by loading AOT compiled XLA executable
   // object file.
   static llvm::Expected<std::unique_ptr<ExecutionEngine>> CreateFromObjFile(
       std::unique_ptr<llvm::MemoryBuffer>, llvm::StringRef entrypoint,
@@ -128,7 +140,7 @@ class ExecutionEngine {
 
   //------------------------------------------------------------------------- //
 
-  // Returns a pointer to the JitRt entrypoint function.
+  // Returns a pointer to the XLA entrypoint function.
   EntrypointFunctionPtr entrypoint() const { return entrypoint_ptr_; }
 
   // Return a memory buffer with a object file behind this execution engine. Can

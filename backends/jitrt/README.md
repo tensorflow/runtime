@@ -55,7 +55,7 @@ recompilation.
 (a) Rank constraint:
 
 ```
-%arg : tensor<*xf32> { jitrt.constraint = "rank" }
+%arg : tensor<*xf32> { rt.constraint = "rank" }
 ```
 
 Before compiling the function, unranked input type will be updated to the
@@ -64,7 +64,7 @@ corresponding ranked input type (e.g. unranked tensor -> ranked tensor).
 (b) Shape constraint:
 
 ```
-%arg : tensor<?x?xf32> { jitrt.constraint = "shape" }
+%arg : tensor<?x?xf32> { rt.constraint = "shape" }
 ```
 
 Shape of the runtime argument will be used to specialize the compiled function,
@@ -73,7 +73,7 @@ if this shape seen the first time, it will trigger function recompilation.
 (c) Value constraint:
 
 ```
-%reduction_dimension : tensor<i32> { jitrt.constraint = "value" }
+%reduction_dimension : tensor<i32> { rt.constraint = "value" }
 ```
 
 Runtime value will be sunk into the body of a function as a constant, and the

@@ -20,39 +20,40 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/SmallVector.h"
-#include "tfrt/jitrt/constraints.h"
+#include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/support/forward_decls.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
 
 namespace tfrt {
 namespace jitrt {
 
-// Symbolic shapes resolver computes the symbolic shapes of the operands based
-// on the function signature, and concrete shapes of the operands at runtime.
+// Symbolic shapes resolver computes the symbolic shapes of the arguments based
+// on the function signature, and concrete shapes of the arguments at runtime.
 //
 // Example: dimensions that have the same symbolic shape at runtime.
 //
 //   signature: func @compute(%arg0: tensor<?xf32>, %arg1: tensor<?xf32)
 //                            ^                     ^
-//   operands:                memref<123xf32>       memref<123xf32>
+//   arguments:               memref<123xf32>       memref<123xf32>
 //                            ^                     ^
 //   symbolic shapes:         [-2xf32]              [-2xf32]
 //
 // Each unknown dimension in the function signature will be assigned a symbolic
-// dimension. If multiple operands have unknown dimensions that are the same
-// at runtime, they will be assigned the same symbolic dimensions value
+// dimension. If multiple shaped arguments have unknown dimensions that are the
+// same at runtime, they will be assigned the same symbolic dimensions value
 // (e.g. `-2` in the example above).
 //
 // If an unknown dimension at runtime is equal to some statically known
-// dimension in the function signature (of any operand), it will be resolved to
-// that statically known constant value:
+// dimension in the function signature (of any shaped argument), it will be
+// resolved to that statically known constant value:
 //
 // Example: in this example unknown dimension of `arg0` replaced with a `32`.
 //
 //  signature:  func @compute(%arg0: tensor<?xf32>, %arg1: tensor<32xf32>)
 //                            ^                     ^
-//  operands:                 memref<32xf32>        memref<32xf32>
+//  arguments:                memref<32xf32>        memref<32xf32>
 //                            ^                     ^
 //  symbolic shapes:          [32xf32]              [32xf32]
 //
@@ -66,7 +67,7 @@ class SymbolicShapesResolver {
   using StaticShape = llvm::SmallVector<int64_t>;
 
   explicit SymbolicShapesResolver(const FunctionType& signature,
-                                  ArrayRef<OperandConstraint> constraints);
+                                  ArrayRef<ArgumentConstraint> constraints);
 
   // Resolves symbolic shapes from the runtime arguments. Returns failure if
   // runtime dimensions do not match the statically known dimensions.
@@ -87,27 +88,27 @@ class SymbolicShapesResolver {
   // Computes a hash value of the symbolic shapes.
   static llvm::hash_code Hash(ArrayRef<SymbolicShape> symbolic_shapes);
 
-  OperandConstraint constraint(size_t index) const;
-  size_t num_operands() const;
-  bool has_operand_sizes(size_t index) const;
-  const StaticShape& operand_sizes(size_t index) const;
+  ArgumentConstraint constraint(size_t index) const;
+  size_t num_arguments() const;
+  bool has_argument_sizes(size_t index) const;
+  const StaticShape& argument_sizes(size_t index) const;
   bool seen_static_size(size_t dim) const;
 
  private:
-  // Constraints on the function operands.
-  llvm::SmallVector<OperandConstraint> constraints_;
+  // Constraints on the function arguments.
+  llvm::SmallVector<ArgumentConstraint> constraints_;
 
-  // Statically known sizes of operands from the function signature. For
-  // non-shaped operands (e.g. opaque pointers) we keep empty shape value.
-  llvm::SmallVector<Optional<StaticShape>> operands_sizes_;
+  // Statically known sizes of shaped arguments from the function signature. For
+  // non-shaped arguments (e.g. opaque pointers) we keep empty shape value.
+  llvm::SmallVector<Optional<StaticShape>> arguments_sizes_;
 
   // Values of statically known dimensions sizes in the function signature.
   llvm::DenseSet<int64_t> seen_static_sizes_;
 
-  // The iteration order for the operands when resolving symbolic shapes.
+  // The iteration order for the arguments when resolving symbolic shapes.
   llvm::SmallVector<size_t> iteration_order_;
 
-  // The iteration order for the operands when resolving symbolic shapes hash.
+  // The iteration order for the arguments when resolving symbolic shapes hash.
   llvm::SmallVector<size_t> hash_iteration_order_;
 };
 

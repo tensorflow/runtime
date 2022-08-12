@@ -21,9 +21,9 @@
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
@@ -83,9 +83,9 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
                                        {{MemrefType::kDynamicSize}},
                                        {{MemrefType::kDynamicSize, 4}}});
 
-  auto constraints = {OperandConstraint::kResolved,
-                      OperandConstraint::kResolved,
-                      OperandConstraint::kResolved};
+  auto constraints = {ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -145,9 +145,9 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
                                        {{MemrefType::kDynamicSize}},
                                        {{MemrefType::kDynamicSize}}});
 
-  auto constraints = {OperandConstraint::kResolved,
-                      OperandConstraint::kResolved,
-                      OperandConstraint::kResolved};
+  auto constraints = {ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -207,9 +207,9 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
                                        {{MemrefType::kDynamicSize, 8}},
                                        {{MemrefType::kDynamicSize}}});
 
-  auto constraints = {OperandConstraint::kResolved,
-                      OperandConstraint::kResolved,
-                      OperandConstraint::kResolved};
+  auto constraints = {ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -281,7 +281,7 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
   auto type =
       GetFunctionType(dtypes, {llvm::None, {{MemrefType::kDynamicSize, 4}}});
 
-  auto constraints = {OperandConstraint::kShape, OperandConstraint::kShape};
+  auto constraints = {ArgumentConstraint::kShape, ArgumentConstraint::kShape};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -306,7 +306,8 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInputAfterDynamicInput) {
       dtypes, {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
 
-  auto constraints = {OperandConstraint::kResolved, OperandConstraint::kShape};
+  auto constraints = {ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kShape};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -344,7 +345,8 @@ TEST(SymbolicShapeResolverTest, StaticShapeOperandHash) {
       dtypes,
       {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}, {{4, 4}}});
 
-  auto constraints = {OperandConstraint::kResolved, OperandConstraint::kShape};
+  auto constraints = {ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kShape};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -365,7 +367,7 @@ TEST(SymbolicShapeResolverTest, IncompatibleInput) {
   // Operands: tensor<?x4xi32>
   auto dtypes = {DType::F32};
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}}});
-  auto constraints = {OperandConstraint::kResolved};
+  auto constraints = {ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -397,9 +399,9 @@ TEST(SymbolicShapeResolverTest, OpaqueAndShapedInputs) {
   operands.push_back(std::make_unique<MemrefType>(shape, DType::F32));
   operands.push_back(std::make_unique<MemrefType>(shape, DType::F32));
 
-  auto constraints = {OperandConstraint::kResolved,
-                      OperandConstraint::kResolved,
-                      OperandConstraint::kResolved};
+  auto constraints = {ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved,
+                      ArgumentConstraint::kResolved};
 
   FunctionType type(std::move(operands), {});
 
@@ -469,8 +471,8 @@ static void BenchmarkFullyDynamic(benchmark::State& state) {
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
 
   auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved,
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -493,8 +495,8 @@ static void BenchmarkSameDynamic(benchmark::State& state) {
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
 
   auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved,
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -517,8 +519,8 @@ static void BenchmarkSomeDynamic(benchmark::State& state) {
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
 
   auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved,
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -540,8 +542,8 @@ static void BenchmarkStatic(benchmark::State& state) {
                                        {{MemrefType::kDynamicSize, 32}}});
 
   auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved,
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 
@@ -563,8 +565,8 @@ static void BenchmarkSymbolic(benchmark::State& state) {
                                        {{MemrefType::kDynamicSize, 32}}});
 
   auto constraints = {
-      OperandConstraint::kResolved, OperandConstraint::kResolved,
-      OperandConstraint::kResolved, OperandConstraint::kResolved};
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved,
+      ArgumentConstraint::kResolved, ArgumentConstraint::kResolved};
 
   SymbolicShapesResolver resolver(type, constraints);
 

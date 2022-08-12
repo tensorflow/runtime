@@ -80,14 +80,14 @@ static const char* mlir_module = R"(
     func.func private @my.runtime.intrinsic(%arg: !testlib.custom_arg)
       attributes { rt.custom_call = "my.runtime.intrinsic" }
 
-    // Permutation argument annotated with a jitrt constraint, which means that
+    // Permutation argument annotated with a constraint, which means that
     // before compiling the function body, argument must be sunk into the
     // function body as a constant. Otherwise tosa.transpose will not be lowered
     // to Linalg operation.
     func.func @compute(
       %arg: !testlib.custom_arg,
       %input: tensor<?x?xf32>,
-      %perm: tensor<2xi32> { jitrt.constraint = "value" }
+      %perm: tensor<2xi32> { rt.constraint = "value" }
     ) -> tensor<?x?xf32> {
 
       // Pass custom argument and attributes to the runtime intrinsics.

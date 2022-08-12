@@ -120,7 +120,6 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":async_values_cache",
-#         ":constraints",
 #         ":custom_call",
 #         ":custom_call_registry",
 #         ":diagnostics",
@@ -128,7 +127,6 @@ licenses(["notice"])
 #         ":memory_mapper",
 #         ":results",
 #         ":specialization",
-#         ":support",
 #         ":symbolic_shape",
 #         ":xla",
 #         "@llvm-project//llvm:Core",
@@ -145,8 +143,10 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:async_runtime_api",
+#         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
+#         "//third_party/tensorflow/compiler/xla/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
@@ -270,8 +270,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":constraints",
-#         ":support",
 #         ":symbolic_shape",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:ArithmeticDialect",
@@ -279,23 +277,10 @@ licenses(["notice"])
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:TensorDialect",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
+#         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
+#         "//third_party/tensorflow/compiler/xla/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
-#         "@tf_runtime//:support",
-#     ],
-# )
-#
-# tfrt_cc_library(
-#     name = "constraints",
-#     srcs = ["lib/constraints.cc"],
-#     hdrs = ["include/tfrt/jitrt/constraints.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":support",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:FuncDialect",
-#         "@llvm-project//mlir:IR",
 #         "@tf_runtime//:support",
 #     ],
 # )
@@ -351,10 +336,12 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":constraints",
 #         ":xla",
 #         "@llvm-project//llvm:Support",
+#         "@llvm-project//mlir:IR",
+#         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
+#         "//third_party/tensorflow/compiler/xla/runtime:constraints",
 #         "@tf_runtime//:support",
 #     ],
 # )
@@ -364,16 +351,6 @@ licenses(["notice"])
 #     hdrs = ["include/tfrt/jitrt/xla.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
-# )
-#
-# tfrt_cc_library(
-#     name = "support",
-#     hdrs = ["include/tfrt/jitrt/support.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@llvm-project//mlir:IR",
-#     ],
 # )
 #
 # td_library(

@@ -38,7 +38,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/jitrt/async_values_cache.h"
-#include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
@@ -50,6 +49,7 @@
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
+#include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 // Forward declare Eigen types.
@@ -76,9 +76,9 @@ struct KernelContext;
 //
 //   module @kernel attributes { tfrt.compiled } {
 //     func @main(
-//       %input0: memref<*xf32>   { jitrt.constraint = "rank"  },
-//       %input1: memref<?x?xf32> { jitrt.constraint = "shape" },
-//       %perm: memref<4xi32>     { jitrt.constraint = "value" }
+//       %input0: memref<*xf32>   { rt.constraint = "rank"  },
+//       %input1: memref<?x?xf32> { rt.constraint = "shape" },
+//       %perm: memref<4xi32>     { rt.constraint = "value" }
 //     ) -> !async.value<memref<?x?xf32>> {
 //       ...
 //       return %result : !async.value<memref<?x?xf32>>
@@ -98,14 +98,14 @@ struct KernelContext;
 //
 // (a) Rank constraint:
 //
-//     %arg : tensor<*xf32> { jitrt.constraint = "rank" }
+//     %arg : tensor<*xf32> { rt.constraint = "rank" }
 //
 //     Before compiling the function, unranked input type will be updated to the
 //     corresponding ranked input type (e.g. unranked tensor -> ranked tensor).
 //
 // (b) Shape constraint:
 //
-//     %arg : tensor<?x?xf32> { jitrt.constraint = "shape" }
+//     %arg : tensor<?x?xf32> { rt.constraint = "shape" }
 //
 //     Shape of the runtime argument will be used to specialize the compiled
 //     function, if this shape seen the first time, it will trigger function
@@ -113,7 +113,7 @@ struct KernelContext;
 //
 // (c) Value constraint:
 //
-//     %reduction_dimension : tensor<i32> { jitrt.constraint = "value" }
+//     %reduction_dimension : tensor<i32> { rt.constraint = "value" }
 //
 //     Runtime value will be sunk into the body of a function as a constant,
 //     and the function will be recompiled. For example this can be used to sink
@@ -617,12 +617,12 @@ class JitExecutable {
   // that the runner will be called in the same thread as `GetExecutable`.
   //
   using CompilationTaskRunner =
-      llvm::unique_function<void(size_t, ArrayRef<OperandConstraint>,
+      llvm::unique_function<void(size_t, ArrayRef<ArgumentConstraint>,
                                  ArgumentsRef, TaskFunction, UserData)>;
 
   // Inline compilation task runner runs compilation task in the caller thread.
   static void InlineCompilationTaskRunner(
-      size_t num_specializations, ArrayRef<OperandConstraint> constraints,
+      size_t num_specializations, ArrayRef<ArgumentConstraint> constraints,
       ArgumentsRef arguments, TaskFunction task, UserData user_data);
 
   static Expected<JitExecutable> Instantiate(
@@ -632,7 +632,7 @@ class JitExecutable {
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.
-  ArrayRef<OperandConstraint> constraints() const;
+  ArrayRef<ArgumentConstraint> constraints() const;
 
   // Returns default executable that accepts all compatible operands
   // (operands rank and all static dimensions should match the operands).
@@ -677,8 +677,8 @@ class JitExecutable {
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 string_view memory_region_name,
                 CompilationOptions compilation_opts,
-                ArrayRef<OperandConstraint> constraints, FunctionType signature,
-                Optional<Executable> default_executable,
+                ArrayRef<ArgumentConstraint> constraints,
+                FunctionType signature, Optional<Executable> default_executable,
                 CompilationTaskRunner runner);
 
   std::string mlir_module_;
@@ -697,9 +697,9 @@ class JitExecutable {
   // operand type (e.g. rank constraint with an operand of statically known
   // rank), then the constraint value for that operand will be updated to
   // `kResolved`.
-  llvm::SmallVector<OperandConstraint> constraints_;
+  llvm::SmallVector<ArgumentConstraint> constraints_;
 
-  // True if any of the operands has `OperandConstraint::kValue` constraint.
+  // True if any of the operands has `ArgumentConstraint::kValue` constraint.
   bool has_value_constraints_;
 
   // Signature of the compiled module entrypoint function.

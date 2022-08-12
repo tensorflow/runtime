@@ -27,7 +27,9 @@
 
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/Compiler.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -44,19 +46,19 @@ using StaticShape = SymbolicShapesResolver::StaticShape;
 //----------------------------------------------------------------------------//
 
 SymbolicShapesResolver::SymbolicShapesResolver(
-    const FunctionType& signature, ArrayRef<OperandConstraint> constraints)
+    const FunctionType& signature, ArrayRef<ArgumentConstraint> constraints)
     : constraints_(constraints.begin(), constraints.end()) {
   for (unsigned i = 0; i < signature.num_operands(); ++i) {
     auto* type = signature.operand(i);
 
-    // For unranked operands we do not know any static shape information.
+    // For unranked arguments we do not know any static shape information.
     if (isa<UnrankedTensorType, UnrankedMemrefType>(type)) {
-      operands_sizes_.emplace_back();
+      arguments_sizes_.emplace_back();
       continue;
     }
 
     auto emplace_sizes = [&](ArrayRef<int64_t> sizes) {
-      operands_sizes_.emplace_back(llvm::to_vector(sizes));
+      arguments_sizes_.emplace_back(llvm::to_vector(sizes));
 
       // Keep track of all statically known dimension sizes.
       for (int64_t size : sizes) {
@@ -83,9 +85,9 @@ SymbolicShapesResolver::SymbolicShapesResolver(
     emplace_sizes({});
   }
 
-  // When resolving symbolic shapes we should visit operands starting from the
+  // When resolving symbolic shapes we should visit arguments starting from the
   // more constrained ones, because they can change the static signature of the
-  // function, and this information should be propagated to operands with
+  // function, and this information should be propagated to arguments with
   // dynamic shapes (e.g. all seen static sizes should be materialized in the
   // function signature).
   iteration_order_.resize(signature.num_operands());
@@ -99,37 +101,38 @@ SymbolicShapesResolver::SymbolicShapesResolver(
     return ca < cb ? false : a < b;
   });
 
-  // We can safely skip operands with a known empty symbolic shape, because
+  // We can safely skip arguments with a known empty symbolic shape, because
   // that's the default value we return when resolving symbolic shapes for
   // the arguments, and such shapes do not participate in the hash computation.
   llvm::erase_if(iteration_order_, [&](size_t i) {
-    return operands_sizes_[i].has_value() && operands_sizes_[i]->empty();
+    return arguments_sizes_[i].has_value() && arguments_sizes_[i]->empty();
   });
 
-  // When computing a symbolic shapes hash we don't need to visit operands with
+  // When computing a symbolic shapes hash we don't need to visit arguments with
   // a statically known shape.
-  auto is_dynamic_shape_operand = [&](size_t idx) {
-    return !operands_sizes_[idx].has_value() ||
-           llvm::any_of(*operands_sizes_[idx], [](int64_t d) { return d < 0; });
+  auto is_dynamic_shape_argument = [&](size_t idx) {
+    return !arguments_sizes_[idx].has_value() ||
+           llvm::any_of(*arguments_sizes_[idx],
+                        [](int64_t d) { return d < 0; });
   };
   llvm::copy_if(iteration_order_, std::back_inserter(hash_iteration_order_),
-                is_dynamic_shape_operand);
+                is_dynamic_shape_argument);
 }
 
-OperandConstraint SymbolicShapesResolver::constraint(size_t index) const {
+ArgumentConstraint SymbolicShapesResolver::constraint(size_t index) const {
   return constraints_[index];
 }
 
-size_t SymbolicShapesResolver::num_operands() const {
-  return operands_sizes_.size();
+size_t SymbolicShapesResolver::num_arguments() const {
+  return arguments_sizes_.size();
 }
 
-bool SymbolicShapesResolver::has_operand_sizes(size_t index) const {
-  return operands_sizes_[index].has_value();
+bool SymbolicShapesResolver::has_argument_sizes(size_t index) const {
+  return arguments_sizes_[index].has_value();
 }
 
-const StaticShape& SymbolicShapesResolver::operand_sizes(size_t index) const {
-  return *operands_sizes_[index];
+const StaticShape& SymbolicShapesResolver::argument_sizes(size_t index) const {
+  return *arguments_sizes_[index];
 }
 
 bool SymbolicShapesResolver::seen_static_size(size_t dim) const {
@@ -141,7 +144,7 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
     const SymbolicShapesResolver& resolver, ArgumentsRef arguments,
     ArrayRef<size_t> iteration_order, SymbolicShapes& symbolic_shapes) {
   // The number of arguments must match the function signature.
-  assert(arguments.size() == resolver.num_operands());
+  assert(arguments.size() == resolver.num_arguments());
 
   // Mapping from the runtime dimension size to the symbolic dimension.
   llvm::SmallDenseMap<int64_t, int64_t, 16> size_to_symbolic_dim;
@@ -149,23 +152,23 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
   int64_t sym_dim = -2;  // the next symbolic dimension id
 
   for (size_t i : iteration_order) {
-    bool has_static_sizes = resolver.has_operand_sizes(i);
+    bool has_static_sizes = resolver.has_argument_sizes(i);
 
     // TODO(ezhulenev): Add support for `ShapedArgument` to allow users to
     // enable symbolic shape resolution for user-defined arguments.
     //
-    // At this point it's guaranteed that the operand at `i` is a shaped one,
-    // because non-shaped operands are not in the `iteration_order`.
+    // At this point it's guaranteed that the argument at `i` is a shaped one,
+    // because non-shaped argument are not in the `iteration_order`.
     const MemrefDesc* shaped = cast<MemrefDesc>(&arguments[i]);
     ArrayRef<int64_t> runtime_sizes = shaped->sizes();
 
     // Check that statically known rank matches the runtime rank.
-    if (LLVM_UNLIKELY(has_static_sizes &&
-                      resolver.operand_sizes(i).size() != runtime_sizes.size()))
+    if (LLVM_UNLIKELY(has_static_sizes && resolver.argument_sizes(i).size() !=
+                                              runtime_sizes.size()))
       return failure();
 
-    // For shape constrained operands use runtime shape.
-    if (resolver.constraint(i) == OperandConstraint::kShape) {
+    // For shape constrained argument use runtime shape.
+    if (resolver.constraint(i) == ArgumentConstraint::kShape) {
       symbolic_shapes[i].assign(runtime_sizes.begin(), runtime_sizes.end());
 
       // Add all runtime dimensions to the `size_to_symbolic_dim` to materialize
@@ -175,11 +178,11 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE static mlir::LogicalResult ResolveImpl(
       continue;
     }
 
-    // Initialize symbolic shape with a statically known shape of the operand if
-    // it is available, otherwise initialize it with a fully dynamic shape with
-    // rank matching the runtime rank.
+    // Initialize symbolic shape with a statically known shape of the argument
+    // if it is available, otherwise initialize it with a fully dynamic shape
+    // with rank matching the runtime rank.
     if (has_static_sizes) {
-      ArrayRef<int64_t> static_sizes = resolver.operand_sizes(i);
+      ArrayRef<int64_t> static_sizes = resolver.argument_sizes(i);
       assert(runtime_sizes.size() == static_sizes.size());
       symbolic_shapes[i].assign(static_sizes.begin(), static_sizes.end());
     } else {
@@ -235,7 +238,7 @@ SymbolicShapesResolver::Resolve(ArgumentsRef arguments) const {
 namespace {
 // A struct to accumulate all resolved symbolic dimensions in a single vector.
 // Resolved symbolic dimensions stored according to the iteration order, and not
-// the operands order, however for computing the hash value it doesn't matter.
+// the argument order, however for computing the hash value it doesn't matter.
 struct SymbolicShapesFingerprint {
   SymbolicShapesFingerprint() : offset(0) {}
 

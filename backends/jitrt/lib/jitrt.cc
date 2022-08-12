@@ -51,7 +51,6 @@
 #include "mlir/Support/Timing.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/jitrt/constraints.h"
 #include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
@@ -64,8 +63,10 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/async_runtime_api.h"
+#include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/constraints.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
+#include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -73,6 +74,9 @@ namespace jitrt {
 using llvm::ErrorOr;
 using mlir::FailureOr;
 using mlir::succeeded;
+
+using xla::runtime::ArgumentConstraint;
+using xla::runtime::GetArgumentsConstraints;
 
 // Enable IR printing during the kernel compilation pipeline execution.
 static bool DebugJitrtCompile() {
@@ -699,7 +703,7 @@ class JitCompilationContext {
   // entrypoint signature.
   llvm::Error Specialize(ArgumentsRef arguments,
                          ArrayRef<SymbolicShape> symbolic_shapes,
-                         ArrayRef<OperandConstraint> constraints,
+                         ArrayRef<ArgumentConstraint> constraints,
                          const SpecializationListener* listener);
 
   const CompilationOptions& options() const { return opts_; }
@@ -869,7 +873,7 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 
 llvm::Error JitCompilationContext::Specialize(
     ArgumentsRef arguments, ArrayRef<SymbolicShape> symbolic_shapes,
-    ArrayRef<OperandConstraint> constraints,
+    ArrayRef<ArgumentConstraint> constraints,
     const SpecializationListener* listener) {
   assert(!specialized_ && "can specialize executable only once");
   specialized_ = true;
@@ -898,15 +902,15 @@ llvm::Error JitCompilationContext::Specialize(
 
 using Specialization = CompilationOptions::Specialization;
 
-static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
-  return llvm::any_of(constraints, [](OperandConstraint constraint) {
-    return constraint != OperandConstraint::kResolved;
+static bool IsSpecializationOnly(ArrayRef<ArgumentConstraint> constraints) {
+  return llvm::any_of(constraints, [](ArgumentConstraint constraint) {
+    return constraint != ArgumentConstraint::kResolved;
   });
 }
 
-static bool HasValueConstraints(ArrayRef<OperandConstraint> constraints) {
-  return llvm::any_of(constraints, [](OperandConstraint constraint) {
-    return constraint == OperandConstraint::kValue;
+static bool HasValueConstraints(ArrayRef<ArgumentConstraint> constraints) {
+  return llvm::any_of(constraints, [](ArgumentConstraint constraint) {
+    return constraint == ArgumentConstraint::kValue;
   });
 }
 
@@ -946,7 +950,7 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 }
 
 /*static*/ void JitExecutable::InlineCompilationTaskRunner(
-    size_t num_specializations, ArrayRef<OperandConstraint> constraints,
+    size_t num_specializations, ArrayRef<ArgumentConstraint> constraints,
     ArgumentsRef arguments, TaskFunction task, UserData user_data) {
   task();
 }
@@ -965,7 +969,7 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   if (auto err = ctx.takeError()) return std::move(err);
 
   // Get resolved operands constraints for the entrypoint function.
-  auto constraints = GetOperandsConstraints((*ctx)->entrypoint());
+  auto constraints = GetArgumentsConstraints((*ctx)->entrypoint());
   if (auto err = constraints.takeError()) return std::move(err);
 
   // Get the entrypoint function signature, it will be later required to
@@ -1012,7 +1016,7 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              string_view memory_region_name,
                              CompilationOptions compilation_opts,
-                             ArrayRef<OperandConstraint> constraints,
+                             ArrayRef<ArgumentConstraint> constraints,
                              FunctionType signature,
                              Optional<Executable> default_executable,
                              CompilationTaskRunner runner)
@@ -1041,16 +1045,16 @@ AsyncValuePtr<Executable> JitExecutable::DefaultExecutable() const {
   return default_executable_.AsPtr();
 }
 
-ArrayRef<OperandConstraint> JitExecutable::constraints() const {
+ArrayRef<ArgumentConstraint> JitExecutable::constraints() const {
   return constraints_;
 }
 
 // Combines `hash` with a hash value computed from a value constrained operands.
 static llvm::hash_code CombineWithValueConstraineOperands(
     llvm::hash_code hash, ArgumentsRef arguments,
-    ArrayRef<OperandConstraint> constraints) {
+    ArrayRef<ArgumentConstraint> constraints) {
   for (int i = 0; i < constraints.size(); ++i) {
-    if (LLVM_LIKELY(constraints[i] != OperandConstraint::kValue)) continue;
+    if (LLVM_LIKELY(constraints[i] != ArgumentConstraint::kValue)) continue;
 
     // TODO(ezhulenev): Currently we only support value specialization of Tensor
     // operands (wiht MemrefDesc run time argument), it should be extended to

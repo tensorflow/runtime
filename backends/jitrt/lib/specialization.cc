@@ -29,10 +29,10 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
-#include "tfrt/jitrt/support.h"
 #include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/support/error_util.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
+#include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/constraints.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
@@ -136,7 +136,7 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
 
 Error SpecializeFunction(mlir::func::FuncOp func, ArgumentsRef arguments,
                          ArrayRef<SymbolicShape> symbolic_shapes,
-                         ArrayRef<OperandConstraint> constraints,
+                         ArrayRef<ArgumentConstraint> constraints,
                          const SpecializationListener* listener) {
   mlir::MLIRContext* ctx = func.getContext();
 
@@ -206,7 +206,7 @@ Error SpecializeFunction(mlir::func::FuncOp func, ArgumentsRef arguments,
   // Sink small constants into the function body.
   builder.setInsertionPointToStart(&func.getBody().front());
   for (int i = 0; i < constraints.size(); ++i) {
-    if (constraints[i] != OperandConstraint::kValue) continue;
+    if (constraints[i] != ArgumentConstraint::kValue) continue;
 
     // We only support sinking of Tensor arguments into the function body.
     mlir::Type input = func.getFunctionType().getInput(i);

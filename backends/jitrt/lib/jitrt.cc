@@ -53,7 +53,6 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/support/error_util.h"
@@ -67,6 +66,7 @@
 #include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
+#include "third_party/tensorflow/compiler/xla/runtime/execution_engine.h"
 #include "third_party/tensorflow/compiler/xla/runtime/runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
 

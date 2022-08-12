@@ -77,32 +77,12 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_library(
-#     name = "execution_engine",
-#     srcs = ["lib/execution_engine.cc"],
-#     hdrs = ["include/tfrt/jitrt/execution_engine.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@llvm-project//llvm:ARMAsmParser",
-#         "@llvm-project//llvm:ARMCodeGen",
-#         "@llvm-project//llvm:Core",
-#         "@llvm-project//llvm:ExecutionEngine",
-#         "@llvm-project//llvm:OrcJIT",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//llvm:X86AsmParser",
-#         "@llvm-project//llvm:X86CodeGen",
-#         "@tf_runtime//:support",
-#     ],
-# )
-#
-# tfrt_cc_library(
 #     name = "jitrt",
 #     srcs = ["lib/jitrt.cc"],
 #     hdrs = ["include/tfrt/jitrt/jitrt.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":execution_engine",
 #         ":results",
 #         ":xla",
 #         "@llvm-project//llvm:Core",
@@ -131,6 +111,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
+#         "//third_party/tensorflow/compiler/xla/runtime:execution_engine",
 #         "//third_party/tensorflow/compiler/xla/runtime:memory_mapper",
 #         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",

@@ -45,11 +45,11 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
+#         "//third_party/tensorflow/compiler/xla/runtime:execution_engine",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
 #         "@tf_runtime//backends/jitrt",
 #         "@tf_runtime//backends/jitrt:custom_call_testlib",
-#         "@tf_runtime//backends/jitrt:execution_engine",
 #         "@tf_runtime//backends/jitrt:jitrt_compiler",
 #     ],
 # )

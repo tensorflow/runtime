@@ -126,7 +126,6 @@ licenses(["notice"])
 #         ":execution_engine",
 #         ":memory_mapper",
 #         ":results",
-#         ":specialization",
 #         ":xla",
 #         "@llvm-project//llvm:Core",
 #         "@llvm-project//llvm:OrcJIT",
@@ -140,6 +139,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Transforms",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:specialization",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:async_runtime_api",
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
@@ -261,29 +261,6 @@ licenses(["notice"])
 #             "//concurrent/rcu:view",
 #         ],
 #     }),
-# )
-#
-# tfrt_cc_library(
-#     name = "specialization",
-#     srcs = ["lib/specialization.cc"],
-#     hdrs = ["include/tfrt/jitrt/specialization.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":xla",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:ArithmeticDialect",
-#         "@llvm-project//mlir:FuncDialect",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:TensorDialect",
-#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
-#         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
-#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
-#         "//third_party/tensorflow/compiler/xla/runtime:constraints",
-#         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
-#         "//third_party/tensorflow/compiler/xla/runtime:types",
-#         "@tf_runtime//:support",
-#     ],
 # )
 #
 # tfrt_cc_library(

@@ -37,9 +37,9 @@
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/support/map_by_type.h"
 #include "tfrt/support/msan.h"
+#include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
 #include "third_party/tensorflow/compiler/xla/runtime/logical_result.h"
 #include "third_party/tensorflow/compiler/xla/runtime/type_id.h"
 
@@ -62,6 +62,8 @@ using xla::runtime::succeeded;  // NOLINT
 using xla::runtime::FailureOr;      // NOLINT
 using xla::runtime::LogicalResult;  // NOLINT
 using xla::runtime::TypeID;         // NOLINT
+
+using xla::runtime::DiagnosticEngine;  // NOLINT
 
 // Forward declare template defined below.
 template <typename... Ts>

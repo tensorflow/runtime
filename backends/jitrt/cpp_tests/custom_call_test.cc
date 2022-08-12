@@ -23,10 +23,17 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
-#include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
+#include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
+
+// Forward declare types enabling compiled kernel <-> runtime integration.
+namespace xla {
+namespace runtime {
+struct KernelContext;
+}  // namespace runtime
+}  // namespace xla
 
 // Forward declare types enabling compiled kernel <-> runtime integration.
 namespace xla {

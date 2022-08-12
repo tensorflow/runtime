@@ -106,7 +106,6 @@ licenses(["notice"])
 #     deps = [
 #         ":custom_call",
 #         ":custom_call_registry",
-#         ":diagnostics",
 #         ":execution_engine",
 #         ":results",
 #         ":xla",
@@ -131,6 +130,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_values_cache",
 #         "//third_party/tensorflow/compiler/xla/runtime:constraints",
+#         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
 #         "//third_party/tensorflow/compiler/xla/runtime:memory_mapper",
 #         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
@@ -218,9 +218,9 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":diagnostics",
 #         "@eigen_archive//:eigen3",
 #         "@llvm-project//llvm:Support",
+#         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
 #         "//third_party/tensorflow/compiler/xla/runtime:logical_result",
 #         "//third_party/tensorflow/compiler/xla/runtime:type_id",
 #         "@tf_runtime//:dtype",
@@ -240,18 +240,6 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Support",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
-#     ],
-# )
-#
-# tfrt_cc_library(
-#     name = "diagnostics",
-#     srcs = ["lib/diagnostics.cc"],
-#     hdrs = ["include/tfrt/jitrt/diagnostics.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:Support",
 #     ],
 # )
 #

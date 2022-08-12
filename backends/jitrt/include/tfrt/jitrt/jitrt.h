@@ -446,27 +446,6 @@ class Executable {
     llvm::SmallVector<size_t> offsets;  // offsets in the block of memory
   };
 
-  // Extension point to enable framework-specific integration between the
-  // compiled code and the framework on top of the TFRT runtime (e.g. Tensorflow
-  // running on top of TFRT). For example only at Tensorflow level it is
-  // possible to decide if an input tensor can be forwarded to one of the
-  // outputs.
-  //
-  // Note that runtime integration is generic with respect to the framework
-  // used. That is, `runtime::KernelContext` is unaware of the actual framework
-  // (e.g. Tensorflow, JAX) that uses code generation at run-time.
-  //
-  // See go/mlir-rt for details.
-  struct KernelContext {
-    virtual ~KernelContext() = default;
-
-    // If the allocation of the given size and alignment can be satisfied by one
-    // of the inputs, then forward function should return a pointer to the
-    // forwarded input memref buffer.
-    virtual void* forward(size_t size, size_t alignment,
-                          ArrayRef<unsigned> candidates) = 0;
-  };
-
   // Options for configuring compiled kernel execution.
   struct ExecuteOpts {
     // Async task runner for executing async runtime tasks. Typically it
@@ -474,10 +453,6 @@ class Executable {
     // responsibility to guarantee that it will outlive the execution of all
     // async tasks started by the executable.
     AsyncTaskRunner* async_task_runner = nullptr;
-
-    // User-provided kernel context corresponding to the JIT executable.
-    // Must outlive all async tasks launched by this executable.
-    KernelContext* kernel_context = nullptr;
 
     // A container for passing arbitrary user-provided data to the custom call
     // handlers. Must outlive all async tasks launched by this executable.

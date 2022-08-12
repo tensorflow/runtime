@@ -89,7 +89,7 @@ module @print_attrs attributes { tfrt.compiled } {
       i64_array = [105, 106, 107, 108],
       f32_array = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
       f64_array = [5.0, 6.0, 7.0, 8.0],
-      i64_dense_array = [:i64 1, 2, 3],
+      i64_dense_array = array<i64: 1, 2, 3>,
       empty_array = [],
       str = "some string",
       aaa = "these are unused attributes to test",
@@ -158,7 +158,7 @@ module @direct_print_attrs attributes { tfrt.compiled } {
       invalid_attr_name_i64_arr = [105, 106, 107, 108],
       invalid_attr_name_f32_arr = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32],
       invalid_attr_name_f64_arr = [5.0, 6.0, 7.0, 8.0],
-      invalid_attr_name_i64_dense_arr = [:i64 1, 2, 3],
+      invalid_attr_name_i64_dense_arr = array<i64: 1, 2, 3>,
       invalid_attr_name_empty_arr = [],
       invalid_attr_name_str = "some string"
     } : () -> ()

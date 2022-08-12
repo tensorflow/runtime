@@ -138,7 +138,7 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK: )
 func.func @custom_call(%arg0: !rt.kernel_context) {
   // CHECK: call @runtimeCustomCall
-  rt.custom_call %arg0["target"] () { attr_name = [:i64 1, 2, 3] } : () -> ()
+  rt.custom_call %arg0["target"] () { attr_name = array<i64: 1, 2, 3> } : () -> ()
   func.return
 }
 

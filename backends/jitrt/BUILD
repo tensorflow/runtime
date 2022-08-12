@@ -127,7 +127,6 @@ licenses(["notice"])
 #         ":memory_mapper",
 #         ":results",
 #         ":specialization",
-#         ":symbolic_shape",
 #         ":xla",
 #         "@llvm-project//llvm:Core",
 #         "@llvm-project//llvm:OrcJIT",
@@ -147,6 +146,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:constraints",
+#         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
@@ -270,7 +270,7 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":symbolic_shape",
+#         ":xla",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:ArithmeticDialect",
 #         "@llvm-project//mlir:FuncDialect",
@@ -280,6 +280,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:constraints",
+#         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:support",
 #     ],
@@ -326,23 +327,6 @@ licenses(["notice"])
 #     deps = [
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:Support",
-#     ],
-# )
-#
-# tfrt_cc_library(
-#     name = "symbolic_shape",
-#     srcs = ["lib/symbolic_shape.cc"],
-#     hdrs = ["include/tfrt/jitrt/symbolic_shape.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":xla",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:Support",
-#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
-#         "//third_party/tensorflow/compiler/xla/runtime:constraints",
-#         "@tf_runtime//:support",
 #     ],
 # )
 #

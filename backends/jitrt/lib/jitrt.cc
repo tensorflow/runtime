@@ -57,7 +57,6 @@
 #include "tfrt/jitrt/results.h"
 #include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/specialization.h"
-#include "tfrt/jitrt/symbolic_shape.h"
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -67,6 +66,7 @@
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
+#include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -1096,12 +1096,12 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // We rely on the hash code to find the specialized executable. In case of
   // a collision (practically impossible) incompatible arguments will be
   // rejected by the executable arguments verification.
-  FailureOr<llvm::hash_code> hash =
+  ErrorOr<llvm::hash_code> hash =
       symbolic_shapes_resolver_.ResolveHash(arguments);
 
   // If we failed to resolve the symbolic shapes hash, then we need to verify
   // all the operands to find the mismatch and report it to the user.
-  if (LLVM_UNLIKELY(mlir::failed(hash))) {
+  if (LLVM_UNLIKELY(hash.getError())) {
     for (unsigned i = 0; i < arguments.size(); ++i) {
       auto* type = signature_.operand(i);
 
@@ -1159,7 +1159,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
-  FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
+  ErrorOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
       symbolic_shapes_resolver_.Resolve(arguments);
   if (auto err = (*ctx)->Specialize(arguments, *symbolic_shapes, constraints_,
                                     listener)) {

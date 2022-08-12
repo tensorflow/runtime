@@ -122,19 +122,4 @@ licenses(["notice"])
 #     ],
 # )
 #
-# tfrt_cc_test(
-#     name = "symbolic_shapes_resolver_test",
-#     srcs = ["symbolic_shapes_resolver_test.cc"],
-#     deps = [
-#         "@com_google_googletest//:gtest_main",
-#         "@llvm-project//llvm:Support",
-#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
-#         "//third_party/tensorflow/compiler/xla/runtime:constraints",
-#         "//third_party/tensorflow/compiler/xla/runtime:types",
-#         "@tf_runtime//:dtype",
-#         "@tf_runtime//backends/jitrt:symbolic_shape",
-#         "@tf_runtime//backends/jitrt:xla",
-#     ],
-# )
-#
 # copybara:uncomment_end

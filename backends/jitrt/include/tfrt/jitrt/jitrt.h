@@ -61,16 +61,18 @@ namespace mlir {
 class PassManager;
 }  // namespace mlir
 
+// Forward declare types enabling compiled kernel <-> runtime integration.
+namespace xla {
+namespace runtime {
+struct KernelContext;
+}  // namespace runtime
+}  // namespace xla
+
 namespace tfrt {
 
 class Tensor;
 
 namespace jitrt {
-
-// Forward declare types enabling compiled kernel <-> runtime integration.
-namespace runtime {
-struct KernelContext;
-}  // namespace runtime
 
 // Compiled module example:
 //
@@ -513,16 +515,17 @@ class Executable {
   // implementations do not have to depend on the `jitrt` target.
 
   // Returns the user data passed via the ExecuteOpts to the compiled kernel.
-  static CustomCall::UserData* GetUserData(runtime::KernelContext* ctx);
+  static CustomCall::UserData* GetUserData(xla::runtime::KernelContext* ctx);
 
   // Returns the diagnostic engine passed via the ExecuteOpts to the compiled
   // kernel.
-  static DiagnosticEngine* GetDiagnosticEngine(runtime::KernelContext* ctx);
+  static DiagnosticEngine* GetDiagnosticEngine(
+      xla::runtime::KernelContext* ctx);
 
   // Calls the custom call handler with the given runtime context, arguments and
   // attributes.
-  static mlir::LogicalResult Call(runtime::KernelContext* ctx, CustomCall& call,
-                                  void** args, void** attrs);
+  static mlir::LogicalResult Call(xla::runtime::KernelContext* ctx,
+                                  CustomCall& call, void** args, void** attrs);
 
  private:
   friend class internal::JitCompilationContext;

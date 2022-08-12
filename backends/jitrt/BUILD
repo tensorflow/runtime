@@ -100,10 +100,7 @@ licenses(["notice"])
 # tfrt_cc_library(
 #     name = "jitrt",
 #     srcs = ["lib/jitrt.cc"],
-#     hdrs = [
-#         "include/tfrt/jitrt/jitrt.h",
-#         "include/tfrt/jitrt/runtime.h",
-#     ],
+#     hdrs = ["include/tfrt/jitrt/jitrt.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
@@ -129,6 +126,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:async_runtime_api",
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
+#         "//third_party/tensorflow/compiler/xla/runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_values_cache",

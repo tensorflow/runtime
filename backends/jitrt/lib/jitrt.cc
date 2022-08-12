@@ -55,7 +55,6 @@
 #include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
 #include "tfrt/jitrt/results.h"
-#include "tfrt/jitrt/runtime.h"
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -66,7 +65,43 @@
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
+#include "third_party/tensorflow/compiler/xla/runtime/runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
+
+//----------------------------------------------------------------------------//
+// XLA Runtime API implementation.
+//----------------------------------------------------------------------------//
+
+namespace xla {
+namespace runtime {
+
+using tfrt::jitrt::CustomCall;
+using tfrt::jitrt::DiagnosticEngine;
+using tfrt::jitrt::Executable;
+
+// Runtime KernelContext encapsulates all the JitRT data that is required to
+// implement codegen<->runtime API.
+struct KernelContext {
+  // Results memory layout is owned by the executable, and stays alive after
+  // the kernel function execution completes.
+  const Executable::ResultsMemoryLayout* results_memory_layout = nullptr;
+
+  // CallFrame life time bound to the kernel function execution and destroyed
+  // immediately when the function returns. Only the kernel function itself
+  // reads the arguments and writes to the function results storage.
+  Executable::CallFrame* call_frame = nullptr;
+
+  // User-defined data for custom call handlers.
+  CustomCall::UserData* custom_call_data = nullptr;
+
+  // User-defined diagnostic engine for reporting diagnostics.
+  DiagnosticEngine* diagnostic_engine = nullptr;
+};
+
+llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
+
+}  // namespace runtime
+}  // namespace xla
 
 namespace tfrt {
 namespace jitrt {
@@ -113,35 +148,6 @@ static std::string EscapeMemRegionName(llvm::StringRef memory_region_name) {
 static llvm::orc::SymbolMap CRunnerUtilsSymbolMap(llvm::orc::MangleAndInterner);
 
 //----------------------------------------------------------------------------//
-// Types for the codegen<->runtime integration, see API implementation below.
-//----------------------------------------------------------------------------//
-
-namespace runtime {
-
-// Runtime KernelContext encapsulates all the JitRT data that is required to
-// implement codegen<->runtime API.
-struct KernelContext {
-  // Results memory layout is owned by the executable, and stays alive after
-  // the kernel function execution completes.
-  const Executable::ResultsMemoryLayout* results_memory_layout = nullptr;
-
-  // CallFrame life time bound to the kernel function execution and destroyed
-  // immediately when the function returns. Only the kernel function itself
-  // reads the arguments and writes to the function results storage.
-  Executable::CallFrame* call_frame = nullptr;
-
-  // User-defined data for custom call handlers.
-  CustomCall::UserData* custom_call_data = nullptr;
-
-  // User-defined diagnostic engine for reporting diagnostics.
-  DiagnosticEngine* diagnostic_engine = nullptr;
-};
-
-llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner);
-
-}  // namespace runtime
-
-//----------------------------------------------------------------------------//
 // Converts a custom call library into the execution engine symbols binding.
 //----------------------------------------------------------------------------//
 
@@ -173,7 +179,7 @@ ExecutionEngine::SymbolsBinding JiRtSymbolsBinding(
       // Register memory allocation functions (malloc, free, ...).
       AsyncRuntimeMemoryAllocationSymbolMap,
       // Register Runtime API intrinsics (host runtime integration).
-      runtime::RuntimeApiSymbolMap,
+      xla::runtime::RuntimeApiSymbolMap,
       // Register any user-defined API passed via the compilation options.
       std::move(runtime_symbol_map),
   });
@@ -388,12 +394,12 @@ void Executable::Execute(CallFrame& call_frame, const ExecuteOpts& opts) const {
 
   // Runtime kernel context can be used only by the entrypoint function (kernel
   // function) and can be safely allocated on the stack.
-  runtime::KernelContext kernel_context = {&results_memory_layout_, &call_frame,
-                                           opts.custom_call_data,
-                                           opts.diagnostic_engine};
+  xla::runtime::KernelContext kernel_context = {
+      &results_memory_layout_, &call_frame, opts.custom_call_data,
+      opts.diagnostic_engine};
 
   // Override the kernel context argument.
-  runtime::KernelContext* kernel_context_ptr = &kernel_context;
+  xla::runtime::KernelContext* kernel_context_ptr = &kernel_context;
   assert(call_frame.args.size() == arguments_memory_layout_.num_args_ptrs);
   assert(call_frame.args[0] == nullptr && "expected to see a placeholder");
   call_frame.args[0] = &kernel_context_ptr;
@@ -445,15 +451,17 @@ std::unique_ptr<llvm::MemoryBuffer> Executable::obj_file() const {
   return engine_->obj_file();
 }
 
-CustomCall::UserData* Executable::GetUserData(runtime::KernelContext* ctx) {
+CustomCall::UserData* Executable::GetUserData(
+    xla::runtime::KernelContext* ctx) {
   return ctx->custom_call_data;
 }
 
-DiagnosticEngine* Executable::GetDiagnosticEngine(runtime::KernelContext* ctx) {
+DiagnosticEngine* Executable::GetDiagnosticEngine(
+    xla::runtime::KernelContext* ctx) {
   return ctx->diagnostic_engine;
 }
 
-mlir::LogicalResult Executable::Call(runtime::KernelContext* ctx,
+mlir::LogicalResult Executable::Call(xla::runtime::KernelContext* ctx,
                                      CustomCall& call, void** args,
                                      void** attrs) {
   return call.call(args, attrs, ctx->custom_call_data, ctx->diagnostic_engine);
@@ -1225,13 +1233,21 @@ static llvm::orc::SymbolMap CRunnerUtilsSymbolMap(
   return symbol_map;
 }
 
+}  // namespace jitrt
+}  // namespace tfrt
+
 //----------------------------------------------------------------------------//
 // Implement API for codegen <-> runtime integration defined in runtime header.
 //----------------------------------------------------------------------------//
 
+// TODO(ezhulenev): This should be implemented inside `runtime.cc`.
+
+namespace xla {
 namespace runtime {
 
-extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
+using tfrt::jitrt::CustomCallRegistry;
+
+void* GetResultStorage(KernelContext* ctx, int64_t index) {
   assert(ctx && "kernel context must be not null");
   assert(!ctx->call_frame->is_error && "error must not be set");
   size_t offset = ctx->results_memory_layout->offsets[index];
@@ -1240,7 +1256,7 @@ extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
   return &ctx->call_frame->results[offset];
 }
 
-extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
+void SetError(KernelContext* ctx, const char* error) {
   assert(ctx && "kernel context must be not null");
   assert(error && "runtime error must be not null");
   assert(!ctx->call_frame->is_error && "error must be set only once");
@@ -1249,9 +1265,9 @@ extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
   ctx->call_frame->error = {error};
 }
 
-extern "C" bool runtimeCustomCall(KernelContext* ctx, const char* callee,
-                                  void** args, void** attrs) {
-  assert(ctx && callee && args && attrs && "all arguments must be not null");
+bool CustomCall(KernelContext* ctx, const char* target, void** args,
+                void** attrs) {
+  assert(ctx && target && args && attrs && "all arguments must be not null");
 
   // Default custom calls registry for the JitRt kernels.
   static CustomCallRegistry* registry = []() {
@@ -1260,7 +1276,7 @@ extern "C" bool runtimeCustomCall(KernelContext* ctx, const char* callee,
     return registry;
   }();
 
-  auto* custom_call = registry->Find(callee);
+  auto* custom_call = registry->Find(target);
   assert(custom_call && "custom call not found");
   if (custom_call == nullptr) return false;
 
@@ -1276,14 +1292,12 @@ llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {
         llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
   };
 
-  bind("runtimeGetResultStorage", &runtimeGetResultStorage);
-  bind("runtimeSetError", &runtimeSetError);
-  bind("runtimeCustomCall", &runtimeCustomCall);
+  bind("runtimeGetResultStorage", &GetResultStorage);
+  bind("runtimeSetError", &SetError);
+  bind("runtimeCustomCall", &CustomCall);
 
   return symbol_map;
 }
 
 }  // namespace runtime
-
-}  // namespace jitrt
-}  // namespace tfrt
+}  // namespace xla

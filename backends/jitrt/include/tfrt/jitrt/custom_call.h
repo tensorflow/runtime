@@ -43,6 +43,13 @@
 #include "third_party/tensorflow/compiler/xla/runtime/logical_result.h"
 #include "third_party/tensorflow/compiler/xla/runtime/type_id.h"
 
+// Forward declare types enabling compiled kernel <-> runtime integration.
+namespace xla {
+namespace runtime {
+struct KernelContext;
+}  // namespace runtime
+}  // namespace xla
+
 namespace tfrt {
 namespace jitrt {
 
@@ -55,11 +62,6 @@ using xla::runtime::succeeded;  // NOLINT
 using xla::runtime::FailureOr;      // NOLINT
 using xla::runtime::LogicalResult;  // NOLINT
 using xla::runtime::TypeID;         // NOLINT
-
-// Forward declare types enabling compiled kernel <-> runtime integration.
-namespace runtime {
-struct KernelContext;
-}  // namespace runtime
 
 // Forward declare template defined below.
 template <typename... Ts>
@@ -169,7 +171,7 @@ class DirectCustomCallLibrary {
  public:
   // Function type corresponding to the direct custom call (custom calls
   // linked directly with the compiled executable).
-  using DirectCustomCall = bool (*)(runtime::KernelContext* kernel_context,
+  using DirectCustomCall = bool (*)(xla::runtime::KernelContext* kernel_context,
                                     void** args, void** attrs);
 
   void Insert(llvm::StringRef name, DirectCustomCall custom_call) {

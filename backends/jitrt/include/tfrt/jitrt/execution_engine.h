@@ -32,11 +32,6 @@
 namespace tfrt {
 namespace jitrt {
 
-// Forward declare types enabling compiled kernel <-> runtime integration.
-namespace runtime {
-struct KernelContext;
-}  // namespace runtime
-
 // A pre-fabricated wrapper around ORC JIT stack for running JitRt programs.
 //
 // It allows to run jit-compiled JitRt programs, AOT compile them or load

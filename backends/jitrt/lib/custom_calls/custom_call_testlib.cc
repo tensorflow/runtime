@@ -30,7 +30,6 @@
 #include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/custom_call_registry.h"
 #include "tfrt/jitrt/jitrt.h"
-#include "tfrt/jitrt/runtime.h"
 #include "tfrt/support/string_util.h"
 
 // clang-format off
@@ -310,7 +309,7 @@ static LogicalResult PrintMemrefAndVariadicArgs(
 }
 
 // Custom call handler for testing direct custom call compilation.
-static bool DirectCustomCall(runtime::KernelContext* ctx, void** args,
+static bool DirectCustomCall(xla::runtime::KernelContext* ctx, void** args,
                              void** attrs) {
   internal::DecodedArgs decoded_args(args);
   internal::DecodedAttrs decoded_attrs(attrs);
@@ -323,7 +322,8 @@ static bool DirectCustomCall(runtime::KernelContext* ctx, void** args,
 }
 
 // Direct NoOp custom call for benchmarking arguments/attributes encoding.
-static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
+static bool DirectNoOp(xla::runtime::KernelContext* ctx, void** args,
+                       void** attrs) {
   auto noop = [](FlatMemrefView, FlatMemrefView, FlatMemrefView, FlatMemrefView,
                  StringRef, float, double) { return success(); };
 
@@ -342,7 +342,7 @@ static bool DirectNoOp(runtime::KernelContext* ctx, void** args, void** attrs) {
 }
 
 // Direct PrintAttrs custom call for testing disabled attributes checks.
-static bool DirectPrintAttrs(runtime::KernelContext* ctx, void** args,
+static bool DirectPrintAttrs(xla::runtime::KernelContext* ctx, void** args,
                              void** attrs) {
   static auto* call = CustomCall::Bind("testlib.print_attrs")
                           .UserData<const char*>()

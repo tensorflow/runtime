@@ -372,7 +372,17 @@ class Executable {
 
   Optional<size_t> specialization() const { return specialization_; }
 
+  // Returns the number of results in the runtime signature.
   unsigned num_results() const;
+
+  // Signature of the compiled module entrypoint function before lowering to
+  // the runtime dialects. See JitExecutable's `signature_` for more details.
+  const FunctionType& signature() const;
+
+  // Signature of the compiled module entrypoint function after lowering it from
+  // high level dialects to the dialects supported by the jitrt runtime.
+  // See JitExecutable's `signature_` for more details.
+  const FunctionType& runtime_signature() const;
 
   std::chrono::milliseconds time_to_compile() const;
 

@@ -427,6 +427,12 @@ unsigned Executable::num_results() const {
   return runtime_signature_.num_results();
 }
 
+const FunctionType& Executable::signature() const { return signature_; }
+
+const FunctionType& Executable::runtime_signature() const {
+  return runtime_signature_;
+}
+
 std::chrono::milliseconds Executable::time_to_compile() const {
   return time_to_compile_;
 }

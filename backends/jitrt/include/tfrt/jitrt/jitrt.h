@@ -40,7 +40,6 @@
 #include "tfrt/jitrt/custom_call.h"
 #include "tfrt/jitrt/diagnostics.h"
 #include "tfrt/jitrt/execution_engine.h"
-#include "tfrt/jitrt/memory_mapper.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/support/forward_decls.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/specialization.h"
@@ -49,6 +48,7 @@
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_values_cache.h"
 #include "third_party/tensorflow/compiler/xla/runtime/constraints.h"
+#include "third_party/tensorflow/compiler/xla/runtime/memory_mapper.h"
 #include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
@@ -528,7 +528,7 @@ class Executable {
   friend class internal::JitCompilationContext;
 
   Executable(llvm::StringRef name,
-             std::unique_ptr<JitRtMemoryMapper> memory_mapper,
+             std::unique_ptr<XlaRuntimeMemoryMapper> memory_mapper,
              std::unique_ptr<ExecutionEngine> engine, FunctionType signature,
              FunctionType runtime_signature,
              ArgumentsMemoryLayout arguments_memory_layout,
@@ -551,7 +551,7 @@ class Executable {
   std::string name_;  // name of the compiled kernel module
 
   // Called by `engine_`'s destructor; must appear before it.
-  std::unique_ptr<JitRtMemoryMapper> memory_mapper_;
+  std::unique_ptr<XlaRuntimeMemoryMapper> memory_mapper_;  // optional
 
   // JitRt execution engine owns the LLVM ORC jit compilation stack.
   std::unique_ptr<ExecutionEngine> engine_;

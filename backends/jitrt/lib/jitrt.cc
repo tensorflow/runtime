@@ -475,8 +475,8 @@ mlir::LogicalResult Executable::Call(runtime::KernelContext* ctx,
       EscapeMemRegionName(memory_region_name), name, entrypoint);
 
   // Custom memory mapper to tag memory allocated for JitRt executables.
-  std::unique_ptr<JitRtMemoryMapper> memory_mapper =
-      JitRtMemoryMapper::Create(std::move(mapper_name));
+  std::unique_ptr<XlaRuntimeMemoryMapper> memory_mapper =
+      XlaRuntimeMemoryMapper::Create(std::move(mapper_name));
 
   // Register symbols required for running JitRt Executable.
   ExecutionEngine::SymbolsBinding symbols =
@@ -838,8 +838,8 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
       specialization.has_value() ? "specialized" : "default");
 
   // Custom memory mapper to tag memory allocated for JitRt executables.
-  std::unique_ptr<JitRtMemoryMapper> memory_mapper =
-      JitRtMemoryMapper::Create(std::move(mapper_name));
+  std::unique_ptr<XlaRuntimeMemoryMapper> memory_mapper =
+      XlaRuntimeMemoryMapper::Create(std::move(mapper_name));
 
   // Register symbols required for running JitRt Executable.
   ExecutionEngine::SymbolsBinding symbols =

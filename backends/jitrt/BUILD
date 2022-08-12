@@ -77,18 +77,6 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_library(
-#     name = "memory_mapper",
-#     srcs = ["lib/memory_mapper.cc"],
-#     hdrs = ["include/tfrt/jitrt/memory_mapper.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@llvm-project//llvm:ExecutionEngine",
-#         "@llvm-project//llvm:Support",
-#     ],
-# )
-#
-# tfrt_cc_library(
 #     name = "execution_engine",
 #     srcs = ["lib/execution_engine.cc"],
 #     hdrs = ["include/tfrt/jitrt/execution_engine.h"],
@@ -123,7 +111,6 @@ licenses(["notice"])
 #         ":custom_call_registry",
 #         ":diagnostics",
 #         ":execution_engine",
-#         ":memory_mapper",
 #         ":results",
 #         ":xla",
 #         "@llvm-project//llvm:Core",
@@ -146,6 +133,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_values_cache",
 #         "//third_party/tensorflow/compiler/xla/runtime:constraints",
+#         "//third_party/tensorflow/compiler/xla/runtime:memory_mapper",
 #         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:dtype",

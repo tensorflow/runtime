@@ -119,7 +119,6 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":async_values_cache",
 #         ":custom_call",
 #         ":custom_call_registry",
 #         ":diagnostics",
@@ -145,6 +144,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
+#         "//third_party/tensorflow/compiler/xla/runtime:async_values_cache",
 #         "//third_party/tensorflow/compiler/xla/runtime:constraints",
 #         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
@@ -223,44 +223,6 @@ licenses(["notice"])
 #         "@tf_runtime//:support",
 #         "@tf_runtime//:tensor",
 #     ],
-# )
-#
-# # Generates 'async_values_cache.h' based on the :std_thread flag.
-# #
-# # Internally we use more efficient AsyncValuesCache implemented on
-# # top of the RCU primitive. In open source we rely on mutex for
-# # synchronizing access to shared data strucures.
-# #
-# # This avoids a (non-transitive) copts setting to include one or the other
-# # header file by the preprocessor.
-# genrule(
-#     name = "async_values_cache_hdr",
-#     srcs = select({
-#         "@tf_runtime//:use_std_thread": ["include/tfrt/jitrt/async_values_cache_std.h"],
-#         "//conditions:default": ["include/tfrt/jitrt/async_values_cache_rcu.h"],
-#     }),
-#     outs = ["include/tfrt/jitrt/async_values_cache.h"],
-#     cmd = "cp $< $@",
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-# )
-#
-# tfrt_cc_library(
-#     name = "async_values_cache",
-#     hdrs = ["include/tfrt/jitrt/async_values_cache.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@llvm-project//llvm:Support",
-#         "@tf_runtime//:hostcontext",
-#     ] + select({
-#         "@tf_runtime//:use_std_thread": [
-#             "@tf_runtime//:support",
-#         ],
-#         "//conditions:default": [
-#             "//concurrent/rcu:view",
-#         ],
-#     }),
 # )
 #
 # tfrt_cc_library(

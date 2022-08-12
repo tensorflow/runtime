@@ -27,63 +27,13 @@
 #include "tfrt/jitrt/xla.h"
 #include "tfrt/support/msan.h"
 #include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/async_runtime_api.h"
+#include "third_party/tensorflow/compiler/xla/runtime/results.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {
 
-//===----------------------------------------------------------------------===//
-// Conversions from compiled executable results to C++ types.
-//===----------------------------------------------------------------------===//
-
-// The result type defines its own ABI as a required number of bytes and
-// alignment, and executable returns results by writing into the requested
-// memory allocated in the call frame. The user is responsible for providing
-// a conversion function that converts this opaque memory back to the C++
-// data type. For example memrefs returned as a `StridedMemrefType` structure,
-// and it is the user responsibiity to define a conversion function that can
-// convert a memref to the run time Tensor/Buffer type.
-//
-// It is important that the type that is written into the call frame memory has
-// a standard memory layout, because we rely on `reinterpret_cast` to reinterpet
-// the opaque bytes to a C struct.
-//
-// See https://en.cppreference.com/w/cpp/types/is_standard_layout
-
-// Result converter is responsible for taking a pointer to the memory location
-// where the executable wrote the result, and converting it to the corresponding
-// run time value expected by the caller (e.g. memref descriptor to Tensor).
-class ResultConverter {
- public:
-  virtual ~ResultConverter() = default;
-
-  // Converts value `ret` of type `runtime_type` (runtime type derived from the
-  // original `type`) returned from the executable at `result_index` result
-  // position using registered conversion functions. Returns a logical result
-  // telling if the conversion was successful.
-  virtual mlir::LogicalResult ReturnValue(unsigned result_index,
-                                          const Type* type,
-                                          const Type* runtime_type,
-                                          void* ret) const = 0;
-
-  // Returns error for all results.
-  virtual void ReturnError(const Error& error) const = 0;
-};
-
-//===----------------------------------------------------------------------===//
-// Result converter for functions without results (returning void).
-//===----------------------------------------------------------------------===//
-
-struct NoResultConverter : public ResultConverter {
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
-  mlir::LogicalResult ReturnValue(unsigned, const Type*, const Type*,
-                                  void*) const final {
-    assert(false && "no result converter must never be called");
-    return mlir::failure();
-  }
-
-  void ReturnError(const Error&) const final {}
-};
+using xla::runtime::ResultConverter;
 
 //===----------------------------------------------------------------------===//
 // Result converters for integrating with TFRT/BEF kernels (RemainingResults).

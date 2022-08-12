@@ -204,6 +204,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "//third_party/tensorflow/compiler/xla/mlir/utils/runtime:async_runtime_api",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
+#         "//third_party/tensorflow/compiler/xla/runtime:results",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",

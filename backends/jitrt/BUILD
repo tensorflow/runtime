@@ -99,6 +99,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Transforms",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:calling_convention",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:specialization",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:type_converter",

@@ -40,6 +40,7 @@
 #include "tfrt/jitrt/results.h"
 #include "tfrt/support/forward_decls.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/calling_convention.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/specialization.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
@@ -243,6 +244,19 @@ struct CompilationOptions {
   // get the MLIR function type for the entrypoint, and then we convert it to
   // the corresponding run time function type.
   TypeConverter type_converter;
+
+  // TODO(b/240450920): This is a temporary workaround during migration.
+  xla::runtime::JitCompiler::Options AsJitCompilerOptions() {
+    xla::runtime::JitCompiler::Options options;
+    options.type_converter = type_converter;
+    options.calling_convention = calling_convention;
+    options.register_dialects = register_dialects;
+    options.create_compilation_pipeline = create_compilation_pipeline;
+    options.create_specialization_pipeline = create_specialization_pipeline;
+    options.runtime_symbol_map = runtime_symbol_map;
+    options.jit_code_opt_level = jit_code_opt_level;
+    return options;
+  }
 };
 
 //----------------------------------------------------------------------------//

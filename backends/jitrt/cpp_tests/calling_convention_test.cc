@@ -47,7 +47,7 @@ static const char* entrypoint = "log2_1d";
 
 struct CallingConventionTestCase {
   std::string test_name;
-  CompilationOptions::CallingConvention calling_convention;
+  CallingConvention calling_convention;
   int expected_num_results;
   int expected_num_operands;
 };
@@ -117,11 +117,11 @@ INSTANTIATE_TEST_SUITE_P(
     CallingConventionTest, CallingConventionTest,
     testing::ValuesIn<CallingConventionTestCase>({
         {"DefaultCallingConvention",
-         CompilationOptions::DefaultCallingConvention(
+         xla::runtime::DefaultCallingConvention(
              mlir::bufferization::BufferizeTypeConverter()),
          /*expected_num_results=*/1, /*expected_num_operands=*/2},
         {"ResultsToOutsCallingConvention",
-         CompilationOptions::ResultsToOutsCallingConvention(
+         xla::runtime::ResultsToOutsCallingConvention(
              mlir::bufferization::BufferizeTypeConverter()),
          /*expected_num_results=*/0, /*expected_num_operands=*/3},
     }),

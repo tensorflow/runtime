@@ -272,7 +272,7 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // the ABI boundary. The expectation is that compiler pipeline will act
   // according to this calling convention, and the entrypoint will have the same
   // function signature.
-  opts.calling_convention = CompilationOptions::DefaultCallingConvention(
+  opts.calling_convention = xla::runtime::DefaultCallingConvention(
       mlir::bufferization::BufferizeTypeConverter());
 
   // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time

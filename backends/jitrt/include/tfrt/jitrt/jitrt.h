@@ -39,6 +39,7 @@
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/support/forward_decls.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/calling_convention.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/specialization.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/type_converter.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
@@ -74,6 +75,8 @@ namespace tfrt {
 class Tensor;
 
 namespace jitrt {
+
+using xla::runtime::CallingConvention;
 
 // Compiled module example:
 //
@@ -175,24 +178,6 @@ namespace jitrt {
 class JitExecutable;
 
 struct CompilationOptions {
-  // Calling convention defines an ABI for JitRt to call a compiled kernel. See
-  // documentation and example below.
-  using CallingConvention =
-      std::function<mlir::FunctionType(mlir::FunctionType)>;
-
-  // Returns a calling convention that only adds the kernel context argument.
-  static CallingConvention DefaultCallingConvention();
-
-  // Returns a calling convention that uses user-provided type converter to
-  // convert all inputs and results types, and adds the kernel context argument.
-  static CallingConvention DefaultCallingConvention(mlir::TypeConverter);
-
-  // Returns a calling convention that (1) prepends the kernel context argument,
-  // (2) uses the user-provided type converter to convert all inputs and results
-  // types, and (3) converts result types into out-params by appending them
-  // to the arguments.
-  static CallingConvention ResultsToOutsCallingConvention(mlir::TypeConverter);
-
   // Compiled kernel can be specialized and recompiled at runtime to the
   // concrete input shapes and sometimes values (e.g. reduciton dimension).
   enum class Specialization {
@@ -237,48 +222,8 @@ struct CompilationOptions {
   // `rt-to-kernel-function` pass to convert regular functions to "kernels".
   std::function<void(mlir::PassManager&)> create_compilation_pipeline;
 
-  // Calling convention converts the compiled module entrypoint function type to
-  // the function type with a well defined ABI (e.g. tensors do not have an ABI,
-  // and must be passed across the function boundary as memrefs). In a nutshell
-  // it tells the JitRt how to call the compiled kernel at run time, and how to
-  // return results back to the JitRt.
-  //
-  // All types in the converted function signature should have a registered
-  // type conversion (see `type_converter` below) to a type with defined
-  // argument or result ABI (see Type::ArgumentAbi and Type::ResultAbi).
-  //
-  // If conversion is not possible, calling convention must return a null value.
-  //
-  // Example: abstract kernel defined in high level dialect, e.g. MHLO
-  //
-  //   ```mlir
-  //     func @kernel(%arg0: tensor<?xf32>,
-  //                  %arg1: tensor<?xf32>) -> tensor<?x?xf32> { ... }
-  //   ```
-  //
-  //   after calling convention conversion becomes:
-  //
-  //   ```mlir
-  //     func @kernel(%ctx: !rt.kernel_context,
-  //                  %arg0: memref<?xf32>,
-  //                  %arg1: memref<?xf32>) -> memref<?x?xf32> { ... }
-  //   ```
-  //
-  // Calling convention function type is not the same as the entrypoint function
-  // type produced by the compilation pipeline for several reasons:
-  //
-  // 1) Compilation pipeline produces LLVM functions with LLVM types, and high
-  //    level information is lost, e.g. all memrefs are deconstructed into
-  //    primitive fields when passed as inputs.
-  //
-  // 2) Compiled kernel function always returns void, and uses runtime API to
-  //    return results back to the caller (see `rt-convert-to-entrypoint` pass).
-  //
-  // Calling convention function type is a JitRt-compatible description of the
-  // compiled kernel ABI, so that JitRt can correctly initialize CallFrame
-  // arguments, allocate memory for returned results, and then correctly decode
-  // results memory into the high level types (e.g. convert returned memref
-  // descriptor to a Tensorfow tensor).
+  // Calling convention defines an ABI for XLA runtime to call an executable.
+  // See `CallingConvention` documentation for details.
   CallingConvention calling_convention = DefaultCallingConvention();
 
   // Type converter converts MLIR types to the corresponding run time types.

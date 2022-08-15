@@ -246,18 +246,18 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // ------------------------------------------------------------------------ //
   // 1. Set up options for the JitRt executable compilation/recompilation.
   // ------------------------------------------------------------------------ //
-  CompilationOptions opts;
+  JitExecutable::Options opts;
 
   // Because one of the arguments requires value specialization, we must enable
   // specialization to be able to compile the executable.
-  opts.specialization = CompilationOptions::Specialization::kEnabled;
+  opts.specialization = JitExecutable::Specialization::kEnabled;
 
   // Define what dialects are supported in the input IR module. If you have your
   // own custom dialects in the input IR you must pass a callback that registers
   // all the dialects that are considered legal for your input program.
   //
   // In this example in addition to "standard" JitRt dialects we add only Tosa.
-  opts.register_dialects = [](mlir::DialectRegistry& registry) {
+  opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
     // For testing value specialization.
     registry.insert<mlir::tosa::TosaDialect>();
 
@@ -272,12 +272,12 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // the ABI boundary. The expectation is that compiler pipeline will act
   // according to this calling convention, and the entrypoint will have the same
   // function signature.
-  opts.calling_convention = xla::runtime::DefaultCallingConvention(
+  opts.compiler.calling_convention = xla::runtime::DefaultCallingConvention(
       mlir::bufferization::BufferizeTypeConverter());
 
   // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time
   // type corresponding to a custom argument.
-  opts.type_converter.AddConversion(
+  opts.compiler.type_converter.AddConversion(
       [](CustomArgType arg) { return std::make_unique<CustomArgRtType>(); });
 
   // ------------------------------------------------------------------------ //
@@ -286,7 +286,7 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
   // As a first step we lower from Tosa to Linalg on buffers, and then we rely
   // on a default JitRt compilation pipeline to lower further to LLVM.
-  opts.create_compilation_pipeline = [&](mlir::PassManager& pm) {
+  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
     // 1. Lower Tosa to Linalg in tensors.
     pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToLinalg());
 
@@ -316,9 +316,9 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   };
 
   // If your input IR requires specialization, you'll also need to define the
-  // `opts.create_compilation_pipeline` callback. In this test we rely on the
-  // fact that "value-specialized" arguments will be materialized as constants
-  // in the function body.
+  // `opts.compiler.create_compilation_pipeline` callback. In this test we rely
+  // on the fact that "value-specialized" arguments will be materialized as
+  // constants in the function body.
 
   // ------------------------------------------------------------------------ //
   // 3. Instantiate JitExecutable from the input MLIR source.

@@ -60,13 +60,13 @@ using CallingConventionTest =
 TEST_P(CallingConventionTest, TestSignature) {
   const CallingConventionTestCase& test_case = GetParam();
 
-  CompilationOptions opts;
-  opts.calling_convention = test_case.calling_convention;
-  opts.specialization = CompilationOptions::Specialization::kEnabled;
-  opts.register_dialects = [](mlir::DialectRegistry& registry) {
+  JitExecutable::Options opts;
+  opts.specialization = JitExecutable::Specialization::kEnabled;
+  opts.compiler.calling_convention = test_case.calling_convention;
+  opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
     RegisterDefaultJitRtDialects(registry);
   };
-  opts.create_compilation_pipeline = [&](mlir::PassManager& pm) {
+  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
     CreateDefaultJitRtCompilationPipeline(pm, {});
   };
 

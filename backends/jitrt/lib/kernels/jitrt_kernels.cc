@@ -89,15 +89,15 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     copts.num_worker_threads = host->GetNumWorkerThreads();
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
 
-    CompilationOptions opts;
-    opts.runtime_symbol_map = GetSymbolsBinding(CustomCallTestlib());
+    JitExecutable::Options opts;
+    opts.compiler.runtime_symbol_map = GetSymbolsBinding(CustomCallTestlib());
 
-    opts.register_dialects = [](mlir::DialectRegistry& registry) {
+    opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
       registry.insert<TestlibDialect>();
       RegisterDefaultJitRtDialects(registry);
     };
 
-    opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+    opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
       CreateDefaultJitRtCompilationPipeline(pm, copts);
     };
 

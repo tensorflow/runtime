@@ -54,12 +54,12 @@ static const char* mlir_module = R"(
 static const char* entrypoint = "compute";
 
 TEST(AotCompilationTest, CompileSaveRestore) {
-  CompilationOptions opts;
-  opts.specialization = CompilationOptions::Specialization::kDisabled;
-  opts.register_dialects = RegisterDefaultJitRtDialects;
+  JitExecutable::Options opts;
+  opts.specialization = JitExecutable::Specialization::kDisabled;
+  opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
 
   CompilationPipelineOptions copts;
-  opts.create_compilation_pipeline = [&](mlir::PassManager& pm) {
+  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 

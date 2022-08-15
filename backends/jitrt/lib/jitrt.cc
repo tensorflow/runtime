@@ -103,7 +103,7 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
 // JitExecutable implementation.
 //----------------------------------------------------------------------------//
 
-using Specialization = CompilationOptions::Specialization;
+using Specialization = JitExecutable::Specialization;
 
 static bool IsSpecializationOnly(ArrayRef<ArgumentConstraint> constraints) {
   return llvm::any_of(constraints, [](ArgumentConstraint constraint) {
@@ -159,12 +159,11 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 }
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
-    string_view mlir_module, string_view entrypoint,
-    CompilationOptions compilation_opts, string_view memory_region_name,
-    CompilationTaskRunner runner) {
+    string_view mlir_module, string_view entrypoint, Options opts,
+    string_view memory_region_name, CompilationTaskRunner runner) {
   // Try to instantiate compilation context from the mlir source.
-  Expected<std::unique_ptr<JitCompiler>> ctx = JitCompiler::Instantiate(
-      compilation_opts.AsJitCompilerOptions(), mlir_module, entrypoint);
+  Expected<std::unique_ptr<JitCompiler>> ctx =
+      JitCompiler::Instantiate(opts.compiler, mlir_module, entrypoint);
   if (auto err = ctx.takeError()) return std::move(err);
 
   // Get resolved operands constraints for the entrypoint function.
@@ -173,7 +172,7 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
   // Get the entrypoint function signature, it will be later required to
   // compute the specialized function signature from the operands at runtime.
-  auto signature = compilation_opts.type_converter.Convert(
+  auto signature = opts.compiler.type_converter.Convert(
       (*ctx)->entrypoint().getFunctionType());
   if (auto err = signature.takeError()) return std::move(err);
 
@@ -181,11 +180,11 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   // binary for execution (unless specialization is explicitly required by the
   // operands constraints).
   if (HasStaticShapeOperands(*signature) && !IsSpecializationOnly(*constraints))
-    compilation_opts.specialization = Specialization::kDisabled;
+    opts.specialization = Specialization::kDisabled;
 
   // Return an error if specialization is explicitly disabled, yet some of
   // the operands have unresolved constraints.
-  if (compilation_opts.specialization == Specialization::kDisabled &&
+  if (opts.specialization == Specialization::kDisabled &&
       IsSpecializationOnly(*constraints))
     return MakeStringError(
         "compilation options disabled specialization, yet operands have "
@@ -194,10 +193,10 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
 
   // If the module must be specialized, return JitExecutable without a default
   // compiled executable.
-  if (compilation_opts.specialization == Specialization::kAlways ||
+  if (opts.specialization == Specialization::kAlways ||
       IsSpecializationOnly(*constraints))
     return JitExecutable(mlir_module, entrypoint, memory_region_name,
-                         std::move(compilation_opts), std::move(*constraints),
+                         std::move(opts), std::move(*constraints),
                          std::move(*signature),
                          /*default_executable=*/llvm::None, std::move(runner));
 
@@ -207,14 +206,13 @@ static bool HasStaticShapeOperands(const FunctionType& signature) {
   if (auto err = executable.takeError()) return std::move(err);
 
   return JitExecutable(mlir_module, entrypoint, memory_region_name,
-                       std::move(compilation_opts), std::move(*constraints),
+                       std::move(opts), std::move(*constraints),
                        std::move(*signature), std::move(*executable),
                        std::move(runner));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
-                             string_view memory_region_name,
-                             CompilationOptions compilation_opts,
+                             string_view memory_region_name, Options opts,
                              ArrayRef<ArgumentConstraint> constraints,
                              FunctionType signature,
                              Optional<Executable> default_executable,
@@ -222,7 +220,7 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
       memory_region_name_(memory_region_name.str()),
-      compilation_opts_(std::move(compilation_opts)),
+      opts_(std::move(opts)),
       constraints_(constraints.begin(), constraints.end()),
       has_value_constraints_(HasValueConstraints(constraints_)),
       signature_(std::move(signature)),
@@ -282,7 +280,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     ArgumentsRef arguments, UserData user_data,
     const SpecializationListener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
-  if (compilation_opts_.specialization == Specialization::kDisabled)
+  if (opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
 
   // The number of arguments must match the entrypoint signature.
@@ -333,8 +331,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // Maybe return Executable from the cache.
   if (auto cached = specializations_->Find(*hash)) {
     // Always use specialized kernel if required by the compilation options.
-    if (compilation_opts_.specialization == Specialization::kAlways)
-      return cached;
+    if (opts_.specialization == Specialization::kAlways) return cached;
 
     // Fall back on default executable if the specialization is not yet
     // available.
@@ -348,8 +345,8 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
   // the caller thread. We only use compilation runner for expensive part.
 
   // Try to instantiate compilation context from the mlir source.
-  Expected<std::unique_ptr<JitCompiler>> ctx = JitCompiler::Instantiate(
-      compilation_opts_.AsJitCompilerOptions(), mlir_module_, entrypoint_);
+  Expected<std::unique_ptr<JitCompiler>> ctx =
+      JitCompiler::Instantiate(opts_.compiler, mlir_module_, entrypoint_);
 
   if (auto err = ctx.takeError()) {
     assert(false && "parsing mlir module must always succeed at this point");
@@ -395,7 +392,7 @@ Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
 
   // Use the default executable while we are compiling a specialized version if
   // this is not explicitly disabled by the compilation options.
-  if (compilation_opts_.specialization == Specialization::kAlways)
+  if (opts_.specialization == Specialization::kAlways)
     return entry.ptr;
   else
     return has_default_executable_ ? DefaultExecutable() : entry.ptr;

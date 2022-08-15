@@ -67,17 +67,17 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
                                 ExecutionEngine::SymbolsBinding symbols_binding,
                                 SmallVector<MemrefDesc> operands = {}) {
   // Use the default JitRt compilation pipeline to compile the executable.
-  CompilationOptions opts;
+  JitExecutable::Options opts;
 
-  opts.specialization = CompilationOptions::Specialization::kDisabled;
-  opts.runtime_symbol_map = symbols_binding;
+  opts.specialization = JitExecutable::Specialization::kDisabled;
+  opts.compiler.runtime_symbol_map = symbols_binding;
 
-  opts.register_dialects = [&](mlir::DialectRegistry& registry) {
+  opts.compiler.register_dialects = [&](mlir::DialectRegistry& registry) {
     registry.insert<TestlibDialect>();
     RegisterDefaultJitRtDialects(registry);
   };
 
-  opts.create_compilation_pipeline = [&](mlir::PassManager& pm) {
+  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
     CompilationPipelineOptions copts;
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
     CreateDefaultJitRtCompilationPipeline(pm, copts);

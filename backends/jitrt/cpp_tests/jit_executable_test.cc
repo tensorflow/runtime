@@ -72,12 +72,12 @@ void BenchmarkGetExecutable(benchmark::State& state,
                             SmallVector<MemrefDesc> operands) {
   auto host = CreateSingleThreadedHostContext();
 
-  CompilationOptions opts;
-  opts.specialization = CompilationOptions::Specialization::kAlways;
-  opts.register_dialects = RegisterDefaultJitRtDialects;
+  JitExecutable::Options opts;
+  opts.specialization = JitExecutable::Specialization::kAlways;
+  opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
 
   CompilationPipelineOptions copts;
-  opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+  opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 
@@ -106,12 +106,12 @@ void BenchmarkInitializeCallFrame(benchmark::State& state,
                                   bool verify) {
   auto host = CreateSingleThreadedHostContext();
 
-  CompilationOptions opts;
-  opts.specialization = CompilationOptions::Specialization::kAlways;
-  opts.register_dialects = RegisterDefaultJitRtDialects;
+  JitExecutable::Options opts;
+  opts.specialization = JitExecutable::Specialization::kAlways;
+  opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
 
   CompilationPipelineOptions copts;
-  opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+  opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 

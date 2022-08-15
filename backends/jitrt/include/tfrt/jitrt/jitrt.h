@@ -77,95 +77,6 @@ class Tensor;
 
 namespace jitrt {
 
-using xla::runtime::CallingConvention;
-
-// Forward declare the JitExecutable class that itself is not an executable, but
-// owns one (or many) executables compiled for different shapes or values of the
-// arguments. It is responsible for lazy compilation of executables for the
-// concrete shapes or values if needed.
-class JitExecutable;
-
-struct CompilationOptions {
-  // Compiled kernel can be specialized and recompiled at runtime to the
-  // concrete input shapes and sometimes values (e.g. reduciton dimension).
-  enum class Specialization {
-    // Recompile specialized kernels when needed.
-    kEnabled,
-    // Completely disable specialized kernels (always call default executable).
-    kDisabled,
-    // Always use specialized kernels, and never call default executable (only
-    // required for getting reproducible results in benchmarks).
-    kAlways,
-  };
-
-  // LLVM optimization level when JIT compiling a kernel.
-  llvm::CodeGenOpt::Level jit_code_opt_level = llvm::CodeGenOpt::Level::Default;
-
-  // Runtime symbol map allows to pass user-defined bindings for symbols at JIT
-  // compilation time (e.g. to implement custom C APIs).
-  ExecutionEngine::SymbolsBinding runtime_symbol_map;
-
-  // What level of specialization is enabled at runtime.
-  Specialization specialization = Specialization::kAlways;
-
-  // Register dialects that are allowed in the serialized module.
-  std::function<void(mlir::DialectRegistry&)> register_dialects;
-
-  // Create a pass pipeline that is called whenever the compiled module
-  // gets specialized. This pipeline can use refined shape information and
-  // symbolic shape attributes to do the shape inference and canonicalization.
-  //
-  // Original input module might have an undefined calling convention (e.g.
-  // JitRt does not support unranked tensors), and specialization can be
-  // required as a precondition for compilation.
-  std::function<void(mlir::PassManager&)> create_specialization_pipeline;
-
-  // Create a pass pipeline that lowers compiled module from high level
-  // dialects to the LLVM dialect. JitRt will use the LLVM ORC compiler API
-  // to compile the LLVM module at run time (https://llvm.org/docs/ORCv2.html).
-  //
-  // This compilation pipeline must create the entrypoint function with an ABI
-  // compatible with the calling convention advertised to the JitRt through the
-  // `calling_convention` type conversion, and for that it usually must include
-  // `rt-to-kernel-function` pass to convert regular functions to "kernels".
-  std::function<void(mlir::PassManager&)> create_compilation_pipeline;
-
-  // Calling convention defines an ABI for XLA runtime to call an executable.
-  // See `CallingConvention` documentation for details.
-  CallingConvention calling_convention = DefaultCallingConvention();
-
-  // Type converter converts MLIR types to the corresponding run time types.
-  // Executable uses its own type hierarchy, parallel to MLIR's, so that it
-  // doesn't depend on any parts of the MLIR after compilation produces an
-  // executable artifact, because keeping MLIR context alive can be expensive in
-  // terms of memory usage.
-  //
-  // As a side effect, it allows loading AOT compiled executables from the obj
-  // files without any dependencies on MLIR.
-  //
-  // Default type converter knows how to convert canonical MLIR types (memrefs,
-  // tensors, etc...). All user-defined types used at the compiled function
-  // boundary (arguments or results) should register a custom type conversion.
-  //
-  // When we compile the input IR, we first apply the `calling_convention` to
-  // get the MLIR function type for the entrypoint, and then we convert it to
-  // the corresponding run time function type.
-  TypeConverter type_converter;
-
-  // TODO(b/240450920): This is a temporary workaround during migration.
-  xla::runtime::JitCompiler::Options AsJitCompilerOptions() {
-    xla::runtime::JitCompiler::Options options;
-    options.type_converter = type_converter;
-    options.calling_convention = calling_convention;
-    options.register_dialects = register_dialects;
-    options.create_compilation_pipeline = create_compilation_pipeline;
-    options.create_specialization_pipeline = create_specialization_pipeline;
-    options.runtime_symbol_map = runtime_symbol_map;
-    options.jit_code_opt_level = jit_code_opt_level;
-    return options;
-  }
-};
-
 //----------------------------------------------------------------------------//
 // Conversions from compiled kernel operands to JitRt runtime types.
 //----------------------------------------------------------------------------//
@@ -186,6 +97,26 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor);
 class JitExecutable {
  public:
   using UserData = std::any;
+
+  // XLA program can be specialized and recompiled at runtime to the concrete
+  // input shapes and sometimes values (e.g. reduciton dimension).
+  enum class Specialization {
+    // Recompile specialized kernels when needed.
+    kEnabled,
+    // Completely disable specialized kernels (always call default executable).
+    kDisabled,
+    // Always use specialized kernels, and never call default executable (only
+    // required for getting reproducible results in benchmarks).
+    kAlways,
+  };
+
+  struct Options {
+    // What level of specialization is enabled at runtime.
+    Specialization specialization = Specialization::kAlways;
+
+    // Options for the XLA runtime JitCompiler.
+    xla::runtime::JitCompiler::Options compiler;
+  };
 
   // Compilation task runner called at runtime when specialization compilation
   // is required with the `TaskFunction` that does the compilation, and updates
@@ -208,8 +139,8 @@ class JitExecutable {
       ArgumentsRef arguments, TaskFunction task, UserData user_data);
 
   static Expected<JitExecutable> Instantiate(
-      string_view mlir_module, string_view entrypoint,
-      CompilationOptions compilation_opts, string_view memory_region_name = "",
+      string_view mlir_module, string_view entrypoint, Options opts,
+      string_view memory_region_name = "",
       CompilationTaskRunner runner = InlineCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
@@ -257,8 +188,7 @@ class JitExecutable {
 
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
-                string_view memory_region_name,
-                CompilationOptions compilation_opts,
+                string_view memory_region_name, Options opts,
                 ArrayRef<ArgumentConstraint> constraints,
                 FunctionType signature, Optional<Executable> default_executable,
                 CompilationTaskRunner runner);
@@ -271,7 +201,7 @@ class JitExecutable {
   // Note: this feature might only be available on some platforms, e.g. Linux.
   std::string memory_region_name_;
 
-  CompilationOptions compilation_opts_;
+  Options opts_;
 
   // Entrypoint operands constraints after resolving them using the statically
   // known information in the entrypoint function signature. If constraint

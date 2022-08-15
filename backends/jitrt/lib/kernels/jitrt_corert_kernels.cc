@@ -91,9 +91,9 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     CompilationPipelineOptions copts;
     copts.num_worker_threads = host->GetNumWorkerThreads();
 
-    CompilationOptions opts;
-    opts.register_dialects = RegisterDefaultJitRtDialects;
-    opts.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
+    JitExecutable::Options opts;
+    opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
+    opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
       CreateDefaultJitRtCompilationPipeline(pm, copts);
     };
 

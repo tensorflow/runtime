@@ -115,6 +115,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
 #         "//third_party/tensorflow/compiler/xla/runtime:executable",
 #         "//third_party/tensorflow/compiler/xla/runtime:execution_engine",
+#         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",
 #         "//third_party/tensorflow/compiler/xla/runtime:memory_mapper",
 #         "//third_party/tensorflow/compiler/xla/runtime:symbolic_shape",
 #         "//third_party/tensorflow/compiler/xla/runtime:types",

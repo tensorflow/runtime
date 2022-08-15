@@ -14,10 +14,12 @@ licenses(["notice"])
 #     }.items() + {
 #         # Note: NCCL in the sandbox produces the wrong result in OSS.
 #         "all_gather.mlir": [
+#             "notap",  # b/242566060: Fails with -c opt.
 #             "requires-gpu-nvidia:2",
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),
 #         "all_reduce.mlir": [
+#             "notap",  # b/242566060: Fails with -c opt.
 #             "requires-gpu-nvidia:2",
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),
@@ -26,6 +28,7 @@ licenses(["notice"])
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),
 #         "reduce_scatter.mlir": [
+#             "notap",  # b/242566060: Fails with -c opt.
 #             "requires-gpu-nvidia:2",
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),

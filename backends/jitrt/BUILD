@@ -278,6 +278,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
+#         "//third_party/tensorflow/compiler/xla/runtime:type_id",
 #         "@tf_runtime//:support",
 #         "@tf_runtime//third_party/llvm_derived:raw_ostream",
 #     ],
@@ -383,6 +384,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:LLVMDialect",
 #         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
+#         "//third_party/tensorflow/compiler/xla/runtime:type_id",
 #     ],
 # )
 #

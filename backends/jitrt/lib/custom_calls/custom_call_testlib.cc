@@ -67,6 +67,12 @@ void TestlibDialect::initialize() {
       >();
 }
 
+XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(EnumType, "__type_id_enumtype");
+XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(RuntimeEnumType,
+                                            "__type_id_runtime_enumtype");
+XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(RuntimePairOfDims,
+                                            "__type_id_runtime_pairofdims");
+
 // Explicitly register attributes encoding for enums passed to the custom calls.
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet& encoding) {
   encoding.Add<EnumAttrEncoding<EnumTypeAttr, EnumType>>();

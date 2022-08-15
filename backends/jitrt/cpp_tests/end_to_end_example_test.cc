@@ -231,7 +231,8 @@ void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
                          .Attr<int32_t>("api_version")
                          .To(MyRuntimeIntrinsic));
 }
-
+// Generate global symbol name for CustomArg type
+XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(CustomArg, "__type_id_customarg");
 // Static registration with the JitRt global registry.
 XLA_RUNTIME_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
 

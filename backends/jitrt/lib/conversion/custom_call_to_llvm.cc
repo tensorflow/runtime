@@ -28,6 +28,7 @@ limitations under the License.
 #include "mlir/IR/Types.h"
 #include "mlir/Support/LogicalResult.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/type_id.h"
 
 namespace Eigen {
 struct half;
@@ -110,10 +111,15 @@ FailureOr<EncodedAttr> CustomCallAttrEncodingSet::Encode(
 // -------------------------------------------------------------------------- //
 
 Value PackTypeId(Globals &g, ImplicitLocOpBuilder &b, TypeID type_id) {
-  auto i64 = reinterpret_cast<std::uintptr_t>(type_id.getAsOpaquePointer());
-  auto cst = b.create<ConstantOp>(b.getI64IntegerAttr(i64));
-  auto ptr = LLVM::LLVMPointerType::get(b.getI8Type());
-  return b.create<LLVM::IntToPtrOp>(ptr, cst);
+  static TypeIDNameRegistry *registry = []() {
+    auto *registry = new TypeIDNameRegistry();
+    RegisterStaticTypeIDName(registry);
+    return registry;
+  }();
+  llvm::StringRef symbol_name = registry->FindTypeIDSymbolName(type_id);
+  assert(!symbol_name.empty() && "cannot find the symbol name of type id");
+  auto global = g.GetOrCreateExternal(b, symbol_name);
+  return Globals::AddrOf(b, global);
 }
 
 Value PackString(Globals &g, ImplicitLocOpBuilder &b, StringRef strref,
@@ -437,6 +443,12 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, TypedAttr attr,
   return GetOrCreate(b, attr, attr.getType(), symbol_base);
 }
 
+LLVM::GlobalOp Globals::GetOrCreateExternal(ImplicitLocOpBuilder &b,
+                                            StringRef symbol_base) {
+  return *TryGetOrCreate(b, IntegerAttr(), b.getI64Type(), symbol_base, {},
+                         mlir::LLVM::Linkage::External);
+}
+
 LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
                                     Type type, StringRef symbol_base,
                                     GlobalInitializer initialize) {
@@ -450,7 +462,8 @@ LLVM::GlobalOp Globals::GetOrCreate(ImplicitLocOpBuilder &b, Attribute attr,
 
 mlir::FailureOr<mlir::LLVM::GlobalOp> Globals::TryGetOrCreate(
     mlir::ImplicitLocOpBuilder &b, mlir::Attribute attr, mlir::Type type,
-    llvm::StringRef symbol_base, FailureOrGlobalInitializer initialize) {
+    llvm::StringRef symbol_base, FailureOrGlobalInitializer initialize,
+    mlir::LLVM::Linkage linkage) {
   // We assume that this triple uniquely identifies the global value and the
   // global initializer always produces the same value for given inputs.
   Key key(attr, type, b.getStringAttr(symbol_base));
@@ -464,14 +477,14 @@ mlir::FailureOr<mlir::LLVM::GlobalOp> Globals::TryGetOrCreate(
 
   // If the initialize function is not provided, create constant directly.
   if (!initialize) {
-    auto global = b.create<LLVM::GlobalOp>(
-        type, /*isConstant=*/true, LLVM::Linkage::Internal, symbol_base, attr);
+    auto global = b.create<LLVM::GlobalOp>(type, /*isConstant=*/true, linkage,
+                                           symbol_base, attr);
     return (sym_table_.insert(global), globals_[key] = global);
   }
 
   // Create an uninitialized global.
-  auto global = b.create<LLVM::GlobalOp>(
-      type, /*isConstant=*/true, LLVM::Linkage::Internal, symbol_base, nullptr);
+  auto global = b.create<LLVM::GlobalOp>(type, /*isConstant=*/true, linkage,
+                                         symbol_base, nullptr);
 
   // Call user-provided global initializer.
   mlir::Region &region = global.getInitializerRegion();

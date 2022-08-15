@@ -216,7 +216,7 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK: global internal constant @__rt_custom_call_attrs()
 // CHECK-SAME: : !llvm.array<4 x ptr<i8>> {
 // CHECK:   llvm.mlir.addressof @__rt_attr_name
-// CHECK:   llvm.inttoptr {{.*}} : i64 to !llvm.ptr<i8>
+// CHECK:   llvm.mlir.addressof @__type_id_float
 // CHECK:   llvm.mlir.addressof @__rt_attr_value : !llvm.ptr<f32>
 // CHECK: }
 
@@ -330,7 +330,7 @@ func.func @custom_call(%arg0: !rt.kernel_context) {
 // CHECK:   %[[ARG:.*]]: f32
 // CHECK: )
 func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : f32) {
-  // CHECK: %[[TYPE_ID:.*]] = llvm.inttoptr
+  // CHECK: %[[TYPE_ID:.*]] = llvm.mlir.addressof @__type_id_float
 
   // CHECK: %[[C1:.*]] = arith.constant 1 : i32
   // CHECK: %[[MEM:.*]] = llvm.alloca %[[C1]] x f32
@@ -354,7 +354,7 @@ func.func @custom_call(%arg0: !rt.kernel_context, %arg1 : memref<?x256xf32>) {
   // CHECK: %[[DESC:.*]] = builtin.unrealized_conversion_cast %[[ARG]]
   // CHECK-SAME: to !llvm.struct
 
-  // CHECK: %[[TYPE_ID:.*]] = llvm.inttoptr
+  // CHECK: %[[TYPE_ID:.*]] = llvm.mlir.addressof @__type_id_memref_view
 
   // CHECK: llvm.mlir.undef : !llvm.array<4 x i64>
   // CHECK-NEXT: llvm.extractvalue %[[DESC]][3, 0]

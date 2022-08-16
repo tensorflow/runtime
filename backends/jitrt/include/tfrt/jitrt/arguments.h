@@ -17,9 +17,7 @@
 #ifndef TFRT_BACKENDS_JITRT_JITRT_H_
 #define TFRT_BACKENDS_JITRT_JITRT_H_
 
-#include "tfrt/support/forward_decls.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
-#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
 
@@ -32,14 +30,6 @@ namespace jitrt {
 // otherwise.
 Expected<xla::runtime::MemrefDesc> ConvertTensorToMemrefDesc(
     const Tensor& tensor);
-
-// Resource context caches all JitExecutables in the async value cache.
-//
-// We use compilation unit id as a cache key. Because this id is unique only
-// within a single Bef file, it is the user's responsibility to guarantee that
-// the JitExecutableCache is not reused between multiple Bef files.
-using JitExecutableCache =
-    xla::runtime::AsyncValuesCache<size_t, xla::runtime::JitExecutable>;
 
 }  // namespace jitrt
 }  // namespace tfrt

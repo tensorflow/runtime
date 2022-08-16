@@ -77,14 +77,13 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_library(
-#     name = "jitrt",
-#     srcs = ["lib/jitrt.cc"],
-#     hdrs = ["include/tfrt/jitrt/jitrt.h"],
+#     name = "arguments",
+#     srcs = ["lib/arguments.cc"],
+#     hdrs = ["include/tfrt/jitrt/arguments.h"],
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
-#         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
 #         "@tf_runtime//:tensor",
@@ -226,15 +225,16 @@ licenses(["notice"])
 #     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
+#         ":arguments",
 #         ":custom_call_testlib_inc_gen",
 #         ":custom_call_to_llvm",
-#         ":jitrt",
 #         "@llvm-project//llvm:OrcJIT",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
+#         "//third_party/tensorflow/compiler/xla/runtime:executable",
 #         "//third_party/tensorflow/compiler/xla/runtime:type_id",
 #         "@tf_runtime//:support",
 #         "@tf_runtime//third_party/llvm_derived:raw_ostream",
@@ -247,8 +247,8 @@ licenses(["notice"])
 #     alwayslink_static_registration_src = "lib/kernels/jitrt_kernels_registration.cc",
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
+#         ":arguments",
 #         ":custom_call_testlib",
-#         ":jitrt",
 #         ":jitrt_compiler",
 #         ":results",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
@@ -271,7 +271,7 @@ licenses(["notice"])
 #     alwayslink_static_registration_src = "lib/kernels/jitrt_corert_kernels_registration.cc",
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
-#         ":jitrt",
+#         ":arguments",
 #         ":jitrt_compiler",
 #         ":results",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/arguments.h"
 
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/error_util.h"

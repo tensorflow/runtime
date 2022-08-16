@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+
 #include <memory>
 #include <utility>
 
@@ -22,9 +24,9 @@
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
-#include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/logging.h"
+#include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
 
 namespace tfrt {
 namespace jitrt {

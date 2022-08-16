@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/calling_convention.h"
+
 #include <string>
 
 #include "gtest/gtest.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Casting.h"
 #include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
-#include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
 namespace jitrt {

@@ -27,10 +27,11 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
-#include "tfrt/jitrt/jitrt.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
 
 // clang-format off
 #include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.cc.inc"

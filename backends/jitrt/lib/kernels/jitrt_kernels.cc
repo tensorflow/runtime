@@ -36,8 +36,8 @@
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
+#include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
-#include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/support/error_util.h"
@@ -61,6 +61,7 @@ namespace jitrt {
 template <typename T>
 using KernelArgument = ::tfrt::Argument<T>;
 
+using xla::runtime::AsyncValuesCache;
 using xla::runtime::CustomCall;
 using xla::runtime::Diagnostic;
 using xla::runtime::DiagnosticEngine;
@@ -68,6 +69,8 @@ using xla::runtime::Executable;
 using xla::runtime::HostContextAsyncTaskRunner;
 using xla::runtime::JitExecutable;
 using xla::runtime::MemrefDesc;
+
+using JitExecutableCache = AsyncValuesCache<size_t, JitExecutable>;
 
 // -------------------------------------------------------------------------- //
 // Compile compilation unit attribute to an executable result.

@@ -71,7 +71,7 @@ void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
                   mlir::linalg::LinalgDialect, mlir::math::MathDialect,
                   mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
                   mlir::func::FuncDialect, mlir::tensor::TensorDialect,
-                  mlir::vector::VectorDialect, RuntimeDialect>();
+                  mlir::vector::VectorDialect, xla::runtime::RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);

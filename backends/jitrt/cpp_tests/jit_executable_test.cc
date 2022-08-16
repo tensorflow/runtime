@@ -31,6 +31,8 @@ namespace jitrt {
 
 using ::llvm::SmallVector;
 
+using namespace xla::runtime;  // NOLINT
+
 using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
 
 // -------------------------------------------------------------------------- //

@@ -45,6 +45,8 @@ struct KernelContext;
 namespace tfrt {
 namespace jitrt {
 
+using namespace xla::runtime;  // NOLINT
+
 using llvm::SmallVector;
 using llvm::StringRef;
 using llvm::orc::MangleAndInterner;

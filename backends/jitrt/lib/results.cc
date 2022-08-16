@@ -24,9 +24,15 @@
 
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/async_runtime_api.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {
+
+using xla::runtime::AsyncTokenType;
+using xla::runtime::ConvertAsyncTokenToChain;
+using xla::runtime::Type;
 
 namespace {
 // Do not record any operands information for results conversion.

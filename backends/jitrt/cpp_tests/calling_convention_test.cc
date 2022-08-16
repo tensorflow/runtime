@@ -27,6 +27,8 @@ namespace tfrt {
 namespace jitrt {
 namespace {
 
+using namespace xla::runtime;  // NOLINT
+
 static const char* mlir_module = R"(
     #map = affine_map<(d0) -> (d0)>
     func.func @log2_1d(%arg0: memref<?xf32>) -> memref<?xf32> {

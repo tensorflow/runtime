@@ -44,6 +44,8 @@ namespace tfrt {
 namespace jitrt {
 namespace {
 
+using namespace xla::runtime;  // NOLINT
+
 using llvm::DenseMap;
 
 using mlir::ArrayAttr;

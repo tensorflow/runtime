@@ -39,6 +39,7 @@
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
+#include "tfrt/jitrt/results.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/rc_array.h"
@@ -46,12 +47,27 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {
 
 template <typename T>
 using KernelArgument = ::tfrt::Argument<T>;
+
+using xla::runtime::CustomCall;
+using xla::runtime::Diagnostic;
+using xla::runtime::DiagnosticEngine;
+using xla::runtime::Executable;
+using xla::runtime::HostContextAsyncTaskRunner;
+using xla::runtime::JitExecutable;
+using xla::runtime::MemrefDesc;
 
 // -------------------------------------------------------------------------- //
 // Compile compilation unit attribute to an executable result.

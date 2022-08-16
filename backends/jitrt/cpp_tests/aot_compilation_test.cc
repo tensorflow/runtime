@@ -33,6 +33,8 @@ namespace {
 
 using ::llvm::SmallVector;
 
+using namespace xla::runtime;  // NOLINT
+
 // Simple function that copies 4xf32 values from `arg0` to `arg1`.
 static const char* mlir_module = R"(
     func.func @compute(%arg0: memref<?xf32>, %arg1: memref<?xf32>) {

@@ -27,12 +27,10 @@
 
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/core_runtime/tensor_handle.h"
-#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
-#include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -40,21 +38,28 @@
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
-#include "tfrt/support/error_util.h"
+#include "tfrt/jitrt/results.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
-#include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"
-#include "tfrt/tensor/tensor_serialize_utils.h"
-#include "tfrt/tensor/tensor_shape.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {
 
 template <typename T>
 using KernelArgument = ::tfrt::Argument<T>;
+
+using xla::runtime::Executable;
+using xla::runtime::HostContextAsyncTaskRunner;
+using xla::runtime::JitExecutable;
+using xla::runtime::MemrefDesc;
 
 // -------------------------------------------------------------------------- //
 // Compile compilation unit attribute to an executable result.

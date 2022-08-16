@@ -22,10 +22,12 @@
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/jitrt/jitrt.h"
+#include "tfrt/jitrt/results.h"
 
 namespace tfrt {
 namespace jitrt {
+
+using namespace xla::runtime;  // NOLINT
 
 struct Context {};
 

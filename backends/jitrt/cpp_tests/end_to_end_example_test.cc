@@ -32,14 +32,19 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
-#include "tfrt/jitrt/jitrt.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
-#include "tfrt/jitrt/xla.h"
+#include "tfrt/jitrt/results.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/calling_convention.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
 namespace jitrt {
+
+using namespace xla::runtime;  // NOLINT
 
 using llvm::ErrorOr;
 using llvm::SmallVector;

@@ -68,7 +68,11 @@ licenses(["notice"])
 #         "@llvm-project//mlir:TosaDialect",
 #         "@llvm-project//mlir:TosaToLinalg",
 #         "@llvm-project//mlir:Transforms",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:calling_convention",
+#         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
+#         "//third_party/tensorflow/compiler/xla/runtime:executable",
+#         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//:support",
@@ -77,7 +81,7 @@ licenses(["notice"])
 #         "@tf_runtime//backends/jitrt:custom_call_testlib",
 #         "@tf_runtime//backends/jitrt:custom_call_to_llvm",
 #         "@tf_runtime//backends/jitrt:jitrt_compiler",
-#         "@tf_runtime//backends/jitrt:xla",
+#         "@tf_runtime//backends/jitrt:results",
 #     ],
 # )
 #
@@ -104,7 +108,7 @@ licenses(["notice"])
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:mlir_c_runner_utils",
 #         "@tf_runtime//:dtype",
-#         "@tf_runtime//backends/jitrt",
+#         "@tf_runtime//backends/jitrt:results",
 #     ],
 # )
 #

@@ -24,7 +24,6 @@
 #include "llvm/Support/Compiler.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/host_context/kernel_utils.h"
-#include "tfrt/jitrt/xla.h"
 #include "tfrt/support/msan.h"
 #include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/async_runtime_api.h"
 #include "third_party/tensorflow/compiler/xla/runtime/results.h"
@@ -33,8 +32,6 @@
 namespace tfrt {
 namespace jitrt {
 
-using xla::runtime::ResultConverter;
-
 //===----------------------------------------------------------------------===//
 // Result converters for integrating with TFRT/BEF kernels (RemainingResults).
 //===----------------------------------------------------------------------===//
@@ -42,7 +39,7 @@ using xla::runtime::ResultConverter;
 // Result converter that returns converted values through the RemainingResults,
 // and allows adding user-provided conversion functions dynamically.
 template <typename ConversionContext>
-class RemainingResultsConverter : public ResultConverter {
+class RemainingResultsConverter : public xla::runtime::ResultConverter {
   static_assert(!std::is_void<ConversionContext>::value,
                 "Conversion context can't be void");
 
@@ -62,8 +59,9 @@ class RemainingResultsConverter : public ResultConverter {
 
   ~RemainingResultsConverter() override = default;
 
-  mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
-                                  const Type* runtime_type,
+  mlir::LogicalResult ReturnValue(unsigned result_index,
+                                  const xla::runtime::Type* type,
+                                  const xla::runtime::Type* runtime_type,
                                   void* ret) const final {
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
       auto converted =
@@ -103,14 +101,14 @@ class RemainingResultsConverter : public ResultConverter {
 
  private:
   using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
-      ConversionContext&, RemainingResults, unsigned, const Type*, const Type*,
-      void*)>;
+      ConversionContext&, RemainingResults, unsigned, const xla::runtime::Type*,
+      const xla::runtime::Type*, void*)>;
 
   // If result type was not matched by any of the user defined conversion
   // functions we return an error to the caller.
   static mlir::LogicalResult UnsupportedReturnType(
       ConversionContext& ctx, RemainingResults results, unsigned result_index,
-      const Type* t, const Type* rt, const void*) {
+      const xla::runtime::Type* t, const xla::runtime::Type* rt, const void*) {
     results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
                                              " (derived from: ", *t, ")"));
     return mlir::failure();
@@ -126,13 +124,15 @@ class RemainingResultsConverter : public ResultConverter {
 // parameter into the struct compatible with the `StaticReturnValueConverter`.
 template <typename ConversionContext,
           mlir::LogicalResult (*convert)(ConversionContext&, RemainingResults,
-                                         unsigned, const Type*, const Type*,
-                                         void*)>
+                                         unsigned, const xla::runtime::Type*,
+                                         const xla::runtime::Type*, void*)>
 struct ReturnValueConversion {
   mlir::LogicalResult operator()(ConversionContext& ctx,
                                  RemainingResults results,
-                                 unsigned result_index, const Type* t,
-                                 const Type* rt, void* ret) const {
+                                 unsigned result_index,
+                                 const xla::runtime::Type* t,
+                                 const xla::runtime::Type* rt,
+                                 void* ret) const {
     return convert(ctx, results, result_index, t, rt, ret);
   }
 };
@@ -149,15 +149,16 @@ struct ReturnValueConversion {
 // return type and set the result async value. If conversion function returns
 // `failure` converter will try the next conversion function.
 template <typename ConversionContext, typename... ConversionFns>
-class StaticRemainingResultsConverter : public ResultConverter {
+class StaticRemainingResultsConverter : public xla::runtime::ResultConverter {
  public:
   StaticRemainingResultsConverter(RemainingResults results,
                                   ConversionContext& context)
       : results_(results), context_(context) {}
 
   LLVM_ATTRIBUTE_ALWAYS_INLINE
-  mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
-                                  const Type* runtime_type,
+  mlir::LogicalResult ReturnValue(unsigned result_index,
+                                  const xla::runtime::Type* type,
+                                  const xla::runtime::Type* runtime_type,
                                   void* ret) const final {
     return convert_(context_, results_, result_index, type, runtime_type, ret);
   }
@@ -177,8 +178,10 @@ class StaticRemainingResultsConverter : public ResultConverter {
     LLVM_ATTRIBUTE_ALWAYS_INLINE
     mlir::LogicalResult operator()(ConversionContext& ctx,
                                    RemainingResults results,
-                                   unsigned result_index, const Type* t,
-                                   const Type* rt, void* ret) const {
+                                   unsigned result_index,
+                                   const xla::runtime::Type* t,
+                                   const xla::runtime::Type* rt,
+                                   void* ret) const {
       auto converted = convert(ctx, results, result_index, t, rt, ret);
       if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
       return try_next(ctx, results, result_index, t, rt, ret);
@@ -193,8 +196,10 @@ class StaticRemainingResultsConverter : public ResultConverter {
     LLVM_ATTRIBUTE_ALWAYS_INLINE
     mlir::LogicalResult operator()(ConversionContext& ctx,
                                    RemainingResults results,
-                                   unsigned result_index, const Type* t,
-                                   const Type* rt, void* ret) const {
+                                   unsigned result_index,
+                                   const xla::runtime::Type* t,
+                                   const xla::runtime::Type* rt,
+                                   void* ret) const {
       auto converted = convert(ctx, results, result_index, t, rt, ret);
       if (LLVM_LIKELY(mlir::succeeded(converted))) return mlir::success();
       results.MakeErrorAt(result_index, StrCat("unsupported return type: ", *rt,
@@ -218,8 +223,9 @@ namespace internal {
 
 // Converts returned values of `async::TokenType` type to the async chains.
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
-                                     unsigned result_index, const Type* type,
-                                     const Type* runtime_type,
+                                     unsigned result_index,
+                                     const xla::runtime::Type* type,
+                                     const xla::runtime::Type* runtime_type,
                                      void* result_ptr);
 
 // Following functions always construct a new tensor for the returned memref.
@@ -230,29 +236,28 @@ mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
 
 // Converts returned values of `async<memref<...>>` type to the async values
 // of newly constructed DenseHostTensors.
-mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
-                                                       unsigned result_index,
-                                                       const Type* type,
-                                                       const Type* runtime_type,
-                                                       void* result_ptr);
+mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(
+    RemainingResults results, unsigned result_index,
+    const xla::runtime::Type* type, const xla::runtime::Type* runtime_type,
+    void* result_ptr);
 
 // Converts returned values of `memref<...>` type to the async values of newly
 // constructed DenseHostTensors.
-mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
-                                                  unsigned result_index,
-                                                  const Type* type,
-                                                  const Type* runtime_type,
-                                                  void* result_ptr);
+mlir::LogicalResult ReturnMemrefAsDenseHostTensor(
+    RemainingResults results, unsigned result_index,
+    const xla::runtime::Type* type, const xla::runtime::Type* runtime_type,
+    void* result_ptr);
 
 }  // namespace internal
 
-#define DECLARE_CONTEXT_ADAPTOR(NAME)                                      \
-  template <typename ConversionContext>                                    \
-  static mlir::LogicalResult NAME(                                         \
-      ConversionContext&, RemainingResults results, unsigned result_index, \
-      const Type* type, const Type* runtime_type, void* result_ptr) {      \
-    return internal::NAME(results, result_index, type, runtime_type,       \
-                          result_ptr);                                     \
+#define DECLARE_CONTEXT_ADAPTOR(NAME)                                         \
+  template <typename ConversionContext>                                       \
+  static mlir::LogicalResult NAME(                                            \
+      ConversionContext&, RemainingResults results, unsigned result_index,    \
+      const xla::runtime::Type* type, const xla::runtime::Type* runtime_type, \
+      void* result_ptr) {                                                     \
+    return internal::NAME(results, result_index, type, runtime_type,          \
+                          result_ptr);                                        \
   }
 
 DECLARE_CONTEXT_ADAPTOR(ReturnAsyncToken)
@@ -282,8 +287,9 @@ template <typename Converter,
           typename ConversionContext = typename Converter::ConversionContext>
 mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
                                         RemainingResults results,
-                                        unsigned result_index, const Type* type,
-                                        const Type* runtime_type,
+                                        unsigned result_index,
+                                        const xla::runtime::Type* type,
+                                        const xla::runtime::Type* runtime_type,
                                         void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
@@ -291,7 +297,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
                 "Conversion context type must be move constructible");
 
   // Check if the runtime type is a valid memref.
-  auto* memref = dyn_cast<MemrefType>(runtime_type);
+  auto* memref = dyn_cast<xla::runtime::MemrefType>(runtime_type);
   if (!memref) return mlir::failure();
 
   // Dispatch to the correct extract function based on rank.
@@ -340,7 +346,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
   // element type of the original tensor, because during lowering from the high
   // level dialects we can change the data type to another data type with
   // compatible memory layout (e.g. unsigned type converted to signless type).
-  if (auto* tensor = dyn_cast<RankedTensorType>(type))
+  if (auto* tensor = dyn_cast<xla::runtime::RankedTensorType>(type))
     element_type = tensor->element_type();
 
   switch (element_type) {
@@ -414,13 +420,14 @@ template <typename Converter,
           typename ConversionContext = typename Converter::ConversionContext>
 mlir::LogicalResult ReturnAsyncStridedMemref(
     ConversionContext& ctx, RemainingResults results, unsigned result_index,
-    const Type* type, const Type* runtime_type, void* result_ptr) {
+    const xla::runtime::Type* type, const xla::runtime::Type* runtime_type,
+    void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
   static_assert(std::is_move_constructible<ConversionContext>::value,
                 "Conversion context type must be move constructible");
 
-  auto* value_type = dyn_cast<AsyncValueType>(type);
+  auto* value_type = dyn_cast<xla::runtime::AsyncValueType>(type);
   if (!value_type) return mlir::failure();
 
   // Load the pointer to the async value from a pointer to result storage.
@@ -429,7 +436,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
   auto* value = static_cast<mlir::runtime::AsyncValue*>(ret);
 
   // We already verified that return value is an async value of memref.
-  auto* memref = dyn_cast<MemrefType>(&value_type->value_type());
+  auto* memref = dyn_cast<xla::runtime::MemrefType>(&value_type->value_type());
   assert(memref && "we only support async values of memrefs");
 
   // Allocate constructed async value to be returned to the caller.
@@ -447,28 +454,28 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
 
     switch (rank) {
       case 0:
-        ExtractAsyncValue(value, dst(), ptr,
-                          internal::Emplace<Converter, T, 0>);
+        xla::runtime::ExtractAsyncValue(value, dst(), ptr,
+                                        internal::Emplace<Converter, T, 0>);
         break;
       case 1:
-        ExtractAsyncValue(value, dst(), ptr,
-                          internal::Emplace<Converter, T, 1>);
+        xla::runtime::ExtractAsyncValue(value, dst(), ptr,
+                                        internal::Emplace<Converter, T, 1>);
         break;
       case 2:
-        ExtractAsyncValue(value, dst(), ptr,
-                          internal::Emplace<Converter, T, 2>);
+        xla::runtime::ExtractAsyncValue(value, dst(), ptr,
+                                        internal::Emplace<Converter, T, 2>);
         break;
       case 3:
-        ExtractAsyncValue(value, dst(), ptr,
-                          internal::Emplace<Converter, T, 3>);
+        xla::runtime::ExtractAsyncValue(value, dst(), ptr,
+                                        internal::Emplace<Converter, T, 3>);
         break;
       case 4:
-        ExtractAsyncValue(value, dst(), ptr,
-                          internal::Emplace<Converter, T, 4>);
+        xla::runtime::ExtractAsyncValue(value, dst(), ptr,
+                                        internal::Emplace<Converter, T, 4>);
         break;
       case 5:
-        ExtractAsyncValue(value, dst(), ptr,
-                          internal::Emplace<Converter, T, 5>);
+        xla::runtime::ExtractAsyncValue(value, dst(), ptr,
+                                        internal::Emplace<Converter, T, 5>);
         break;
       default:
         // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref

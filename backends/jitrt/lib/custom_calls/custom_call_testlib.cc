@@ -35,7 +35,6 @@ namespace tfrt {
 namespace jitrt {
 
 using llvm::Error;
-using mlir::failure;
 using mlir::LogicalResult;
 using mlir::succeeded;
 using mlir::success;
@@ -44,11 +43,11 @@ using llvm::StringRef;
 
 using namespace xla::runtime;  // NOLINT
 
-XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(EnumType, "__type_id_enumtype");
-XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(RuntimeEnumType,
-                                            "__type_id_runtime_enumtype");
-XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(RuntimePairOfDims,
-                                            "__type_id_runtime_pairofdims");
+void PopulateCustomCallTypeIdNames(xla::runtime::TypeIDNameRegistry& registry) {
+  registry.Register<Tagged<EnumType>>("__type_id_enumtype");
+  registry.Register<Tagged<RuntimeEnumType>>("__type_id_runtime_enumtype");
+  registry.Register<Tagged<RuntimePairOfDims>>("__type_id_runtime_pairofdims");
+}
 
 // Explicitly register attributes encoding for enums passed to the custom calls.
 void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet& encoding) {

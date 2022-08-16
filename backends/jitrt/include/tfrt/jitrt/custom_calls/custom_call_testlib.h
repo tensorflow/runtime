@@ -19,6 +19,7 @@
 
 #include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests/testlib.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/type_id.h"
 
 namespace xla {
 namespace runtime {
@@ -43,9 +44,12 @@ struct RuntimePairOfDims {
   llvm::ArrayRef<int64_t> b;
 };
 
+// Populate type names for the custom enums and structs.
+void PopulateCustomCallTypeIdNames(xla::runtime::TypeIDNameRegistry& registry);
+
 // Populate encoding for custom dialect attributes (enums and structs).
 void PopulateCustomCallAttrEncoding(
-    xla::runtime::CustomCallAttrEncodingSet &encoding);
+    xla::runtime::CustomCallAttrEncodingSet& encoding);
 
 }  // namespace jitrt
 }  // namespace tfrt

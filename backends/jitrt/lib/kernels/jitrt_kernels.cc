@@ -106,10 +106,17 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
   EnqueueWork(exec_ctx, [kernel, host, ref = entry.ptr.CopyRef()]() {
     CompilationPipelineOptions copts;
     copts.num_worker_threads = host->GetNumWorkerThreads();
+    copts.populate_type_id_names = PopulateCustomCallTypeIdNames;
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
 
+    // Register type id mappings for the supported types.
+    xla::runtime::TypeIDNameRegistry registry;
+    xla::runtime::PopulateCustomCallTypeIdNames(registry);
+    tfrt::jitrt::PopulateCustomCallTypeIdNames(registry);
+
     JitExecutable::Options opts;
-    opts.compiler.runtime_symbol_map = GetSymbolsBinding(CustomCallTestlib());
+    opts.compiler.runtime_symbol_map =
+        GetSymbolsBinding(CustomCallTestlib(), std::move(registry));
 
     opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
       registry.insert<xla::runtime::TestlibDialect>();

@@ -236,8 +236,12 @@ void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
                          .Attr<int32_t>("api_version")
                          .To(MyRuntimeIntrinsic));
 }
-// Generate global symbol name for CustomArg type
-XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(CustomArg, "__type_id_customarg");
+
+// Register type id to unique name mapping for custom types.
+void RegisterMyRuntimeTypeNames(TypeIDNameRegistry& registry) {
+  registry.Register<Tagged<CustomArg>>("__type_id_customarg");
+}
+
 // Static registration with the JitRt global registry.
 XLA_RUNTIME_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
 
@@ -281,6 +285,14 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   opts.compiler.calling_convention = xla::runtime::DefaultCallingConvention(
       mlir::bufferization::BufferizeTypeConverter());
 
+  // Types supported by the custom calls.
+  TypeIDNameRegistry registry;
+  xla::runtime::PopulateCustomCallTypeIdNames(registry);
+  RegisterMyRuntimeTypeNames(registry);
+
+  // Add a mapping from the custom call type id to symbol name.
+  opts.compiler.runtime_symbol_map = GetSymbolsBinding(std::move(registry));
+
   // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time
   // type corresponding to a custom argument.
   opts.compiler.type_converter.AddConversion(
@@ -306,6 +318,9 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
     // 4. Continue compilation using the default JitRt pipeline.
     CompilationPipelineOptions copts;
+
+    // Register type id to unique symbol name mappings.
+    copts.populate_type_id_names = RegisterMyRuntimeTypeNames;
 
     // Register type conversions from custom types (!testlib.custom_arg).
     copts.populate_type_conversions = [](mlir::TypeConverter& converter) {

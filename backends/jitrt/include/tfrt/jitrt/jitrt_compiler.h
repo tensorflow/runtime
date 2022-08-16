@@ -25,6 +25,7 @@
 namespace xla {
 namespace runtime {
 
+class TypeIDNameRegistry;
 class CustomCallArgEncodingSet;
 class CustomCallAttrEncodingSet;
 
@@ -56,6 +57,10 @@ struct CompilationPipelineOptions {
 #else
   bool math_avx2 = false;
 #endif
+
+  // Register names for the TypeIDs used for encoding types of custom arguments
+  // and attributes.
+  std::function<void(xla::runtime::TypeIDNameRegistry&)> populate_type_id_names;
 
   // Add type conversions from user-defined types to LLVM types. These
   // conversions are required for lowering runtime operations to the

@@ -1,5 +1,5 @@
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 
 package(
     default_visibility = [":__subpackages__"],
@@ -98,8 +98,6 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":codegen_transforms",
-#         ":custom_call_to_llvm",
-#         ":rt_conversion",
 #         "@llvm-project//mlir:AMXToLLVMIRTranslation",
 #         "@llvm-project//mlir:AffineDialect",
 #         "@llvm-project//mlir:AffineToStandard",
@@ -135,6 +133,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/math:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/memref:passes",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:custom_call_encoding",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
 #     ],
 #     alwayslink = 1,
@@ -169,12 +168,12 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":arguments",
-#         ":custom_call_to_llvm",
 #         "@llvm-project//llvm:OrcJIT",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:Support",
 #         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests:testlib",
+#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:custom_call_encoding",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "//third_party/tensorflow/compiler/xla/runtime:executable",
@@ -231,42 +230,8 @@ licenses(["notice"])
 #     ],
 # )
 #
-# tfrt_cc_binary(
-#     name = "jitrt_opt",
-#     srcs = ["tools/jitrt_opt.cc"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         ":codegen_transforms",
-#         ":custom_call_testlib",
-#         ":jitrt_compiler",
-#         ":rt_conversion",
-#         "@llvm-project//mlir:MlirOptLib",
-#         "@llvm-project//mlir:Transforms",
-#         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
-#         "@tf_runtime//:init_tfrt_dialects",
-#     ],
-# )
-#
 # # Note: run_lit.sh does not exist in open-source environment.
 # exports_files(["tools/run_lit.sh"])
-#
-# gentbl_cc_library(
-#     name = "rt_conversion_passes_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     tbl_outs = [
-#         (
-#             [
-#                 "-gen-pass-decls",
-#                 "-name=RuntimeConversion",
-#             ],
-#             "include/tfrt/jitrt/conversion/rt_gen_passes.h.inc",
-#         ),
-#     ],
-#     tblgen = "@llvm-project//mlir:mlir-tblgen",
-#     td_file = "include/tfrt/jitrt/conversion/rt_passes.td",
-#     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
-# )
 #
 # gentbl_cc_library(
 #     name = "codegen_transforms_passes_inc_gen",
@@ -283,48 +248,6 @@ licenses(["notice"])
 #     tblgen = "@llvm-project//mlir:mlir-tblgen",
 #     td_file = "include/tfrt/jitrt/transforms/codegen_passes.td",
 #     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
-# )
-#
-# tfrt_cc_library(
-#     name = "custom_call_to_llvm",
-#     srcs = ["lib/conversion/custom_call_to_llvm.cc"],
-#     hdrs = ["include/tfrt/jitrt/conversion/custom_call_to_llvm.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["@tf_runtime//:friends"],
-#     deps = [
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:ArithmeticDialect",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:LLVMCommonConversion",
-#         "@llvm-project//mlir:LLVMDialect",
-#         "@llvm-project//mlir:Support",
-#         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
-#         "//third_party/tensorflow/compiler/xla/runtime:type_id",
-#     ],
-# )
-#
-# tfrt_cc_library(
-#     name = "rt_conversion",
-#     srcs = ["lib/conversion/rt_to_llvm.cc"],
-#     hdrs = ["include/tfrt/jitrt/conversion/rt_passes.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     deps = [
-#         ":custom_call_to_llvm",
-#         ":rt_conversion_passes_inc_gen",
-#         "@llvm-project//llvm:Support",
-#         "@llvm-project//mlir:ArithmeticDialect",
-#         "@llvm-project//mlir:FuncDialect",
-#         "@llvm-project//mlir:FuncToLLVM",
-#         "@llvm-project//mlir:FuncTransforms",
-#         "@llvm-project//mlir:IR",
-#         "@llvm-project//mlir:LLVMCommonConversion",
-#         "@llvm-project//mlir:LLVMDialect",
-#         "@llvm-project//mlir:Pass",
-#         "@llvm-project//mlir:Support",
-#         "@llvm-project//mlir:Transforms",
-#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
-#         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
-#     ],
 # )
 #
 # tfrt_cc_library(

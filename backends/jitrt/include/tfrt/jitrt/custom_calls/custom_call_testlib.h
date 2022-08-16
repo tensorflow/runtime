@@ -20,10 +20,14 @@
 #include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests/testlib.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 
+namespace xla {
+namespace runtime {
+class CustomCallAttrEncodingSet;
+}  // namespace runtime
+}  // namespace xla
+
 namespace tfrt {
 namespace jitrt {
-
-class CustomCallAttrEncodingSet;
 
 xla::runtime::DirectCustomCallLibrary CustomCallTestlib();
 
@@ -40,7 +44,8 @@ struct RuntimePairOfDims {
 };
 
 // Populate encoding for custom dialect attributes (enums and structs).
-void PopulateCustomCallAttrEncoding(CustomCallAttrEncodingSet &encoding);
+void PopulateCustomCallAttrEncoding(
+    xla::runtime::CustomCallAttrEncodingSet &encoding);
 
 }  // namespace jitrt
 }  // namespace tfrt

@@ -22,11 +22,17 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-namespace tfrt {
-namespace jitrt {
+namespace xla {
+namespace runtime {
 
 class CustomCallArgEncodingSet;
 class CustomCallAttrEncodingSet;
+
+}  // namespace runtime
+}  // namespace xla
+
+namespace tfrt {
+namespace jitrt {
 
 // Registers dialects, interfaces and dialects translations with the registry
 // required by the default JitRt compilation pipeline.
@@ -61,8 +67,10 @@ struct CompilationPipelineOptions {
   // Custom encodings allow to pass dialect-specific attributes (enums and
   // structs) to the custom calls, and decode them into dialect-specific runtime
   // values in the custom call handlers (see custom_call_to_llvm.h for details).
-  std::function<void(CustomCallArgEncodingSet&)> populate_arg_encodings;
-  std::function<void(CustomCallAttrEncodingSet&)> populate_attr_encodings;
+  std::function<void(xla::runtime::CustomCallArgEncodingSet&)>
+      populate_arg_encodings;
+  std::function<void(xla::runtime::CustomCallAttrEncodingSet&)>
+      populate_attr_encodings;
 };
 
 // Creates the default JitRt compilation pipeline that lowers from the Linalg

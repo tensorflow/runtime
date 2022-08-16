@@ -52,11 +52,10 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
-#include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
-#include "tfrt/jitrt/conversion/rt_passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/custom_call_encoding.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 
 namespace tfrt {
@@ -140,10 +139,10 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(CreateConvertToEntrypoint());
 
   // Convert runtime operations and custom calls to LLVM dialect.
-  ConvertRuntimeToLLvmOpts rt_opts = {opts.populate_type_conversions,
-                                      opts.populate_arg_encodings,
-                                      opts.populate_attr_encodings};
-  pm.addPass(CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
+  xla::runtime::ConvertRuntimeToLLvmOpts rt_opts = {
+      opts.populate_type_conversions, opts.populate_arg_encodings,
+      opts.populate_attr_encodings};
+  pm.addPass(xla::runtime::CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
 
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();

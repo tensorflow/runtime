@@ -22,9 +22,7 @@
 #include <utility>
 #include <vector>
 
-#include "llvm/ADT/TypeSwitch.h"
 #include "llvm_derived/Support/raw_ostream.h"
-#include "mlir/IR/DialectImplementation.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/jitrt/conversion/custom_call_to_llvm.h"
 #include "tfrt/support/error_util.h"
@@ -32,17 +30,6 @@
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/executable.h"
-
-// clang-format off
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.cc.inc"
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc"
-// clang-format on
-
-#define GET_ATTRDEF_CLASSES
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"
-
-#define GET_TYPEDEF_CLASSES
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_types.cc.inc"
 
 namespace tfrt {
 namespace jitrt {
@@ -56,17 +43,6 @@ using mlir::success;
 using llvm::StringRef;
 
 using namespace xla::runtime;  // NOLINT
-
-void TestlibDialect::initialize() {
-  addAttributes<
-#define GET_ATTRDEF_LIST
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc"
-      >();
-  addTypes<
-#define GET_TYPEDEF_LIST
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_types.cc.inc"
-      >();
-}
 
 XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(EnumType, "__type_id_enumtype");
 XLA_RUNTIME_STATIC_TYPEID_NAME_REGISTRATION(RuntimeEnumType,

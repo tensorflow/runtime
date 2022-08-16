@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   xla::runtime::registerRuntimeTransformsPasses();
 
   // Test-only dialect for testing custom calls encoding.
-  registry.insert<tfrt::jitrt::TestlibDialect>();
+  registry.insert<xla::runtime::TestlibDialect>();
 
   return failed(mlir::MlirOptMain(argc, argv, "JITRT pass driver\n", registry));
 }

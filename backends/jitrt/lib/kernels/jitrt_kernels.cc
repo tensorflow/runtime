@@ -112,7 +112,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     opts.compiler.runtime_symbol_map = GetSymbolsBinding(CustomCallTestlib());
 
     opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
-      registry.insert<TestlibDialect>();
+      registry.insert<xla::runtime::TestlibDialect>();
       RegisterDefaultJitRtDialects(registry);
     };
 

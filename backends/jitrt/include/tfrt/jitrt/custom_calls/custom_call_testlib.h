@@ -17,22 +17,8 @@
 #ifndef TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_
 #define TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_
 
-#include <cstdint>
-
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/Types.h"
+#include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests/testlib.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
-
-// clang-format off
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_dialect.h.inc"
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc"
-// clang-format on
-
-#define GET_ATTRDEF_CLASSES
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_attrs.h.inc"
-
-#define GET_TYPEDEF_CLASSES
-#include "tfrt/jitrt/custom_calls/custom_call_testlib_types.h.inc"
 
 namespace tfrt {
 namespace jitrt {
@@ -63,7 +49,7 @@ namespace xla {
 namespace runtime {
 
 // Explicitly register attributes decoding for enums passed to the custom calls.
-XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(tfrt::jitrt::EnumType);
+XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(EnumType);
 XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(tfrt::jitrt::RuntimeEnumType);
 
 // Explicitly register aggregate attributes decoding for structs.

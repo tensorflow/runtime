@@ -160,63 +160,6 @@ licenses(["notice"])
 #     ],
 # )
 #
-# td_library(
-#     name = "custom_call_testlib_td_files",
-#     srcs = [
-#         "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
-#         "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.td",
-#         "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.td",
-#         "include/tfrt/jitrt/custom_calls/custom_call_testlib_types.td",
-#     ],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     includes = ["include"],
-#     deps = [
-#         "@llvm-project//mlir:OpBaseTdFiles",
-#     ],
-# )
-#
-# gentbl_cc_library(
-#     name = "custom_call_testlib_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     tbl_outs = [
-#         (
-#             ["-gen-attrdef-decls"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.h.inc",
-#         ),
-#         (
-#             ["-gen-attrdef-defs"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_attrs.cc.inc",
-#         ),
-#         (
-#             ["-gen-dialect-decls"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_dialect.h.inc",
-#         ),
-#         (
-#             ["-gen-dialect-defs"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_dialect.cc.inc",
-#         ),
-#         (
-#             ["-gen-enum-decls"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.h.inc",
-#         ),
-#         (
-#             ["-gen-enum-defs"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_enums.cc.inc",
-#         ),
-#         (
-#             ["-gen-typedef-decls"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_types.h.inc",
-#         ),
-#         (
-#             ["-gen-typedef-defs"],
-#             "include/tfrt/jitrt/custom_calls/custom_call_testlib_types.cc.inc",
-#         ),
-#     ],
-#     tblgen = "@llvm-project//mlir:mlir-tblgen",
-#     td_file = "include/tfrt/jitrt/custom_calls/custom_call_testlib.td",
-#     deps = [":custom_call_testlib_td_files"],
-# )
-#
 # tfrt_cc_library(
 #     name = "custom_call_testlib",
 #     srcs = ["lib/custom_calls/custom_call_testlib.cc"],
@@ -226,12 +169,12 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":arguments",
-#         ":custom_call_testlib_inc_gen",
 #         ":custom_call_to_llvm",
 #         "@llvm-project//llvm:OrcJIT",
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:IR",
 #         "@llvm-project//mlir:Support",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests:testlib",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "//third_party/tensorflow/compiler/xla/runtime:executable",

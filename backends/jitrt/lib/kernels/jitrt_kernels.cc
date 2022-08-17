@@ -109,14 +109,9 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     copts.populate_type_id_names = PopulateCustomCallTypeIdNames;
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
 
-    // Register type id mappings for the supported types.
-    xla::runtime::TypeIDNameRegistry registry;
-    xla::runtime::PopulateCustomCallTypeIdNames(registry);
-    tfrt::jitrt::PopulateCustomCallTypeIdNames(registry);
-
     JitExecutable::Options opts;
     opts.compiler.symbols_binding =
-        GetSymbolsBinding(CustomCallTestlib(), std::move(registry));
+        ToSymbolsBinding(CustomCallTestlib(), PopulateCustomCallTypeIdNames);
 
     opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
       registry.insert<xla::runtime::TestlibDialect>();

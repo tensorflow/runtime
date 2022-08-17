@@ -291,7 +291,7 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   RegisterMyRuntimeTypeNames(registry);
 
   // Add a mapping from the custom call type id to symbol name.
-  opts.compiler.runtime_symbol_map = GetSymbolsBinding(std::move(registry));
+  opts.compiler.symbols_binding = GetSymbolsBinding(std::move(registry));
 
   // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time
   // type corresponding to a custom argument.

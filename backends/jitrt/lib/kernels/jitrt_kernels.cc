@@ -115,7 +115,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     tfrt::jitrt::PopulateCustomCallTypeIdNames(registry);
 
     JitExecutable::Options opts;
-    opts.compiler.runtime_symbol_map =
+    opts.compiler.symbols_binding =
         GetSymbolsBinding(CustomCallTestlib(), std::move(registry));
 
     opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {

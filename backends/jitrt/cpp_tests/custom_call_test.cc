@@ -74,7 +74,7 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
   JitExecutable::Options opts;
 
   opts.specialization = JitExecutable::Specialization::kDisabled;
-  opts.compiler.runtime_symbol_map = symbols_binding;
+  opts.compiler.symbols_binding = symbols_binding;
 
   opts.compiler.register_dialects = [&](mlir::DialectRegistry& registry) {
     registry.insert<TestlibDialect>();

@@ -51,7 +51,7 @@ struct disjunction<B1, Bn...>
 // Check whether T may be a base class.
 template <typename T>
 using MaybeBase =
-    llvm::conjunction<std::is_class<T>, llvm::negation<std::is_final<T>>>;
+    std::conjunction<std::is_class<T>, std::negation<std::is_final<T>>>;
 
 // An implementation of std::is_invocable in C++14. We can remove this code and
 // use std::is_invocable once we upgrade to C++17.

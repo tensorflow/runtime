@@ -119,7 +119,7 @@ def BenchmarkOp : Test_Op<"benchmark"> {
     I32Attr:$duration_secs,
     I32Attr:$max_count,
     StrAttr:$name,
-    DefaultValuedAttr<I32Attr, "1">:$num_warmup_runs
+    DefaultValuedOptionalAttr<I32Attr, "1">:$num_warmup_runs
   );
 
   let results = (outs TFRT_ChainType);
@@ -162,7 +162,7 @@ def SyncBenchmarkOp : Test_Op<"sync_benchmark"> {
     Variadic<AnyType>,
     I32Attr:$duration_secs,
     I32Attr:$max_count,
-    DefaultValuedAttr<I32Attr, "1">:$num_warmup_runs
+    DefaultValuedOptionalAttr<I32Attr, "1">:$num_warmup_runs
   );
 
   let results = (outs);

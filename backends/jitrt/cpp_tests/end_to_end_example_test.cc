@@ -149,7 +149,7 @@ struct CustomArgument
   // Check that argument matches the expected type.
   Error Verify(const Type& type) const final {
     if (isa<CustomArgRtType>(type)) return Error::success();
-    return MakeStringError("expected custom arg type, got: ", type);
+    return tfrt::MakeStringError("expected custom arg type, got: ", type);
   }
 
   // Packs an indirect pointer to the string message to the arguments array.

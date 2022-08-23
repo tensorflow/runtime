@@ -35,7 +35,7 @@ static void BM_RemainingResultsConverter(benchmark::State& state) {
   Context context;
 
   auto dims = std::array<int64_t, 4>({1, 1, 1, 1});
-  auto type = std::make_unique<MemrefType>(dims, DType::F32);
+  auto type = std::make_unique<MemrefType>(dims, xla::PrimitiveType::F32);
   auto memref = StridedMemRefType<float, 4>();
 
   for (auto _ : state) {
@@ -69,7 +69,7 @@ static void BM_StaticRemainingResultsConverter(benchmark::State& state) {
                                       ReturnMemref>;
 
   auto dims = std::array<int64_t, 4>({1, 1, 1, 1});
-  auto type = std::make_unique<MemrefType>(dims, DType::F32);
+  auto type = std::make_unique<MemrefType>(dims, xla::PrimitiveType::F32);
   auto memref = StridedMemRefType<float, 4>();
 
   for (auto _ : state) {

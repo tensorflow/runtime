@@ -32,6 +32,7 @@ namespace tfrt {
 namespace jitrt {
 
 using ::llvm::SmallVector;
+using ::xla::PrimitiveType;
 
 using namespace xla::runtime;  // NOLINT
 
@@ -65,7 +66,8 @@ SmallVector<MemrefDesc> GetFakeMemrefs(SmallVector<SymbolicShape> shapes) {
   memrefs.reserve(shapes.size());
 
   for (auto& shape : shapes) {
-    MemrefDesc desc(DType::F32, nullptr, 0, shape, shape /* fake strides */);
+    MemrefDesc desc(PrimitiveType::F32, nullptr, 0, shape,
+                    shape /* fake strides */);
     memrefs.push_back(std::move(desc));
   }
 

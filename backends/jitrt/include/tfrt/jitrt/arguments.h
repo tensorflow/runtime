@@ -17,6 +17,7 @@
 #ifndef TFRT_BACKENDS_JITRT_JITRT_H_
 #define TFRT_BACKENDS_JITRT_JITRT_H_
 
+#include "llvm/Support/Error.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
@@ -28,7 +29,7 @@ namespace jitrt {
 // Converts tfrt Tensor to the Memref descriptor if concrete Tensor type is
 // supported (currently only DenseHostTensor can be converted). Returns error
 // otherwise.
-Expected<xla::runtime::MemrefDesc> ConvertTensorToMemrefDesc(
+llvm::Expected<xla::runtime::MemrefDesc> ConvertTensorToMemrefDesc(
     const Tensor& tensor);
 
 }  // namespace jitrt

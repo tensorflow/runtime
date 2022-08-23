@@ -92,7 +92,7 @@ static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
 static Error Multiply(MemrefView input, MemrefView output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
   if (input.dtype != output.dtype || input.sizes != output.sizes ||
-      input.dtype != DType::F32)
+      input.dtype != xla::PrimitiveType::F32)
     return MakeStringError("Unsupported floating point dtype");
 
   int64_t num_elements = 1;

@@ -340,7 +340,7 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
   };
 
   // Dispatch based on the element type.
-  DType element_type = memref->element_type();
+  xla::PrimitiveType element_type = memref->element_type();
 
   // If the runtime memref type was derived from the Tensor type, take the
   // element type of the original tensor, because during lowering from the high
@@ -350,43 +350,43 @@ mlir::LogicalResult ReturnStridedMemref(ConversionContext& ctx,
     element_type = tensor->element_type();
 
   switch (element_type) {
-    case DType::F32:
+    case xla::PrimitiveType::F32:
       rank_dispatch(float{});
       break;
-    case DType::F64:
+    case xla::PrimitiveType::F64:
       rank_dispatch(double{});
       break;
-    case DType::UI8:
+    case xla::PrimitiveType::U8:
       rank_dispatch(uint8_t{});
       break;
-    case DType::UI16:
+    case xla::PrimitiveType::U16:
       rank_dispatch(uint16_t{});
       break;
-    case DType::UI32:
+    case xla::PrimitiveType::U32:
       rank_dispatch(uint32_t{});
       break;
-    case DType::UI64:
+    case xla::PrimitiveType::U64:
       rank_dispatch(uint64_t{});
       break;
-    case DType::I1:
+    case xla::PrimitiveType::PRED:
       rank_dispatch(bool{});
       break;
-    case DType::I8:
+    case xla::PrimitiveType::S8:
       rank_dispatch(int8_t{});
       break;
-    case DType::I16:
+    case xla::PrimitiveType::S16:
       rank_dispatch(int16_t{});
       break;
-    case DType::I32:
+    case xla::PrimitiveType::S32:
       rank_dispatch(int32_t{});
       break;
-    case DType::I64:
+    case xla::PrimitiveType::S64:
       rank_dispatch(int64_t{});
       break;
-    case DType::Complex64:
+    case xla::PrimitiveType::C64:
       rank_dispatch(std::complex<float>{});
       break;
-    case DType::Complex128:
+    case xla::PrimitiveType::C128:
       rank_dispatch(std::complex<double>{});
       break;
     default:
@@ -496,45 +496,46 @@ mlir::LogicalResult ReturnAsyncStridedMemref(
   };
 
   // Dispatch based on the memref element type.
-  DType element_type = memref->element_type();
+  xla::PrimitiveType element_type = memref->element_type();
+
   switch (element_type) {
-    case DType::F32:
+    case xla::PrimitiveType::F32:
       rank_dispatch(float{});
       break;
-    case DType::F64:
+    case xla::PrimitiveType::F64:
       rank_dispatch(double{});
       break;
-    case DType::I1:
+    case xla::PrimitiveType::PRED:
       rank_dispatch(bool{});
       break;
-    case DType::I8:
+    case xla::PrimitiveType::S8:
       rank_dispatch(int8_t{});
       break;
-    case DType::I16:
+    case xla::PrimitiveType::S16:
       rank_dispatch(int16_t{});
       break;
-    case DType::I32:
+    case xla::PrimitiveType::S32:
       rank_dispatch(int32_t{});
       break;
-    case DType::I64:
+    case xla::PrimitiveType::S64:
       rank_dispatch(int64_t{});
       break;
-    case DType::UI8:
+    case xla::PrimitiveType::U8:
       rank_dispatch(uint8_t{});
       break;
-    case DType::UI16:
+    case xla::PrimitiveType::U16:
       rank_dispatch(uint16_t{});
       break;
-    case DType::UI32:
+    case xla::PrimitiveType::U32:
       rank_dispatch(uint32_t{});
       break;
-    case DType::UI64:
+    case xla::PrimitiveType::U64:
       rank_dispatch(uint64_t{});
       break;
-    case DType::Complex64:
+    case xla::PrimitiveType::C64:
       rank_dispatch(std::complex<float>{});
       break;
-    case DType::Complex128:
+    case xla::PrimitiveType::C128:
       rank_dispatch(std::complex<double>{});
       break;
     default:

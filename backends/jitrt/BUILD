@@ -18,7 +18,7 @@ licenses(["notice"])
 #         "include/tfrt/jitrt/opdefs/jitrt_base.td",
 #         "include/tfrt/jitrt/opdefs/jitrt_ops.td",
 #     ],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     includes = ["include"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
@@ -29,7 +29,7 @@ licenses(["notice"])
 #
 # gentbl_cc_library(
 #     name = "jitrt_opdefs_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     tbl_outs = [
 #         (
 #             [
@@ -63,7 +63,7 @@ licenses(["notice"])
 #     name = "jitrt_opdefs",
 #     srcs = ["lib/opdefs/jitrt_ops.cc"],
 #     hdrs = ["include/tfrt/jitrt/opdefs/jitrt_ops.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":jitrt_opdefs_inc_gen",
@@ -80,9 +80,10 @@ licenses(["notice"])
 #     name = "arguments",
 #     srcs = ["lib/arguments.cc"],
 #     hdrs = ["include/tfrt/jitrt/arguments.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
+#         "@llvm-project//llvm:Support",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:support",
@@ -94,7 +95,7 @@ licenses(["notice"])
 #     name = "jitrt_compiler",
 #     srcs = ["lib/jitrt_compiler.cc"],
 #     hdrs = ["include/tfrt/jitrt/jitrt_compiler.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":codegen_transforms",
@@ -143,7 +144,7 @@ licenses(["notice"])
 #     name = "results",
 #     srcs = ["lib/results.cc"],
 #     hdrs = ["include/tfrt/jitrt/results.h"],
-#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:gce"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         "@llvm-project//llvm:Support",
@@ -164,7 +165,7 @@ licenses(["notice"])
 #     srcs = ["lib/custom_calls/custom_call_testlib.cc"],
 #     hdrs = ["include/tfrt/jitrt/custom_calls/custom_call_testlib.h"],
 #     alwayslink_static_registration_src = "lib/custom_calls/custom_call_testlib_registration.cc",
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":arguments",
@@ -235,7 +236,7 @@ licenses(["notice"])
 #
 # gentbl_cc_library(
 #     name = "codegen_transforms_passes_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     tbl_outs = [
 #         (
 #             [
@@ -254,7 +255,7 @@ licenses(["notice"])
 #     name = "codegen_transforms",
 #     srcs = ["lib/transforms/cost_driven_async_parallel_for.cc"],
 #     hdrs = ["include/tfrt/jitrt/transforms/codegen_passes.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     compatible_with = ["//buildenv/target:gce"],
 #     deps = [
 #         ":codegen_transforms_passes_inc_gen",
 #         "@llvm-project//llvm:Support",

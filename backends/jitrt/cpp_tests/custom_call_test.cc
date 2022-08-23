@@ -123,7 +123,8 @@ static SmallVector<MemrefDesc> GetFakeMemrefs(
 
   for (auto& shape : shapes) {
     // Data type of the fake memrefs doesn't matter.
-    MemrefDesc desc(DType::F32, nullptr, 0, shape, shape /* fake strides */);
+    MemrefDesc desc(xla::PrimitiveType::F32, nullptr, 0, shape,
+                    shape /* fake strides */);
     memrefs.push_back(std::move(desc));
   }
 

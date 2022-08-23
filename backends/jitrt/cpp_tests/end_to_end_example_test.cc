@@ -53,6 +53,7 @@ using mlir::FailureOr;
 using mlir::LogicalResult;
 using mlir::success;
 using mlir::TypeID;
+using xla::PrimitiveType;
 
 namespace LLVM = mlir::LLVM;
 
@@ -379,8 +380,9 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // Prepare arguments for the executable.
   Arguments<CustomArgument, MemrefDesc> args(3);
   args.emplace_back<CustomArgument>("hello from the other side");
-  args.emplace_back<MemrefDesc>(DType::F32, input.data(), 0, sizes, strides);
-  args.emplace_back<MemrefDesc>(DType::I32, perm.data(), 0, 2, 1);
+  args.emplace_back<MemrefDesc>(PrimitiveType::F32, input.data(), 0, sizes,
+                                strides);
+  args.emplace_back<MemrefDesc>(PrimitiveType::S32, perm.data(), 0, 2, 1);
 
   // ------------------------------------------------------------------------ //
   // 5. Prepare options for executing the JitRt executable.

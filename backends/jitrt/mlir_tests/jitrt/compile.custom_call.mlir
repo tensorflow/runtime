@@ -422,9 +422,9 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK: arg[2]: f32: 1.000000e+00
   // CHECK: arg[3]: f64: 2.000000e+00
 
-  // CHECK: arg[4]: StridedMemrefView: dtype: i64 sizes: [1] strides: [1]
-  // CHECK-SAME:    MemrefView: dtype: i64 sizes: [1]
-  // CHECK-SAME:    FlatMemrefView: dtype: i64 size_in_bytes: 8
+  // CHECK: arg[4]: StridedMemrefView: dtype: s64 sizes: [1] strides: [1]
+  // CHECK-SAME:    MemrefView: dtype: s64 sizes: [1]
+  // CHECK-SAME:    FlatMemrefView: dtype: s64 size_in_bytes: 8
 
   // CHECK: arg[5]: StridedMemrefView: dtype: f32 sizes: [2] strides: [1]
   // CHECK-SAME:    MemrefView: dtype: f32 sizes: [2]
@@ -433,7 +433,7 @@ func.func @compiled_custom_call_variadic_args() {
   // CHECK: arg[6]: StridedMemrefView: {{.*}} sizes: [16, 3] strides: [1, 16]
   // CHECK-SAME:    None / None
 
-  // CHECK: arg: MemrefView: dtype: i64 sizes: [1]
+  // CHECK: arg: MemrefView: dtype: s64 sizes: [1]
   // CHECK: Number of variadic arguments: 5
   // CHECK: arg[0]: i32: 123
   // CHECK: arg[1]: i64: 456
@@ -455,9 +455,9 @@ func.func @compiled_custom_call_variant_arg() {
 
   // CHECK: i32: 123
   // CHECK: i64: 456
-  // CHECK: StridedMemrefView: dtype: i64 sizes: [1] strides: [1]
-  // CHECK-SAME: MemrefView: dtype: i64 sizes: [1]
-  // CHECK-SAME: FlatMemrefView: dtype: i64 size_in_bytes: 8
+  // CHECK: StridedMemrefView: dtype: s64 sizes: [1] strides: [1]
+  // CHECK-SAME: MemrefView: dtype: s64 sizes: [1]
+  // CHECK-SAME: FlatMemrefView: dtype: s64 size_in_bytes: 8
   %executable = jitrt.compile { kernel = @variant_arg::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 

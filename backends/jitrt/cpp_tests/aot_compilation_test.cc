@@ -33,6 +33,7 @@ namespace jitrt {
 namespace {
 
 using ::llvm::SmallVector;
+using ::xla::PrimitiveType;
 
 using namespace xla::runtime;  // NOLINT
 
@@ -79,8 +80,8 @@ TEST(AotCompilationTest, CompileSaveRestore) {
 
   // Prepare memref descriptors for the executable.
   llvm::SmallVector<MemrefDesc> args;
-  args.emplace_back(DType::F32, arg0.data(), 0, 4, 1);
-  args.emplace_back(DType::F32, arg1.data(), 0, 4, 1);
+  args.emplace_back(PrimitiveType::F32, arg0.data(), 0, 4, 1);
+  args.emplace_back(PrimitiveType::F32, arg1.data(), 0, 4, 1);
 
   Executable::ExecuteOpts execute_opts;
   execute_opts.async_task_runner =
@@ -106,13 +107,13 @@ TEST(AotCompilationTest, CompileSaveRestore) {
 
   // Load executable from an object file.
   llvm::SmallVector<std::unique_ptr<Type>> operands;
-  operands.push_back(std::make_unique<MemrefType>(4, DType::F32));
-  operands.push_back(std::make_unique<MemrefType>(4, DType::F32));
+  operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
+  operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
 
   llvm::SmallVector<std::unique_ptr<Type>> rt_operands;
   rt_operands.push_back(std::make_unique<KernelContextOperandType>());
-  rt_operands.push_back(std::make_unique<MemrefType>(4, DType::F32));
-  rt_operands.push_back(std::make_unique<MemrefType>(4, DType::F32));
+  rt_operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
+  rt_operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
 
   FunctionType signature(std::move(operands), /*results=*/{});
   FunctionType rt_signature(std::move(rt_operands), /*results=*/{});

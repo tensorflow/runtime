@@ -18,7 +18,7 @@ load("@tf_runtime//mlir_tests:lit.bzl", "glob_lit_tests")
 load("@tf_runtime//:build_defs.bzl", "if_google")
 
 def mlir_to_bef(name, tfrt_translate):
-    """Runs "tfrt_translate -mlir-to-bef $test.mlir" to create $test.bef.
+    """Runs "tfrt_translate -mlir-to-bef $test.mlir" to create $test.mlir.bef.
 
     Args:
       name: the name of mlir test.

@@ -46,6 +46,7 @@ namespace jitrt {
 
 using namespace xla::runtime;  // NOLINT
 
+using absl::StatusOr;
 using llvm::ErrorOr;
 using llvm::SmallVector;
 using mlir::failure;
@@ -128,7 +129,7 @@ struct CustomArgRtType : public llvm::RTTIExtends<CustomArgRtType, Type> {
   static constexpr char ID = 0;  // NOLINT
 
   // We pass custom argument as an opaque pointer (`void*` or `!llvm.ptr`).
-  ErrorOr<ArgumentAbi> AsArgument() const final { return ArgumentAbi{1}; }
+  StatusOr<ArgumentAbi> AsArgument() const final { return ArgumentAbi{1}; }
 
   raw_ostream& print(raw_ostream& os) const final {
     return os << "!testlib.custom_arg";

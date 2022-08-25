@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -105,15 +106,17 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   EXPECT_TRUE(obj_file);
   EXPECT_GT(obj_file->getBufferSize(), 0);
 
-  // Load executable from an object file.
-  llvm::SmallVector<std::unique_ptr<Type>> operands;
-  operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
-  operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
+  std::array<int64_t, 1> dims = {4};
 
-  llvm::SmallVector<std::unique_ptr<Type>> rt_operands;
+  // Load executable from an object file.
+  std::vector<std::unique_ptr<Type>> operands;
+  operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
+  operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
+
+  std::vector<std::unique_ptr<Type>> rt_operands;
   rt_operands.push_back(std::make_unique<KernelContextOperandType>());
-  rt_operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
-  rt_operands.push_back(std::make_unique<MemrefType>(4, PrimitiveType::F32));
+  rt_operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
+  rt_operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
 
   FunctionType signature(std::move(operands), /*results=*/{});
   FunctionType rt_signature(std::move(rt_operands), /*results=*/{});

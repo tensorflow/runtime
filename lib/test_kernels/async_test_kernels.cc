@@ -114,7 +114,7 @@ static void TestQuiesce(Argument<Chain> in_ch, Result<Chain> out_ch,
 // Return a chain to signal the availability of the arguments.
 static AsyncValueRef<Chain> TestAsChain(RemainingArguments args,
                                         const ExecutionContext& exec_ctx) {
-  auto chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
+  auto chain = MakeUnconstructedAsyncValueRef<Chain>();
   RunWhenReady(args.values(), [chain = chain.CopyRef()]() { chain.emplace(); });
   return chain;
 }
@@ -144,7 +144,7 @@ static void TestReportIndirectErrorAsync(Argument<int32_t> in,
   EnqueueWork(exec_ctx, [in = *in, result_ref = std::move(result_ref),
                          frame = *frame, host]() mutable {
     if (in == 0) {
-      auto concrete_av = MakeAvailableAsyncValueRef<int32_t>(host);
+      auto concrete_av = MakeAvailableAsyncValueRef<int32_t>();
       result_ref->ForwardTo(std::move(concrete_av));
     } else {
       // ReportError creates a ConcreteAsyncValue in error state and

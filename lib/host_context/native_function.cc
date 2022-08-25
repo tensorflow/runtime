@@ -47,7 +47,7 @@ void NativeFunction::Execute(
   llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> indirect_results;
   indirect_results.reserve(results.size());
   for (auto& av_ref : results) {
-    indirect_results.push_back(MakeIndirectAsyncValue(host));
+    indirect_results.push_back(MakeIndirectAsyncValue());
     av_ref = indirect_results.back();
   }
 

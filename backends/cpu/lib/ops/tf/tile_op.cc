@@ -105,7 +105,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
 
     cpu::TileStringTensor(input, dest.getPointer());
 
-    return MakeAvailableAsyncValueRef<StringHostTensor>(host, std::move(*dest));
+    return MakeAvailableAsyncValueRef<StringHostTensor>(std::move(*dest));
 
   } else {
     return EmitErrorAsync(exec_ctx, "Unsupported tensor type");

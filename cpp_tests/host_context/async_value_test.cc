@@ -32,8 +32,7 @@ class AsyncValueTest : public ::testing::Test {
 };
 
 TEST_F(AsyncValueTest, ConstructedToError) {
-  AsyncValue* value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), 123).release();
+  AsyncValue* value = MakeConstructedAsyncValueRef<int32_t>(123).release();
   bool callback_triggered = false;
 
   EXPECT_TRUE(value->IsConstructed());
@@ -52,8 +51,7 @@ TEST_F(AsyncValueTest, ConstructedToError) {
 }
 
 TEST_F(AsyncValueTest, ConstructedToConcrete) {
-  AsyncValue* value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), 123).release();
+  AsyncValue* value = MakeConstructedAsyncValueRef<int32_t>(123).release();
 
   EXPECT_TRUE(value->IsConstructed());
   EXPECT_FALSE(value->IsConcrete());
@@ -71,8 +69,7 @@ TEST_F(AsyncValueTest, ConstructedToConcrete) {
 }
 
 TEST_F(AsyncValueTest, UnconstructedEmplace) {
-  AsyncValue* value =
-      MakeUnconstructedAsyncValueRef<int32_t>(host_context_.get()).release();
+  AsyncValue* value = MakeUnconstructedAsyncValueRef<int32_t>().release();
 
   EXPECT_FALSE(value->IsConstructed());
   EXPECT_FALSE(value->IsConcrete());
@@ -91,8 +88,7 @@ TEST_F(AsyncValueTest, UnconstructedEmplace) {
 }
 
 TEST_F(AsyncValueTest, AddAndDropRef) {
-  AsyncValue* value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), 123).release();
+  AsyncValue* value = MakeConstructedAsyncValueRef<int32_t>(123).release();
 
   value->AndThen([] {});
   value->SetStateConcrete();
@@ -120,8 +116,8 @@ TEST_F(AsyncValueTest, KeepPayloadOnError) {
 
   {
     // Test non-error case.
-    AsyncValueRef<Payload> value = MakeConstructedAsyncValueRef<Payload>(
-        host_context_.get(), &payload_value);
+    AsyncValueRef<Payload> value =
+        MakeConstructedAsyncValueRef<Payload>(&payload_value);
 
     EXPECT_EQ(1, *value->value);
 
@@ -134,8 +130,8 @@ TEST_F(AsyncValueTest, KeepPayloadOnError) {
 
   {
     // Test error case.
-    AsyncValueRef<Payload> value = MakeConstructedAsyncValueRef<Payload>(
-        host_context_.get(), &payload_value);
+    AsyncValueRef<Payload> value =
+        MakeConstructedAsyncValueRef<Payload>(&payload_value);
 
     EXPECT_TRUE(!value.IsError());
 

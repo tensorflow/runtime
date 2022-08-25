@@ -371,8 +371,7 @@ template <typename BinaryFunctor>
 AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
                                   HostTensor* output,
                                   const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-  AsyncValueRef<Chain> chain = MakeConstructedAsyncValueRef<Chain>(host);
+  AsyncValueRef<Chain> chain = MakeConstructedAsyncValueRef<Chain>();
 
   auto on_done = [chain = chain.CopyRef()](Error err) {
     err ? chain.SetError(err) : chain.SetStateConcrete();

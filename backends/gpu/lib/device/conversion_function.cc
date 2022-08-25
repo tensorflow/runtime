@@ -46,7 +46,7 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
   llvm::Optional<DenseHostTensor> result_or_error =
       DenseHostTensor::CreateUninitialized(gpu_tensor.metadata(), host);
   if (!result_or_error) {
-    return MakeErrorAsyncValueRef(host, "cannot allocate result tensor");
+    return MakeErrorAsyncValueRef("cannot allocate result tensor");
   }
   DenseHostTensor result = std::move(*result_or_error);
 
@@ -58,17 +58,16 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
       MemcpyAsync(current_context, /*dst=*/memcpy_dst, /*src=*/memcpy_src,
                   size_in_bytes, stream);
   if (memcpy_error) {
-    return MakeErrorAsyncValueRef(host,
-                                  "failed to enqueue host to device memcpy: " +
-                                      toString(std::move(memcpy_error)));
+    return MakeErrorAsyncValueRef("failed to enqueue host to device memcpy: " +
+                                  toString(std::move(memcpy_error)));
   }
 
   llvm::Expected<OwningEvent> event_or_error =
       wrapper::EventCreateNoTiming(current_context);
   if (!event_or_error) {
     return MakeErrorAsyncValueRef(
-        host, "could not create event to wait for host to device memcpy: " +
-                  toString(event_or_error.takeError()));
+        "could not create event to wait for host to device memcpy: " +
+        toString(event_or_error.takeError()));
   }
 
   OwningEvent event = std::move(*event_or_error);
@@ -76,8 +75,8 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
   llvm::Error event_record_error = EventRecord(event.get(), stream);
   if (event_record_error) {
     return MakeErrorAsyncValueRef(
-        host, "could not enqueue event to wait for host to device memcpy: " +
-                  toString(std::move(event_record_error)));
+        "could not enqueue event to wait for host to device memcpy: " +
+        toString(std::move(event_record_error)));
   }
 
   return EnqueueBlockingWork(

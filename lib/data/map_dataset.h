@@ -84,7 +84,6 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
     const Function* function,
     llvm::SmallVector<RCReference<AsyncValue>, 4> arguments,
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
   auto num_results = function->result_types().size();
   bool is_ready = true;
   llvm::SmallVector<AsyncValue*, 4> argument_ptrs;
@@ -106,7 +105,7 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
   results.resize(num_results);
   results_copy.resize(num_results);
   for (size_t i = 0; i < num_results; ++i) {
-    results[i] = MakeIndirectAsyncValue(host);
+    results[i] = MakeIndirectAsyncValue();
     results_copy[i] = results[i];
   }
 

@@ -48,7 +48,7 @@ RCReference<AsyncValue> RemoteObjectManager::GetRemoteObject(
   if (iter != object_maps_.end()) {
     return iter->second;
   }
-  RCReference<AsyncValue> value = MakeIndirectAsyncValue(host_context_);
+  RCReference<AsyncValue> value = MakeIndirectAsyncValue();
   object_maps_[id] = value;
   return value;
 }

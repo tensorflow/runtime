@@ -81,8 +81,8 @@ void ServerContext::ResetRequestHandler(
 Expected<DistributedContext*> ServerContext::CreateDistributedContext(
     uint64_t context_id, DistributedContextConfiguration configuration) {
   AsyncValueRef<DistributedContext> dist_context =
-      MakeAvailableAsyncValueRef<DistributedContext>(
-          host_context_, context_id, this, std::move(configuration));
+      MakeAvailableAsyncValueRef<DistributedContext>(context_id, this,
+                                                     std::move(configuration));
   DistributedContext* context = &dist_context.get();
 
   mutex_lock l(context_mu_);
@@ -124,7 +124,6 @@ ServerContext::GetDistributedContextAsyncValue(uint64_t context_id) const {
   auto it = dist_contexts_.find(context_id);
   if (it == dist_contexts_.end()) {
     return MakeErrorAsyncValueRef(
-        host_context_,
         StrCat("Context with id ", context_id, " does not exist."));
   }
   RecordContextAccess(context_id);

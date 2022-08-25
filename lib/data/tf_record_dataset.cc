@@ -17,6 +17,8 @@
 
 #include "tf_record_dataset.h"
 
+#include <string>
+
 #include "tfrt/io/buffered_input_stream.h"
 #include "tfrt/io/file_input_stream.h"
 #include "tfrt/io/file_system.h"
@@ -44,7 +46,7 @@ IterationResult TFRecordDatasetIterator::GetNextElement(
     const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   if (auto error = MaybeInitializeStream()) {
-    auto async_error = MakeErrorAsyncValueRef(host, StrCat(error));
+    auto async_error = MakeErrorAsyncValueRef(StrCat(error));
     return IterationResult::Error(std::move(async_error), 1);
   }
 
@@ -57,13 +59,12 @@ IterationResult TFRecordDatasetIterator::GetNextElement(
   if (!result) {
     // Do not decode location or emit error because the local handler might have
     // been freed.
-    auto error = MakeErrorAsyncValueRef(host, StrCat(result.takeError()));
+    auto error = MakeErrorAsyncValueRef(StrCat(result.takeError()));
     return IterationResult::Error(std::move(error), 1);
   }
 
   llvm::SmallVector<RCReference<AsyncValue>, 4> values;
-  values.push_back(
-      MakeAvailableAsyncValueRef<std::string>(host, std::move(*result)));
+  values.push_back(MakeAvailableAsyncValueRef<std::string>(std::move(*result)));
   return IterationResult::Values(std::move(values), host);
 }
 

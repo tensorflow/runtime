@@ -81,7 +81,7 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
     }
     auto shape = metadata_ref.get().shape;
     value_ref->ForwardTo(
-        MakeAvailableAsyncValueRef<TensorShape>(host, std::move(shape)));
+        MakeAvailableAsyncValueRef<TensorShape>(std::move(shape)));
   });
 }
 
@@ -186,7 +186,7 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
 
   auto metadata = dht->metadata();
   auto tensor_ref =
-      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(*dht));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(*dht));
   if (!tensor_ref)
     return MakeStringError("failed to allocate dense host tensor");
 
@@ -780,7 +780,7 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
   static const DeviceType &gpu_device = GetStaticDeviceType("gpu");
   static const DeviceType &tpu_device = GetStaticDeviceType("tpu");
 
-  auto result = MakeUnconstructedAsyncValueRef<TensorType>(exec_ctx.host());
+  auto result = MakeUnconstructedAsyncValueRef<TensorType>();
   auto tensor = AsyncValueRef<Tensor>(FormRef(tensor_handle.GetAsyncTensor()));
 
   AsyncValue *tensor_ptr = tensor.GetAsyncValue();
@@ -868,17 +868,15 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
   const RCReference<Device> &device = src.GetAvailableDevice();
 
   if (src_av->IsAvailable()) {
-    auto result = MakeUnconstructedAsyncValueRef<int32_t>(exec_ctx.host());
+    auto result = MakeUnconstructedAsyncValueRef<int32_t>();
     get_index(src_av, *device, result.CopyRef());
     return result;
   } else {
-    RCReference<IndirectAsyncValue> result_ind_av =
-        MakeIndirectAsyncValue(exec_ctx.host());
+    RCReference<IndirectAsyncValue> result_ind_av = MakeIndirectAsyncValue();
     auto result = AsyncValueRef<int32_t>(result_ind_av);
     src_av->AndThen([src_av = FormRef(src_av), device = device, get_index,
                      result_ind_av = std::move(result_ind_av), exec_ctx] {
-      auto result_value =
-          MakeUnconstructedAsyncValueRef<int32_t>(exec_ctx.host());
+      auto result_value = MakeUnconstructedAsyncValueRef<int32_t>();
       get_index(src_av.get(), *device, result_value.CopyRef());
       result_ind_av->ForwardTo(FormRef(result_value.GetAsyncValue()));
     });

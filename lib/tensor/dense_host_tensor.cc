@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <utility>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/MD5.h"
@@ -61,7 +62,7 @@ AsyncValueRef<DenseHostTensor> DenseHostTensor::MakeConstructedAsyncValueRef(
   if (!dht) return {};
 
   return tfrt::MakeConstructedAsyncValueRef<DenseHostTensor>(
-      host, std::move(dht.getValue()));
+      std::move(dht.getValue()));
 }
 
 void DenseHostTensor::Print(raw_ostream& os) const {
@@ -109,12 +110,12 @@ static AsyncValueRef<DenseHostTensor> ConvertDenseHostTensorToDenseHostTensor(
   auto* host = exec_ctx.host();
   // We need to make a copy of the data, because the source and result
   // buffers are logically independent.
-  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>();
 
   auto result_alloc =
       DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
   if (!result_alloc)
-    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
+    return MakeErrorAsyncValueRef("out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 

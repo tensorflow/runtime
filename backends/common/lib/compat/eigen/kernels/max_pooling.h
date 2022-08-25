@@ -210,7 +210,7 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
   const size_t image_patch_size = num_channels * ksize[0] * ksize[1];
   const size_t min_block_size =
       std::max(static_cast<size_t>(1), kMinPatchSize / image_patch_size);
-  auto chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
+  auto chain = MakeUnconstructedAsyncValueRef<Chain>();
   auto args = KeepBuffers::alive(&input, output);
 
   ParallelFor(exec_ctx).Execute(

@@ -39,13 +39,11 @@ static AsyncValueRef<Chain> ExecuteAsyncParallelForBody(
   auto compute = [exec_ctx, offset, body_fn,
                   args = RCArray<AsyncValue>(args.values())](size_t start,
                                                              size_t end) {
-    HostContext* host = exec_ctx.host();
-
     // Pack parallel block arguments into async values.
     auto start_arg = MakeAvailableAsyncValueRef<int32_t>(
-        host, static_cast<int32_t>(start + offset));
-    auto end_arg = MakeAvailableAsyncValueRef<int32_t>(
-        host, static_cast<int32_t>(end + offset));
+        static_cast<int32_t>(start + offset));
+    auto end_arg =
+        MakeAvailableAsyncValueRef<int32_t>(static_cast<int32_t>(end + offset));
 
     llvm::SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
                                                  end_arg.GetAsyncValue()};
@@ -84,13 +82,11 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
   auto compute = [exec_ctx, offset, body_fn,
                   args = RCArray<AsyncValue>(args.values())](size_t start,
                                                              size_t end) {
-    HostContext* host = exec_ctx.host();
-
     // Pack parallel block arguments into async values.
     auto start_arg = MakeAvailableAsyncValueRef<int32_t>(
-        host, static_cast<int32_t>(start + offset));
-    auto end_arg = MakeAvailableAsyncValueRef<int32_t>(
-        host, static_cast<int32_t>(end + offset));
+        static_cast<int32_t>(start + offset));
+    auto end_arg =
+        MakeAvailableAsyncValueRef<int32_t>(static_cast<int32_t>(end + offset));
 
     llvm::SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
                                                  end_arg.GetAsyncValue()};
@@ -103,7 +99,7 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
   };
 
   // Mark result chain completed when all parallel for blocks are completed.
-  auto done = MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
+  auto done = MakeConstructedAsyncValueRef<Chain>();
   auto on_done = [done = done.CopyRef()]() { done.SetStateConcrete(); };
 
   // Launch parallel for operation.
@@ -140,7 +136,7 @@ static AsyncValueRef<Chain> TFRTParallelFor(const ExecutionContext& exec_ctx,
 
   } else {
     return MakeErrorAsyncValueRef(
-        exec_ctx.host(), "Invalid parallel body function result types");
+        "Invalid parallel body function result types");
   }
 }
 

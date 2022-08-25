@@ -91,7 +91,7 @@ struct ConversionFnImpl<ReturnT (*)(const TensorT&, const SrcDeviceT&,
     static AsyncValueRef<Tensor> handle(ReturnTensorT v,
                                         const ExecutionContext& exec_ctx) {
       return MakeAvailableAsyncValueRef<ReturnTensorT>(
-          exec_ctx.host(), std::forward<ReturnTensorT>(v));
+          std::forward<ReturnTensorT>(v));
     }
 
     static TensorType type() { return ReturnTensorT::kTensorType; }

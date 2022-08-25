@@ -939,9 +939,9 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
 
   RCReference<AsyncValue> out;
   if (need_compilation) {
-    out = MakeUnconstructedAsyncValueRef<RemoteExecuteSpec>(exec_ctx.host());
+    out = MakeUnconstructedAsyncValueRef<RemoteExecuteSpec>();
   } else {
-    out = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
+    out = MakeUnconstructedAsyncValueRef<Chain>();
   }
   results[0] = out;
 
@@ -1005,13 +1005,12 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
             device_str);
     if (device.get() == nullptr) {
       TFRT_LOG(ERROR) << "Can't find device: " << device_str;
-      return MakeErrorAsyncValueRef(exec_ctx.host(),
-                                    StrCat("Can't find device: ", device_str));
+      return MakeErrorAsyncValueRef(StrCat("Can't find device: ", device_str));
     }
     output_devices.push_back(device);
   }
   return MakeAvailableAsyncValueRef<RemoteExecuteSpec>(
-      exec_ctx.host(), std::move(output_devices));
+      std::move(output_devices));
 }
 
 void RemoteExecute(Chain ch, DistributedContext* dist_context,
@@ -1037,8 +1036,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
     add_input->set_device(input.device->name().str());
   }
   // First output: chain
-  AsyncValueRef<Chain> out_chain =
-      MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
+  AsyncValueRef<Chain> out_chain = MakeConstructedAsyncValueRef<Chain>();
   results[0] = out_chain.CopyRef();
 
   // If output_id is preallocated, we only return TensorHandles. Otherwise, we
@@ -1083,7 +1081,6 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
     } else {
       // Allocate output id
       out_id = MakeAvailableAsyncValueRef<RemoteObjectId>(
-          exec_ctx.host(),
           manager->AllocateRemoteObject(std::move(output_device)));
       // The next num_id_outputs are RemoteObjectId
       results[i] = out_id.CopyRef();
@@ -1093,13 +1090,10 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
     const bool need_metadata =
         i > (num_fn_output - num_output_with_tensorhandle);
     if (need_metadata) {
-      auto tensor =
-          MakeUnconstructedAsyncValueRef<RemoteTensor>(exec_ctx.host());
-      auto metadata =
-          MakeUnconstructedAsyncValueRef<TensorMetadata>(exec_ctx.host());
+      auto tensor = MakeUnconstructedAsyncValueRef<RemoteTensor>();
+      auto metadata = MakeUnconstructedAsyncValueRef<TensorMetadata>();
       AsyncValueRef<TensorHandle> th = MakeAvailableAsyncValueRef<TensorHandle>(
-          exec_ctx.host(), out_id->device, metadata.CopyRef(),
-          tensor.CopyRef());
+          out_id->device, metadata.CopyRef(), tensor.CopyRef());
       remote_objs.emplace_back(RemoteObjectAndMetadata{
           out_id.CopyRef(), std::move(tensor), std::move(metadata)});
       // The remaining outputs are TensorHandle
@@ -1183,7 +1177,7 @@ AsyncValueRef<RemoteObjectId> GetChainForTaskHandle(
     Chain ch, RemoteChainManager* chain_manager, TaskHandle task,
     const ExecutionContext& exec_ctx) {
   return MakeAvailableAsyncValueRef<RemoteObjectId>(
-      exec_ctx.host(), chain_manager->GetRemoteChain(task));
+      chain_manager->GetRemoteChain(task));
 }
 
 AsyncValueRef<Chain> SetChainForTaskHandle(

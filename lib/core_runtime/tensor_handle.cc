@@ -170,7 +170,6 @@ ErrorAsyncValue* TensorHandle::GetErrorAsyncValue() {
 TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
                                       RCReference<Device> dst,
                                       TensorType dst_tensor_type) const {
-  HostContext* host = exec_ctx.host();
   AsyncValueRef<Tensor> result_tensor;
   if (GetAsyncTensor()->IsError()) {
     return TensorHandle(AsyncValueRef<TensorHandle>(FormRef(GetAsyncTensor())));
@@ -182,8 +181,7 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
       return CopyRef();
     result_tensor = ConvertTensor(exec_ctx, tensor, src, *dst, dst_tensor_type);
   } else {
-    RCReference<IndirectAsyncValue> result_ind_av =
-        MakeIndirectAsyncValue(host);
+    RCReference<IndirectAsyncValue> result_ind_av = MakeIndirectAsyncValue();
     result_tensor = AsyncValueRef<Tensor>(result_ind_av);
     llvm::SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(GetAsyncTensor());
@@ -226,8 +224,7 @@ TensorHandle TensorHandle::TransferToSameDevice(
   if (IsDeviceAvailable()) {
     return TransferTo(exec_ctx, GetAvailableDevice(), dst_tensor_type);
   }
-  RCReference<IndirectAsyncValue> result_ind_av =
-      MakeIndirectAsyncValue(exec_ctx.host());
+  RCReference<IndirectAsyncValue> result_ind_av = MakeIndirectAsyncValue();
   AsyncValueRef<Tensor> result_tensor = AsyncValueRef<Tensor>(result_ind_av);
   llvm::SmallVector<AsyncValue*, 2> async_values;
   async_values.push_back(GetAsyncTensor());
@@ -263,7 +260,6 @@ TensorHandle TensorHandle::TransferToSameDevice(
 
 TensorHandle TensorHandle::TransferToInferredType(
     const ExecutionContext& exec_ctx, RCReference<Device> dst) const {
-  HostContext* host = exec_ctx.host();
   AsyncValueRef<Tensor> result_tensor;
 
   if (GetAsyncTensor()->IsError()) {
@@ -276,8 +272,7 @@ TensorHandle TensorHandle::TransferToInferredType(
     TensorType dst_tensor_type = InferDstTensorTypeFromDevice(*dst, tensor);
     result_tensor = ConvertTensor(exec_ctx, tensor, src, *dst, dst_tensor_type);
   } else {
-    RCReference<IndirectAsyncValue> result_ind_av =
-        MakeIndirectAsyncValue(host);
+    RCReference<IndirectAsyncValue> result_ind_av = MakeIndirectAsyncValue();
     result_tensor = AsyncValueRef<Tensor>(result_ind_av);
     llvm::SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(GetAsyncTensor());

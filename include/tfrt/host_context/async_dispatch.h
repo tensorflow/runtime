@@ -110,7 +110,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 [[nodiscard]] AsyncValueRef<R> EnqueueWork(const ExecutionContext& exec_ctx,
                                            F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(exec_ctx.host());
+  auto result = MakeUnconstructedAsyncValueRef<R>();
   EnqueueWork(exec_ctx, [result = result.CopyRef(),
                          work = std::forward<F>(work)]() mutable {
     result.emplace(work());
@@ -133,7 +133,7 @@ void EnqueueWork(HostContext* host, llvm::unique_function<void()> work);
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 [[nodiscard]] AsyncValueRef<R> EnqueueWork(HostContext* host, F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(host);
+  auto result = MakeUnconstructedAsyncValueRef<R>();
   EnqueueWork(host, [result = result.CopyRef(),
                      work = std::forward<F>(work)]() mutable {
     result.emplace(work());
@@ -155,7 +155,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 [[nodiscard]] AsyncValueRef<R> EnqueueBlockingWork(HostContext* host,
                                                    F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(host);
+  auto result = MakeUnconstructedAsyncValueRef<R>();
   bool enqueued = EnqueueBlockingWork(
       host,
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
@@ -180,7 +180,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 [[nodiscard]] AsyncValueRef<R> RunBlockingWork(HostContext* host, F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(host);
+  auto result = MakeUnconstructedAsyncValueRef<R>();
   bool enqueued = RunBlockingWork(
       host,
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {

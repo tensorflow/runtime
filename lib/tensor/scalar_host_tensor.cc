@@ -43,7 +43,7 @@ void* AnyScalarHostTensor::data() {
 template <typename T>
 static AsyncValueRef<AnyScalarHostTensor> CopyScalar(
     const ScalarHostTensor<T>& src, HostContext* host) {
-  return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(host, src.metadata(),
+  return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(src.metadata(),
                                                          src.GetValue());
 }
 
@@ -122,12 +122,11 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
 static AsyncValueRef<DenseHostTensor> ConvertScalarHostTensorToDenseHostTensor(
     const AnyScalarHostTensor& tensor, const CpuDevice& src,
     const CpuDevice& dst, const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
-  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>();
 
   auto optional_dht = CopyScalarHostTensorToDenseHostTensor(tensor, exec_ctx);
   if (!optional_dht)
-    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
+    return MakeErrorAsyncValueRef("out of memory copying tensor");
 
   result.emplace(std::move(optional_dht.getValue()));
   return result;

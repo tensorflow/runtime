@@ -387,7 +387,7 @@ void ExecuteWithResultMetadataResolved(
     result_md_avs->reserve(num_results);
     for (size_t i = 0; i != num_results; ++i) {
       result_md_avs->push_back(
-          MakeUnconstructedAsyncValueRef<TensorMetadata>(exec_ctx.host()));
+          MakeUnconstructedAsyncValueRef<TensorMetadata>());
     }
   }
 
@@ -404,7 +404,7 @@ void ExecuteWithResultMetadataResolved(
     if (!chain->IsAvailable()) async_args.push_back(chain->GetAsyncValue());
     if (update_chain) {
       // TODO(fishx): Avoid this heap allocation.
-      *chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
+      *chain = MakeUnconstructedAsyncValueRef<Chain>();
     }
   }
 
@@ -451,7 +451,7 @@ void ExecuteWithResultMetadataResolved(
   result_tensor_avs->reserve(num_results);
   op_dispatcher.result_ind_avs_ref().reserve(num_results);
   for (size_t i = 0; i != num_results; ++i) {
-    auto tensor = MakeIndirectAsyncValue(exec_ctx.host());
+    auto tensor = MakeIndirectAsyncValue();
     op_dispatcher.result_ind_avs_ref().push_back(tensor);
     result_tensor_avs->push_back(AsyncValueRef<Tensor>(std::move(tensor)));
     if (result_md_avs) {

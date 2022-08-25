@@ -47,7 +47,7 @@ void NativeAdd(AsyncValue* const* arguments, int num_arguments,
   int32_t b = arguments[1]->get<int32_t>();
 
   assert(num_results == 1);
-  results[0] = MakeAvailableAsyncValueRef<int32_t>(host, a + b);
+  results[0] = MakeAvailableAsyncValueRef<int32_t>(a + b);
 }
 
 void NativeAsyncAdd(AsyncValue* const* arguments, int num_arguments,
@@ -65,7 +65,7 @@ void NativeError(AsyncValue* const* arguments, int num_arguments,
                  RCReference<AsyncValue>* results, int num_results,
                  HostContext* host) {
   assert(num_results == 1);
-  results[0] = MakeErrorAsyncValueRef(host, "something bad happened");
+  results[0] = MakeErrorAsyncValueRef("something bad happened");
 }
 
 }  // namespace

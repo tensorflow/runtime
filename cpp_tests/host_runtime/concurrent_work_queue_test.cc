@@ -37,7 +37,7 @@ TEST(SingleThreadeWorkQueueTest, AsyncValueCompletesOnAnotherThread) {
   std::unique_ptr<HostAllocator> allocator = CreateMallocAllocator();
 
   HostContext host{{}, std::move(allocator), std::move(work_queue)};
-  AsyncValueRef<int> av = MakeConstructedAsyncValueRef<int>(&host, 42);
+  AsyncValueRef<int> av = MakeConstructedAsyncValueRef<int>(42);
 
   std::thread thread{[&] {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -56,7 +56,7 @@ TEST(SingleThreadeWorkQueueTest,
   std::unique_ptr<HostAllocator> allocator = CreateMallocAllocator();
 
   HostContext host{{}, std::move(allocator), std::move(work_queue)};
-  AsyncValueRef<int> av = MakeConstructedAsyncValueRef<int>(&host, 42);
+  AsyncValueRef<int> av = MakeConstructedAsyncValueRef<int>(42);
 
   std::thread thread{[&] {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -75,7 +75,7 @@ TEST(SingleThreadeWorkQueueTest,
   std::unique_ptr<HostAllocator> allocator = CreateMallocAllocator();
 
   HostContext host{{}, std::move(allocator), std::move(work_queue)};
-  AsyncValueRef<int> av = MakeConstructedAsyncValueRef<int>(&host, 42);
+  AsyncValueRef<int> av = MakeConstructedAsyncValueRef<int>(42);
 
   std::thread thread{[&] {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));

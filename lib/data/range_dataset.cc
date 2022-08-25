@@ -36,18 +36,18 @@ IterationResult RangeDatasetIterator::GetNext(
 
   llvm::SmallVector<RCReference<AsyncValue>, 4> values;
   switch (dataset_->element_type_) {
-#define DTYPE_NUMERIC(ENUM)                                            \
-  case DType::ENUM:                                                    \
-    values.push_back(                                                  \
-        MakeAvailableAsyncValueRef<TypeForDTypeKind<DType::ENUM>>(     \
-            host, static_cast<TypeForDTypeKind<DType::ENUM>>(next_))); \
+#define DTYPE_NUMERIC(ENUM)                                        \
+  case DType::ENUM:                                                \
+    values.push_back(                                              \
+        MakeAvailableAsyncValueRef<TypeForDTypeKind<DType::ENUM>>( \
+            static_cast<TypeForDTypeKind<DType::ENUM>>(next_)));   \
     break;
 
 #include "tfrt/dtype/dtype.def"  // NOLINT
 #undef DTYPE_NUMERIC
     default:
       return IterationResult::Error(
-          MakeErrorAsyncValueRef(host, "Unsupported data type"), 1);
+          MakeErrorAsyncValueRef("Unsupported data type"), 1);
   }
 
   next_ += dataset_->step_;

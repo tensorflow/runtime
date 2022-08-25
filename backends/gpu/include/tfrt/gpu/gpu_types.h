@@ -35,6 +35,7 @@
 #include "tfrt/gpu/wrapper/fft_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/host_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/ref_count.h"

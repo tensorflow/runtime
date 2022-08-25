@@ -16,6 +16,8 @@
 
 #include "tfrt/tensor/string_host_tensor.h"
 
+#include <utility>
+
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/host_context.h"
@@ -50,7 +52,7 @@ AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(
     const TensorMetadata& metadata, HostContext* host) {
   if (auto result = CreateUninitialized(metadata, host))
     return tfrt::MakeConstructedAsyncValueRef<StringHostTensor>(
-        host, std::move(result).getValue());
+        std::move(result).getValue());
 
   return {};
 }
@@ -63,11 +65,11 @@ ConvertStringHostTensorToStringHostTensor(const StringHostTensor& tensor,
   auto* host = exec_ctx.host();
   // We need to make a copy of the data, because the source and result
   // buffers are logically independent.
-  auto result = MakeUnconstructedAsyncValueRef<StringHostTensor>(host);
+  auto result = MakeUnconstructedAsyncValueRef<StringHostTensor>();
 
   auto result_alloc = tensor.CreateUninitialized(tensor.metadata(), host);
   if (!result_alloc)
-    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
+    return MakeErrorAsyncValueRef("out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 

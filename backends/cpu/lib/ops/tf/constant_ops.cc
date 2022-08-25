@@ -37,8 +37,6 @@ namespace {
 static AsyncValueRef<HostTensor> TfZerosLike(const HostTensor& input,
                                              const TensorMetadata& output_md,
                                              const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-
   switch (output_md.dtype) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype");
@@ -47,7 +45,7 @@ static AsyncValueRef<HostTensor> TfZerosLike(const HostTensor& input,
   case DType::ENUM: {                                       \
     using T = EigenTypeForDTypeKind<DType::ENUM>;           \
     return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>( \
-        host, output_md, static_cast<T>(0.0));              \
+        output_md, static_cast<T>(0.0));                    \
   }
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

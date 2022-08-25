@@ -112,16 +112,14 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
   llvm::SmallVector<RCReference<AsyncValue>, 8> result_th_avs;
   result_th_avs.reserve(results.size() * 2);
 
-  auto host = invocation.exec_ctx.host();
-
   // Prepopulate result_th_avs's.
   for (auto& result : results) {
     // We know the metadata value will be a TensorMetadata or an error.
-    auto md = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
+    auto md = MakeUnconstructedAsyncValueRef<TensorMetadata>();
 
     // We don't know what subclass of Tensor will be used, so we need to use an
     // IndirectAsyncValue.
-    auto tensor = MakeIndirectAsyncValue(host);
+    auto tensor = MakeIndirectAsyncValue();
     result_th_avs.push_back(md.CopyRCRef());
     result_th_avs.push_back(tensor);
     result = TensorHandle(retval_device, std::move(md),
@@ -138,7 +136,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
     if (!invocation.chain->IsAvailable())
       async_mds.push_back(invocation.chain->GetAsyncValue());
 
-    chain_ref = MakeUnconstructedAsyncValueRef<Chain>(host);
+    chain_ref = MakeUnconstructedAsyncValueRef<Chain>();
     *invocation.chain = chain_ref.CopyRef();
   }
 

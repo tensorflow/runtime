@@ -150,7 +150,7 @@ static AsyncValueRef<HostTensor> TfConcatOp(
     }
 
     return MakeAvailableAsyncValueRef<TensorType>(
-        exec_ctx.host(), std::move(expected_tensor.get()));
+        std::move(expected_tensor.get()));
   };
 
   if (llvm::isa<StringHostTensor>(&args[0])) {

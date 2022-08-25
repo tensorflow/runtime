@@ -213,7 +213,7 @@ template <typename T>
 static AsyncValueRef<T> TestCopyWithDelay(Argument<T> in,
                                           const ExecutionContext& exec_ctx) {
   SleepForRandomDuration();
-  return MakeAvailableAsyncValueRef<T>(exec_ctx.host(), in.get());
+  return MakeAvailableAsyncValueRef<T>(in.get());
 }
 
 //===----------------------------------------------------------------------===//

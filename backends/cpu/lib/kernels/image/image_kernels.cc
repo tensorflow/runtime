@@ -14,6 +14,8 @@
 
 // This file implements kernels that process images.
 
+#include <utility>
+
 #include "jpeg/jpeg_mem.h"
 #include "resize_bilinear_op.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -31,8 +33,7 @@ namespace image {
 // Returns tf.image.decode_jpeg(data, channels=3)
 static AsyncValueRef<DenseHostTensor> DecodeJpeg(
     Argument<std::string> data, const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-  auto output = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+  auto output = MakeUnconstructedAsyncValueRef<DenseHostTensor>();
 
   EnqueueWork(exec_ctx, [data = data.ValueRef(), output = output.CopyRef(),
                          exec_ctx] {
@@ -56,8 +57,8 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
             buffer = EmitErrorAsync(exec_ctx, "cannot allocate tensor");
             return nullptr;
           }
-          buffer = MakeAvailableAsyncValueRef<DenseHostTensor>(
-              exec_ctx.host(), std::move(*tensor));
+          buffer =
+              MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(*tensor));
           return static_cast<uint8_t*>(buffer.get().data());
         });
     if (buffer.IsError()) {

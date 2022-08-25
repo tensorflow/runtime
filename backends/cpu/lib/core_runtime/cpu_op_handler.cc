@@ -111,8 +111,7 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
     }
     return arg.TransferTo(exec_ctx, op_handler->GetDeviceRef(), target_type);
   } else {
-    RCReference<IndirectAsyncValue> result_ind_av =
-        MakeIndirectAsyncValue(exec_ctx.host());
+    RCReference<IndirectAsyncValue> result_ind_av = MakeIndirectAsyncValue();
     llvm::SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(arg.GetAsyncTensor());
     if (!arg.IsDeviceAvailable()) {

@@ -46,14 +46,12 @@ RCReference<Iterator> InterleaveDataset::MakeIterator(
 // operation across intermediate iterators in a round robin fashion.
 IterationResult InterleaveDatasetIterator::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
-
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.resize(parent_dataset_->arity_);
   for (size_t i = 0; i < parent_dataset_->arity_; ++i) {
-    result_values[i] = MakeIndirectAsyncValue(host);
+    result_values[i] = MakeIndirectAsyncValue();
   }
-  auto result_eof = MakeUnconstructedAsyncValueRef<bool>(host);
+  auto result_eof = MakeUnconstructedAsyncValueRef<bool>();
   auto result =
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
@@ -68,8 +66,6 @@ IterationResult InterleaveDatasetIterator::GetNext(
 void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
     const ExecutionContext& exec_ctx) {
   if (is_input_iterator_eof_) return;
-  auto* host = exec_ctx.host();
-
   auto fetch_num = parent_dataset_->cycle_length_ +
                    parent_dataset_->prefetch_iterator_num_ -
                    num_open_iterators_;
@@ -87,10 +83,8 @@ void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
 
     auto entry = IteratorAndQueue(std::move(input_value),
                                   std::move(fn_results[0]), true);
-    entry.prefetched_value =
-        MakeUnconstructedAsyncValueRef<IterationResult>(host);
-    entry.iterator =
-        MakeUnconstructedAsyncValueRef<RCReference<Iterator>>(host);
+    entry.prefetched_value = MakeUnconstructedAsyncValueRef<IterationResult>();
+    entry.iterator = MakeUnconstructedAsyncValueRef<RCReference<Iterator>>();
     // Instantiate the intermediate iterator once the dataset is available.
     entry.dataset->AndThen([dataset = entry.dataset,
                             prefetched_value = entry.prefetched_value.CopyRef(),
@@ -319,7 +313,6 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     // the input_iterator_ and update the output value in the
     // output_buffer_front_.
 
-    auto host = exec_ctx.host();
     auto callback = [exec_ctx, callback_count,
                      iterator = FormRef(this)]() mutable {
       if (callback_count >= MAX_RECURSIVE_CALLS) {
@@ -344,7 +337,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     // from. Mark all values in the output_buffer_* to be eof=true.
     if (total_queues_size_ == 0) {
       assert(is_input_iterator_eof_ && num_open_iterators_ == 0);
-      auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
+      auto error = MakeErrorAsyncValueRef("iterator reached end");
       auto output_buffer_size = OutputBufferSize();
       for (; output_buffer_size > 0; --output_buffer_size) {
         auto output = DequeueOutputBuffer();

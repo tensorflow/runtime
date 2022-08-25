@@ -382,7 +382,7 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
         return;
       }
       RCReference<AsyncValue> remote_object_id =
-          MakeAvailableAsyncValueRef<RemoteObjectId>(host_ctx(), id.prefix_id(),
+          MakeAvailableAsyncValueRef<RemoteObjectId>(id.prefix_id(),
                                                      id.local_id(), device);
       arguments_ref.push_back(remote_object_id);
       arguments.push_back(remote_object_id.get());

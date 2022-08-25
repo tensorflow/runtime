@@ -118,7 +118,7 @@ TEST_F(BufferForwardingTest, SlicedBuffer) {
   auto sliced_buffer =
       HostBuffer::CreateFromExternal(dht->buffer(), 0, dht->buffer()->size());
   auto sliced_dht = MakeAvailableAsyncValueRef<DenseHostTensor>(
-      &host_ctx_, input_md, std::move(sliced_buffer));
+      input_md, std::move(sliced_buffer));
 
   Argument<DenseHostTensor> arg(sliced_dht.GetAsyncValue());
 

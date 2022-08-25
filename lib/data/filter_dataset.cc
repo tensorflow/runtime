@@ -40,14 +40,12 @@ RCReference<Iterator> FilterDataset::MakeIterator(
 
 IterationResult FilterDatasetIterator::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
-
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.resize(parent_dataset_->arity_);
   for (size_t i = 0; i < parent_dataset_->arity_; ++i) {
-    result_values[i] = MakeIndirectAsyncValue(host);
+    result_values[i] = MakeIndirectAsyncValue();
   }
-  auto result_eof = MakeUnconstructedAsyncValueRef<bool>(host);
+  auto result_eof = MakeUnconstructedAsyncValueRef<bool>();
   auto result =
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
@@ -137,7 +135,7 @@ void FilterDatasetIterator::MaybeScheduleBackgroundTask(
     } else if (predicate_eof.get()) {
       // The input_iterator_ has been exhausted. Note that predicate_eof and
       // input.eof should have the same value.
-      auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
+      auto error = MakeErrorAsyncValueRef("iterator reached end");
       while (iterator->OutputBufferSize() > 0) {
         auto output = iterator->DequeueOutputBuffer();
         for (auto& value : output.values) {

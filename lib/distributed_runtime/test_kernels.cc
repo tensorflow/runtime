@@ -160,7 +160,7 @@ void TestCreateDistributedContext(RemainingArguments configurations,
     Error error = dist_context_or_error.takeError();
     for (int i = 0; i < servers.size(); ++i) {
       distributed_contexts[i] =
-          MakeErrorAsyncValueRef(exec_ctx.host(), DecodedDiagnostic(error));
+          MakeErrorAsyncValueRef(DecodedDiagnostic(error));
     }
     return;
   }
@@ -212,8 +212,7 @@ void TestCloseDistributedContext(Argument<DistributedContext> dist_context,
 AsyncValueRef<RemoteChainManager> TestCreateRemoteChainManager(
     Argument<DistributedContext> dist_context,
     const ExecutionContext& exec_ctx) {
-  return MakeAvailableAsyncValueRef<RemoteChainManager>(exec_ctx.host(),
-                                                        &dist_context.get());
+  return MakeAvailableAsyncValueRef<RemoteChainManager>(&dist_context.get());
 }
 
 void TestPrintRemoteObjectId(const RemoteObjectId& id,

@@ -73,8 +73,7 @@ static Expected<DenseHostTensor> OddCollectorOp(
 template <typename T>
 static AsyncValueRef<HostTensor> DoCreateFromScalar(
     const TensorMetadata& dest_md, T value, const ExecutionContext& exec_ctx) {
-  return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(exec_ctx.host(),
-                                                         dest_md, value);
+  return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(dest_md, value);
 }
 
 // result = test.create_from_scalar(value=V, shape=Shape)
@@ -120,13 +119,12 @@ AsyncValueRef<HostTensor> TestAddOpImpl(const HostTensor& lhs_ref,
   if (auto* srhs = dyn_cast<ScalarHostTensor<T>>(rhs)) {
     auto* slhs = cast<ScalarHostTensor<T>>(lhs);
     auto result = slhs->GetValue() + srhs->GetValue();
-    return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(
-        host, slhs->metadata(), result);
+    return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(slhs->metadata(),
+                                                           result);
   }
 
   auto dest = DenseHostTensor::CreateUninitialized(lhs->metadata(), host);
-  if (!dest)
-    return MakeErrorAsyncValueRef(host, "out of memory allocating result");
+  if (!dest) return MakeErrorAsyncValueRef("out of memory allocating result");
 
   MutableDHTArrayView<T> dest_view(dest.getPointer());
 
@@ -144,7 +142,7 @@ AsyncValueRef<HostTensor> TestAddOpImpl(const HostTensor& lhs_ref,
       dest_view[i] = lhs_view[i] + rhs_view[i];
   }
   return MakeAvailableAsyncValueRef<DenseHostTensor>(
-      host, std::move(dest.getValue()));
+      std::move(dest.getValue()));
 }
 }  // namespace
 
@@ -215,8 +213,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly2Op(
   auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(lhs.metadata(),
                                                            exec_ctx.host());
   if (!dht) {
-    return MakeErrorAsyncValueRef(exec_ctx.host(),
-                                  "out of memory allocating result");
+    return MakeErrorAsyncValueRef("out of memory allocating result");
   }
 
   switch (lhs.dtype()) {
@@ -245,7 +242,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
   auto dht =
       DenseHostTensor::MakeConstructedAsyncValueRef(lhs.metadata(), host);
   if (!dht) {
-    return MakeErrorAsyncValueRef(host, "out of memory allocating result");
+    return MakeErrorAsyncValueRef("out of memory allocating result");
   }
 
   // Note the captured dht is of type DenseHostTensor*. dht is guaranteed to be
@@ -319,8 +316,7 @@ static DenseHostTensor IdentityOp(const HostTensor& input) {
 // testing.
 static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
                                            const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-  auto dest_ind = MakeIndirectAsyncValue(host);
+  auto dest_ind = MakeIndirectAsyncValue();
 
   auto copy = ConvertTensorOnHost(exec_ctx, src, src.tensor_type());
 
@@ -341,8 +337,7 @@ static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
 // TensorHandle's that have a valid metadata but an error tensor value.
 static RCReference<AsyncValue> ErrorTensorOp(const HostTensor& src,
                                              const ExecutionContext& exec_ctx) {
-  return MakeErrorAsyncValueRef(exec_ctx.host(),
-                                "error from test.error.tensor implementation");
+  return MakeErrorAsyncValueRef("error from test.error.tensor implementation");
 }
 
 //===----------------------------------------------------------------------===//

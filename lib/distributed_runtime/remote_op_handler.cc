@@ -131,7 +131,7 @@ void RemoteOpHandler::Execute(const std::string& op_name,
   // remote op.
   llvm::SmallVector<AsyncValue*, 4> to_wait;
 
-  auto chain = MakeConstructedAsyncValueRef<Chain>(dist_ctx_->GetHostContext());
+  auto chain = MakeConstructedAsyncValueRef<Chain>();
   *invocation.chain = chain.CopyRef();
 
   // We may need to wait for async inputs, so we add input object ids
@@ -157,10 +157,8 @@ void RemoteOpHandler::Execute(const std::string& op_name,
   auto results = std::make_unique<llvm::SmallVector<TensorAndMetadata, 8>>();
   results->resize(invocation.results.size());
   for (auto i = 0; i < invocation.results.size(); ++i) {
-    auto tensor = MakeUnconstructedAsyncValueRef<RemoteTensor>(
-        dist_ctx_->GetHostContext());
-    auto metadata = MakeUnconstructedAsyncValueRef<TensorMetadata>(
-        dist_ctx_->GetHostContext());
+    auto tensor = MakeUnconstructedAsyncValueRef<RemoteTensor>();
+    auto metadata = MakeUnconstructedAsyncValueRef<TensorMetadata>();
     invocation.results[i] =
         TensorHandle(remote_device_, metadata.CopyRef(), tensor.CopyRef());
     (*results)[i].tensor = tensor.ReleaseRCRef();

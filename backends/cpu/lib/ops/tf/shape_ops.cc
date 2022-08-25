@@ -128,12 +128,12 @@ static AsyncValueRef<Tensor> TfExpandDimsOp(const Tensor& input,
   TensorMetadata output_md(input.metadata().dtype, output_dims);
 
   if (const auto* dht = llvm::dyn_cast<const DenseHostTensor>(&input)) {
-    return MakeAvailableAsyncValueRef<DenseHostTensor>(host, output_md,
+    return MakeAvailableAsyncValueRef<DenseHostTensor>(output_md,
                                                        dht->buffer());
   }
 
   if (const auto* sht = llvm::dyn_cast<const StringHostTensor>(&input)) {
-    return MakeAvailableAsyncValueRef<StringHostTensor>(host, output_md,
+    return MakeAvailableAsyncValueRef<StringHostTensor>(output_md,
                                                         sht->CopyBuffer(host));
   }
 

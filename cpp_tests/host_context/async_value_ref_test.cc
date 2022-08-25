@@ -43,23 +43,20 @@ class AsyncValueRefTest : public ::testing::Test {
 };
 
 TEST_F(AsyncValueRefTest, ValueCheck) {
-  auto wrapped_int_value =
-      MakeAvailableAsyncValueRef<WrappedInt32>(host_context_.get(), kTestValue);
+  auto wrapped_int_value = MakeAvailableAsyncValueRef<WrappedInt32>(kTestValue);
   EXPECT_EQ(wrapped_int_value.get().value(), kTestValue);
   EXPECT_EQ(wrapped_int_value->value(), kTestValue);
   EXPECT_EQ((*wrapped_int_value).value(), kTestValue);
 }
 
 TEST_F(AsyncValueRefTest, ValueCheckFromRCReference) {
-  auto wrapped_int_value =
-      MakeAvailableAsyncValueRef<WrappedInt32>(host_context_.get(), kTestValue);
+  auto wrapped_int_value = MakeAvailableAsyncValueRef<WrappedInt32>(kTestValue);
   RCReference<AsyncValue> generic_value = std::move(wrapped_int_value);
   EXPECT_EQ(generic_value->get<WrappedInt32>().value(), kTestValue);
 }
 
 TEST_F(AsyncValueRefTest, ValueCheckFromAliasedRCReference) {
-  auto wrapped_int_value =
-      MakeAvailableAsyncValueRef<WrappedInt32>(host_context_.get(), kTestValue);
+  auto wrapped_int_value = MakeAvailableAsyncValueRef<WrappedInt32>(kTestValue);
   RCReference<AsyncValue> generic_value = std::move(wrapped_int_value);
   AsyncValueRef<WrappedInt32> aliased_int_value(std::move(generic_value));
   EXPECT_EQ(aliased_int_value.get().value(), kTestValue);
@@ -68,8 +65,7 @@ TEST_F(AsyncValueRefTest, ValueCheckFromAliasedRCReference) {
 }
 
 TEST_F(AsyncValueRefTest, ConstructedToError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   EXPECT_FALSE(value.IsConcrete());
   EXPECT_FALSE(value.IsAvailable());
@@ -83,8 +79,7 @@ TEST_F(AsyncValueRefTest, ConstructedToError) {
 }
 
 TEST_F(AsyncValueRefTest, ConstructedToConcrete) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   EXPECT_FALSE(value.IsConcrete());
   EXPECT_FALSE(value.IsAvailable());
@@ -100,7 +95,7 @@ TEST_F(AsyncValueRefTest, ConstructedToConcrete) {
 }
 
 TEST_F(AsyncValueRefTest, UnconstructedEmplace) {
-  auto value = MakeUnconstructedAsyncValueRef<int32_t>(host_context_.get());
+  auto value = MakeUnconstructedAsyncValueRef<int32_t>();
 
   EXPECT_FALSE(value.IsConcrete());
   EXPECT_FALSE(value.IsAvailable());
@@ -115,8 +110,7 @@ TEST_F(AsyncValueRefTest, UnconstructedEmplace) {
 }
 
 TEST_F(AsyncValueRefTest, CopyRef) {
-  auto value =
-      MakeAvailableAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeAvailableAsyncValueRef<int32_t>(kTestValue);
 
   EXPECT_TRUE(value.IsConcrete());
 
@@ -128,8 +122,7 @@ TEST_F(AsyncValueRefTest, CopyRef) {
 }
 
 TEST_F(AsyncValueRefTest, AndThenError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   DecodedDiagnostic diag{"test_error"};
   value.AndThen([&](Error error) { EXPECT_EQ(StrCat(error), StrCat(diag)); });
@@ -138,8 +131,7 @@ TEST_F(AsyncValueRefTest, AndThenError) {
 }
 
 TEST_F(AsyncValueRefTest, AndThenNoError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   value.AndThen([](Error error) { EXPECT_FALSE(!!error); });
 
@@ -147,8 +139,7 @@ TEST_F(AsyncValueRefTest, AndThenNoError) {
 }
 
 TEST_F(AsyncValueRefTest, AndThenExpectedError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   DecodedDiagnostic diag{"test_error"};
   value.AndThen([&](Expected<int32_t*> v) {
@@ -160,8 +151,7 @@ TEST_F(AsyncValueRefTest, AndThenExpectedError) {
 }
 
 TEST_F(AsyncValueRefTest, PtrAndThenExpectedError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   DecodedDiagnostic diag{"test_error"};
   value.AsPtr().AndThen([&](Expected<int32_t*> v) {
@@ -173,8 +163,7 @@ TEST_F(AsyncValueRefTest, PtrAndThenExpectedError) {
 }
 
 TEST_F(AsyncValueRefTest, AndThenExpectedNoError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   value.AndThen([](Expected<int32_t*> v) {
     EXPECT_TRUE(!!v);
@@ -185,8 +174,7 @@ TEST_F(AsyncValueRefTest, AndThenExpectedNoError) {
 }
 
 TEST_F(AsyncValueRefTest, PtrAndThenExpectedNoError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   value.AsPtr().AndThen([](Expected<int32_t*> v) {
     EXPECT_TRUE(!!v);
@@ -197,8 +185,7 @@ TEST_F(AsyncValueRefTest, PtrAndThenExpectedNoError) {
 }
 
 TEST_F(AsyncValueRefTest, AsExpectedError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   DecodedDiagnostic diag{"test_error"};
   value.SetError(diag);
@@ -208,8 +195,7 @@ TEST_F(AsyncValueRefTest, AsExpectedError) {
 }
 
 TEST_F(AsyncValueRefTest, AsExpectedNoError) {
-  auto value =
-      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
   value.SetStateConcrete();
 
   Expected<int32_t*> expected = value.AsExpected();
@@ -223,8 +209,7 @@ TEST_F(AsyncValueRefTest, Nullptr) {
   EXPECT_FALSE(av_int);
 
   // Test assignment to nullptr.
-  AsyncValueRef<int> av_int2 =
-      MakeConstructedAsyncValueRef<int>(host_context_.get(), kTestValue);
+  AsyncValueRef<int> av_int2 = MakeConstructedAsyncValueRef<int>(kTestValue);
   EXPECT_TRUE(av_int2);
   av_int2 = nullptr;
   EXPECT_FALSE(av_int2);

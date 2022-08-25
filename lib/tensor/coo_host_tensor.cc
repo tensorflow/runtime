@@ -76,7 +76,6 @@ ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
                                        const CpuDevice &src,
                                        const CpuDevice &dst,
                                        const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
   switch (coo.dtype()) {
@@ -86,35 +85,34 @@ ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
   case DType::ENUM:                                                         \
     if (coo.NumElements() == 0) {                                           \
       return MakeAvailableAsyncValueRef<                                    \
-          ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(host,            \
-                                                           coo.metadata()); \
+          ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(coo.metadata()); \
     } else if (coo.NumElements() == 1) {                                    \
       return MakeAvailableAsyncValueRef<                                    \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(                 \
-          host, coo.metadata(),                                             \
+          coo.metadata(),                                                   \
           DHTArrayView<TypeForDTypeKind<DType::ENUM>>(coo.Values())[0]);    \
     } else if (coo.Indices()->NumElements() == 0) {                         \
       return MakeAvailableAsyncValueRef<                                    \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(                 \
-          host, coo.metadata(), TypeForDTypeKind<DType::ENUM>(0));          \
+          coo.metadata(), TypeForDTypeKind<DType::ENUM>(0));                \
     }
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return MakeErrorAsyncValueRef(
-      host, StrCat("failed to convert coo tensor to scalar host tensor"));
+      StrCat("failed to convert coo tensor to scalar host tensor"));
 }
 
 static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
     const CooHostTensor &tensor, const CpuDevice &src, const CpuDevice &dst,
     const ExecutionContext &exec_ctx) {
   auto *host = exec_ctx.host();
-  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>();
   auto result_alloc =
       DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
   if (!result_alloc) {
     return MakeErrorAsyncValueRef(
-        host, "out of memory converting coo tensor to dht tensor");
+        "out of memory converting coo tensor to dht tensor");
   }
   auto &result_tensor = result_alloc.getValue();
 

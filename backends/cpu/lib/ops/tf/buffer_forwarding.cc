@@ -16,6 +16,8 @@
 
 #include "buffer_forwarding.h"
 
+#include <utility>
+
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -42,7 +44,7 @@ AsyncValueRef<DenseHostTensor> ForwardInputOrAllocateOutput(
     // We can't forward the input AsyncValue because we must return constructed
     // but not yet available value.
     auto dht = input->CopyRef();
-    return MakeConstructedAsyncValueRef<DenseHostTensor>(host, std::move(dht));
+    return MakeConstructedAsyncValueRef<DenseHostTensor>(std::move(dht));
   }
 
   AsyncValueRef<DenseHostTensor> allocated =

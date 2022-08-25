@@ -38,7 +38,6 @@ RCReference<Iterator> ShuffleDataset::MakeIterator(
 //===----------------------------------------------------------------------===//
 IterationResult ShuffleDatasetIterator::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
   // Initialize arity_ using the first value from the input_iterator_.
   if (arity_ < 0) {
     mutex_lock lock(mu_);
@@ -52,9 +51,9 @@ IterationResult ShuffleDatasetIterator::GetNext(
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.resize(arity_);
   for (size_t i = 0; i < arity_; ++i) {
-    result_values[i] = MakeIndirectAsyncValue(host);
+    result_values[i] = MakeIndirectAsyncValue();
   }
-  auto result_eof = MakeUnconstructedAsyncValueRef<bool>(host);
+  auto result_eof = MakeUnconstructedAsyncValueRef<bool>();
   auto result =
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
@@ -160,7 +159,7 @@ void ShuffleDatasetIterator::HandleEofAvailableInput(IterationResult input,
     return;
   }
   // The input_iterator_ has been exhausted and there is no remaining count.
-  auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
+  auto error = MakeErrorAsyncValueRef("iterator reached end");
   auto output_buffer_size = OutputBufferSize();
   for (; output_buffer_size > 0; --output_buffer_size) {
     auto output = DequeueOutputBuffer();

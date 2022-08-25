@@ -82,7 +82,7 @@ llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> GetInputMetadata(
   llvm::SmallVector<AsyncValueRef<TensorMetadata>, 4> metadatas;
   metadatas.resize(sizeof...(T));
   for (size_t i = 0; i < sizeof...(T); ++i) {
-    metadatas[i] = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
+    metadatas[i] = MakeUnconstructedAsyncValueRef<TensorMetadata>();
   }
   GetInputMetadataHelper<sizeof...(T), T...>(input, metadatas);
 
@@ -211,8 +211,7 @@ void CopySlice(RCReference<AsyncValue> input_value,
         result->SetError(error_value->GetError());
         error_value->DropRef();
       } else if (batch_size == 0) {
-        auto error =
-            MakeErrorAsyncValueRef(exec_ctx.host(), "iterator reached end");
+        auto error = MakeErrorAsyncValueRef("iterator reached end");
         result->SetError(error->GetError());
       } else if (eof_num == 0) {
         result->emplace<DenseHostTensor>(std::move(result_buffer.get()));
@@ -317,8 +316,7 @@ AllocateOutputTensors(
   llvm::SmallVector<AsyncValueRef<DenseHostTensor>, 4> results;
   results.reserve(metadatas.size());
   for (size_t i = 0; i < metadatas.size(); ++i) {
-    auto result =
-        MakeUnconstructedAsyncValueRef<DenseHostTensor>(exec_ctx.host());
+    auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>();
     metadatas[i].AndThen([exec_ctx, batch_size,
                           metadata = metadatas[i].CopyRef(),
                           result = result.CopyRef()]() {
@@ -469,8 +467,7 @@ IterationResult BatchDatasetIterator<T...>::GetNext(
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.reserve(sizeof...(T));
   for (size_t i = 0; i < sizeof...(T); ++i) {
-    result_values.push_back(
-        MakeUnconstructedAsyncValueRef<DenseHostTensor>(host));
+    result_values.push_back(MakeUnconstructedAsyncValueRef<DenseHostTensor>());
   }
   // result's eof should be exactly the same as the eof of the first input.
   auto result = IterationResult::Pending(std::move(result_values),

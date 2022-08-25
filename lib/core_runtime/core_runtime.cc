@@ -257,8 +257,6 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     }
   }
   auto execute_fn = [fn = fn](const OpInvocation& invocation) {
-    auto* host = invocation.exec_ctx.host();
-
     // TODO(fishx): Return an error to the client instead of asserting.
     assert(invocation.arguments.size() + 1 == fn->argument_types().size());
     assert(invocation.results.size() + 1 == fn->result_types().size());
@@ -278,7 +276,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
 
     for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
       arguments_ref.push_back(MakeAvailableAsyncValueRef<TensorHandle>(
-          host, invocation.arguments[i].CopyRef()));
+          invocation.arguments[i].CopyRef()));
       arguments.push_back(arguments_ref.back().get());
 
       // Clean up the argument to enable input forwarding.
@@ -306,10 +304,9 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
           invocation.results[i] = result_av->get<TensorHandle>().CopyRef();
         }
       } else {
-        auto device_av =
-            MakeUnconstructedAsyncValueRef<RCReference<Device>>(host);
-        auto metadata_av = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
-        auto tensor_ind_av = MakeIndirectAsyncValue(host);
+        auto device_av = MakeUnconstructedAsyncValueRef<RCReference<Device>>();
+        auto metadata_av = MakeUnconstructedAsyncValueRef<TensorMetadata>();
+        auto tensor_ind_av = MakeIndirectAsyncValue();
 
         result_av->AndThen([result_av = result_av,
                             device_av = device_av.CopyRef(),

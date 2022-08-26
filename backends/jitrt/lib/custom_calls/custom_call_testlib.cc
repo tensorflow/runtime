@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -38,8 +39,6 @@ using llvm::Error;
 using mlir::LogicalResult;
 using mlir::succeeded;
 using mlir::success;
-
-using llvm::StringRef;
 
 using namespace xla::runtime;  // NOLINT
 
@@ -85,7 +84,7 @@ static std::string StringifyEnumType(RuntimeEnumType value) {
 
 // NoOp custom call for benchmarking arguments/attributes encoding.
 static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
-                          FlatMemrefView, StringRef, float, double) {
+                          FlatMemrefView, std::string_view, float, double) {
   return success();
 }
 
@@ -108,7 +107,7 @@ static Error Multiply(MemrefView input, MemrefView output, float cst) {
 }
 
 template <typename Array>
-static void print_arr(llvm::StringRef type, Array arr) {
+static void print_arr(std::string_view type, Array arr) {
   tfrt::outs() << type << "[" << arr.size() << "] " << Join(arr, ", ") << "\n";
 }
 
@@ -136,7 +135,8 @@ static void TensorToString(llvm::ArrayRef<int64_t> shapes,
 }
 
 template <typename T>
-static void PrintTensor(llvm::StringRef type, CustomCall::TensorRef<T> tensor) {
+static void PrintTensor(std::string_view type,
+                        CustomCall::TensorRef<T> tensor) {
   std::string tensor_str;
   llvm::raw_string_ostream os(tensor_str);
   TensorToString<T>(tensor.shape.vec(), tensor.data.vec(), os);
@@ -152,7 +152,7 @@ static LogicalResult PrintAttrs(
     CustomCall::TensorRef<int64_t> i64_2d_arr, ArrayRef<int32_t> i32_array,
     ArrayRef<int64_t> i64_array, ArrayRef<float> f32_array,
     ArrayRef<double> f64_array, ArrayRef<int64_t> i64_dense_array,
-    ArrayRef<int64_t> empty_array, StringRef str) {
+    ArrayRef<int64_t> empty_array, std::string_view str) {
   tfrt::outs() << caller << "\n";
 
   tfrt::outs() << "i32: " << i32 << "\n";
@@ -206,8 +206,8 @@ static LogicalResult PrintVariantAttrs(CustomCall::VariantAttr attr1,
     } else if (attr.isa<ArrayRef<double>>()) {
       print_arr<ArrayRef<double>>("f64",
                                   attr.get<ArrayRef<double>>().getValue());
-    } else if (attr.isa<StringRef>()) {
-      tfrt::outs() << "str: " << attr.get<StringRef>();
+    } else if (attr.isa<std::string_view>()) {
+      tfrt::outs() << "str: " << attr.get<std::string_view>();
     } else {
       tfrt::outs() << "<unknown type>";
     }
@@ -309,14 +309,14 @@ static bool DirectCustomCall(xla::runtime::KernelContext* ctx, void** args,
 static bool DirectNoOp(xla::runtime::KernelContext* ctx, void** args,
                        void** attrs) {
   auto noop = [](FlatMemrefView, FlatMemrefView, FlatMemrefView, FlatMemrefView,
-                 StringRef, float, double) { return success(); };
+                 std::string_view, float, double) { return success(); };
 
   static auto* call = CustomCall::Bind("testlib.noop")
                           .Arg<FlatMemrefView>()
                           .Arg<FlatMemrefView>()
                           .Arg<FlatMemrefView>()
                           .Arg<FlatMemrefView>()
-                          .Attr<StringRef>("str")
+                          .Attr<std::string_view>("str")
                           .Attr<float>("f32")
                           .Attr<double>("f64")
                           .To<CustomCall::RuntimeChecks::kNone>(noop)
@@ -345,7 +345,7 @@ static bool DirectPrintAttrs(xla::runtime::KernelContext* ctx, void** args,
                           .Attr<ArrayRef<double>>("f64_array")
                           .Attr<ArrayRef<int64_t>>("i64_dense_array")
                           .Attr<ArrayRef<int64_t>>("empty_array")
-                          .Attr<StringRef>("str")
+                          .Attr<std::string_view>("str")
                           .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
                           .release();
 
@@ -358,7 +358,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Arg<FlatMemrefView>()
                          .Arg<FlatMemrefView>()
                          .Arg<FlatMemrefView>()
-                         .Attr<StringRef>("str")
+                         .Attr<std::string_view>("str")
                          .Attr<float>("f32")
                          .Attr<double>("f64")
                          .To(NoOp));
@@ -392,7 +392,7 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .Attr<ArrayRef<double>>("f64_array")
                          .Attr<ArrayRef<int64_t>>("i64_dense_array")
                          .Attr<ArrayRef<int64_t>>("empty_array")
-                         .Attr<StringRef>("str")
+                         .Attr<std::string_view>("str")
                          .To(PrintAttrs));
 
   registry->Register(CustomCall::Bind("testlib.print_dialect_attrs")

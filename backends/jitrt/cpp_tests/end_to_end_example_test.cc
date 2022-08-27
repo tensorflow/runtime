@@ -15,6 +15,7 @@
  */
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -152,7 +153,7 @@ struct CustomArgument
   }
 
   // Packs an indirect pointer to the string message to the arguments array.
-  size_t Pack(MutableArrayRef<void*> args, size_t offset) const final {
+  size_t Pack(absl::Span<void*> args, size_t offset) const final {
     args[offset] = const_cast<void*>(reinterpret_cast<const void*>(&ptr));
     return ++offset;
   }
@@ -370,16 +371,21 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   std::vector<float> input = {1.0, 2.0, 3.0, 4.0};
   std::vector<int32_t> perm = {1, 0};
 
-  // Input is a 2x2 memref.
-  std::array<int64_t, 2> sizes = {2, 2};
-  std::array<int64_t, 2> strides = {2, 1};
-
   // Prepare arguments for the executable.
   Arguments<CustomArgument, MemrefDesc> args(3);
   args.emplace_back<CustomArgument>("hello from the other side");
+
+  // Input is a 2x2 memref.
+  std::array<int64_t, 2> sizes = {2, 2};
+  std::array<int64_t, 2> strides = {2, 1};
   args.emplace_back<MemrefDesc>(PrimitiveType::F32, input.data(), 0, sizes,
                                 strides);
-  args.emplace_back<MemrefDesc>(PrimitiveType::S32, perm.data(), 0, 2, 1);
+
+  // Perm is a vector of size 2.
+  std::array<int64_t, 1> vec_size = {2};
+  std::array<int64_t, 1> vec_stride = {1};
+  args.emplace_back<MemrefDesc>(PrimitiveType::S32, perm.data(), 0, vec_size,
+                                vec_stride);
 
   // ------------------------------------------------------------------------ //
   // 5. Prepare options for executing the JitRt executable.

@@ -16,6 +16,7 @@
 
 #include "tfrt/jitrt/arguments.h"
 
+#include "llvm/ADT/ArrayRef.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -74,12 +75,14 @@ static PrimitiveType ToPrimitiveType(DType dtype) {
 
 Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
-    return MemrefDesc(dht->shape().GetRank(), ToPrimitiveType(dht->dtype()),
-                      const_cast<void*>(dht->data()), 0,
-                      [&](auto sizes, auto strides) {
-                        dht->shape().GetDimensions(sizes);
-                        dht->shape().GetStrides(strides);
-                      });
+    return MemrefDesc(
+        dht->shape().GetRank(), ToPrimitiveType(dht->dtype()),
+        const_cast<void*>(dht->data()), 0, [&](auto sizes, auto strides) {
+          MutableArrayRef<int64_t> sizes_ref(sizes.data(), sizes.size());
+          MutableArrayRef<int64_t> strides_ref(strides.data(), strides.size());
+          dht->shape().GetDimensions(sizes_ref);
+          dht->shape().GetStrides(strides_ref);
+        });
   }
 
   return MakeStringError("unsupported tensor type: ", tensor.tensor_type());

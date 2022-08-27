@@ -79,10 +79,13 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   std::vector<float> arg0 = {1.0, 2.0, 3.0, 4.0};
   std::vector<float> arg1(4, 0.0);
 
+  std::vector<int64_t> dims = {4};
+  std::vector<int64_t> strides = {1};
+
   // Prepare memref descriptors for the executable.
   llvm::SmallVector<MemrefDesc> args;
-  args.emplace_back(PrimitiveType::F32, arg0.data(), 0, 4, 1);
-  args.emplace_back(PrimitiveType::F32, arg1.data(), 0, 4, 1);
+  args.emplace_back(PrimitiveType::F32, arg0.data(), 0, dims, strides);
+  args.emplace_back(PrimitiveType::F32, arg1.data(), 0, dims, strides);
 
   Executable::ExecuteOpts execute_opts;
   execute_opts.async_task_runner =
@@ -105,8 +108,6 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   auto obj_file = executable->obj_file();
   EXPECT_TRUE(obj_file);
   EXPECT_GT(obj_file->getBufferSize(), 0);
-
-  std::array<int64_t, 1> dims = {4};
 
   // Load executable from an object file.
   std::vector<std::unique_ptr<Type>> operands;

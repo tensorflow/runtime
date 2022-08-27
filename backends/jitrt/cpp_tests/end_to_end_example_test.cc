@@ -345,9 +345,9 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
   // JitExecutable does compilation/recompilation from the input source to the
   // Executable artifact.
-  llvm::Expected<JitExecutable> jit_executable =
+  absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
-  if (auto err = jit_executable.takeError()) ASSERT_FALSE(err) << StrCat(err);
+  ASSERT_TRUE(jit_executable.ok()) << jit_executable.status().message();
 
   // In this example default executable will be in error state, because the
   // program requires value specialization and can't be compiled without it.
@@ -410,11 +410,11 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
   // At this point we trigger compilation of the original input program for
   // the concrete value of the transpose permutation vector.
-  llvm::Expected<AsyncValuePtr<Executable>> executable =
+  absl::StatusOr<AsyncValuePtr<Executable>> executable =
       jit_executable->GetExecutable(args);
 
   // Await the successful compilation completion.
-  if (auto err = executable.takeError()) ASSERT_FALSE(err) << StrCat(err);
+  ASSERT_TRUE(executable.ok()) << executable.status().message();
   Await(executable->value());
 
   // ------------------------------------------------------------------------ //
@@ -447,8 +447,8 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // ------------------------------------------------------------------------ //
 
   // Execute Jit compiled executable.
-  auto err = (*executable)->Execute(args, converter, execute_opts);
-  ASSERT_FALSE(err) << "Failed to execute: " << StrCat(err);
+  auto executed = (*executable)->Execute(args, converter, execute_opts);
+  ASSERT_TRUE(executed.ok()) << "Failed to execute: " << executed.message();
 
   // Check the result returned from the compiled function.
   ASSERT_TRUE(result_values[0]->IsAvailable());

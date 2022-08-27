@@ -88,17 +88,19 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
   };
 
   // Get the default executable (it must be always available).
-  llvm::Expected<JitExecutable> jit_executable =
+  absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(module, "compute", opts);
-  if (auto err = jit_executable.takeError()) TFRT_LOG(FATAL) << StrCat(err);
+  if (!jit_executable.ok())
+    TFRT_LOG(FATAL) << jit_executable.status().message();
 
   AsyncValuePtr<Executable> executable = jit_executable->DefaultExecutable();
   if (executable.IsError()) TFRT_LOG(FATAL) << executable.GetError();
 
   // Prepare the call frame outside of a benchmark loop.
   Executable::CallFrame call_frame;
-  if (auto err = executable->InitializeCallFrame(operands, &call_frame))
-    TFRT_LOG(FATAL) << err;
+  if (auto initialized = executable->InitializeCallFrame(operands, &call_frame);
+      !initialized.ok())
+    TFRT_LOG(FATAL) << initialized.message();
 
   Executable::ExecuteOpts execute_opts;
   // We don't expect to launch any async tasks in this test.

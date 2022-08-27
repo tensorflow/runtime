@@ -87,21 +87,22 @@ void BenchmarkGetExecutable(benchmark::State& state,
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 
-  llvm::Expected<JitExecutable> jit_executable =
+  absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
-  if (auto err = jit_executable.takeError()) TFRT_LOG(FATAL) << err;
+  if (!jit_executable.ok())
+    TFRT_LOG(FATAL) << jit_executable.status().message();
 
   // Initialize specialization cache.
-  Expected<AsyncValuePtr<Executable>> initialize =
+  absl::StatusOr<AsyncValuePtr<Executable>> initialize =
       jit_executable->GetExecutable(operands);
-  if (auto err = initialize.takeError()) TFRT_LOG(FATAL) << err;
+  if (!initialize.ok()) TFRT_LOG(FATAL) << initialize.status().message();
 
   // Check that compilation was successful.
   host->Quiesce();
   if (initialize->IsError()) TFRT_LOG(FATAL) << initialize->GetError();
 
   for (auto _ : state) {
-    Expected<AsyncValuePtr<Executable>> specialize =
+    absl::StatusOr<AsyncValuePtr<Executable>> specialize =
         jit_executable->GetExecutable(operands);
     benchmark::DoNotOptimize(specialize);
   }
@@ -121,14 +122,15 @@ void BenchmarkInitializeCallFrame(benchmark::State& state,
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 
-  llvm::Expected<JitExecutable> jit_executable =
+  absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
-  if (auto err = jit_executable.takeError()) TFRT_LOG(FATAL) << err;
+  if (!jit_executable.ok())
+    TFRT_LOG(FATAL) << jit_executable.status().message();
 
   // Get the executable.
-  Expected<AsyncValuePtr<Executable>> executable =
+  absl::StatusOr<AsyncValuePtr<Executable>> executable =
       jit_executable->GetExecutable(operands);
-  if (auto err = executable.takeError()) TFRT_LOG(FATAL) << err;
+  if (!executable.ok()) TFRT_LOG(FATAL) << executable.status().message();
 
   // Check that compilation was successful.
   host->Quiesce();

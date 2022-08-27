@@ -126,12 +126,12 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     string_view module = kernel.serialized_operation();
 
     // Instantiate new JitExecutable from the MLIR source.
-    Expected<JitExecutable> jit_executable =
+    absl::StatusOr<JitExecutable> jit_executable =
         JitExecutable::Instantiate(module, entrypoint, opts);
 
     // Set the allocated async value state to error or concrete.
-    if (auto err = jit_executable.takeError())
-      ref.SetError(std::move(err));
+    if (!jit_executable.ok())
+      ref.SetError(MakeStringError(jit_executable.status().message()));
     else
       ref.emplace(std::move(*jit_executable));
   });
@@ -212,7 +212,7 @@ static void ExecuteImpl(const Executable& executable,
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
 
-  if (auto err = executable.Execute(memrefs, converter, opts)) return;
+  if (auto st = executable.Execute(memrefs, converter, opts); !st.ok()) return;
 
   // Keep operands alive if we have unavailable results.
   RunWhenReady(results.values(),
@@ -230,10 +230,11 @@ static void Execute(KernelArgument<JitExecutable> jit_executable,
     return ReturnErrors(results, std::move(err));
 
   // Get an executable that might be specialized to the operands.
-  Expected<AsyncValuePtr<Executable>> executable =
+  absl::StatusOr<AsyncValuePtr<Executable>> executable =
       jit_executable->GetExecutable(memrefs);
-  if (auto err = executable.takeError())
-    return ReturnErrors(results, std::move(err));
+  if (!executable.ok())
+    return ReturnErrors(results,
+                        MakeStringError(executable.status().message()));
 
   // If specialization is available execute it inline.
   if (executable->IsAvailable()) {

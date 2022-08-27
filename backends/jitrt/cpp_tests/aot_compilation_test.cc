@@ -68,9 +68,9 @@ TEST(AotCompilationTest, CompileSaveRestore) {
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
 
-  llvm::Expected<JitExecutable> jit_executable =
+  absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
-  ASSERT_FALSE(jit_executable.takeError());
+  ASSERT_TRUE(jit_executable.ok());
 
   AsyncValuePtr<Executable> executable = jit_executable->DefaultExecutable();
   Await(executable.value());  // make sure executable is available
@@ -94,7 +94,7 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   NoResultConverter converter;
 
   // Execute Jit compiled executable.
-  ASSERT_FALSE(executable->Execute(args, converter, execute_opts));
+  ASSERT_TRUE(executable->Execute(args, converter, execute_opts).ok());
 
   // Check that `arg0` was copied into `arg1`.
   EXPECT_EQ(arg1, arg0);
@@ -122,13 +122,13 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   FunctionType signature(std::move(operands), /*results=*/{});
   FunctionType rt_signature(std::move(rt_operands), /*results=*/{});
 
-  llvm::Expected<Executable> loaded = Executable::LoadFromObjFile(
+  absl::StatusOr<Executable> loaded = Executable::LoadFromObjFile(
       "aot", std::move(obj_file), entrypoint, std::move(signature),
       std::move(rt_signature), /*runtime_symbol_map=*/{}, "aot_mem_region");
-  ASSERT_FALSE(loaded.takeError());
+  ASSERT_TRUE(loaded.ok());
 
   // Execute AOT executable.
-  ASSERT_FALSE(loaded->Execute(args, converter, execute_opts));
+  ASSERT_TRUE(loaded->Execute(args, converter, execute_opts).ok());
 
   // Check that `arg0` was copied into `arg1`.
   EXPECT_EQ(arg1, arg0);

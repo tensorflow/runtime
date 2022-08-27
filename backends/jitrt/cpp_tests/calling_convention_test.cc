@@ -75,15 +75,15 @@ TEST_P(CallingConventionTest, TestSignature) {
     CreateDefaultJitRtCompilationPipeline(pm, {});
   };
 
-  llvm::Expected<JitExecutable> jit_executable =
+  absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
-  if (auto err = jit_executable.takeError()) ASSERT_FALSE(err) << StrCat(err);
+  ASSERT_TRUE(jit_executable.ok()) << jit_executable.status().message();
 
   // The default executable is enough for us to inspect the runtime signature.
-  llvm::Expected<AsyncValuePtr<Executable>> executable =
+  absl::StatusOr<AsyncValuePtr<Executable>> executable =
       jit_executable->DefaultExecutable();
   // Await the successful compilation completion.
-  if (auto err = executable.takeError()) ASSERT_FALSE(err) << StrCat(err);
+  ASSERT_TRUE(executable.ok()) << executable.status().message();
   Await(executable->value());
 
   auto is_dynamic_memref = [](const Type* type) {

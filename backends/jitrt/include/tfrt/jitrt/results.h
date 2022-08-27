@@ -71,11 +71,13 @@ class RemainingResultsConverter : public xla::runtime::ResultConverter {
     return mlir::failure();
   }
 
-  void ReturnError(const Error& error) const final {
+  void ReturnError(const absl::Status& error) const final {
+    assert(!error.ok());
     if (results_.empty()) return;
     results_[0] = MakeErrorAsyncValueRef(
-        augment_error_ ? DecodedDiagnostic(augment_error_(error))
-                       : DecodedDiagnostic(error));
+        augment_error_ ? DecodedDiagnostic(
+                             augment_error_(MakeStringError(error.message())))
+                       : DecodedDiagnostic(MakeStringError(error.message())));
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 
@@ -163,9 +165,10 @@ class StaticRemainingResultsConverter : public xla::runtime::ResultConverter {
     return convert_(context_, results_, result_index, type, runtime_type, ret);
   }
 
-  void ReturnError(const Error& error) const final {
+  void ReturnError(const absl::Status& error) const final {
+    assert(!error.ok());
     if (results_.empty()) return;
-    results_[0] = MakeErrorAsyncValueRef(DecodedDiagnostic(error));
+    results_[0] = MakeErrorAsyncValueRef(DecodedDiagnostic(error.message()));
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 

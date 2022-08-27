@@ -145,9 +145,10 @@ struct CustomArgument
   explicit CustomArgument(std::string message) : message(std::move(message)) {}
 
   // Check that argument matches the expected type.
-  Error Verify(const Type& type) const final {
-    if (isa<CustomArgRtType>(type)) return Error::success();
-    return tfrt::MakeStringError("expected custom arg type, got: ", type);
+  absl::Status Verify(const Type& type) const final {
+    if (isa<CustomArgRtType>(type)) return absl::OkStatus();
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected custom arg type, got: ", type.ToString()));
   }
 
   // Packs an indirect pointer to the string message to the arguments array.

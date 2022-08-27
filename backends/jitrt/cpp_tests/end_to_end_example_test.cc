@@ -153,9 +153,8 @@ struct CustomArgument
   }
 
   // Packs an indirect pointer to the string message to the arguments array.
-  size_t Pack(absl::Span<void*> args, size_t offset) const final {
-    args[offset] = const_cast<void*>(reinterpret_cast<const void*>(&ptr));
-    return ++offset;
+  void Pack(absl::Span<void*> args) const final {
+    args[0] = const_cast<void*>(reinterpret_cast<const void*>(&ptr));
   }
 
   std::string ToString() const final { return "custom_arg: " + message + "\n"; }

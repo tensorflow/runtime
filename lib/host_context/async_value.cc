@@ -80,10 +80,10 @@ void AsyncValue::NotifyAvailable(State available_state) {
   // the value that got filled in.
   auto old_value = waiters_and_state_.exchange(
       WaitersAndState(nullptr, available_state), std::memory_order_acq_rel);
-  assert(old_value.getInt() == State::kUnconstructed ||
-         old_value.getInt() == State::kConstructed);
+  assert(old_value.state() == State::kUnconstructed ||
+         old_value.state() == State::kConstructed);
 
-  RunWaiters(old_value.getPointer());
+  RunWaiters(old_value.waiter());
 }
 
 void AsyncValue::RunWaiters(NotifierListNode* list) {
@@ -104,35 +104,35 @@ void AsyncValue::EnqueueWaiter(llvm::unique_function<void()>&& waiter,
                                WaitersAndState old_value) {
   // Create the node for our waiter.
   auto* node = new NotifierListNode(std::move(waiter));
-  auto old_state = old_value.getInt();
+  auto old_state = old_value.state();
 
   // Swap the next link in. old_value.getInt() must be unavailable when
   // evaluating the loop condition. The acquire barrier on the compare_exchange
   // ensures that prior changes to waiter list are visible here as we may call
   // RunWaiter() on it. The release barrier ensures that prior changes to *node
   // appear to happen before it's added to the list.
-  node->next_ = old_value.getPointer();
+  node->next_ = old_value.waiter();
   auto new_value = WaitersAndState(node, old_state);
   while (!waiters_and_state_.compare_exchange_weak(old_value, new_value,
                                                    std::memory_order_acq_rel,
                                                    std::memory_order_acquire)) {
     // While swapping in our waiter, the value could have become available.  If
     // so, just run the waiter.
-    if (old_value.getInt() == State::kConcrete ||
-        old_value.getInt() == State::kError) {
-      assert(old_value.getPointer() == nullptr);
+    if (old_value.state() == State::kConcrete ||
+        old_value.state() == State::kError) {
+      assert(old_value.waiter() == nullptr);
       node->next_ = nullptr;
       RunWaiters(node);
       return;
     }
     // Update the waiter list in new_value.
-    node->next_ = old_value.getPointer();
+    node->next_ = old_value.waiter();
   }
 
   // compare_exchange_weak succeeds. The old_value must be in either
   // kUnconstructed or kConstructed state.
-  assert(old_value.getInt() == State::kUnconstructed ||
-         old_value.getInt() == State::kConstructed);
+  assert(old_value.state() == State::kUnconstructed ||
+         old_value.state() == State::kConstructed);
 }
 
 void AsyncValue::SetError(DecodedDiagnostic diag_in) {

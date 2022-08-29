@@ -32,7 +32,6 @@
 #include <string>
 #include <type_traits>
 
-#include "llvm/ADT/PointerIntPair.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/alloc.h"
@@ -260,7 +259,7 @@ class AsyncValue {
 
   // Return which state this AsyncValue is in.
   State state() const {
-    return waiters_and_state_.load(std::memory_order_acquire).getInt();
+    return waiters_and_state_.load(std::memory_order_acquire).state();
   }
 
  protected:
@@ -353,18 +352,6 @@ class AsyncValue {
   // This is a 16-bit value that identifies the type.
   uint16_t type_id_ = 0;
 
-  struct NotifierListNodePointerTraits {
-    static inline void* getAsVoidPointer(NotifierListNode* ptr) { return ptr; }
-    static inline NotifierListNode* getFromVoidPointer(void* ptr) {
-      return static_cast<NotifierListNode*>(ptr);
-    }
-    // NotifierListNode has an alignment of at least alignof(void*).
-    enum {
-      NumLowBitsAvailable =
-          llvm::PointerLikeTypeTraits<void**>::NumLowBitsAvailable
-    };
-  };
-
   // The waiter list and the state are compacted into one single atomic word as
   // accesses to them are tightly related. To change the state from unavailable
   // (i.e. kUnconstructed or kConstructed) to available
@@ -374,14 +361,40 @@ class AsyncValue {
   //
   // Invariant: If the state is not available, then the waiter list must be
   // nullptr.
-  using WaitersAndState =
-      llvm::PointerIntPair<NotifierListNode*, 2, State::StateEnum,
-                           NotifierListNodePointerTraits>;
+  struct WaitersAndState {
+    // We rely on the fact that all `NotifierListNode` values are aligned at
+    // least to 8 bytes and we can encode state in the lowest 3 bits. We use
+    // the conservative estimation of the minimal alignment of pointers returned
+    // from memory allocation functions.
+    //
+    // See: https://en.cppreference.com/w/cpp/types/max_align_t
+    static_assert(alignof(std::max_align_t) >= 8 &&
+                  sizeof(NotifierListNode*) == 8);
+
+    static constexpr uint64_t kStateMask = (1ull << 2) - 1;
+    static constexpr uint64_t kPointerMask = ~kStateMask;
+
+    WaitersAndState(NotifierListNode* ptr, State state) {
+      value = (reinterpret_cast<uintptr_t>(ptr) & kPointerMask) |
+              (state & kStateMask);
+    }
+
+    State state() const {
+      return State(static_cast<State::StateEnum>(value & kStateMask));
+    }
+
+    NotifierListNode* waiter() const {
+      return reinterpret_cast<NotifierListNode*>(value & kPointerMask);
+    }
+
+    uintptr_t value;
+  };
+
   std::atomic<WaitersAndState> waiters_and_state_;
 
-  /// We assume (and static_assert) that this is the offset of
-  /// ConcreteAsyncValue::data_, which is the same as the offset of
-  /// ConcreteAsyncValue::error_.
+  // We assume (and static_assert) that this is the offset of
+  // ConcreteAsyncValue::data_, which is the same as the offset of
+  // ConcreteAsyncValue::error_.
   static constexpr int kDataOffset = 16;
 
  private:
@@ -757,7 +770,7 @@ class UnRefCountedAsyncValue : public internal::ConcreteAsyncValue<T> {
 // Implementation details follow.  Clients should ignore them.
 //
 inline AsyncValue::~AsyncValue() {
-  assert(waiters_and_state_.load().getPointer() == nullptr &&
+  assert(waiters_and_state_.load().waiter() == nullptr &&
          "An async value with waiters should never have refcount of zero");
   if (AsyncValueAllocationTrackingEnabled() && is_refcounted_)
     total_allocated_async_values_.fetch_sub(1, std::memory_order_relaxed);
@@ -911,9 +924,9 @@ void AsyncValue::AndThen(WaiterT&& waiter) {
   // to see if the value is present. Check for them, and immediately run the
   // lambda if it is already here.
   auto old_value = waiters_and_state_.load(std::memory_order_acquire);
-  if (old_value.getInt() == State::kConcrete ||
-      old_value.getInt() == State::kError) {
-    assert(old_value.getPointer() == nullptr);
+  if (old_value.state() == State::kConcrete ||
+      old_value.state() == State::kError) {
+    assert(old_value.waiter() == nullptr);
     waiter();
     return;
   }

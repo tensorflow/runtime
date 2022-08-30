@@ -19,6 +19,7 @@
 
 #include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests/testlib.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/type_id.h"
 
 namespace xla {
@@ -31,6 +32,8 @@ namespace tfrt {
 namespace jitrt {
 
 xla::runtime::DirectCustomCallLibrary CustomCallTestlib();
+
+void RegisterCustomCallTestLib(xla::runtime::CustomCallRegistry* registry);
 
 // Declare runtime enums corresponding to compile time enums to test
 // attributes enum conversion.

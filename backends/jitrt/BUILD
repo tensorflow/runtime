@@ -164,7 +164,6 @@ licenses(["notice"])
 #     name = "custom_call_testlib",
 #     srcs = ["lib/custom_calls/custom_call_testlib.cc"],
 #     hdrs = ["include/tfrt/jitrt/custom_calls/custom_call_testlib.h"],
-#     alwayslink_static_registration_src = "lib/custom_calls/custom_call_testlib_registration.cc",
 #     compatible_with = ["//buildenv/target:gce"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
@@ -197,6 +196,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
+#         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",
 #         "//third_party/tensorflow/compiler/xla/runtime:executable",
 #         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",

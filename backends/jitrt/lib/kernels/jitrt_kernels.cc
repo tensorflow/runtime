@@ -50,6 +50,7 @@
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
 #include "third_party/tensorflow/compiler/xla/runtime/executable.h"
 #include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
@@ -203,6 +204,10 @@ static void ExecuteImpl(const Executable& executable,
   opts.async_task_runner = &runner_ctx.runner;
   opts.custom_call_data = &custom_call_data;
   opts.diagnostic_engine = &diagnostic_engine;
+
+  xla::runtime::CustomCallRegistry custom_call_registry;
+  RegisterCustomCallTestLib(&custom_call_registry);
+  opts.custom_call_registry = &custom_call_registry;
 
   // If execution failed errors will be automatically allocated for all results.
   ConversionCtx conversion_ctx;

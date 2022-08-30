@@ -240,9 +240,6 @@ void RegisterMyRuntimeTypeNames(TypeIDNameRegistry& registry) {
   registry.Register<Tagged<CustomArg>>("__type_id_customarg");
 }
 
-// Static registration with the JitRt global registry.
-XLA_RUNTIME_STATIC_CUSTOM_CALL_REGISTRATION(RegisterMyRuntimeIntrinsics);
-
 //===----------------------------------------------------------------------===//
 // The end-to-end test itself that compiles and executes the MLIR module.
 //===----------------------------------------------------------------------===//
@@ -402,6 +399,10 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   CustomCall::UserData user_data;
   user_data.insert(&runtime_context);
   execute_opts.custom_call_data = &user_data;
+
+  CustomCallRegistry custom_call_registry;
+  RegisterMyRuntimeIntrinsics(&custom_call_registry);
+  execute_opts.custom_call_registry = &custom_call_registry;
 
   // ------------------------------------------------------------------------ //
   // 6. Get executable specialized for the concrete operands.

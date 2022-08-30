@@ -146,7 +146,6 @@ tfrt_cc_library(
     name = "bef_executor_jit_kernels",
     visibility = [":friends"],
     deps = [
-        # copybara:uncomment "@tf_runtime//backends/jitrt:custom_call_testlib_alwayslink",
         # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_corert_kernels_alwayslink",
         # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_kernels_alwayslink",
     ],

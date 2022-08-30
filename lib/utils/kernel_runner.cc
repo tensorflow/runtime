@@ -137,7 +137,8 @@ void KernelRunner::RunSyncInternal(size_t num_results) {
     attributes.emplace_back(&bef_attr_encoder_.result()[attr_offset]);
   }
 
-  SyncKernelFrameBuilder frame{registers, ExecutionContext{req_ctx_}};
+  ExecutionContext exec_ctx(req_ctx_);
+  SyncKernelFrameBuilder frame{registers, exec_ctx};
   frame.SetArguments(argument_indices);
   frame.SetResults(result_indices);
   frame.SetAttributes(attributes);

@@ -313,6 +313,44 @@ AsyncValueRef<Chain> BiasAdd(const DenseHostTensor& input,
       KeepBuffers::alive(&input, &bias, output));
 }
 
+//===----------------------------------------------------------------------===//
+// CPU Sigmoid kernels
+//===----------------------------------------------------------------------===//
+
+// Computes B = Sigmoid(A) in sync style.
+template <typename T>
+llvm::Error SyncSigmoid(const DenseHostTensor& A, DenseHostTensor* B,
+                        const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.sigmoid(); };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
+}
+
+//===----------------------------------------------------------------------===//
+// CPU Sum kernels
+//===----------------------------------------------------------------------===//
+
+// Computes B = Sum(A) in sync style for 2D tensors (only).
+template <typename T>
+llvm::Error SyncSum2D(const DenseHostTensor& A, DenseHostTensor* B, int axis,
+                      const ExecutionContext& exec_ctx) {
+  if (A.shape().GetRank() != 2 || B->shape().GetRank() != 2) {
+    return MakeStringError("Inputs must be rank-2 tensors.");
+  }
+  using EigenMatrix =
+      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  Eigen::Map<const EigenMatrix> input(A.data<T>(),
+                                      A.shape().GetDimensionSize(0),
+                                      A.shape().GetDimensionSize(1));
+  Eigen::Map<EigenMatrix> output(B->data<T>(), B->shape().GetDimensionSize(0),
+                                 B->shape().GetDimensionSize(1));
+  if (axis == 0) {
+    output = input.colwise().sum();
+  } else {
+    output = input.rowwise().sum();
+  }
+  return llvm::Error::success();
+}
+
 }  // namespace cpu
 }  // namespace tfrt
 

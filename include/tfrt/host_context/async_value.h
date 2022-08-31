@@ -32,6 +32,7 @@
 #include <string>
 #include <type_traits>
 
+#include "absl/status/status.h"  // from @absl  // NOLINT
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/alloc.h"

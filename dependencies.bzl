@@ -14,6 +14,7 @@
 """Provides a workspace macro to load dependent repositories."""
 
 load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
+load("@tf_runtime//third_party/absl:workspace.bzl", absl = "repo")
 load("@tf_runtime//third_party/eigen:workspace.bzl", eigen = "repo")
 load("@tf_runtime//third_party/llvm:workspace.bzl", llvm = "repo")
 load("@tf_runtime//third_party/cuda:dependencies.bzl", "cuda_dependencies")
@@ -45,6 +46,8 @@ def tfrt_dependencies():
             "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.2/bazel-skylib-1.0.2.tar.gz",
         ],
     )
+
+    absl(name = "absl")
 
     eigen(name = "eigen_archive")
 

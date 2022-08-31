@@ -196,7 +196,7 @@ class Resource {
   const Resource* operator->() const { return this; }
 
   // Free function which hashes a resource instance.
-  friend std::size_t hash(const Resource& resource) {
+  friend std::size_t Hash(const Resource& resource) {
     return std::hash<void*>{}(resource.pair_.getOpaqueValue());
   }
 

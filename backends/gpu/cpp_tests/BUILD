@@ -35,7 +35,7 @@ tfrt_cc_library(
             ":common",
             "@tf_runtime//backends/gpu:gpu_wrapper",
             "@com_google_googletest//:gtest_main",
-        ] + if_google(["//third_party/absl/debugging:leak_check"]),
+        ] + if_google(["@absl//absl/debugging:leak_check"]),
     )
     for name in [
         "blas",
@@ -65,7 +65,7 @@ tfrt_cc_test(
         ":common",
         "@tf_runtime//backends/gpu:gpu_wrapper",
         "@com_google_googletest//:gtest_main",
-    ] + if_google(["//third_party/absl/debugging:leak_check"]),
+    ] + if_google(["@absl//absl/debugging:leak_check"]),
 )
 
 tfrt_cc_test(

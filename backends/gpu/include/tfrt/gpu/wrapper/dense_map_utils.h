@@ -34,7 +34,7 @@ struct DenseMapInfo<tfrt::gpu::wrapper::Resource<CudaT, HipT>> {
     return Resource(DenseMapInfo<void*>::getTombstoneKey());
   }
   static unsigned getHashValue(const Resource& resource) {
-    return static_cast<unsigned>(hash(resource));
+    return static_cast<unsigned>(Hash(resource));
   }
   static bool isEqual(const Resource& lhs, const Resource& rhs) {
     return lhs == rhs;

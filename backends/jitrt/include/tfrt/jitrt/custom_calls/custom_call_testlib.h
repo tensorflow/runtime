@@ -64,11 +64,10 @@ namespace runtime {
 XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(EnumType);
 XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(tfrt::jitrt::RuntimeEnumType);
 
-// Explicitly register aggregate attributes decoding for structs.
 XLA_RUNTIME_REGISTER_AGGREGATE_ATTR_DECODING(
-    tfrt::jitrt::RuntimePairOfDims,
-    XLA_RUNTIME_AGGREGATE_FIELDS("rank", "a", "b"), int64_t,
-    llvm::ArrayRef<int64_t>, llvm::ArrayRef<int64_t>);
+    tfrt::jitrt::RuntimePairOfDims, AggregateMember<int64_t>("rank"),
+    AggregateMember<llvm::ArrayRef<int64_t>>("a"),
+    AggregateMember<llvm::ArrayRef<int64_t>>("b"));
 
 }  // namespace runtime
 }  // namespace xla

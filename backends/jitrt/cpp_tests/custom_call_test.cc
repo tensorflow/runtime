@@ -51,7 +51,6 @@ using namespace xla::runtime;  // NOLINT
 
 using llvm::SmallVector;
 using llvm::StringRef;
-using llvm::orc::MangleAndInterner;
 using llvm::orc::SymbolMap;
 
 using mlir::success;
@@ -83,6 +82,7 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
 
   opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
     CompilationPipelineOptions copts;
+    copts.populate_type_id_names = PopulateCustomCallTypeIdNames;
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
     CreateDefaultJitRtCompilationPipeline(pm, copts);
   };
@@ -135,12 +135,9 @@ static SmallVector<MemrefDesc> GetFakeMemrefs(
 
 template <typename SymPtr>
 static ExecutionEngine::SymbolsBinding Bind(StringRef name, SymPtr symbol_ptr) {
-  return [=](MangleAndInterner mangle) -> SymbolMap {
-    SymbolMap symbol_map;
-    symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
-        llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
-    return symbol_map;
-  };
+  DirectCustomCallLibrary lib;
+  lib.Insert(name, symbol_ptr);
+  return xla::runtime::ToSymbolsBinding(lib, PopulateCustomCallTypeIdNames);
 }
 
 // -------------------------------------------------------------------------- //

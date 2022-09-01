@@ -85,6 +85,9 @@ void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
 
 void CreateDefaultJitRtCompilationPipeline(
     mlir::OpPassManager& pm, const CompilationPipelineOptions& opts) {
+  // Convert entry function to the XLA entrypoint.
+  pm.addPass(CreateConvertToEntrypoint());
+
   pm.addPass(mlir::createInlinerPass());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
@@ -131,18 +134,17 @@ void CreateDefaultJitRtCompilationPipeline(
 
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());
-  pm.addPass(mlir::createConvertAsyncToLLVMPass());
   pm.addPass(mlir::createLowerAffinePass());
   pm.addPass(mlir::createConvertSCFToCFPass());
-
-  // Convert entry function to the XLA entrypoint.
-  pm.addPass(CreateConvertToEntrypoint());
 
   // Convert runtime operations and custom calls to LLVM dialect.
   xla::runtime::ConvertRuntimeToLLvmOpts rt_opts = {
       opts.populate_type_id_names, opts.populate_type_conversions,
       opts.populate_arg_encodings, opts.populate_attr_encodings};
   pm.addPass(xla::runtime::CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
+
+  // Convert async dialect to LLVM once everything else is in the LLVM dialect.
+  pm.addPass(mlir::createConvertAsyncToLLVMPass());
 
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();

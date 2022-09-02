@@ -73,4 +73,6 @@ XLA_RUNTIME_REGISTER_AGGREGATE_ATTR_DECODING(
 }  // namespace runtime
 }  // namespace xla
 
+XLA_RUNTIME_DECLARE_EXPLICIT_TYPE_ID(tfrt::jitrt::RuntimeEnumType);
+
 #endif  // TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_

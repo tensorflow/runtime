@@ -486,8 +486,7 @@ using tfrt::jitrt::CustomArg;
 template <CustomCall::RuntimeChecks checks>
 struct CustomCallArgDecoding<CustomArg, checks> {
   static FailureOr<CustomArg> Decode(TypeID type_id, void* value) {
-    if (!CustomCall::CheckType<Tagged<CustomArg>>(checks, type_id))
-      return failure();
+    if (!CustomCall::Isa<CustomArg>(checks, type_id)) return failure();
     return CustomArg{reinterpret_cast<const std::string*>(value)};
   }
 };

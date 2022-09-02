@@ -32,6 +32,8 @@
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/executable.h"
 
+XLA_RUNTIME_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::RuntimeEnumType);
+
 namespace tfrt {
 namespace jitrt {
 

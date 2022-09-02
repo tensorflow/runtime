@@ -205,7 +205,7 @@ static void ExecuteImpl(const Executable& executable,
   opts.custom_call_data = &custom_call_data;
   opts.diagnostic_engine = &diagnostic_engine;
 
-  xla::runtime::CustomCallRegistry custom_call_registry;
+  xla::runtime::DynamicCustomCallRegistry custom_call_registry;
   RegisterCustomCallTestLib(&custom_call_registry);
   opts.custom_call_registry = &custom_call_registry;
 

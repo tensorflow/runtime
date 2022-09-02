@@ -352,7 +352,7 @@ static bool DirectPrintAttrs(xla::runtime::KernelContext* ctx, void** args,
   return succeeded(Executable::Call(ctx, *call, args, attrs));
 }
 
-void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
+void RegisterCustomCallTestLib(DynamicCustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("testlib.noop")
                          .Arg<FlatMemrefView>()
                          .Arg<FlatMemrefView>()
@@ -425,12 +425,12 @@ void RegisterCustomCallTestLib(CustomCallRegistry* registry) {
                          .To(PrintVariantAttrs));
 }
 
-DirectCustomCallLibrary CustomCallTestlib() {
-  DirectCustomCallLibrary lib;
-  lib.Insert("testlib.direct_call", &DirectCustomCall);
-  lib.Insert("testlib.print_attrs", &DirectPrintAttrs);
-  lib.Insert("testlib.noop", &DirectNoOp);
-  return lib;
+DirectCustomCallRegistry CustomCallTestlib() {
+  DirectCustomCallRegistry reg;
+  reg.Register("testlib.direct_call", &DirectCustomCall);
+  reg.Register("testlib.print_attrs", &DirectPrintAttrs);
+  reg.Register("testlib.noop", &DirectNoOp);
+  return reg;
 }
 
 }  // namespace jitrt

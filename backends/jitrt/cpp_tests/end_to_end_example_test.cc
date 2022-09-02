@@ -227,7 +227,7 @@ static LogicalResult MyRuntimeIntrinsic(MyRuntimeContext* ctx,
 }
 
 // Register your runtime support library with JitRt as custom calls.
-void RegisterMyRuntimeIntrinsics(CustomCallRegistry* registry) {
+void RegisterMyRuntimeIntrinsics(DynamicCustomCallRegistry* registry) {
   registry->Register(CustomCall::Bind("my.runtime.intrinsic")
                          .UserData<MyRuntimeContext*>()
                          .Arg<CustomArg>()
@@ -281,11 +281,11 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
       mlir::bufferization::BufferizeTypeConverter());
 
   // Empty direct custom calls library.
-  DirectCustomCallLibrary lib;
+  DirectCustomCallRegistry custom_calls;
 
   // Add a mapping from the custom call type id to symbol name.
   opts.compiler.symbols_binding =
-      ToSymbolsBinding(lib, RegisterMyRuntimeTypeNames);
+      ToSymbolsBinding(custom_calls, RegisterMyRuntimeTypeNames);
 
   // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time
   // type corresponding to a custom argument.
@@ -400,7 +400,7 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   user_data.insert(&runtime_context);
   execute_opts.custom_call_data = &user_data;
 
-  CustomCallRegistry custom_call_registry;
+  DynamicCustomCallRegistry custom_call_registry;
   RegisterMyRuntimeIntrinsics(&custom_call_registry);
   execute_opts.custom_call_registry = &custom_call_registry;
 

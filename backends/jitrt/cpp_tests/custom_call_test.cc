@@ -157,12 +157,13 @@ static const char* custom_call_i32x1 = R"(
   )";
 
 template <RuntimeChecks checks>
-static bool I32X1(xla::runtime::KernelContext* ctx, void** args, void** attrs) {
+static bool I32X1(xla::runtime::KernelContext* ctx, void** args, void** attrs,
+                  void** rets) {
   static auto* handler = CustomCall::Bind("testlib.custom_call")
                              .Arg<int32_t>()
                              .To<checks>([](int32_t arg0) { return success(); })
                              .release();
-  return succeeded(Executable::Call(ctx, *handler, args, attrs));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs, rets));
 }
 
 template <RuntimeChecks checks>
@@ -205,8 +206,8 @@ static const char* custom_call_i32x12 = R"(
   )";
 
 template <RuntimeChecks checks>
-static bool I32X12(xla::runtime::KernelContext* ctx, void** args,
-                   void** attrs) {
+static bool I32X12(xla::runtime::KernelContext* ctx, void** args, void** attrs,
+                   void** rets) {
   static auto* handler =
       CustomCall::Bind("testlib.custom_call")
           .Arg<int32_t>()
@@ -226,7 +227,7 @@ static bool I32X12(xla::runtime::KernelContext* ctx, void** args,
                          int32_t arg8, int32_t arg9, int32_t arg10,
                          int32_t arg11) { return success(); })
           .release();
-  return succeeded(Executable::Call(ctx, *handler, args, attrs));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs, rets));
 }
 
 template <RuntimeChecks checks>
@@ -254,7 +255,7 @@ static const char* custom_call_memrefx1 = R"(
 
 template <RuntimeChecks checks, typename MemrefType>
 static bool MemrefX1(xla::runtime::KernelContext* ctx, void** args,
-                     void** attrs) {
+                     void** attrs, void** rets) {
   static auto* handler = CustomCall::Bind("testlib.custom_call")
                              .Arg<MemrefType>()
                              .template To<checks>([](MemrefType arg0) {
@@ -262,7 +263,7 @@ static bool MemrefX1(xla::runtime::KernelContext* ctx, void** args,
                                return success();
                              })
                              .release();
-  return succeeded(Executable::Call(ctx, *handler, args, attrs));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs, rets));
 }
 
 template <RuntimeChecks checks>
@@ -328,7 +329,7 @@ static const char* custom_call_memrefx12 = R"(
 
 template <RuntimeChecks checks, typename MemrefType>
 static bool MemrefX12(xla::runtime::KernelContext* ctx, void** args,
-                      void** attrs) {
+                      void** attrs, void** rets) {
   static auto* handler =
       CustomCall::Bind("testlib.custom_call")
           .template Arg<MemrefType>()
@@ -363,7 +364,7 @@ static bool MemrefX12(xla::runtime::KernelContext* ctx, void** args,
                 return success();
               })
           .release();
-  return succeeded(Executable::Call(ctx, *handler, args, attrs));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs, rets));
 }
 
 static SmallVector<MemrefDesc> FakeMemrefsX12() {
@@ -444,7 +445,7 @@ static const char* custom_call_i32_attrx12 = R"(
 
 template <RuntimeChecks checks>
 static bool I32AttrX12(xla::runtime::KernelContext* ctx, void** args,
-                       void** attrs) {
+                       void** attrs, void** rets) {
   static auto* handler =
       CustomCall::Bind("testlib.custom_call")
           .Attr<int32_t>("attribute0")
@@ -464,7 +465,7 @@ static bool I32AttrX12(xla::runtime::KernelContext* ctx, void** args,
                          int32_t arg8, int32_t arg9, int32_t arg10,
                          int32_t arg11) { return success(); })
           .release();
-  return succeeded(Executable::Call(ctx, *handler, args, attrs));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs, rets));
 }
 
 template <RuntimeChecks checks>
@@ -495,7 +496,7 @@ static const char* custom_call_pair_of_dimsx1 = R"(
 
 template <RuntimeChecks checks>
 static bool PairOfDimsX1(xla::runtime::KernelContext* ctx, void** args,
-                         void** attrs) {
+                         void** attrs, void** rets) {
   static auto* handler = CustomCall::Bind("testlib.custom_call")
                              .Attr<RuntimePairOfDims>("dims")
                              .To<checks>([](RuntimePairOfDims dims) {
@@ -503,7 +504,7 @@ static bool PairOfDimsX1(xla::runtime::KernelContext* ctx, void** args,
                                return success();
                              })
                              .release();
-  return succeeded(Executable::Call(ctx, *handler, args, attrs));
+  return succeeded(Executable::Call(ctx, *handler, args, attrs, rets));
 }
 
 template <RuntimeChecks checks>

@@ -294,20 +294,22 @@ static LogicalResult PrintMemrefAndVariadicArgs(
 
 // Custom call handler for testing direct custom call compilation.
 static bool DirectCustomCall(xla::runtime::KernelContext* ctx, void** args,
-                             void** attrs) {
+                             void** attrs, void** rets) {
   xla::runtime::internal::DecodedArgs decoded_args(args);
   xla::runtime::internal::DecodedAttrs decoded_attrs(attrs);
+  xla::runtime::internal::DecodedRets decoded_rets(rets);
   CustomCall::UserData* user_data = Executable::GetUserData(ctx);
   const char* caller = user_data->getIfExists<const char>();
   tfrt::outs() << "Direct custom call: num_args=" << decoded_args.size()
                << "; num_attrs=" << decoded_attrs.size()
+               << "; num_rets=" << decoded_rets.size()
                << "; str=" << (caller ? caller : "<unknown>") << "\n";
   return true;
 }
 
 // Direct NoOp custom call for benchmarking arguments/attributes encoding.
 static bool DirectNoOp(xla::runtime::KernelContext* ctx, void** args,
-                       void** attrs) {
+                       void** attrs, void** rets) {
   auto noop = [](FlatMemrefView, FlatMemrefView, FlatMemrefView, FlatMemrefView,
                  std::string_view, float, double) { return success(); };
 
@@ -322,12 +324,12 @@ static bool DirectNoOp(xla::runtime::KernelContext* ctx, void** args,
                           .To<CustomCall::RuntimeChecks::kNone>(noop)
                           .release();
 
-  return succeeded(Executable::Call(ctx, *call, args, attrs));
+  return succeeded(Executable::Call(ctx, *call, args, attrs, rets));
 }
 
 // Direct PrintAttrs custom call for testing disabled attributes checks.
 static bool DirectPrintAttrs(xla::runtime::KernelContext* ctx, void** args,
-                             void** attrs) {
+                             void** attrs, void** rets) {
   static auto* call = CustomCall::Bind("testlib.print_attrs")
                           .UserData<const char*>()
                           .Attr<int32_t>("i32")
@@ -349,7 +351,7 @@ static bool DirectPrintAttrs(xla::runtime::KernelContext* ctx, void** args,
                           .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
                           .release();
 
-  return succeeded(Executable::Call(ctx, *call, args, attrs));
+  return succeeded(Executable::Call(ctx, *call, args, attrs, rets));
 }
 
 void RegisterCustomCallTestLib(DynamicCustomCallRegistry* registry) {

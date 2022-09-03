@@ -300,7 +300,7 @@ static bool DirectCustomCall(xla::runtime::ExecutionContext* ctx, void** args,
   xla::runtime::internal::DecodedArgs decoded_args(args);
   xla::runtime::internal::DecodedAttrs decoded_attrs(attrs);
   xla::runtime::internal::DecodedRets decoded_rets(rets);
-  CustomCall::UserData* user_data = Executable::GetUserData(ctx);
+  const CustomCall::UserData* user_data = Executable::GetUserData(ctx);
   const char* caller = user_data->getIfExists<const char>();
   tfrt::outs() << "Direct custom call: num_args=" << decoded_args.size()
                << "; num_attrs=" << decoded_attrs.size()

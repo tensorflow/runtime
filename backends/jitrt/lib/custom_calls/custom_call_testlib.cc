@@ -295,7 +295,7 @@ static LogicalResult PrintMemrefAndVariadicArgs(
 }
 
 // Custom call handler for testing direct custom call compilation.
-static bool DirectCustomCall(xla::runtime::KernelContext* ctx, void** args,
+static bool DirectCustomCall(xla::runtime::ExecutionContext* ctx, void** args,
                              void** attrs, void** rets) {
   xla::runtime::internal::DecodedArgs decoded_args(args);
   xla::runtime::internal::DecodedAttrs decoded_attrs(attrs);
@@ -310,7 +310,7 @@ static bool DirectCustomCall(xla::runtime::KernelContext* ctx, void** args,
 }
 
 // Direct NoOp custom call for benchmarking arguments/attributes encoding.
-static bool DirectNoOp(xla::runtime::KernelContext* ctx, void** args,
+static bool DirectNoOp(xla::runtime::ExecutionContext* ctx, void** args,
                        void** attrs, void** rets) {
   auto noop = [](FlatMemrefView, FlatMemrefView, FlatMemrefView, FlatMemrefView,
                  std::string_view, float, double) { return success(); };
@@ -330,7 +330,7 @@ static bool DirectNoOp(xla::runtime::KernelContext* ctx, void** args,
 }
 
 // Direct PrintAttrs custom call for testing disabled attributes checks.
-static bool DirectPrintAttrs(xla::runtime::KernelContext* ctx, void** args,
+static bool DirectPrintAttrs(xla::runtime::ExecutionContext* ctx, void** args,
                              void** attrs, void** rets) {
   static auto* call = CustomCall::Bind("testlib.print_attrs")
                           .UserData<const char*>()

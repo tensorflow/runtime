@@ -112,7 +112,7 @@ TEST_P(CallingConventionTest, TestSignature) {
     const Type* type = signature.operand(i);
 
     if (i == 0)
-      EXPECT_TRUE(llvm::isa<KernelContextOperandType>(type));
+      EXPECT_TRUE(llvm::isa<ExecutionContextOperandType>(type));
     else
       EXPECT_TRUE(is_dynamic_memref(type));
   }

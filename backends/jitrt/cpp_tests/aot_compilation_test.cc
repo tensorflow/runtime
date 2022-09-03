@@ -115,7 +115,7 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
 
   std::vector<std::unique_ptr<Type>> rt_operands;
-  rt_operands.push_back(std::make_unique<KernelContextOperandType>());
+  rt_operands.push_back(std::make_unique<ExecutionContextOperandType>());
   rt_operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
   rt_operands.push_back(std::make_unique<MemrefType>(dims, PrimitiveType::F32));
 

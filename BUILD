@@ -199,7 +199,7 @@ tfrt_cc_library(
     deps = [
         ":bef",
         ":support",
-        "@absl//absl/status",
+        "@com_google_absl//absl/status",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ],
@@ -325,8 +325,8 @@ tfrt_cc_library(
         ":use_std_thread": [],
         "//conditions:default": [
             # copybara:uncomment_begin(internal targets, remove for bazel query)
-            # "@absl//absl/synchronization",
-            # "@absl//absl/time",
+            # "@com_google_absl//absl/synchronization",
+            # "@com_google_absl//absl/time",
             # "//thread",
             # copybara:uncomment_end
         ],

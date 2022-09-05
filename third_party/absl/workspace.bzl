@@ -37,9 +37,11 @@ def repo(name):
     tfrt_http_archive(
         name = name,
         sha256 = ABSL_SHA256,
-        build_file = "//third_party/absl:absl.BUILD",
+        build_file = "//third_party/absl:com_google_absl.BUILD",
         system_build_file = "//third_party/absl:system.BUILD",
         system_link_files = SYS_LINKS,
+        # TODO(b/234139015): Remove the patch when https://github.com/abseil/abseil-cpp/issues/326 is resolved
+        patch_file = "//third_party/absl:com_google_absl_fix_mac_and_nvcc_build.patch",
         strip_prefix = "abseil-cpp-{commit}".format(commit = ABSL_COMMIT),
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/{commit}.tar.gz".format(commit = ABSL_COMMIT),

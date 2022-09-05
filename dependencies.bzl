@@ -47,7 +47,7 @@ def tfrt_dependencies():
         ],
     )
 
-    absl(name = "absl")
+    absl(name = "com_google_absl")
 
     eigen(name = "eigen_archive")
 

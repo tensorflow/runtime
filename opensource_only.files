@@ -10,7 +10,7 @@ tf_runtime/dependencies.bzl:
 tf_runtime/mlir_tests/lit.bzl:
 tf_runtime/third_party/BUILD:
 tf_runtime/third_party/absl/BUILD:
-tf_runtime/third_party/absl/absl.BUILD:
+tf_runtime/third_party/absl/com_google_absl.BUILD:
 tf_runtime/third_party/absl/system.BUILD:
 tf_runtime/third_party/absl/system.absl.algorithm.BUILD:
 tf_runtime/third_party/absl/system.absl.base.BUILD:

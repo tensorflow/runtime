@@ -15,6 +15,7 @@
 // This file implements kernels for distributed execution.
 
 #include <cstddef>
+#include <utility>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -196,7 +197,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
   auto done = [out_chain = out_chain.CopyRef(),
                dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
     if (e) {
-      out_chain.SetError(e);
+      out_chain.SetError(absl::InternalError(toString(std::move(e))));
     } else {
       out_chain.emplace();
     }
@@ -381,7 +382,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
       new RefCountedCallback([out_chain = out_chain.CopyRef(),
                               dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
         if (e) {
-          out_chain.SetError(e);
+          out_chain.SetError(absl::InternalError(toString(std::move(e))));
         } else {
           out_chain.emplace();
         }
@@ -577,7 +578,7 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
                out_chain = std::move(out_chain_indirect),
                dist_ctx = dist_ctx.ValueRef()](Error e) mutable {
     if (e) {
-      out_chain.SetError(e);
+      out_chain.SetError(absl::InternalError(toString(std::move(e))));
     } else {
       out_chain.emplace();
     }
@@ -795,7 +796,7 @@ void DoAllGatherAnyShape(const ExecutionContext& exec_ctx,
                out_tensor = std::move(out_tensor),
                dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
     if (e) {
-      out_chain.SetError(e);
+      out_chain.SetError(absl::InternalError(toString(std::move(e))));
     } else {
       out_chain.emplace();
       out_tensor.emplace(std::move(output_tensor.get()));
@@ -953,7 +954,7 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
         [request = std::move(request), response = std::move(response),
          need_compilation, dist_context, out = out](Error e) mutable {
           if (e) {
-            out->SetError(DecodedDiagnostic(std::move(e)));
+            out->SetError(absl::InternalError(toString(std::move(e))));
           } else {
             if (need_compilation) {
               DeviceManager* manager = dist_context->GetRemoteDeviceManager();
@@ -1044,7 +1045,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
   if (results.size() !=
       1 /*chain*/ + (output_id_allocated ? 0 : spec->output_devices.size()) +
           num_output_with_tensorhandle) {
-    out_chain.SetError(llvm::make_error<InvalidArgumentErrorInfo>(StrCat(
+    out_chain.SetError(absl::InvalidArgumentError(StrCat(
         "Mismatch output devices size in RemoteExecuteSpec: ",
         spec->output_devices.size(), " expected: ", results.size() - 1)));
     return;
@@ -1123,7 +1124,8 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
           for (int i = 0; i < remote_objs.size(); ++i) {
             auto& obj = remote_objs[i];
             if (i >= num_metadata) {
-              obj.metadata.SetError(DecodedDiagnostic("Metadata not returned"));
+              obj.metadata.SetError(
+                  absl::InternalError("Metadata not returned"));
               continue;
             }
             auto metadata = DeserializeTensorMetadata(response->metadata(i));
@@ -1131,11 +1133,12 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
               obj.metadata.emplace(metadata.get());
               obj.tensor.emplace(std::move(metadata.get()), obj.id.get());
             } else {
-              obj.tensor.SetError(DecodedDiagnostic(metadata.takeError()));
+              obj.tensor.SetError(
+                  absl::InternalError(toString(metadata.takeError())));
             }
           }
           if (e) {
-            out_chain.SetError(std::move(e));
+            out_chain.SetError(absl::InternalError(toString(std::move(e))));
           } else {
             out_chain.SetStateConcrete();
           }
@@ -1215,7 +1218,7 @@ void SendBytes(Argument<DistributedContext> dist_context,
            dist_context = dist_context.ValueRef(),
            out_chain = out_chain_indirect.CopyRef()](Error e) {
             if (e) {
-              out_chain.SetError(e);
+              out_chain.SetError(absl::InternalError(toString(std::move(e))));
             } else {
               out_chain.emplace();
             }

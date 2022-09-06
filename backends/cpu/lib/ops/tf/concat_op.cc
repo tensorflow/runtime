@@ -133,20 +133,25 @@ static AsyncValueRef<HostTensor> TfConcatOp(
     return EmitErrorAsync(exec_ctx, "axis must be a dense host tensor");
 
   auto axis = cpu::ConcatAxis(*axis_tensor);
-  if (!axis) return EmitErrorAsync(exec_ctx, axis.takeError());
+  if (!axis)
+    return EmitErrorAsync(exec_ctx,
+                          absl::InternalError(toString(axis.takeError())));
 
   // The last tensor in inputs is the axis. Make a range view to cover all but
   // the last tensor input as args.
   auto args = views::Counted(inputs.begin(), inputs.size() - 1);
 
   auto output_md = cpu::ConcatMetadataKernel(args, *axis);
-  if (!output_md) return EmitErrorAsync(exec_ctx, output_md.takeError());
+  if (!output_md)
+    return EmitErrorAsync(exec_ctx,
+                          absl::InternalError(toString(output_md.takeError())));
 
   auto make_async = [&](auto expected_tensor) -> AsyncValueRef<HostTensor> {
     using TensorType = typename decltype(expected_tensor)::value_type;
 
     if (!expected_tensor) {
-      return EmitErrorAsync(exec_ctx, expected_tensor.takeError());
+      return EmitErrorAsync(
+          exec_ctx, absl::InternalError(toString(expected_tensor.takeError())));
     }
 
     return MakeAvailableAsyncValueRef<TensorType>(

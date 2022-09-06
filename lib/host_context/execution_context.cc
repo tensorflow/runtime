@@ -33,7 +33,8 @@ RequestContext::~RequestContext() {
 
 void RequestContext::Cancel() {
   // Create an AsyncValue in error state for cancel.
-  auto* error_value = MakeErrorAsyncValueRef("Cancelled").release();
+  auto* error_value =
+      MakeErrorAsyncValueRef(absl::CancelledError("Cancelled")).release();
 
   ErrorAsyncValue* expected_value = nullptr;
   // Use memory_order_release for the success case so that error_value is

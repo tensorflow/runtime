@@ -65,7 +65,7 @@ TEST_F(AsyncValuePtrTest, SetError) {
   EXPECT_FALSE(ptr.IsConcrete());
   EXPECT_FALSE(ptr.IsAvailable());
 
-  ptr.SetError("test error");
+  ptr.SetError(absl::InternalError("test error"));
 
   EXPECT_TRUE(ptr.IsAvailable());
   EXPECT_TRUE(ptr.IsError());

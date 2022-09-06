@@ -19,4 +19,4 @@ func.func @test_error_result() -> i32 {
   %x = "tfrt_test.fail"() : () -> i32 // expected-error {{something bad happened}}
   tfrt.return %x : i32
 }
-// CHECK-NEXT: 'test_error_result' returned <<error: something bad happened, code: Unknown>>
+// CHECK-NEXT: 'test_error_result' returned <<error: something bad happened, code: INTERNAL>>

@@ -202,7 +202,7 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
       if (kernel.kernel_code() == kernel_idx) {
         auto decoded_loc = bef_file_->DecodeLocation(kernel.kernel_location());
         bef_file_->error_handler_(
-            DecodedDiagnostic(decoded_loc, error_message));
+            DecodedDiagnostic(decoded_loc, absl::InternalError(error_message)));
         return false;
       }
     }
@@ -482,7 +482,7 @@ BEFFileImpl::BEFFileImpl(std::function<void(DecodedDiagnostic)> error_handler)
 BEFFileImpl::~BEFFileImpl() {}
 
 void BEFFileImpl::EmitFormatError(string_view message) {
-  error_handler_(DecodedDiagnostic(message));
+  error_handler_(DecodedDiagnostic(absl::InternalError(message)));
 }
 
 // TODO(b/160504938): Refactor this function to return Error instead of

@@ -28,12 +28,11 @@
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 
 #include <cstddef>
+#include <string_view>
 #include <type_traits>
 
-#include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/async_value.h"
-#include "tfrt/host_context/location.h"
 #include "tfrt/support/alloc.h"
 #include "tfrt/support/error_util.h"
 
@@ -131,7 +130,7 @@ class AsyncValueRef {
     if (v) {
       emplace(std::move(*v));
     } else {
-      SetError(v.takeError());
+      SetError(absl::InternalError(toString(v.takeError())));
     }
   }
 
@@ -146,15 +145,17 @@ class AsyncValueRef {
     return value_->GetErrorIfPresent();
   }
 
-  void SetError(string_view message) const {
-    return SetError(DecodedDiagnostic{message});
-  }
-  void SetError(DecodedDiagnostic diag) const {
-    value_->SetError(std::move(diag));
+  void SetError(absl::Status status) const {
+    assert(!status.ok() && "expected non-ok status");
+    value_->SetError(DecodedDiagnostic(std::move(status)));
   }
 
-  void SetError(const Error& error) const {
-    value_->SetError(DecodedDiagnostic(error));
+  void SetError(DecodedDiagnostic diagnostic) const {
+    value_->SetError(std::move(diagnostic));
+  }
+
+  void SetError(std::string_view message) const {
+    SetError(absl::InternalError(message));
   }
 
   explicit operator bool() const { return value_.get() != nullptr; }
@@ -219,7 +220,7 @@ class AsyncValuePtr {
   Expected<T*> AsExpected() const {
     assert(IsAvailable());
     if (IsError())
-      return MakeStringError(GetError());
+      return MakeStringError(GetError().message());
     else
       return &get();
   }
@@ -246,16 +247,13 @@ class AsyncValuePtr {
 
   const DecodedDiagnostic& GetError() const { return value_->GetError(); }
 
-  void SetError(string_view message) const {
-    return SetError(DecodedDiagnostic{message});
+  void SetError(absl::Status status) const {
+    assert(!status.ok() && "expected non-ok status");
+    return value_->SetError(DecodedDiagnostic(std::move(status)));
   }
 
-  void SetError(DecodedDiagnostic diag) const {
-    value_->SetError(std::move(diag));
-  }
-
-  void SetError(const Error& error) const {
-    value_->SetError(DecodedDiagnostic(error));
+  void SetError(DecodedDiagnostic diagnostic) const {
+    return value_->SetError(std::move(diagnostic));
   }
 
   // If the AsyncValueRef is available, run the waiter immediately. Otherwise,
@@ -321,7 +319,7 @@ class AsyncValuePtr {
     AndThen([waiter = std::forward<WaiterT>(waiter), av_ptr = *this]() mutable {
       if (av_ptr.IsError()) {
         return std::forward<WaiterT>(waiter)(
-            MakeStringError(av_ptr.GetError()));
+            MakeStringError(av_ptr.GetError().message()));
       } else {
         return std::forward<WaiterT>(waiter)(Error::success());
       }
@@ -335,26 +333,22 @@ class AsyncValuePtr {
 // For consistency, the error message should start with a lower case letter
 // and not end with a period.
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            string_view message);
+                                            absl::Status status);
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            string_view message,
-                                            ErrorCode code);
+                                            std::string_view message);
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            llvm::Error error);
+                                            Error error);
 
-// TODO(b/169618466): assess carrying error code in llvm::Error.
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            llvm::Error error, ErrorCode code);
+// Create a ConcreteAsyncValue in error state for a specified error message.
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status);
 
-// Create a ConcreteAsyncValue in error state for a specified decoded
-// diagnostic.
+// Create a ConcreteAsyncValue in error state for a specified error message.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
     DecodedDiagnostic diagnostic);
 
-// Create a ConcreteAsyncValue in error state for a specified error message.
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(string_view message);
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(std::string_view message);
 
 // Allocate an unconstructed AsyncValueRef. The AsyncValueRef should be made
 // available later by invoking AsyncValueRef::emplace or

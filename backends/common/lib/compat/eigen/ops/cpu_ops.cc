@@ -168,33 +168,36 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
 
   auto output = DenseHostTensor::CreateUninitialized(output_md0, host);
   if (!output) {
-    result.SetError("out of memory allocating tensor");
+    result.SetError(absl::InternalError("out of memory allocating tensor"));
     return results;
   }
 
   if (output_md1.IsValid() || output_md2.IsValid() || output_md3.IsValid() ||
       output_md4.IsValid() || output_md5.IsValid()) {
-    result.SetError("TfFusedBatchNormV3Op only supports one valid output");
+    result.SetError(absl::InternalError(
+        "TfFusedBatchNormV3Op only supports one valid output"));
     return results;
   }
 
   float epsilon;
   if (!attrs.Get("epsilon", &epsilon)) {
-    result.SetError("missing epsilon attribute");
+    result.SetError(absl::InternalError("missing epsilon attribute"));
     return results;
   }
 
   auto data_format = attrs.GetStringOptional("data_format");
   if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
-    result.SetError("only channel last order is supported");
+    result.SetError(
+        absl::InternalError("only channel last order is supported"));
     return results;
   }
 
   AsyncValueRef<Chain> chain;
   switch (input.dtype()) {
     default:
-      chain = EmitErrorAsync(exec_ctx,
-                             "unsupported dtype for TfFusedBatchNormV3Op");
+      chain = EmitErrorAsync(
+          exec_ctx,
+          absl::InternalError("unsupported dtype for TfFusedBatchNormV3Op"));
       break;
 #define DTYPE_FLOAT(ENUM)                                                 \
   case DType::ENUM:                                                       \

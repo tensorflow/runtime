@@ -100,7 +100,8 @@ static AsyncValueRef<Tensor> TfExpandDimsOp(const Tensor& input,
   // Parse expand axis.
   auto expected_axis = GetExpandAxisValue(axis);
   if (auto err = expected_axis.takeError()) {
-    return EmitErrorAsync(exec_ctx, std::move(err));
+    return EmitErrorAsync(exec_ctx,
+                          absl::InternalError(toString(std::move(err))));
   }
 
   // Check that axis value is correct.

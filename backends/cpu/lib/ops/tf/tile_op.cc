@@ -43,7 +43,8 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
   Expected<llvm::SmallVector<Index, 5>> expected_multiples =
       cpu::TileMultiples(multiples_arg);
   if (auto err = expected_multiples.takeError())
-    return EmitErrorAsync(exec_ctx, std::move(err));
+    return EmitErrorAsync(exec_ctx,
+                          absl::InternalError(toString(std::move(err))));
 
   // Check that multiples are valid.
   const TensorShape& input_shape = input_arg.shape();

@@ -50,7 +50,8 @@ static AsyncValueRef<DenseHostTensor> TfUnaryOp(
 
   auto on_done = [output = output.CopyRef()](Error err) {
     // Forward errors to the tensor output.
-    err ? output.SetError(err) : output.SetStateConcrete();
+    err ? output.SetError(absl::InternalError(toString(std::move(err))))
+        : output.SetStateConcrete();
   };
 
   switch (input->dtype()) {

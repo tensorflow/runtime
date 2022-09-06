@@ -328,7 +328,7 @@ raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle) {
 
   // If the tensor resolved to an error, print that.
   if (auto* error = tensor->GetErrorIfPresent())
-    return os << "Error TensorHandle: '" << error->message << "'";
+    return os << "Error TensorHandle: '" << error->message() << "'";
 
   // Otherwise, if the shape is present, print just that.  Note that there could
   // be a race between the check above and this check; we're ok with that.
@@ -339,7 +339,7 @@ raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle) {
     return os << "future TensorHandle with metadata "
               << handle.async_metadata_.get();
   else if (auto* error = handle.async_metadata_.GetErrorIfPresent())
-    return os << "future TensorHandle with error metadata '" << error->message
+    return os << "future TensorHandle with error metadata '" << error->message()
               << "'";
 
   return os << "fully future TensorHandle with unresolved metadata";

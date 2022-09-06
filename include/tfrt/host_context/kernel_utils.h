@@ -359,7 +359,8 @@ class RemainingResults {
   }
 
   void MakeErrorAt(int index, string_view message) {
-    remaining_results_[index] = MakeErrorAsyncValueRef(message);
+    remaining_results_[index] =
+        MakeErrorAsyncValueRef(absl::InternalError(message));
   }
 
  private:

@@ -244,7 +244,7 @@ class AsyncKernelFrame {
   // For consistency, the error message should start with a lower case letter
   // and not end with a period.
   RCReference<AsyncValue> EmitError(string_view msg) {
-    return EmitErrorAsync(exec_ctx_, msg);
+    return EmitErrorAsync(exec_ctx_, absl::InternalError(msg));
   }
 
   // Assert the size of arguments, attributes, and results are as expected.

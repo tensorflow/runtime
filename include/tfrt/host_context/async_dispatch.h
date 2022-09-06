@@ -162,7 +162,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
         result.emplace(work());
       });
   if (!enqueued) {
-    result.SetError("Failed to enqueue blocking work.");
+    result.SetError(absl::InternalError("Failed to enqueue blocking work."));
   }
   return result;
 }
@@ -187,7 +187,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
         result.emplace(work());
       });
   if (!enqueued) {
-    result.SetError("Failed to run blocking work.");
+    result.SetError(absl::InternalError("Failed to run blocking work."));
   }
   return result;
 }

@@ -35,7 +35,7 @@ static AsyncValueRef<tfrt::proto::Example> ParseExampleFromBytes(
         if (!example.ParseFromString(data.get())) {
           auto diag =
               EmitError(exec_ctx, "failed to parse example.proto from string");
-          return MakeStringError(diag.message);
+          return MakeStringError(diag.message());
         }
         return example;
       });
@@ -54,7 +54,7 @@ static AsyncValueRef<std::string> GetBytesFieldFromExample(
                        if (!feature_map.contains(key.get())) {
                          auto diag = EmitError(exec_ctx, "key ", key.get(),
                                                " is not found in the proto");
-                         return MakeStringError(diag.message);
+                         return MakeStringError(diag.message());
                        }
                        const auto& bytes_list =
                            feature_map.at(key.get()).bytes_list();

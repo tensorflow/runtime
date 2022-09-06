@@ -166,7 +166,8 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
   // Compute output tensor metadata from reduction indices.
   auto helper = TfMeanOutputMd(input, reduction_indices, keep_dims);
   if (auto err = helper.takeError())
-    return EmitErrorAsync(exec_ctx, std::move(err));
+    return EmitErrorAsync(exec_ctx,
+                          absl::InternalError(toString(std::move(err))));
 
   auto output =
       DenseHostTensor::CreateUninitialized(helper->output_metadata, host);

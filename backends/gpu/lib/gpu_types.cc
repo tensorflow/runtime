@@ -146,7 +146,8 @@ class GpuContext::CallbackManager : public ReferenceCounted<CallbackManager> {
     pending_invoke_ = true;
     bool enqueued = RunBlockingWork(host, [host, manager = std::move(manager)] {
       if (auto error = manager->InvokeLater(host))
-        host->EmitError(DecodedDiagnostic(std::move(error)));
+        host->EmitError(
+            DecodedDiagnostic(absl::InternalError(toString(std::move(error)))));
     });
     if (!enqueued) return MakeStringError("Failed to enqueue blocking work.");
     return Error::success();

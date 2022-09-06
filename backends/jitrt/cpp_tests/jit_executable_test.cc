@@ -55,7 +55,7 @@ static const char* entrypoint = "compute";
 std::unique_ptr<HostContext> CreateSingleThreadedHostContext() {
   return std::make_unique<HostContext>(
       [](const tfrt::DecodedDiagnostic& diag) {
-        TFRT_LOG(FATAL) << "Runtime error: " << diag.message << "\n";
+        TFRT_LOG(FATAL) << "Runtime error: " << diag.message() << "\n";
       },
       tfrt::CreateMallocAllocator(), tfrt::CreateSingleThreadedWorkQueue());
 }

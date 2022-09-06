@@ -127,8 +127,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
     if (v) {
       return HandleReturn(std::move(*v), results, exec_ctx);
     } else {
-      return EmitErrorAsync(exec_ctx, v.takeError(),
-                            ErrorCode::kInvalidArgument);
+      return EmitErrorAsync(
+          exec_ctx, absl::InvalidArgumentError(toString(v.takeError())));
     }
   }
 
@@ -469,7 +469,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       HandleReturn<result_idx, has_chain>(results, chain, exec_ctx,
                                           std::move(*t));
     } else {
-      results[0] = EmitErrorAsync(exec_ctx, t.takeError());
+      results[0] = EmitErrorAsync(exec_ctx, toString(t.takeError()));
       for (size_t i = 1, e = results.size(); i != e; ++i) {
         results[i] = results[0];
       }

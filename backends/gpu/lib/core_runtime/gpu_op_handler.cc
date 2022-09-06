@@ -85,7 +85,8 @@ struct GpuOpHandlerTraits {
     llvm::Expected<GpuDispatchContext> dctx =
         gpu_op_handler->MakeGpuDispatchContext();
     if (!dctx) {
-      if (chain && *chain) chain->SetError(dctx.takeError());
+      if (chain && *chain)
+        chain->SetError(absl::InternalError(toString(dctx.takeError())));
       return;
     }
 

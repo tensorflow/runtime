@@ -19,6 +19,8 @@
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_UNARY_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_UNARY_KERNELS_H_
 
+#include <utility>
+
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
@@ -85,7 +87,8 @@ static AsyncValueRef<Chain> UnaryKernel(const DenseHostTensor& input,
   AsyncValueRef<Chain> chain = MakeConstructedAsyncValueRef<Chain>();
 
   auto on_done = [chain = chain.CopyRef()](Error err) {
-    err ? chain.SetError(err) : chain.SetStateConcrete();
+    err ? chain.SetError(absl::InternalError(toString(std::move(err))))
+        : chain.SetStateConcrete();
   };
 
   UnaryKernel<UnaryFunctor>(input, output, exec_ctx, std::move(on_done));

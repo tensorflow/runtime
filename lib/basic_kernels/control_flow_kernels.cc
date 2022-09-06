@@ -69,10 +69,9 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
     // Check if index is valid.
     if (branch_index < 0 || branch_index >= branches.size()) {
       auto error = EmitErrorAsync(
-          exec_ctx,
-          tfrt::StrCat("branch_index invalid. branch index: ", branch_index,
-                       " # branches: ", branches.size()),
-          tfrt::ErrorCode::kInvalidArgument);
+          exec_ctx, absl::InvalidArgumentError(tfrt::StrCat(
+                        "branch_index invalid. branch index: ", branch_index,
+                        " # branches: ", branches.size())));
       for (auto& result : results) result = error;
       return;
     }

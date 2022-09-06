@@ -84,7 +84,8 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
 
     auto on_done = [output = output.CopyRef()](Error err) {
       // Forward errors to the tensor output.
-      err ? output.SetError(err) : output.SetStateConcrete();
+      err ? output.SetError(absl::InternalError(toString(std::move(err))))
+          : output.SetStateConcrete();
     };
     cpu::BinaryKernel<F, compat::AsyncEigenEvaluator>(
         *lhs, *rhs, &output.get(), exec_ctx, std::move(on_done));

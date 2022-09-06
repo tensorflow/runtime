@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
       for (int i = 0, e = results.size(); i != e; ++i) {
         auto type_name = result_types[i];
         if (auto* error = results[i]->GetErrorIfPresent()) {
-          printf("<<error: %s>>", error->message.c_str());
+          printf("<<error: %s>>", std::string(error->message()).c_str());
         } else if (type_name.GetName() == "i32") {
           printf("%d", results[i]->get<int32_t>());
         } else {

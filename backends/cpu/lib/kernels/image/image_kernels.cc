@@ -84,7 +84,7 @@ static AsyncValueRef<DenseHostTensor> ResizeBilinear(
         const TensorShape& shape = input->shape();
         if (shape.GetRank() != 3) {
           auto diag = EmitError(exec_ctx, "input tensor shape must be 3");
-          return MakeStringError(diag.message);
+          return MakeStringError(diag.message());
         }
 
         Index batch_size = 1;
@@ -105,7 +105,7 @@ static AsyncValueRef<DenseHostTensor> ResizeBilinear(
             exec_ctx.host());
         if (!dht) {
           auto diag = EmitError(exec_ctx, "cannot allocate tensor");
-          return MakeStringError(diag.message);
+          return MakeStringError(diag.message());
         }
         resize_image(input.get(), height_scale, width_scale, *dht);
 

@@ -116,7 +116,8 @@ struct ConversionFnImpl<ReturnT (*)(const TensorT&, const SrcDeviceT&,
       if (v) {
         return ReturnHelper<ReturnTensorT>::handle(std::move(*v), exec_ctx);
       } else {
-        return EmitErrorAsync(exec_ctx, v.takeError());
+        return EmitErrorAsync(exec_ctx,
+                              absl::InternalError(toString(v.takeError())));
       }
     }
 

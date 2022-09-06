@@ -71,7 +71,7 @@ TEST_F(AsyncValueRefTest, ConstructedToError) {
   EXPECT_FALSE(value.IsAvailable());
 
   value.AndThen([] {});
-  value.SetError(DecodedDiagnostic("test error"));
+  value.SetError(absl::InternalError("test error"));
 
   EXPECT_TRUE(value.IsAvailable());
   EXPECT_FALSE(value.IsConcrete());
@@ -124,8 +124,8 @@ TEST_F(AsyncValueRefTest, CopyRef) {
 TEST_F(AsyncValueRefTest, AndThenError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  DecodedDiagnostic diag{"test_error"};
-  value.AndThen([&](Error error) { EXPECT_EQ(StrCat(error), StrCat(diag)); });
+  auto diag = absl::InternalError("test error");
+  value.AndThen([&](Error error) { EXPECT_EQ(StrCat(error), diag.message()); });
 
   value.SetError(diag);
 }
@@ -141,10 +141,10 @@ TEST_F(AsyncValueRefTest, AndThenNoError) {
 TEST_F(AsyncValueRefTest, AndThenExpectedError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  DecodedDiagnostic diag{"test_error"};
+  auto diag = absl::InternalError("test error");
   value.AndThen([&](Expected<int32_t*> v) {
     EXPECT_FALSE(!!v);
-    EXPECT_EQ(StrCat(v.takeError()), StrCat(diag));
+    EXPECT_EQ(StrCat(v.takeError()), diag.message());
   });
 
   value.SetError(diag);
@@ -153,10 +153,10 @@ TEST_F(AsyncValueRefTest, AndThenExpectedError) {
 TEST_F(AsyncValueRefTest, PtrAndThenExpectedError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  DecodedDiagnostic diag{"test_error"};
+  auto diag = absl::InternalError("test error");
   value.AsPtr().AndThen([&](Expected<int32_t*> v) {
     EXPECT_FALSE(!!v);
-    EXPECT_EQ(StrCat(v.takeError()), StrCat(diag));
+    EXPECT_EQ(StrCat(v.takeError()), diag.message());
   });
 
   value.SetError(diag);
@@ -187,11 +187,11 @@ TEST_F(AsyncValueRefTest, PtrAndThenExpectedNoError) {
 TEST_F(AsyncValueRefTest, AsExpectedError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  DecodedDiagnostic diag{"test_error"};
+  auto diag = absl::InternalError("test error");
   value.SetError(diag);
   Expected<int32_t*> expected = value.AsExpected();
   EXPECT_FALSE(!!expected);
-  EXPECT_EQ(StrCat(expected.takeError()), StrCat(diag));
+  EXPECT_EQ(StrCat(expected.takeError()), diag.message());
 }
 
 TEST_F(AsyncValueRefTest, AsExpectedNoError) {

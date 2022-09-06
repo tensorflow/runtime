@@ -38,7 +38,7 @@ constexpr const char* kCpuOpHandlerName = "cpu";
 
 static std::unique_ptr<CoreRuntime> CreateCoreRuntime() {
   auto diag_handler = [](const DecodedDiagnostic& diag) {
-    llvm::errs() << "Encountered runtime error: " << diag.message << "\n";
+    llvm::errs() << "Encountered runtime error: " << diag.message() << "\n";
   };
   auto corert =
       CoreRuntime::Create(diag_handler, tfrt::CreateMallocAllocator(),

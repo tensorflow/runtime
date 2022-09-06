@@ -170,7 +170,7 @@ AsyncValueRef<typename ParseTensorTraits::TensorTy> ReadTensorFromBTF(
     auto result = ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
     if (!result) {
       auto diag = EmitError(exec_ctx, result.takeError());
-      return MakeStringError(diag.message);
+      return MakeStringError(diag.message());
     }
     return result;
   });

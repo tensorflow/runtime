@@ -14,6 +14,8 @@
 
 // This file implements kernels for testing distributed kernels.
 
+#include <utility>
+
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
@@ -157,10 +159,9 @@ void TestCreateDistributedContext(RemainingArguments configurations,
   Expected<DistributedContext*> dist_context_or_error =
       servers[0]->CreateDistributedContext(0, configuration);
   if (!dist_context_or_error) {
-    Error error = dist_context_or_error.takeError();
+    auto err = absl::InternalError(toString(dist_context_or_error.takeError()));
     for (int i = 0; i < servers.size(); ++i) {
-      distributed_contexts[i] =
-          MakeErrorAsyncValueRef(DecodedDiagnostic(error));
+      distributed_contexts[i] = MakeErrorAsyncValueRef(err);
     }
     return;
   }
@@ -174,8 +175,9 @@ void TestCreateDistributedContext(RemainingArguments configurations,
       [dist_context, servers,
        outputs = std::move(outputs)](Error error) mutable {
         if (error) {
+          auto status = absl::InternalError(toString(std::move(error)));
           for (int i = 0; i < outputs.size(); i++) {
-            outputs[i]->SetError(DecodedDiagnostic(error));
+            outputs[i]->SetError(status);
           }
           return;
         }
@@ -183,9 +185,10 @@ void TestCreateDistributedContext(RemainingArguments configurations,
         dist_context->CreateRemoteContexts(
             DistributedContext::RemoteInitMode::SINGLE_CLIENT,
             [servers, outputs = std::move(outputs)](Error error) mutable {
+              auto status = absl::InternalError(toString(std::move(error)));
               for (int i = 0; i < outputs.size(); ++i) {
                 if (error) {
-                  outputs[i]->SetError(DecodedDiagnostic(error));
+                  outputs[i]->SetError(status);
                 } else {
                   AsyncValueRef<DistributedContext> c =
                       servers[i]->GetDistributedContextAsyncValue(0);

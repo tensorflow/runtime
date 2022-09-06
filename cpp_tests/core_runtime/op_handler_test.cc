@@ -42,7 +42,7 @@ class DummyOpHandler : public OpHandler {
 static std::unique_ptr<CoreRuntime> CreateCoreRuntime() {
   constexpr const char* kCpuOpHandlerName = "cpu";
   auto diag_handler = [](const DecodedDiagnostic& diag) {
-    llvm::errs() << "Encountered runtime error: " << diag.message << "\n";
+    llvm::errs() << "Encountered runtime error: " << diag.message() << "\n";
   };
   Expected<std::unique_ptr<CoreRuntime>> corert =
       CoreRuntime::Create(diag_handler, tfrt::CreateMallocAllocator(),

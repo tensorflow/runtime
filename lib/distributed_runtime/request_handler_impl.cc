@@ -627,7 +627,7 @@ void RequestHandler::HandleRemoteExecuteOp(
       TFRT_DLOG(INFO) << "HandleRemoteExecuteOp " << request->op_name();
       if (chain.IsError()) {
         // TODO(ayushd): choose a more informative error code.
-        done(llvm::make_error<UnknownErrorInfo>(chain.GetError().message));
+        done(llvm::make_error<UnknownErrorInfo>(chain.GetError().message()));
       }
       for (auto& result : results) {
         auto serialized =

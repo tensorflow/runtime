@@ -41,7 +41,7 @@ TEST_F(AsyncValueTest, ConstructedToError) {
 
   value->AndThen([&] { callback_triggered = true; });
   EXPECT_FALSE(callback_triggered);
-  value->SetError(DecodedDiagnostic("test error"));
+  value->SetError(absl::InternalError("test error"));
   EXPECT_TRUE(callback_triggered);
 
   EXPECT_TRUE(value->IsAvailable());
@@ -139,7 +139,7 @@ TEST_F(AsyncValueTest, KeepPayloadOnError) {
 
     EXPECT_EQ(1, *value->value);
     EXPECT_TRUE(value.IsError());
-    EXPECT_EQ("error", value.GetError().message);
+    EXPECT_EQ("error", value.GetError().message());
   }
 
   EXPECT_EQ(2, payload_value);

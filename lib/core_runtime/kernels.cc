@@ -823,7 +823,7 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
   auto get_index = [exec_ctx](AsyncValue *src_av, const Device &device,
                               AsyncValueRef<int32_t> result) {
     if (src_av->IsError()) {
-      result.SetError(src_av->GetError().message);
+      result.SetError(src_av->GetError());
     } else {
       assert(src_av->IsAvailable() && "Tensor should be available.");
 
@@ -843,17 +843,15 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
         if (!converted_tensor_av->IsType<DenseHostTensor>() &&
             converted_tensor_av->get<DenseHostTensor>().dtype() !=
                 GetDType<int32_t>()) {
-          result.SetError(
-              {"Expecting a DenseHostTensor of int32 as branch index.",
-               ErrorCode::kInvalidArgument});
+          result.SetError(absl::InvalidArgumentError(
+              "Expecting a DenseHostTensor of int32 as branch index."));
         } else if (converted_tensor_av->get<DenseHostTensor>()
                            .shape()
                            .GetRank() != 0 &&
                    converted_tensor_av->get<DenseHostTensor>().shape() !=
                        TensorShape{1}) {
-          result.SetError(
-              {"The tensor should have only one element, which is the index.",
-               ErrorCode::kInvalidArgument});
+          result.SetError(absl::InvalidArgumentError(
+              "The tensor should have only one element, which is the index."));
         }
 
         auto *index_ptr = converted_tensor_av->get<DenseHostTensor>().data();

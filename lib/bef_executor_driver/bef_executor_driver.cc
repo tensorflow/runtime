@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <utility>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/ScopeExit.h"
@@ -104,7 +105,7 @@ int RunBefExecutor(
   };
 
   auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {
-    emitError(get_loc(diag.location)) << "runtime error: " << diag.message;
+    emitError(get_loc(diag.location)) << "runtime error: " << diag.message();
   };
 
   assert(GetNumReferenceCountedObjects() == 0 &&
@@ -336,10 +337,11 @@ static void RunAsyncBefFunctionHelper(const ExecutionContext& exec_ctx,
 
       if (auto* error = results[i]->GetErrorIfPresent()) {
         if (print_error_code)
-          tfrt::outs() << "<<error: " << error->message
-                       << ", code: " << ErrorName(error->code) << ">>";
+          tfrt::outs() << "<<error: " << error->message() << ", code: "
+                       << absl::StatusCodeToString(error->status.code())
+                       << ">>";
         else
-          tfrt::outs() << "<<error: " << error->message << ">>";
+          tfrt::outs() << "<<error: " << error->message() << ">>";
       } else {
         PrintResult(type_name, results[i]);
       }

@@ -686,7 +686,7 @@ RCReference<BEFExecutor> BEFExecutor::Create(
   if (!success) {
     for (size_t i = 0, e = results.size(); i != e; ++i) {
       assert(!results[i] && "result AsyncValue is not nullptr");
-      results[i]->SetError(DecodedDiagnostic("Could not read BEF function."));
+      results[i]->SetError(absl::InternalError("Could not read BEF function."));
     }
     return {};
   };

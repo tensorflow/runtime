@@ -18,7 +18,6 @@
 
 #include "tfrt/host_context/diagnostic.h"
 
-#include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
@@ -26,27 +25,19 @@
 
 namespace tfrt {
 
-DecodedDiagnostic::DecodedDiagnostic(const Error& error)
-    : message(StrCat(error)) {}
-
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diag) {
   if (diag.location) {
     os << diag.location.getValue() << ": ";
   } else {
     os << "UnknownLocation: ";
   }
-  return os << diag.message;
+  return os << diag.status.message();
 }
 
 DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
-                            string_view message) {
-  return EmitError(exec_ctx, message, ErrorCode::kUnknown);
-}
-
-DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
-                            string_view message, ErrorCode code) {
+                            absl::Status status) {
   auto decoded_loc = exec_ctx.location().Decode();
-  auto diag = DecodedDiagnostic(decoded_loc, message, code);
+  auto diag = DecodedDiagnostic(decoded_loc, std::move(status));
 
   HostContext* host = exec_ctx.host();
   host->EmitError(diag);

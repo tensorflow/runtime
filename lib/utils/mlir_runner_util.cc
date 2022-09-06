@@ -44,7 +44,7 @@ namespace {
 std::unique_ptr<HostContext> CreateHostContext() {
   auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {
     TFRT_LOG(FATAL) << "Encountered error while executing, aborting: "
-                    << diag.message;
+                    << diag.message();
   };
   std::unique_ptr<ConcurrentWorkQueue> work_queue =
       CreateSingleThreadedWorkQueue();

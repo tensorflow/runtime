@@ -75,9 +75,9 @@ class RemainingResultsConverter : public xla::runtime::ResultConverter {
     assert(!error.ok());
     if (results_.empty()) return;
     results_[0] = MakeErrorAsyncValueRef(
-        augment_error_ ? DecodedDiagnostic(
-                             augment_error_(MakeStringError(error.message())))
-                       : DecodedDiagnostic(MakeStringError(error.message())));
+        augment_error_ ? DecodedDiagnostic(absl::InternalError(toString(
+                             augment_error_(MakeStringError(error.message())))))
+                       : DecodedDiagnostic(error));
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 
@@ -168,7 +168,7 @@ class StaticRemainingResultsConverter : public xla::runtime::ResultConverter {
   void ReturnError(const absl::Status& error) const final {
     assert(!error.ok());
     if (results_.empty()) return;
-    results_[0] = MakeErrorAsyncValueRef(DecodedDiagnostic(error.message()));
+    results_[0] = MakeErrorAsyncValueRef(error);
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 

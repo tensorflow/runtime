@@ -26,7 +26,8 @@ namespace tfrt {
 void AsyncKernelFrame::ReportError(string_view msg) {
   bool has_set_error = false;
 
-  RCReference<ErrorAsyncValue> error_value = EmitErrorAsync(exec_ctx_, msg);
+  RCReference<ErrorAsyncValue> error_value =
+      EmitErrorAsync(exec_ctx_, absl::InternalError(msg));
 
   // Set any unavailable ConcreteAsyncValue to error and use that as error_value
   // for other results.

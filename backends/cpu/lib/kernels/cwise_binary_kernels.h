@@ -374,7 +374,8 @@ AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
   AsyncValueRef<Chain> chain = MakeConstructedAsyncValueRef<Chain>();
 
   auto on_done = [chain = chain.CopyRef()](Error err) {
-    err ? chain.SetError(err) : chain.SetStateConcrete();
+    err ? chain.SetError(absl::InternalError(toString(std::move(err))))
+        : chain.SetStateConcrete();
   };
 
   BinaryKernel<BinaryFunctor, compat::AsyncEigenEvaluator>(

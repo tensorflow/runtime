@@ -171,7 +171,7 @@ static mlir::Location GetLocation(llvm::Optional<DecodedLocation> loc,
 DiagHandler GetDiagHandler(mlir::MLIRContext* context) {
   return [=](const DecodedDiagnostic& diagnostic) {
     mlir::emitError(GetLocation(diagnostic.location, context))
-        << "runtime error: " << diagnostic.message;
+        << "runtime error: " << diagnostic.message();
   };
 }
 

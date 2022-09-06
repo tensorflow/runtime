@@ -186,9 +186,10 @@ void RemoteOpHandler::Execute(const std::string& op_name,
   // Add op attributes to the request.
   if (Error attr_error =
           PopulateRequestAttrsProto(request.get(), invocation.attrs.freeze())) {
-    chain.SetError(attr_error);
+    auto status = absl::InternalError(toString(std::move(attr_error)));
+    chain.SetError(status);
     for (auto& output_th : invocation.results) {
-      output_th.GetAsyncTensor()->SetError(DecodedDiagnostic(attr_error));
+      output_th.GetAsyncTensor()->SetError(status);
     }
     return;
   }
@@ -221,11 +222,12 @@ void RemoteOpHandler::Execute(const std::string& op_name,
              response = std::move(response),
              chain = chain.CopyRef()](Error e) mutable {
               if (e) {
-                chain.SetError(std::move(e));
+                chain.SetError(absl::InternalError(toString(std::move(e))));
                 return;
               }
               if (response->metadata_size() != results->size()) {
-                chain.SetError("unexpected number of remote results");
+                chain.SetError(
+                    absl::InternalError("unexpected number of remote results"));
                 return;
               }
               for (auto i = 0; i < response->metadata_size(); ++i) {
@@ -236,7 +238,7 @@ void RemoteOpHandler::Execute(const std::string& op_name,
                   (*results)[i].tensor->emplace<RemoteTensor>(
                       metadata.get(), *(*results)[i].remote_object_id);
                 } else {
-                  (*results)[i].tensor->SetError(DecodedDiagnostic(
+                  (*results)[i].tensor->SetError(absl::InternalError(
                       "could not deserialize metadata in response"));
                 }
               }

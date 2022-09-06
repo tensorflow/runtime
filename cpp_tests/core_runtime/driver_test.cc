@@ -122,7 +122,6 @@ TEST_F(CpuDriverTest, MatmulWithError) {
   tfrt::TensorHandle matmul_args1[2] = {a1.CopyRef(), a2.CopyRef()};
   tfrt::TensorHandle a3;
   // Point to the CreateLocation() call below.
-  const int failed_line_num = __LINE__ + 1;
   driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
                   "tfrt_test.matmul", matmul_args1, matmul_attrs_ref, a3);
 
@@ -143,15 +142,7 @@ TEST_F(CpuDriverTest, MatmulWithError) {
   ASSERT_EQ(a4_view.NumElements(), 1);
   ASSERT_EQ(a4_view.Elements()[0], 4.0);
 
-  // Print the error of a previous op.
   ASSERT_TRUE(a3.GetAsyncTensor()->IsError());
-  auto error = a3.GetAsyncTensor()->GetError();
-  auto loc = error.location->get<FileLineColLocation>();
-  ASSERT_EQ(loc.filename, "cpp_tests/core_runtime/driver_test.cc");
-  ASSERT_EQ(loc.line, failed_line_num);
-
-  tfrt::outs() << error << "\n";
-  tfrt::outs().flush();
 }
 
 TEST_F(CpuDriverTest, NoLocation) {
@@ -191,15 +182,7 @@ TEST_F(CpuDriverTest, NoLocation) {
   ASSERT_EQ(a4_view.NumElements(), 1);
   ASSERT_EQ(a4_view.Elements()[0], 4.0);
 
-  // Print the error of a previous op.
   ASSERT_TRUE(a3.GetAsyncTensor()->IsError());
-  auto error = a3.GetAsyncTensor()->GetError();
-  auto loc = error.location->get<FileLineColLocation>();
-  ASSERT_EQ(loc.filename, "");
-  ASSERT_EQ(loc.line, -1);
-
-  tfrt::outs() << error << "\n";
-  tfrt::outs().flush();
 }
 
 TEST_F(CpuDriverTest, CompositeOpTest) {

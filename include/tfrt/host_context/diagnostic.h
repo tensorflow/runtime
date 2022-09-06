@@ -21,10 +21,11 @@
 #ifndef TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 #define TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 
+#include <string_view>
 #include <utility>
 
+#include "absl/status/status.h"  // from @com_google_absl
 #include "tfrt/host_context/location.h"
-#include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/string_util.h"
 
@@ -34,39 +35,35 @@ class ExecutionContext;
 
 // This is a simple representation of a decoded diagnostic.
 struct DecodedDiagnostic {
-  // TODO(b/169618466): carry error code in llvm::Error.
-  explicit DecodedDiagnostic(const Error& error);
-  explicit DecodedDiagnostic(string_view message) : message(message) {}
-  DecodedDiagnostic(string_view message, ErrorCode code)
-      : message(message), code(code) {
-    assert(code != ErrorCode::kOK &&
-           "DecodedDiagnostic cannot have an OK error code");
-  }
-  DecodedDiagnostic(DecodedLocation location, string_view message)
-      : location(std::move(location)), message(message) {}
-  DecodedDiagnostic(DecodedLocation location, string_view message,
-                    ErrorCode code)
-      : location(std::move(location)), message(message), code(code) {
-    assert(code != ErrorCode::kOK &&
-           "DecodedDiagnostic cannot have an OK error code");
+  // TODO(ezhulenev): Make this constructor explicit once errors migrated to
+  // absl::Status.
+  DecodedDiagnostic(absl::Status status)  // NOLINT
+      : status(std::move(status)) {
+    assert(!this->status.ok() && "must be non-ok status");
   }
 
+  DecodedDiagnostic(DecodedLocation location, absl::Status status)
+      : location(std::move(location)), status(std::move(status)) {
+    assert(!this->status.ok() && "must be non-ok status");
+  }
+
+  std::string_view message() const { return status.message(); }
+
+  absl::StatusCode code() const { return status.code(); }
+
   llvm::Optional<DecodedLocation> location;
-  std::string message;
-  ErrorCode code{ErrorCode::kUnknown};
+  absl::Status status;
 };
 
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diagnostic);
 
 DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
-                            string_view message);
-
-DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
-                            string_view message, ErrorCode code);
+                            absl::Status status);
 
 template <typename... Args>
 DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx, Args&&... args) {
-  return EmitError(exec_ctx, string_view{StrCat(std::forward<Args>(args)...)});
+  return EmitError(exec_ctx,
+                   absl::InternalError(StrCat(std::forward<Args>(args)...)));
 }
 
 }  // namespace tfrt

@@ -18,6 +18,9 @@
 
 #include "tfrt/host_context/async_value_ref.h"
 
+#include <string_view>
+#include <utility>
+
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 
@@ -28,38 +31,36 @@ RCReference<IndirectAsyncValue> MakeIndirectAsyncValue() {
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            string_view message) {
-  return EmitErrorAsync(exec_ctx, message, ErrorCode::kUnknown);
+                                            absl::Status status) {
+  return MakeErrorAsyncValueRef(EmitError(exec_ctx, status).status);
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            string_view message,
-                                            ErrorCode code) {
-  auto diag = EmitError(exec_ctx, message, code);
-  return MakeErrorAsyncValueRef(std::move(diag));
+                                            std::string_view message) {
+  return EmitErrorAsync(exec_ctx, absl::InternalError(message));
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            llvm::Error error) {
-  return EmitErrorAsync(exec_ctx, StrCat(error));
+                                            Error error) {
+  return EmitErrorAsync(exec_ctx,
+                        absl::InternalError(toString(std::move(error))));
 }
 
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            llvm::Error error, ErrorCode code) {
-  return EmitErrorAsync(exec_ctx, StrCat(error), code);
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status) {
+  auto* error_value = internal::SimpleConstruct<ErrorAsyncValue>(
+      DecodedDiagnostic(std::move(status)));
+  return TakeRef(error_value);
 }
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
     DecodedDiagnostic diagnostic) {
-  // Create an AsyncValue for this error condition.
   auto* error_value =
       internal::SimpleConstruct<ErrorAsyncValue>(std::move(diagnostic));
-
   return TakeRef(error_value);
 }
 
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(string_view message) {
-  return MakeErrorAsyncValueRef(DecodedDiagnostic(message));
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(std::string_view message) {
+  return MakeErrorAsyncValueRef(absl::InternalError(message));
 }
 
 }  // namespace tfrt

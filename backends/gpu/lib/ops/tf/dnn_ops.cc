@@ -340,7 +340,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   // If image is channels last and filter is 1x1, we may not need to transpose
   // the filter and evaluate a gemm instead of a convolution.
   auto all_equal_to = [](llvm::ArrayRef<Index> array, Index value) {
-    return is_splat(array) && array.front() == value;
+    return array.front() == value && llvm::all_equal(array);
   };
   if (channel_order == ChannelOrder::ChannelLast &&
       input_dims_nchw[1] == filter_dims_oihw[1] &&  // No grouped convolutions.

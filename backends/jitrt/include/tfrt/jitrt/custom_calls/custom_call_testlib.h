@@ -31,10 +31,11 @@ class CustomCallAttrEncodingSet;
 namespace tfrt {
 namespace jitrt {
 
-xla::runtime::DirectCustomCallRegistry CustomCallTestlib();
+void RegisterDirectCustomCallTestLib(
+    xla::runtime::DirectCustomCallRegistry& registry);
 
-void RegisterCustomCallTestLib(
-    xla::runtime::DynamicCustomCallRegistry* registry);
+void RegisterDynamicCustomCallTestLib(
+    xla::runtime::DynamicCustomCallRegistry& registry);
 
 // Declare runtime enums corresponding to compile time enums to test
 // attributes enum conversion.

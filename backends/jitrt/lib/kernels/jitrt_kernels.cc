@@ -111,8 +111,8 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
 
     JitExecutable::Options opts;
-    opts.compiler.symbols_binding =
-        ToSymbolsBinding(CustomCallTestlib(), PopulateCustomCallTypeIdNames);
+    opts.compiler.symbols_binding = ToSymbolsBinding(
+        RegisterDirectCustomCallTestLib, PopulateCustomCallTypeIdNames);
 
     opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
       registry.insert<xla::runtime::TestlibDialect>();
@@ -206,7 +206,7 @@ static void ExecuteImpl(const Executable& executable,
   opts.diagnostic_engine = &diagnostic_engine;
 
   xla::runtime::DynamicCustomCallRegistry custom_call_registry;
-  RegisterCustomCallTestLib(&custom_call_registry);
+  RegisterDynamicCustomCallTestLib(custom_call_registry);
   opts.custom_call_registry = &custom_call_registry;
 
   // If execution failed errors will be automatically allocated for all results.

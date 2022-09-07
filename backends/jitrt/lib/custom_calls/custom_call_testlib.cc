@@ -355,85 +355,83 @@ static bool DirectPrintAttrs(xla::runtime::ExecutionContext* ctx, void** args,
   return succeeded(Executable::Call(ctx, *call, args, attrs, rets));
 }
 
-void RegisterCustomCallTestLib(DynamicCustomCallRegistry* registry) {
-  registry->Register(CustomCall::Bind("testlib.noop")
-                         .Arg<FlatMemrefView>()
-                         .Arg<FlatMemrefView>()
-                         .Arg<FlatMemrefView>()
-                         .Arg<FlatMemrefView>()
-                         .Attr<std::string_view>("str")
-                         .Attr<float>("f32")
-                         .Attr<double>("f64")
-                         .To(NoOp));
+void RegisterDynamicCustomCallTestLib(DynamicCustomCallRegistry& registry) {
+  registry.Register(CustomCall::Bind("testlib.noop")
+                        .Arg<FlatMemrefView>()
+                        .Arg<FlatMemrefView>()
+                        .Arg<FlatMemrefView>()
+                        .Arg<FlatMemrefView>()
+                        .Attr<std::string_view>("str")
+                        .Attr<float>("f32")
+                        .Attr<double>("f64")
+                        .To(NoOp));
 
-  registry->Register(CustomCall::Bind("testlib.multiply")
-                         .Arg<MemrefView>()  // input
-                         .Arg<MemrefView>()  // output
-                         .Attr<float>("cst")
-                         .To(Multiply));
+  registry.Register(CustomCall::Bind("testlib.multiply")
+                        .Arg<MemrefView>()  // input
+                        .Arg<MemrefView>()  // output
+                        .Attr<float>("cst")
+                        .To(Multiply));
 
-  registry->Register(CustomCall::Bind("testlib.multiply.x3")
-                         .Arg<MemrefView>()  // input
-                         .Arg<MemrefView>()  // output
-                         .Value(3.0)         // cst
-                         .To(Multiply));
+  registry.Register(CustomCall::Bind("testlib.multiply.x3")
+                        .Arg<MemrefView>()  // input
+                        .Arg<MemrefView>()  // output
+                        .Value(3.0)         // cst
+                        .To(Multiply));
 
-  registry->Register(CustomCall::Bind("testlib.print_attrs")
-                         .UserData<const char*>()
-                         .Attr<int32_t>("i32")
-                         .Attr<int64_t>("i64")
-                         .Attr<float>("f32")
-                         .Attr<double>("f64")
-                         .Attr<ArrayRef<int32_t>>("i32_dense")
-                         .Attr<ArrayRef<int64_t>>("i64_dense")
-                         .Attr<ArrayRef<float>>("f32_dense")
-                         .Attr<ArrayRef<double>>("f64_dense")
-                         .Attr<CustomCall::TensorRef<int64_t>>("i64_2d_dense")
-                         .Attr<ArrayRef<int32_t>>("i32_array")
-                         .Attr<ArrayRef<int64_t>>("i64_array")
-                         .Attr<ArrayRef<float>>("f32_array")
-                         .Attr<ArrayRef<double>>("f64_array")
-                         .Attr<ArrayRef<int64_t>>("i64_dense_array")
-                         .Attr<ArrayRef<int64_t>>("empty_array")
-                         .Attr<std::string_view>("str")
-                         .To(PrintAttrs));
+  registry.Register(CustomCall::Bind("testlib.print_attrs")
+                        .UserData<const char*>()
+                        .Attr<int32_t>("i32")
+                        .Attr<int64_t>("i64")
+                        .Attr<float>("f32")
+                        .Attr<double>("f64")
+                        .Attr<ArrayRef<int32_t>>("i32_dense")
+                        .Attr<ArrayRef<int64_t>>("i64_dense")
+                        .Attr<ArrayRef<float>>("f32_dense")
+                        .Attr<ArrayRef<double>>("f64_dense")
+                        .Attr<CustomCall::TensorRef<int64_t>>("i64_2d_dense")
+                        .Attr<ArrayRef<int32_t>>("i32_array")
+                        .Attr<ArrayRef<int64_t>>("i64_array")
+                        .Attr<ArrayRef<float>>("f32_array")
+                        .Attr<ArrayRef<double>>("f64_array")
+                        .Attr<ArrayRef<int64_t>>("i64_dense_array")
+                        .Attr<ArrayRef<int64_t>>("empty_array")
+                        .Attr<std::string_view>("str")
+                        .To(PrintAttrs));
 
-  registry->Register(CustomCall::Bind("testlib.print_dialect_attrs")
-                         .Attr<EnumType>("enum")
-                         .Attr<RuntimeEnumType>("runtime_enum")
-                         .Attr<RuntimePairOfDims>("dims")
-                         .To(PrintDialectAttrs));
+  registry.Register(CustomCall::Bind("testlib.print_dialect_attrs")
+                        .Attr<EnumType>("enum")
+                        .Attr<RuntimeEnumType>("runtime_enum")
+                        .Attr<RuntimePairOfDims>("dims")
+                        .To(PrintDialectAttrs));
 
-  registry->Register(CustomCall::Bind("testlib.variadic_args")
-                         .RemainingArgs()  // variadic args
-                         .To(PrintVariadicArgs));
+  registry.Register(CustomCall::Bind("testlib.variadic_args")
+                        .RemainingArgs()  // variadic args
+                        .To(PrintVariadicArgs));
 
-  registry->Register(CustomCall::Bind("testlib.memref_and_variadic_args")
-                         .Arg<MemrefView>()
-                         .RemainingArgs()  // variadic args
-                         .To(PrintMemrefAndVariadicArgs));
+  registry.Register(CustomCall::Bind("testlib.memref_and_variadic_args")
+                        .Arg<MemrefView>()
+                        .RemainingArgs()  // variadic args
+                        .To(PrintMemrefAndVariadicArgs));
 
-  registry->Register(CustomCall::Bind("testlib.variant_arg")
-                         .Arg<CustomCall::VariantArg>()
-                         .Arg<CustomCall::VariantArg>()
-                         .Arg<CustomCall::VariantArg>()
-                         .To(PrintVariantArg));
+  registry.Register(CustomCall::Bind("testlib.variant_arg")
+                        .Arg<CustomCall::VariantArg>()
+                        .Arg<CustomCall::VariantArg>()
+                        .Arg<CustomCall::VariantArg>()
+                        .To(PrintVariantArg));
 
-  registry->Register(CustomCall::Bind("testlib.print_variant_attrs")
-                         .Attr<CustomCall::VariantAttr>("i32")
-                         .Attr<CustomCall::VariantAttr>("f32")
-                         .Attr<CustomCall::VariantAttr>("i32_array")
-                         .Attr<CustomCall::VariantAttr>("i64_array")
-                         .Attr<CustomCall::VariantAttr>("str")
-                         .To(PrintVariantAttrs));
+  registry.Register(CustomCall::Bind("testlib.print_variant_attrs")
+                        .Attr<CustomCall::VariantAttr>("i32")
+                        .Attr<CustomCall::VariantAttr>("f32")
+                        .Attr<CustomCall::VariantAttr>("i32_array")
+                        .Attr<CustomCall::VariantAttr>("i64_array")
+                        .Attr<CustomCall::VariantAttr>("str")
+                        .To(PrintVariantAttrs));
 }
 
-DirectCustomCallRegistry CustomCallTestlib() {
-  DirectCustomCallRegistry reg;
-  reg.Register("testlib.direct_call", &DirectCustomCall);
-  reg.Register("testlib.print_attrs", &DirectPrintAttrs);
-  reg.Register("testlib.noop", &DirectNoOp);
-  return reg;
+void RegisterDirectCustomCallTestLib(DirectCustomCallRegistry& registry) {
+  registry.Register("testlib.direct_call", &DirectCustomCall);
+  registry.Register("testlib.print_attrs", &DirectPrintAttrs);
+  registry.Register("testlib.noop", &DirectNoOp);
 }
 
 }  // namespace jitrt

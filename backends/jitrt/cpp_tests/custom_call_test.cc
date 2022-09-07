@@ -128,10 +128,11 @@ static SmallVector<MemrefDesc> GetFakeMemrefs(
 
 template <typename SymPtr>
 static ExecutionEngine::SymbolsBinding Bind(StringRef name, SymPtr symbol_ptr) {
-  DirectCustomCallRegistry custom_calls;
-  custom_calls.Register(name, symbol_ptr);
-  return xla::runtime::ToSymbolsBinding(custom_calls,
-                                        PopulateCustomCallTypeIdNames);
+  return xla::runtime::ToSymbolsBinding(
+      [=](DirectCustomCallRegistry& custom_calls) {
+        custom_calls.Register(name, symbol_ptr);
+      },
+      PopulateCustomCallTypeIdNames);
 }
 
 // -------------------------------------------------------------------------- //

@@ -280,12 +280,9 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   opts.compiler.calling_convention = xla::runtime::DefaultCallingConvention(
       mlir::bufferization::BufferizeTypeConverter());
 
-  // Empty direct custom calls library.
-  DirectCustomCallRegistry custom_calls;
-
-  // Add a mapping from the custom call type id to symbol name.
+  // Add a mapping from the custom type id to symbol name.
   opts.compiler.symbols_binding =
-      ToSymbolsBinding(custom_calls, RegisterMyRuntimeTypeNames);
+      ToSymbolsBinding(/*custom_calls=*/nullptr, RegisterMyRuntimeTypeNames);
 
   // Add a conversion from the `!testlib.custom_arg` MLIR type to the run time
   // type corresponding to a custom argument.

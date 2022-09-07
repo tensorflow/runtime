@@ -140,7 +140,8 @@ void CreateDefaultJitRtCompilationPipeline(
   // Convert runtime operations and custom calls to LLVM dialect.
   xla::runtime::ConvertRuntimeToLLvmOpts rt_opts = {
       opts.populate_type_id_names, opts.populate_type_conversions,
-      opts.populate_arg_encodings, opts.populate_attr_encodings};
+      opts.populate_arg_encodings,
+      /*populate_ret_encodings=*/{}, opts.populate_attr_encodings};
   pm.addPass(xla::runtime::CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
 
   // Convert async dialect to LLVM once everything else is in the LLVM dialect.

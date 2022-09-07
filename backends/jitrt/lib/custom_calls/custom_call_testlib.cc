@@ -37,7 +37,6 @@ XLA_RUNTIME_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::RuntimeEnumType);
 namespace tfrt {
 namespace jitrt {
 
-using llvm::Error;
 using mlir::LogicalResult;
 using mlir::succeeded;
 using mlir::success;
@@ -90,11 +89,11 @@ static LogicalResult NoOp(FlatMemrefView, FlatMemrefView, FlatMemrefView,
   return success();
 }
 
-static Error Multiply(MemrefView input, MemrefView output, float cst) {
+static absl::Status Multiply(MemrefView input, MemrefView output, float cst) {
   // TODO(ezhulenev): Support all floating point dtypes.
   if (input.dtype != output.dtype || input.sizes != output.sizes ||
       input.dtype != xla::PrimitiveType::F32)
-    return MakeStringError("Unsupported floating point dtype");
+    return absl::InvalidArgumentError("Unsupported floating point dtype");
 
   int64_t num_elements = 1;
   for (int64_t d : input.sizes) num_elements *= d;
@@ -105,7 +104,7 @@ static Error Multiply(MemrefView input, MemrefView output, float cst) {
   for (int64_t i = 0; i < num_elements; ++i)
     output_data[i] = input_data[i] * cst;
 
-  return Error::success();
+  return absl::OkStatus();
 }
 
 template <typename Array>

@@ -190,7 +190,7 @@ static void ExecuteImpl(const Executable& executable,
   DiagnosticEngine diagnostic_engine;
   std::string diagnostic;
   diagnostic_engine.AddHandler([&](Diagnostic& d) {
-    llvm::raw_string_ostream(diagnostic) << d.str();
+    llvm::raw_string_ostream(diagnostic) << d.status().message();
     return mlir::success();
   });
 

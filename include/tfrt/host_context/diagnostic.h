@@ -35,10 +35,10 @@ class ExecutionContext;
 
 // This is a simple representation of a decoded diagnostic.
 struct DecodedDiagnostic {
-  // TODO(ezhulenev): Make this constructor explicit once errors migrated to
-  // absl::Status.
-  DecodedDiagnostic(absl::Status status)  // NOLINT
-      : status(std::move(status)) {
+  // TODO(ezhulenev): Remove this constructor, as the DecodedDiagnostic should
+  // only be used when location is important. If location is not needed, then
+  // passing absl::Status should be a preferred option.
+  explicit DecodedDiagnostic(absl::Status status) : status(std::move(status)) {
     assert(!this->status.ok() && "must be non-ok status");
   }
 

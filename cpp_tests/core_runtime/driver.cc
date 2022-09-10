@@ -24,6 +24,7 @@
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"

@@ -135,19 +135,14 @@ void AsyncValue::EnqueueWaiter(llvm::unique_function<void()>&& waiter,
          old_value.state() == State::kConstructed);
 }
 
-void AsyncValue::SetError(DecodedDiagnostic diag_in) {
+void AsyncValue::SetError(absl::Status status) {
   if (kind() == Kind::kConcrete) {
-    GetTypeInfo().set_error(this, std::move(diag_in));
+    GetTypeInfo().set_error(this, std::move(status));
   } else {
     assert(kind() == Kind::kIndirect);
-    auto error_av = MakeErrorAsyncValueRef(std::move(diag_in));
+    auto error_av = MakeErrorAsyncValueRef(std::move(status));
     cast<IndirectAsyncValue>(this)->ForwardTo(std::move(error_av));
   }
-}
-
-void AsyncValue::SetErrorLocationIfUnset(DecodedLocation location) {
-  auto& diag = const_cast<DecodedDiagnostic&>(GetError());
-  if (!diag.location) diag.location = std::move(location);
 }
 
 // Mark this IndirectAsyncValue as forwarding to the specified value.  This

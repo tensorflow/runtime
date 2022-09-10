@@ -40,7 +40,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
     TFRT_TRACE_SCOPE(Default, "DecodeJpeg");
     if (!llvm::StringRef(data.get()).startswith("\xff\xd8\xff")) {
       auto diag = EmitError(exec_ctx, "image does not have jpeg format");
-      output.SetError(diag);
+      output.SetError(diag.status);
       return;
     }
     jpeg::UncompressFlags flags;

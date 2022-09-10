@@ -47,15 +47,8 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 }
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status) {
-  auto* error_value = internal::SimpleConstruct<ErrorAsyncValue>(
-      DecodedDiagnostic(std::move(status)));
-  return TakeRef(error_value);
-}
-
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-    DecodedDiagnostic diagnostic) {
   auto* error_value =
-      internal::SimpleConstruct<ErrorAsyncValue>(std::move(diagnostic));
+      internal::SimpleConstruct<ErrorAsyncValue>(std::move(status));
   return TakeRef(error_value);
 }
 

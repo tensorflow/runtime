@@ -411,7 +411,8 @@ llvm::Expected<EntryPoint> GetEntryPoint(const BEFFile& file,
   function->Execute(exec_ctx, {}, result);
   tfrt::Await(result);
 
-  if (result->IsError()) return tfrt::MakeStringError(result->GetError());
+  if (result->IsError())
+    return tfrt::MakeStringError(result->GetError().message());
 
   return *AsyncValueRef<EntryPoint>(std::move(result));
 }
@@ -427,7 +428,8 @@ llvm::Error PreloadGpuResources(const BEFFile& file,
   function->Execute(exec_ctx, {context.GetAsyncValue()}, result);
   tfrt::Await(result);
 
-  if (result->IsError()) return tfrt::MakeStringError(result->GetError());
+  if (result->IsError())
+    return tfrt::MakeStringError(result->GetError().message());
 
   return llvm::Error::success();
 }

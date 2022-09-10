@@ -75,9 +75,9 @@ class RemainingResultsConverter : public xla::runtime::ResultConverter {
     assert(!error.ok());
     if (results_.empty()) return;
     results_[0] = MakeErrorAsyncValueRef(
-        augment_error_ ? DecodedDiagnostic(absl::InternalError(toString(
-                             augment_error_(MakeStringError(error.message())))))
-                       : DecodedDiagnostic(error));
+        augment_error_ ? absl::InternalError(toString(
+                             augment_error_(MakeStringError(error.message()))))
+                       : error);
     for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
   }
 

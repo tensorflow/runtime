@@ -30,6 +30,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/sync_kernel_utils.h"
@@ -807,7 +808,7 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
           StrCat("failed to find dst device type for src_tensor_type=",
                  src_tensor_type.name(),
                  " and dst_device_type=", dst_device_type.name()));
-      result.SetError(diag);
+      result.SetError(diag.status);
     } else {
       result.emplace(dst_tensor_type);
     }

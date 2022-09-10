@@ -34,6 +34,7 @@
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/location.h"
@@ -437,8 +438,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
     // Add location information to error result if necessary.
     t->AndThen([t = t.get(), exec_ctx] {
       if (t->IsError()) {
-        t->SetErrorLocationIfUnset(exec_ctx.location().Decode());
-        exec_ctx.host()->EmitError(t->GetError());
+        exec_ctx.host()->EmitError(
+            DecodedDiagnostic(exec_ctx.location().Decode(), t->GetError()));
       }
     });
     results[0] = std::move(t);

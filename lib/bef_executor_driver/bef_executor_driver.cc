@@ -337,8 +337,8 @@ static void RunAsyncBefFunctionHelper(const ExecutionContext& exec_ctx,
 
       if (auto* error = results[i]->GetErrorIfPresent()) {
         if (print_error_code)
-          tfrt::outs() << "<<error: " << error->message() << ", code: "
-                       << absl::StatusCodeToString(error->status.code())
+          tfrt::outs() << "<<error: " << error->message()
+                       << ", code: " << absl::StatusCodeToString(error->code())
                        << ">>";
         else
           tfrt::outs() << "<<error: " << error->message() << ">>";

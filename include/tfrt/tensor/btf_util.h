@@ -28,6 +28,7 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"

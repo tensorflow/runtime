@@ -23,6 +23,7 @@
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/cpu/core_runtime/cpu_op_handler.h"
 #include "tfrt/cpu/core_runtime/null_op_handler.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 

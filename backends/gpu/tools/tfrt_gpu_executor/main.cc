@@ -68,7 +68,8 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
   tfrt::AsyncValueRef<tfrt::Chain> chain = tfrt::GetReadyChain();
   tfrt::AsyncValueRef<tfrt::gpu::GpuStream> stream =
       tfrt::gpu::CreateGpuStream(entry_point->platform);
-  if (stream.IsError()) return tfrt::MakeStringError(stream.GetError());
+  if (stream.IsError())
+    return tfrt::MakeStringError(stream.GetError().message());
   mlir::SmallVector<tfrt::AsyncValueRef<tfrt::gpu::GpuBuffer>, 4> buffers;
   llvm::transform(entry_point->buffer_sizes, std::back_inserter(buffers),
                   [&](int64_t size_bytes) {
@@ -87,7 +88,8 @@ static llvm::Error ExecuteBefFile(llvm::StringRef path) {
     return tfrt::MakeStringError("unexpected errors reported");
 
   if (result.IsError())
-    return tfrt::MakeStringError("result has error: ", result.GetError());
+    return tfrt::MakeStringError("result has error: ",
+                                 result.GetError().message());
 
   // Synchronize the stream.
   return tfrt::gpu::wrapper::StreamSynchronize(stream->get());

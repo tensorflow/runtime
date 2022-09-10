@@ -23,6 +23,8 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/data/dataset.h"
+#include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
@@ -220,7 +222,7 @@ void CopySlice(RCReference<AsyncValue> input_value,
             TruncateTensor(result_buffer.get(), batch_size, exec_ctx);
         if (!output_tensor) {
           auto error = EmitError(exec_ctx, StrCat(output_tensor.takeError()));
-          result->SetError(error);
+          result->SetError(error.status);
         } else {
           result->emplace<DenseHostTensor>(std::move(*output_tensor));
         }
@@ -335,7 +337,8 @@ AllocateOutputTensors(
                                                       exec_ctx.host());
       if (!dht) {
         result.SetError(
-            EmitError(exec_ctx, "failed to create uninitialized tensor"));
+            EmitError(exec_ctx, "failed to create uninitialized tensor")
+                .status);
         return;
       }
       result.emplace(std::move(*dht));

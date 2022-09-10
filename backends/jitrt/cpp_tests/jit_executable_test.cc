@@ -99,7 +99,8 @@ void BenchmarkGetExecutable(benchmark::State& state,
 
   // Check that compilation was successful.
   host->Quiesce();
-  if (initialize->IsError()) TFRT_LOG(FATAL) << initialize->GetError();
+  if (initialize->IsError())
+    TFRT_LOG(FATAL) << initialize->GetError().message();
 
   for (auto _ : state) {
     absl::StatusOr<AsyncValuePtr<Executable>> specialize =
@@ -134,7 +135,8 @@ void BenchmarkInitializeCallFrame(benchmark::State& state,
 
   // Check that compilation was successful.
   host->Quiesce();
-  if (executable->IsError()) TFRT_LOG(FATAL) << executable->GetError();
+  if (executable->IsError())
+    TFRT_LOG(FATAL) << executable->GetError().message();
 
   for (auto _ : state) {
     Executable::CallFrame call_frame;

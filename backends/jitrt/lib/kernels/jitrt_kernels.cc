@@ -244,7 +244,7 @@ static void Execute(KernelArgument<JitExecutable> jit_executable,
   // If specialization is available execute it inline.
   if (executable->IsAvailable()) {
     if (executable->IsError()) {
-      ReturnErrors(results, executable->GetError());
+      ReturnErrors(results, DecodedDiagnostic(executable->GetError()));
     } else {
       ExecuteImpl(executable->get(), memrefs, operands, results, exec_ctx);
     }
@@ -274,7 +274,7 @@ static void Execute(KernelArgument<JitExecutable> jit_executable,
     RemainingResults results(results_storage);
 
     if (executable.IsError()) {
-      ReturnErrors(results, executable.GetError());
+      ReturnErrors(results, DecodedDiagnostic(executable.GetError()));
     } else {
       ExecuteImpl(*executable, memrefs, operands, results, exec_ctx);
     }

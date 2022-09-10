@@ -87,7 +87,7 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
     TFRT_LOG(FATAL) << jit_executable.status().message();
 
   AsyncValuePtr<Executable> executable = jit_executable->DefaultExecutable();
-  if (executable.IsError()) TFRT_LOG(FATAL) << executable.GetError();
+  if (executable.IsError()) TFRT_LOG(FATAL) << executable.GetError().message();
 
   // Prepare the call frame outside of a benchmark loop.
   Executable::CallFrame call_frame;

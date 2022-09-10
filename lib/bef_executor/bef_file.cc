@@ -24,6 +24,7 @@
 #include "tfrt/bef/bef_location.h"
 #include "tfrt/bef/bef_reader.h"
 #include "tfrt/host_context/async_value.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/native_function.h"

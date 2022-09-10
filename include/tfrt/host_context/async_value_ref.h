@@ -138,20 +138,16 @@ class AsyncValueRef {
   bool IsError() const { return value_->IsError(); }
 
   // Returns the underlying error. IsError() must be true.
-  const DecodedDiagnostic& GetError() const { return value_->GetError(); }
+  const absl::Status& GetError() const { return value_->GetError(); }
 
   // Returns the underlying error, or nullptr if there is none.
-  const DecodedDiagnostic* GetErrorIfPresent() const {
+  const absl::Status* GetErrorIfPresent() const {
     return value_->GetErrorIfPresent();
   }
 
   void SetError(absl::Status status) const {
     assert(!status.ok() && "expected non-ok status");
-    value_->SetError(DecodedDiagnostic(std::move(status)));
-  }
-
-  void SetError(DecodedDiagnostic diagnostic) const {
-    value_->SetError(std::move(diagnostic));
+    return value_->SetError(std::move(status));
   }
 
   void SetError(std::string_view message) const {
@@ -245,15 +241,11 @@ class AsyncValuePtr {
 
   bool IsError() const { return value_->IsError(); }
 
-  const DecodedDiagnostic& GetError() const { return value_->GetError(); }
+  const absl::Status& GetError() const { return value_->GetError(); }
 
   void SetError(absl::Status status) const {
     assert(!status.ok() && "expected non-ok status");
-    return value_->SetError(DecodedDiagnostic(std::move(status)));
-  }
-
-  void SetError(DecodedDiagnostic diagnostic) const {
-    return value_->SetError(std::move(diagnostic));
+    return value_->SetError(std::move(status));
   }
 
   // If the AsyncValueRef is available, run the waiter immediately. Otherwise,
@@ -343,10 +335,6 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 
 // Create a ConcreteAsyncValue in error state for a specified error message.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status);
-
-// Create a ConcreteAsyncValue in error state for a specified error message.
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-    DecodedDiagnostic diagnostic);
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(std::string_view message);
 

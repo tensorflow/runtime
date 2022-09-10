@@ -20,6 +20,7 @@
 #include "io.h"
 
 #include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
@@ -62,9 +63,8 @@ IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
       // AsyncValues.
       assert(input.eof.IsAvailable());
       if (input.eof.IsError()) {
-        input.eof.GetAsyncValue()->SetErrorLocationIfUnset(
-            exec_ctx.location().Decode());
-        host->EmitError(input.eof.GetError());
+        host->EmitError(DecodedDiagnostic(exec_ctx.location().Decode(),
+                                          input.eof.GetError()));
       }
       return input;
     }
@@ -168,8 +168,8 @@ void PrefetchingIterator::ForwardInputToOutput(
     // TODO(donglin): If the error happens after the BEF executor has finished
     // its tasks, the LocationHandler might have been de-allocated at this
     // moment and this line can throw SIGSEGV. Fix it.
-    input_eof->SetErrorLocationIfUnset(exec_ctx.location().Decode());
-    exec_ctx.host()->EmitError(input.eof.GetError());
+    exec_ctx.host()->EmitError(
+        DecodedDiagnostic(exec_ctx.location().Decode(), input.eof.GetError()));
     output_eof->SetError(input_eof->GetError());
   } else {
     output_eof->emplace<bool>(input_eof->get<bool>());

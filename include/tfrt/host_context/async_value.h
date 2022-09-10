@@ -31,10 +31,10 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 
+#include "absl/status/status.h"  // from @com_google_absl
 #include "llvm/ADT/FunctionExtras.h"
-#include "tfrt/host_context/diagnostic.h"
-#include "tfrt/host_context/location.h"
 #include "tfrt/support/alloc.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/logging.h"
@@ -137,13 +137,10 @@ class AsyncValue {
   T& get();
 
   // Returns the underlying error. IsError() must be true.
-  const DecodedDiagnostic& GetError() const;
+  const absl::Status& GetError() const;
 
   // Returns the underlying error, or nullptr if there is none.
-  const DecodedDiagnostic* GetErrorIfPresent() const;
-
-  // Set the error location if unset. IsError() must be true.
-  void SetErrorLocationIfUnset(DecodedLocation location);
+  const absl::Status* GetErrorIfPresent() const;
 
   template <typename T>
   bool IsType() const {
@@ -160,7 +157,7 @@ class AsyncValue {
   template <typename T, typename... Args>
   void emplace(Args&&... args);
 
-  void SetError(DecodedDiagnostic diag);
+  void SetError(absl::Status status);
 
   // If the value is available or becomes available, this calls the closure
   // immediately.  Otherwise, adds the waiter to the waiter list and calls it
@@ -405,8 +402,8 @@ class AsyncValue {
     // The second bool argument indicates whether to destruct the AsyncValue
     // object or simply destroy the payloads.
     using DestructorFn = size_t (*)(AsyncValue*, bool);
-    using GetErrorFn = const DecodedDiagnostic& (*)(const AsyncValue*);
-    using SetErrorFn = void (*)(AsyncValue*, DecodedDiagnostic diag);
+    using GetErrorFn = const absl::Status& (*)(const AsyncValue*);
+    using SetErrorFn = void (*)(AsyncValue*, absl::Status);
     using HasDataFn = bool (*)(const AsyncValue*);
 
     DestructorFn destructor;
@@ -429,11 +426,11 @@ class AsyncValue {
           }
           return sizeof(Derived);
         },
-        [](const AsyncValue* v) -> const DecodedDiagnostic& {
+        [](const AsyncValue* v) -> const absl::Status& {
           return static_cast<const Derived*>(v)->GetError();
         },
-        [](AsyncValue* v, DecodedDiagnostic diag) {
-          static_cast<Derived*>(v)->SetError(std::move(diag));
+        [](AsyncValue* v, absl::Status status) {
+          static_cast<Derived*>(v)->SetError(std::move(status));
         },
         [](const AsyncValue* v) {
           return static_cast<const Derived*>(v)->HasData();
@@ -510,10 +507,10 @@ class ConcreteAsyncValue : public AsyncValue {
   }
 
   // Make a ConcreteAsyncValue with kError state.
-  explicit ConcreteAsyncValue(DecodedDiagnostic diagnostic)
+  explicit ConcreteAsyncValue(absl::Status status)
       : AsyncValue(Kind::kConcrete, State::kError,
                    /*is_refcounted=*/true, TypeTag<T>()),
-        data_store_{std::move(diagnostic)} {
+        data_store_{std::move(status)} {
     VerifyOffsets();
   }
 
@@ -544,13 +541,13 @@ class ConcreteAsyncValue : public AsyncValue {
   ~ConcreteAsyncValue() { Destroy(); }
 
   // Return the underlying error. IsError() must return true.
-  const DecodedDiagnostic& GetError() const {
+  const absl::Status& GetError() const {
     assert(IsError());
     return data_store_.error();
   }
 
-  void SetError(DecodedDiagnostic diag_in) {
-    data_store_.SetError(state(), std::move(diag_in));
+  void SetError(absl::Status status) {
+    data_store_.SetError(state(), std::move(status));
     NotifyAvailable(State::kError);
   }
 
@@ -583,11 +580,12 @@ class ConcreteAsyncValue : public AsyncValue {
   // Data and error layout when the payload does not inherit from
   // KeepAsyncValuePayloadOnError. This type destructs the payload value on
   // error. It never keeps both data and error alive at the same time.
-  union DataOrError {
+  class DataOrError {
+   public:
     DataOrError() {}
 
-    explicit DataOrError(DecodedDiagnostic diagnostic)
-        : error_{new DecodedDiagnostic(std::move(diagnostic))} {}
+    explicit DataOrError(absl::Status status)
+        : error_{new absl::Status(std::move(status))} {}
 
     template <typename... Args>
     explicit DataOrError(TypeTag<T>, Args&&... args)
@@ -603,12 +601,12 @@ class ConcreteAsyncValue : public AsyncValue {
       }
     }
 
-    void SetError(State s, DecodedDiagnostic diag) {
+    void SetError(State s, absl::Status status) {
       assert(s == State::kUnconstructed || s == State::kConstructed);
       if (s == State::kConstructed) {
         data_.~T();
       }
-      error_ = new DecodedDiagnostic(std::move(diag));
+      error_ = new absl::Status(std::move(status));
     }
 
     template <typename... Args>
@@ -620,15 +618,17 @@ class ConcreteAsyncValue : public AsyncValue {
       return s == State::kConstructed || s == State::kConcrete;
     }
 
-    DecodedDiagnostic& error() { return *error_; }
+    absl::Status& error() { return *error_; }
     T& data() { return data_; }
-    const DecodedDiagnostic& error() const { return *error_; }
+    const absl::Status& error() const { return *error_; }
     const T& data() const { return data_; }
 
    private:
     friend class ConcreteAsyncValue;
-    DecodedDiagnostic* error_;
-    T data_;
+    union {
+      absl::Status* error_;
+      T data_;
+    };
   };
 
   // Data and error layout when the payload inherits from
@@ -636,7 +636,7 @@ class ConcreteAsyncValue : public AsyncValue {
   // on error. It may keep both data and error alive at the same time.
   class DataAndError {
    public:
-    explicit DataAndError(DecodedDiagnostic diag) { SetError(diag); }
+    explicit DataAndError(absl::Status status) { SetError(std::move(status)); }
 
     template <typename... Args>
     explicit DataAndError(TypeTag<T>, Args&&... args) {
@@ -649,9 +649,9 @@ class ConcreteAsyncValue : public AsyncValue {
       has_data_ = false;
     }
 
-    void SetError(State s, DecodedDiagnostic diag) {
+    void SetError(State s, absl::Status status) {
       assert(!error_);
-      error_ = std::make_unique<DecodedDiagnostic>(std::move(diag));
+      error_ = std::make_unique<absl::Status>(std::move(status));
     }
 
     template <typename... Args>
@@ -666,8 +666,8 @@ class ConcreteAsyncValue : public AsyncValue {
 
     bool HasData(State s) const { return has_data_; }
     bool HasData() const { return has_data_; }
-    const DecodedDiagnostic& error() const { return *error_; }
-    DecodedDiagnostic& error() { return *error_; }
+    const absl::Status& error() const { return *error_; }
+    absl::Status& error() { return *error_; }
 
    private:
     friend class ConcreteAsyncValue;
@@ -675,7 +675,7 @@ class ConcreteAsyncValue : public AsyncValue {
 
     StorageT data_;
     bool has_data_ = false;
-    std::unique_ptr<DecodedDiagnostic> error_;
+    std::unique_ptr<absl::Status> error_;
   };
 
   using DataStoreT = std::conditional_t<
@@ -710,9 +710,9 @@ struct DummyValueForErrorAsyncValue {};
 class ErrorAsyncValue
     : public internal::ConcreteAsyncValue<DummyValueForErrorAsyncValue> {
  public:
-  ErrorAsyncValue(DecodedDiagnostic diagnostic)
+  ErrorAsyncValue(absl::Status status)  // NOLINT
       : internal::ConcreteAsyncValue<DummyValueForErrorAsyncValue>(
-            std::move(diagnostic)) {}
+            std::move(status)) {}
 };
 
 // IndirectAsyncValue represents an uncomputed AsyncValue of unspecified kind
@@ -862,13 +862,13 @@ const T& AsyncValue::get() const {
           << "Cannot call get() when ConcreteAsyncValue isn't "
              "constructed; state: "
           << s
-          << ", error message: " << (IsError() ? StrCat(GetError()) : "None");
+          << ", error message: " << (IsError() ? GetError().message() : "None");
       return GetConcreteValue<T>();
     case Kind::kIndirect:
       TFRT_DLOG_IF(FATAL, s != State::kConcrete)
           << "Cannot call get() when IndirectAsyncValue isn't concrete; state: "
           << s
-          << ", error message: " << (IsError() ? StrCat(GetError()) : "None");
+          << ", error message: " << (IsError() ? GetError().message() : "None");
       auto* iv_value = cast<IndirectAsyncValue>(this)->value_;
       assert(iv_value && "Indirect value not resolved");
       return iv_value->get<T>();
@@ -896,7 +896,7 @@ void AsyncValue::emplace(Args&&... args) {
 }
 
 // Returns the underlying error, or nullptr if there is none.
-inline const DecodedDiagnostic* AsyncValue::GetErrorIfPresent() const {
+inline const absl::Status* AsyncValue::GetErrorIfPresent() const {
   switch (kind()) {
     case Kind::kConcrete: {
       if (state() != State::kError) return nullptr;
@@ -913,7 +913,7 @@ inline const DecodedDiagnostic* AsyncValue::GetErrorIfPresent() const {
   }
 }
 
-inline const DecodedDiagnostic& AsyncValue::GetError() const {
+inline const absl::Status& AsyncValue::GetError() const {
   auto* result = GetErrorIfPresent();
   assert(result && "Cannot call GetError() when error isn't available.");
   return *result;

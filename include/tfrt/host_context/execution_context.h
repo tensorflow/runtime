@@ -21,6 +21,7 @@
 
 #include <utility>
 
+#include "llvm/Support/Error.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/map_by_type.h"

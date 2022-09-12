@@ -25,6 +25,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseMapInfo.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/distributed_runtime/remote_object.h"
 #include "tfrt/distributed_runtime/task_handle.h"
 #include "tfrt/host_context/async_value.h"

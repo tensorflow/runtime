@@ -100,6 +100,25 @@ void Await(const ExecutionContext& exec_ctx,
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work);
 
+// An overload set that automatically converts llvm::Expected values to the
+// corresponding absl::StatusOr when emplacing async values.
+//
+// TODO(ezhulenev): This is a temporary overload set to help migrating errors
+// from llvm::Expected to absl::StatusOr and will be removed.
+template <typename T, typename U>
+void Emplace(const AsyncValueRef<T>& async_value, U value) {
+  async_value.emplace(std::forward<U>(value));
+}
+template <typename T, typename U>
+void Emplace(const AsyncValueRef<T>& async_value, Expected<U> value) {
+  if (auto err = value.takeError()) {
+    async_value.emplace(
+        absl::StatusOr<T>(absl::InternalError(toString(std::move(err)))));
+  } else {
+    async_value.emplace(std::move(*value));
+  }
+}
+
 // Overload of EnqueueWork that return AsyncValueRef<R> for work that returns R
 // when R is not void.
 //
@@ -113,7 +132,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
   auto result = MakeUnconstructedAsyncValueRef<R>();
   EnqueueWork(exec_ctx, [result = result.CopyRef(),
                          work = std::forward<F>(work)]() mutable {
-    result.emplace(work());
+    Emplace(result, work());
   });
   return result;
 }
@@ -136,7 +155,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
   auto result = MakeUnconstructedAsyncValueRef<R>();
   EnqueueWork(host, [result = result.CopyRef(),
                      work = std::forward<F>(work)]() mutable {
-    result.emplace(work());
+    Emplace(result, work());
   });
   return result;
 }
@@ -159,7 +178,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
   bool enqueued = EnqueueBlockingWork(
       host,
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
-        result.emplace(work());
+        Emplace(result, work());
       });
   if (!enqueued) {
     result.SetError(absl::InternalError("Failed to enqueue blocking work."));
@@ -184,7 +203,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
   bool enqueued = RunBlockingWork(
       host,
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
-        result.emplace(work());
+        Emplace(result, work());
       });
   if (!enqueued) {
     result.SetError(absl::InternalError("Failed to run blocking work."));

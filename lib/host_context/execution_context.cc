@@ -20,6 +20,7 @@
 
 #include <utility>
 
+#include "llvm/Support/Error.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_context.h"
 

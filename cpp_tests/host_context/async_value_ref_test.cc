@@ -16,9 +16,11 @@
 
 #include "tfrt/host_context/async_value_ref.h"
 
+#include <memory>
+#include <utility>
+
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
-#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 
@@ -125,7 +127,7 @@ TEST_F(AsyncValueRefTest, AndThenError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   auto diag = absl::InternalError("test error");
-  value.AndThen([&](Error error) { EXPECT_EQ(StrCat(error), diag.message()); });
+  value.AndThen([&](absl::Status status) { EXPECT_EQ(status, diag); });
 
   value.SetError(diag);
 }
@@ -133,74 +135,55 @@ TEST_F(AsyncValueRefTest, AndThenError) {
 TEST_F(AsyncValueRefTest, AndThenNoError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  value.AndThen([](Error error) { EXPECT_FALSE(!!error); });
+  value.AndThen([](absl::Status status) { EXPECT_TRUE(status.ok()); });
 
   value.SetStateConcrete();
 }
 
-TEST_F(AsyncValueRefTest, AndThenExpectedError) {
+TEST_F(AsyncValueRefTest, AndThenStatusOrError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   auto diag = absl::InternalError("test error");
-  value.AndThen([&](Expected<int32_t*> v) {
-    EXPECT_FALSE(!!v);
-    EXPECT_EQ(StrCat(v.takeError()), diag.message());
+  value.AndThen([&](absl::StatusOr<int32_t*> v) {
+    EXPECT_FALSE(v.ok());
+    EXPECT_EQ(v.status(), diag);
   });
 
   value.SetError(diag);
 }
 
-TEST_F(AsyncValueRefTest, PtrAndThenExpectedError) {
+TEST_F(AsyncValueRefTest, PtrAndThenStatusOrError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
   auto diag = absl::InternalError("test error");
-  value.AsPtr().AndThen([&](Expected<int32_t*> v) {
-    EXPECT_FALSE(!!v);
-    EXPECT_EQ(StrCat(v.takeError()), diag.message());
+  value.AsPtr().AndThen([&](absl::StatusOr<int32_t*> v) {
+    EXPECT_FALSE(v.ok());
+    EXPECT_EQ(v.status(), diag);
   });
 
   value.SetError(diag);
 }
 
-TEST_F(AsyncValueRefTest, AndThenExpectedNoError) {
+TEST_F(AsyncValueRefTest, AndThenStatusOrNoError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  value.AndThen([](Expected<int32_t*> v) {
-    EXPECT_TRUE(!!v);
+  value.AndThen([](absl::StatusOr<int32_t*> v) {
+    EXPECT_TRUE(v.ok());
     EXPECT_EQ(**v, kTestValue);
   });
 
   value.SetStateConcrete();
 }
 
-TEST_F(AsyncValueRefTest, PtrAndThenExpectedNoError) {
+TEST_F(AsyncValueRefTest, PtrAndThenStatusOrNoError) {
   auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
 
-  value.AsPtr().AndThen([](Expected<int32_t*> v) {
-    EXPECT_TRUE(!!v);
+  value.AsPtr().AndThen([](absl::StatusOr<int32_t*> v) {
+    EXPECT_TRUE(v.ok());
     EXPECT_EQ(**v, kTestValue);
   });
 
   value.SetStateConcrete();
-}
-
-TEST_F(AsyncValueRefTest, AsExpectedError) {
-  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
-
-  auto diag = absl::InternalError("test error");
-  value.SetError(diag);
-  Expected<int32_t*> expected = value.AsExpected();
-  EXPECT_FALSE(!!expected);
-  EXPECT_EQ(StrCat(expected.takeError()), diag.message());
-}
-
-TEST_F(AsyncValueRefTest, AsExpectedNoError) {
-  auto value = MakeConstructedAsyncValueRef<int32_t>(kTestValue);
-  value.SetStateConcrete();
-
-  Expected<int32_t*> expected = value.AsExpected();
-  EXPECT_TRUE(!!expected);
-  EXPECT_EQ(**expected, kTestValue);
 }
 
 TEST_F(AsyncValueRefTest, Nullptr) {

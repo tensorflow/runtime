@@ -21,6 +21,7 @@
 #include <string_view>
 #include <utility>
 
+#include "llvm/Support/Error.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 

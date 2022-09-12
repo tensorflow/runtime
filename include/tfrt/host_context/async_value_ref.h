@@ -31,10 +31,11 @@
 #include <string_view>
 #include <type_traits>
 
+#include "absl/status/status.h"    // from @com_google_absl
+#include "absl/status/statusor.h"  // from @com_google_absl
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/support/alloc.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 
@@ -107,10 +108,6 @@ class AsyncValueRef {
 
   T& operator*() const { return get(); }
 
-  // Convert an available AsyncValue to Expected.
-  // Precondition: The AsyncValue must be available.
-  Expected<T*> AsExpected() const { return AsPtr().AsExpected(); }
-
   template <typename WaiterT>
   void AndThen(WaiterT&& waiter) const {
     AsPtr().AndThen(std::forward<WaiterT>(waiter));
@@ -126,11 +123,11 @@ class AsyncValueRef {
     value_->emplace<T>(std::forward<Args>(args)...);
   }
 
-  void emplace(Expected<T> v) const {
-    if (v) {
+  void emplace(absl::StatusOr<T> v) const {
+    if (v.ok()) {
       emplace(std::move(*v));
     } else {
-      SetError(absl::InternalError(toString(v.takeError())));
+      SetError(std::move(v.status()));
     }
   }
 
@@ -211,16 +208,6 @@ class AsyncValuePtr {
   T* operator->() const { return &get(); }
   T& operator*() const { return get(); }
 
-  // Convert an available AsyncValue to Expected.
-  // Precondition: The AsyncValue must be available.
-  Expected<T*> AsExpected() const {
-    assert(IsAvailable());
-    if (IsError())
-      return MakeStringError(GetError().message());
-    else
-      return &get();
-  }
-
   explicit operator bool() const { return value_ != nullptr; }
   bool operator!=(std::nullptr_t) const { return value_ != nullptr; }
   AsyncValuePtr& operator=(std::nullptr_t) {
@@ -257,36 +244,40 @@ class AsyncValuePtr {
   //   // async_value_ref is now ready.
   // });
   template <typename WaiterT,
-            std::enable_if_t<is_invocable_v<WaiterT>, bool> = true>
+            std::enable_if_t<std::is_invocable_v<WaiterT>, bool> = true>
   void AndThen(WaiterT&& waiter) const {
     value_->AndThen(std::forward<WaiterT>(waiter));
   }
 
-  // This AndThen() function takes a functor that takes Expected<T*> as
+  // This AndThen() function takes a functor that takes absl::StatusOr<T*> as
   // argument. This makes it easy for the callback function to use the value of
   // the AsyncValue when it becomes available.
   //
   // Sample usage:
   //
-  // async_value_ref.AndThen([] (Expected<T*> expected) {
+  // async_value_ref.AndThen([] (absl::StatusOr<T*> status_or) {
   //   // async_value_ref is now ready and its value/error is in the provided
-  //   `expected` argument.
-  //   if (!expected) {
-  //      // handle the error in expected.takeError().
+  //   // `status_or` argument.
+  //   if (!status_or.ok()) {
+  //      // Handle the error in `status_or.status()`.
   //   } else {
-  //      // handle the value in *expected.
+  //      // Handle the value in `*status_or`.
   //   }
   // });
-  template <
-      typename WaiterT,
-      std::enable_if_t<is_invocable_v<WaiterT, Expected<T*>>, bool> = true>
+  template <typename WaiterT,
+            std::enable_if_t<std::is_invocable_v<WaiterT, absl::StatusOr<T*>>,
+                             bool> = true>
   void AndThen(WaiterT&& waiter) const {
     AndThen([waiter = std::forward<WaiterT>(waiter), av_ptr = *this]() mutable {
-      return std::forward<WaiterT>(waiter)(av_ptr.AsExpected());
+      if (av_ptr.IsError()) {
+        return std::forward<WaiterT>(waiter)(av_ptr.GetError());
+      } else {
+        return std::forward<WaiterT>(waiter)(&av_ptr.get());
+      }
     });
   }
 
-  // This AndThen() function takes a functor that takes an Error as
+  // This AndThen() function takes a functor that takes an absl::Status as
   // argument. This makes it easy for the callback function to use the error of
   // the AsyncValue when it becomes available. This is useful when the callback
   // function only cares about the error value of the AsyncValue, e.g. for
@@ -294,26 +285,26 @@ class AsyncValuePtr {
   //
   // Sample usage:
   //
-  // async_value_ref.AndThen([] (Error error) {
-  //   // async_value_ref is now ready and its error is in the provided
-  //   `error` argument.
-  //   if (error) {
+  // async_value_ref.AndThen([] (absl::Status status) {
+  //   // async_value_ref is now ready and its status is in the provided
+  //   // `status` argument.
+  //   if (!status.ok()) {
   //     // Handle the error.
   //   } else {
   //     // No error occurred.
   //   }
   // });
-  template <typename WaiterT,
-            std::enable_if_t<(is_invocable_v<WaiterT, Error> &&
-                              !is_invocable_v<WaiterT, Expected<T*>>),
-                             bool> = true>
+  template <
+      typename WaiterT,
+      std::enable_if_t<(std::is_invocable_v<WaiterT, absl::Status> &&
+                        !std::is_invocable_v<WaiterT, absl::StatusOr<T*>>),
+                       bool> = true>
   void AndThen(WaiterT&& waiter) const {
     AndThen([waiter = std::forward<WaiterT>(waiter), av_ptr = *this]() mutable {
       if (av_ptr.IsError()) {
-        return std::forward<WaiterT>(waiter)(
-            MakeStringError(av_ptr.GetError().message()));
+        return std::forward<WaiterT>(waiter)(av_ptr.GetError());
       } else {
-        return std::forward<WaiterT>(waiter)(Error::success());
+        return std::forward<WaiterT>(waiter)(absl::OkStatus());
       }
     });
   }

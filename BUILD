@@ -200,6 +200,7 @@ tfrt_cc_library(
         ":bef",
         ":support",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ],

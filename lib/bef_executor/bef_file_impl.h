@@ -306,7 +306,7 @@ class BEFFileImpl : public BEFFile {
   DecodedLocation DecodeLocation(size_t location_position_offset);
   Optional<DebugInfo> GetDebugInfo(size_t location_position_offset);
 
-  // Only used for debugging. If TFRT_BEF_EXECUTOR_DEBUG is not defined, it
+  // Only used for debugging. If TFRT_BEF_DEBUG is not defined, it
   // returns "unknown".
   const char* GetKernelName(size_t kernel_id) const;
 
@@ -341,7 +341,7 @@ class BEFFileImpl : public BEFFile {
   ArrayRef<uint8_t> location_strings_section_;
   ArrayRef<uint8_t> locations_section_;
 
-#if defined(TFRT_BEF_EXECUTOR_DEBUG)
+#if defined(TFRT_BEF_DEBUG)
   // Maps from kernel_id to the name of the kernel.
   std::vector<const char*> kernel_names_;
 #endif

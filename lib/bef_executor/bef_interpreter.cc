@@ -32,6 +32,12 @@
 #include "tfrt/host_context/sync_kernel_frame.h"
 #include "tfrt/support/forward_decls.h"
 
+#ifdef TFRT_BEF_DEBUG
+#define DEBUG_PRINT(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUG_PRINT(...)
+#endif
+
 namespace tfrt {
 
 /// A BEFInterpreter runs a BEF function containing a stream of synchronous
@@ -60,6 +66,8 @@ class BEFInterpreterImpl final {
     // Registers that are retired after the execution of this kernel.
     // This refers to a segment in retired_register_pool_.
     ArrayRef<Value*> retired_regs;
+    // Kernel code.
+    uint32_t kernel_code;
   };
 
   // Set up the data for each kernel.
@@ -159,6 +167,7 @@ void BEFInterpreterImpl::SetupKernelEntries() {
     // Get the kernel function.
     kernel_entry.kernel_fn =
         func_.bef_file()->GetSyncKernel(kernel.kernel_code());
+    kernel_entry.kernel_code = kernel.kernel_code();
     assert(kernel_entry.kernel_fn != nullptr);
 
     int retired_reg_start = retired_register_pool_.size();
@@ -249,6 +258,10 @@ Error BEFInterpreterImpl::Execute(const ExecutionContext& exec_ctx,
   SyncKernelFrameBuilder kernel_frame(registers_, exec_ctx);
   // Walk through each kernel entry and invoke each kernel sequentially.
   for (auto& kernel_entry : kernel_entries_) {
+    DEBUG_PRINT("Running kernel %s with kernel code %d: \n",
+                func_.bef_file()->GetKernelName(kernel_entry.kernel_code),
+                kernel_entry.kernel_code);
+
     BEFKernel kernel(kernel_entry.kernel_start);
 
     kernel_frame.SetArguments(kernel.GetArguments());

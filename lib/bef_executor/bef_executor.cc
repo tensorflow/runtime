@@ -35,7 +35,7 @@
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tracing/tracing.h"
 
-#ifdef TFRT_BEF_EXECUTOR_DEBUG
+#ifdef TFRT_BEF_DEBUG
 #define DEBUG_PRINT(...) fprintf(stderr, __VA_ARGS__)
 #else
 #define DEBUG_PRINT(...)
@@ -425,7 +425,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
 
 void BEFExecutor::DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
                                   AsyncValue* result) {
-#ifdef TFRT_BEF_EXECUTOR_DEBUG
+#ifdef TFRT_BEF_DEBUG
   // Print the error in debug mode.
   if (result->IsError()) {
     std::string error_message;

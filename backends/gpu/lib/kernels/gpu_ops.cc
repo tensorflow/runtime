@@ -401,7 +401,8 @@ OpResult StreamifyOp::asyncToken() {
 }
 
 LogicalResult StreamifyOp::verify() {
-  TypeRange return_types = getBody()->getTerminator()->getOperandTypes();
+  TypeRange return_types =
+      SingleBlock::getBody()->getTerminator()->getOperandTypes();
   if (return_types.empty() || !return_types.front().isa<compiler::ChainType>())
     return emitOpError("first return operand type is not a !tfrt.chain");
   if (return_types.drop_front() != TypeRange(results()))

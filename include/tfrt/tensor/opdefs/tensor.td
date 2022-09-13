@@ -37,7 +37,7 @@ def Tensor_Dialect : Dialect {
 
   let cppNamespace = "::tfrt::t";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 //===----------------------------------------------------------------------===//

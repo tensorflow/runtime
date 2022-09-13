@@ -185,7 +185,7 @@ LogicalResult StreamifyOpsPattern::matchAndRewriteBlock(
     auto streamify_op = rewriter.create<StreamifyOp>(loc, results);
 
     // Move illegal ops into !tfrt_gpu.streamify body and merge blocks again.
-    Block *body = streamify_op.getBody();
+    Block *body = streamify_op.SingleBlock::getBody();
     body->getOperations().splice(body->begin(), block->getOperations(),
                                  op_range.begin(), op_range.end());
     rewriter.mergeBlocks(epilogue, block, streamify_op->getResults());

@@ -38,7 +38,7 @@ def DHT_Dialect : Dialect {
 
   let cppNamespace = "tfrt::dht";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 // Base class for the operation in this dialect

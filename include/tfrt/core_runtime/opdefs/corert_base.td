@@ -31,7 +31,7 @@ def CoreRT_Dialect : Dialect {
 
   let cppNamespace = "::tfrt::corert";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 // Deivce is an aggregate of Core Runtime ops. It is passed to corert.executeop

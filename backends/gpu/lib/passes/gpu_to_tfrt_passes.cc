@@ -1274,9 +1274,10 @@ LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(streamify_op, "operand not def by cast");
 
   // Merge !tfrt_gpu.streamify body into parent block.
-  Operation *terminator = streamify_op.getBody()->getTerminator();
-  rewriter.splitBlock(streamify_op.getBody(), terminator->getIterator());
-  rewriter.mergeBlockBefore(streamify_op.getBody(), streamify_op,
+  Operation *terminator = streamify_op.SingleBlock::getBody()->getTerminator();
+  rewriter.splitBlock(streamify_op.SingleBlock::getBody(),
+                      terminator->getIterator());
+  rewriter.mergeBlockBefore(streamify_op.SingleBlock::getBody(), streamify_op,
                             cast_op.getOperands());
   SmallVector<Value, 4> results(terminator->getOperands().drop_front());
   auto chain_and_stream = {terminator->getOperand(0), cast_op.getOperand(1)};

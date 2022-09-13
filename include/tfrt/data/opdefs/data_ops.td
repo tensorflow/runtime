@@ -36,7 +36,7 @@ def Data_Dialect : Dialect {
 
   let cppNamespace = "::tfrt::data";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 // Type definition.

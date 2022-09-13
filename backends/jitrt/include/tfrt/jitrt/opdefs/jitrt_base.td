@@ -37,7 +37,7 @@ def JitRuntimeDialect : Dialect {
 
   let cppNamespace = "::tfrt::jitrt";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 def JitExecutableType : OpaqueType<"jitrt", "jit_executable",

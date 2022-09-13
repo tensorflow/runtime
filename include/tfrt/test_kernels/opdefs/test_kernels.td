@@ -36,7 +36,7 @@ def Test_Dialect : Dialect {
 
   let cppNamespace = "::tfrt::test";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 def ProtoExampleType : OpaqueType<"proto", "example", "!proto.example type">;

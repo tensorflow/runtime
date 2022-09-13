@@ -51,7 +51,6 @@ def CallOp : TFRT_Op<"call", [CallOpInterface]> {
   let results = (outs Variadic<AnyType>);
 
   let extraClassDeclaration = [{
-    StringRef getCallee() { return callee(); }
     ::mlir::FunctionType getCalleeType();
 
     // The following methods are needed by CallOpInterface.

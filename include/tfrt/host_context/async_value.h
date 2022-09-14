@@ -33,7 +33,8 @@
 #include <type_traits>
 #include <utility>
 
-#include "absl/status/status.h"  // from @com_google_absl
+#include "absl/status/status.h"    // from @com_google_absl
+#include "absl/status/statusor.h"  // from @com_google_absl
 #include "llvm/ADT/FunctionExtras.h"
 #include "tfrt/support/alloc.h"
 #include "tfrt/support/forward_decls.h"
@@ -479,10 +480,37 @@ namespace internal {
 // in the `internal` namespace to indicate this restriction.
 struct KeepAsyncValuePayloadOnError {};
 
+// Async value itself is a container that either holds `absl::Status` (in error
+// state) or a concrete value of type `T` (in concrete state). Async value that
+// holds a status is typically a bad idea, and should be expressed as a plain
+// async value.
+//
+// Example:
+//  - Prefer `AsyncValueRef<Chain>` to `AsyncValueRef<absl::Status>`.
+//    Instead of a `Chain` it can be any other empty struct to signal that only
+//    the potential error is important.
+//
+//  - Prefer `AsyncValueRef<T>` to `AsyncValueRef<absl::StatusOr<T>>`.
+//    Similar to the `absl::StatusOr<T>` async value will be either in error
+//    state holding an `absl::Status` error, or in concrete state holding a
+//    value of type `T`.
+//
+template <typename T>
+struct IsStatus : std::false_type {};
+
+template <>
+struct IsStatus<absl::Status> : std::true_type {};
+
+template <typename T>
+struct IsStatus<absl::StatusOr<T>> : std::true_type {};
+
 // Subclass for storing the payload of the AsyncValue
 template <typename T>
 class ConcreteAsyncValue : public AsyncValue {
  public:
+  // Async value does not support `absl::Status` or `absl::StatusOr` payload.
+  static_assert(!IsStatus<T>::value, "invalid payload type");
+
   // Tag type for making a ConcreteAsyncValue without calling underlying value's
   // constructor.
   struct UnconstructedPayload {};

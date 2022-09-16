@@ -76,18 +76,18 @@ ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 void ExecuteOp::print(OpAsmPrinter &p) {
-  p << "corert_sync.executeop(" << op_handler() << ") "
+  p << "corert_sync.executeop(" << getOpHandler() << ") "
     << (*this)->getAttr("op_name") << '(' << operands() << ')';
 
   corert::PrintExecuteOpImpl(p, *this);
-  if (!results().empty()) p << " : " << results().size();
+  if (!getResults().empty()) p << " : " << getResults().size();
 }
 
 void ExecuteOp::getOpAttrs(
     llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
-  auto op_attr_array = this->op_attrs().getValue();
+  auto op_attr_array = this->getOpAttrs().getValue();
 
   Builder builder(getContext());
   for (auto iter : op_attr_array) {
@@ -100,8 +100,8 @@ void ExecuteOp::getOpAttrs(
 
 LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
                               llvm::SmallVectorImpl<OpFoldResult> &results) {
-  if (op_name() == "tf.Const") {
-    auto op_attr_array = op_attrs().getValue();
+  if (getOpName() == "tf.Const") {
+    auto op_attr_array = getOpAttrs().getValue();
     assert(!op_attr_array.empty());
     for (auto attr : op_attr_array) {
       auto key_value = attr.cast<ArrayAttr>().getValue();
@@ -117,7 +117,7 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
 }
 
 OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
-  return value();
+  return getValue();
 }
 
 }  // namespace corert_sync

@@ -140,10 +140,10 @@ LogicalResult IfOp::verify() {
   IfOp op = *this;
   // Verify that the operands match the bb arguments.  The ODS verifier already
   // checked the first argument to be present and i1.
-  auto *then_block = &op.then_region().front();
+  auto *then_block = &op.getThenRegion().front();
   if (op.getNumOperands() - 1 != then_block->getNumArguments())
     return op.emitOpError("incorrect number of arguments to 'then' block");
-  auto *else_block = &op.else_region().front();
+  auto *else_block = &op.getElseRegion().front();
   if (op.getNumOperands() - 1 != else_block->getNumArguments())
     return op.emitOpError("incorrect number of arguments to 'else' block");
 
@@ -153,10 +153,10 @@ LogicalResult IfOp::verify() {
         op.getOperand(i + 1).getType() != else_block->getArgument(i).getType())
       return op.emitOpError("operand/argument type mismatch");
 
-  if (failed(checkTFRTReturn(op, &op.then_region(), op.getResultTypes())))
+  if (failed(checkTFRTReturn(op, &op.getThenRegion(), op.getResultTypes())))
     return failure();
 
-  return checkTFRTReturn(op, &op.else_region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.getElseRegion(), op.getResultTypes());
 }
 
 ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
@@ -231,13 +231,13 @@ void IfOp::print(OpAsmPrinter &p) {
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
   auto arg_name_values = llvm::drop_begin(getOperands(), 1);
-  p.shadowRegionArgs(then_region(), arg_name_values);
+  p.shadowRegionArgs(getThenRegion(), arg_name_values);
   p << ' ';
-  p.printRegion(then_region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(getThenRegion(), /*printEntryBlockArgs=*/false);
   p << " else ";
-  p.shadowRegionArgs(else_region(), arg_name_values);
+  p.shadowRegionArgs(getElseRegion(), arg_name_values);
   p << ' ';
-  p.printRegion(else_region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(getElseRegion(), /*printEntryBlockArgs=*/false);
 }
 
 //===----------------------------------------------------------------------===//
@@ -351,9 +351,9 @@ void RepeatI32Op::print(OpAsmPrinter &p) {
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
   SmallVector<Value, 4> arg_name_values(llvm::drop_begin(getOperands(), 1));
-  p.shadowRegionArgs(region(), arg_name_values);
+  p.shadowRegionArgs(getRegion(), arg_name_values);
   p << ' ';
-  p.printRegion(region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false);
 }
 
 LogicalResult RepeatI32Op::verify() {
@@ -366,7 +366,7 @@ LogicalResult RepeatI32Op::verify() {
     if (op.getOperand(i + 1).getType() != op.getResult(i).getType())
       return op.emitOpError("operand/result type mismatch");
 
-  return checkTFRTReturn(op, &op.region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.getRegion(), op.getResultTypes());
 }
 
 //===----------------------------------------------------------------------===//
@@ -456,9 +456,9 @@ void ParallelForI32Op::print(OpAsmPrinter &p) {
   SmallVector<Value, 4> arg_name_values(getOperands());
   arg_name_values.erase(arg_name_values.begin() + 2);
 
-  p.shadowRegionArgs(region(), arg_name_values);
+  p.shadowRegionArgs(getRegion(), arg_name_values);
   p << ' ';
-  p.printRegion(region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false);
 }
 
 LogicalResult ParallelForI32Op::verify() {
@@ -473,7 +473,7 @@ LogicalResult ParallelForI32Op::verify() {
 
   // Otherwise parallel region must return a chain (same result type as
   // tfrt.parallel_for itself).
-  return checkTFRTReturn(op, &op.region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.getRegion(), op.getResultTypes());
 }
 
 //===----------------------------------------------------------------------===//

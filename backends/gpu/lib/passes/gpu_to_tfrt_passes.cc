@@ -788,7 +788,7 @@ FailureOr<Value> AddChainAndStreamToCallPattern::matchAndRewriteOp(
   llvm::SmallVector<Type, 4> result_types = {chain.getType()};
   llvm::copy(op.getResultTypes(), std::back_inserter(result_types));
   auto call_op = rewriter.create<tfrt::compiler::CallOp>(
-      op->getLoc(), result_types, adaptor.calleeAttr(), operands);
+      op->getLoc(), result_types, adaptor.getCalleeAttr(), operands);
   rewriter.replaceOp(op, call_op->getResults().drop_front());
   return call_op.getResult(0);
 }
@@ -799,8 +799,8 @@ FailureOr<Value> AddChainAndStreamToWhilePattern::matchAndRewriteOp(
   llvm::SmallVector<Value, 8> operands = {chain, stream};
   llvm::copy(adaptor.operands(), std::back_inserter(operands));
   auto while_op = rewriter.create<tfrt::compiler::WhileOp>(
-      op->getLoc(), TypeRange(ValueRange(operands)), adaptor.cond(), operands,
-      adaptor.body_fn());
+      op->getLoc(), TypeRange(ValueRange(operands)), adaptor.getCond(),
+      operands, adaptor.getBodyFn());
   rewriter.replaceOp(op, while_op->getResults().drop_front(2));
   return while_op.getResult(0);
 }
@@ -1517,13 +1517,13 @@ void AddChainAndStreamToFuncPass::runOnOperation() {
   SymbolTable symbol_table(getOperation());
   target.addDynamicallyLegalOp<compiler::CallOp>([&](compiler::CallOp call_op) {
     auto func_op = symbol_table.lookupNearestSymbolFrom<func::FuncOp>(
-        call_op, call_op.calleeAttr());
+        call_op, call_op.getCalleeAttr());
     return func_op && func_op.getFunctionType() == call_op.getCalleeType();
   });
   target.addDynamicallyLegalOp<compiler::WhileOp>(
       [&](compiler::WhileOp while_op) {
         auto func_op = symbol_table.lookupNearestSymbolFrom<func::FuncOp>(
-            while_op, while_op.body_fnAttr());
+            while_op, while_op.getBodyFnAttr());
         if (!func_op) return false;
         // tfrt.while: (i1, ...) -> (...), body func: (...) -> (..., i1)
         return func_op.getArgumentTypes() == while_op.getResultTypes();

@@ -272,27 +272,27 @@ ParseResult ExecuteOpSeq::parse(OpAsmParser &parser, OperationState &result) {
                             /*has_func_attr=*/true);
 }
 void ExecuteOp::print(OpAsmPrinter &p) {
-  p << "(" << op_handler() << ") " << (*this)->getAttr("op_name") << '('
+  p << "(" << getOpHandler() << ") " << (*this)->getAttr("op_name") << '('
     << operands() << ')';
 
   PrintExecuteOpImpl(p, *this);
   PrintExecuteOpFuncAttribute(p, *this);
-  if (!results().empty()) p << " : " << results().size();
+  if (!getResults().empty()) p << " : " << getResults().size();
 }
 void ExecuteOpSeq::print(OpAsmPrinter &p) {
-  p << "(" << op_handler() << ", " << in_op_chain() << ") "
+  p << "(" << getOpHandler() << ", " << getInOpChain() << ") "
     << (*this)->getAttr("op_name") << '(' << operands() << ')';
 
   PrintExecuteOpImpl(p, *this);
   PrintExecuteOpFuncAttribute(p, *this);
-  if (!results().empty()) p << " : " << results().size();
+  if (!getResults().empty()) p << " : " << getResults().size();
 }
 
 void ExecuteOp::getOpAttrs(
     llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
-  ArrayRef<Attribute> op_attr_array = this->op_attrs().getValue();
+  ArrayRef<Attribute> op_attr_array = this->getOpAttrs().getValue();
 
   Builder builder(getContext());
   for (Attribute iter : op_attr_array) {
@@ -307,7 +307,7 @@ void ExecuteOp::getOpFuncAttrs(
     SmallVectorImpl<std::pair<StringRef, Attribute>> *op_func_attrs) {
   assert(op_func_attrs);
   op_func_attrs->clear();
-  ArrayRef<Attribute> op_func_attr_array = this->op_func_attrs().getValue();
+  ArrayRef<Attribute> op_func_attr_array = this->getOpFuncAttrs().getValue();
 
   Builder builder(getContext());
   for (Attribute iter : op_func_attr_array) {
@@ -320,8 +320,8 @@ void ExecuteOp::getOpFuncAttrs(
 
 LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
                               SmallVectorImpl<OpFoldResult> &results) {
-  if (op_name() == "tf.Const") {
-    auto op_attr_array = op_attrs().getValue();
+  if (getOpName() == "tf.Const") {
+    auto op_attr_array = getOpAttrs().getValue();
     assert(!op_attr_array.empty());
     for (auto attr : op_attr_array) {
       auto key_value = attr.cast<ArrayAttr>().getValue();
@@ -342,7 +342,7 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
 
 OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
   assert(operands.empty() && "constant has no operands");
-  return value();
+  return getValue();
 }
 
 //===----------------------------------------------------------------------===//

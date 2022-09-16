@@ -146,10 +146,10 @@ ParseResult EnumerateIteratorOp::parse(OpAsmParser &parser,
 LogicalResult EnumerateIteratorOp::verify() {
   EnumerateIteratorOp op = *this;
   auto module = op->getParentOfType<ModuleOp>();
-  auto function = module.lookupSymbol<func::FuncOp>(op.function());
+  auto function = module.lookupSymbol<func::FuncOp>(op.getFunction());
   if (!function) {
     return op.emitOpError("function refers to an undefined function: ")
-           << op.function();
+           << op.getFunction();
   }
 
   auto function_type = function.getFunctionType();
@@ -213,7 +213,7 @@ LogicalResult EnumerateIteratorOp::verify() {
 LogicalResult RangeDatasetOp::verify() {
   RangeDatasetOp op = *this;
   // Only integer or float types are supported.
-  if (!op.element_type().isIntOrFloat()) return failure();
+  if (!op.getElementType().isIntOrFloat()) return failure();
   return success();
 }
 

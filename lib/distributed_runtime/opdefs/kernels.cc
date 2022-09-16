@@ -60,7 +60,7 @@ LogicalResult CreateConfigurations::inferReturnTypes(
     SmallVectorImpl<Type> &inferredReturnTypes) {
   CreateConfigurationsAdaptor op(operands, attr, ranges);
   inferredReturnTypes.insert(
-      inferredReturnTypes.begin(), op.n(),
+      inferredReturnTypes.begin(), op.getN(),
       tfrt::dist::DistributedContextConfigurationType::get(ctx));
   return success();
 }

@@ -122,14 +122,14 @@ void DoAsyncOp::print(OpAsmPrinter &p) {
 
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
-  p.shadowRegionArgs(region(), getOperands());
+  p.shadowRegionArgs(getRegion(), getOperands());
   p << ' ';
-  p.printRegion(region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false);
 }
 
 LogicalResult DoAsyncOp::verify() {
   DoAsyncOp op = *this;
-  return checkTFRTReturn(op, &op.region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.getRegion(), op.getResultTypes());
 }
 
 //===----------------------------------------------------------------------===//
@@ -259,15 +259,15 @@ void BenchmarkOp::print(OpAsmPrinter &p) {
   // Print the region
   // Reuse the argument names provided to the op for the bbarg names within
   // the region.
-  p.shadowRegionArgs(region(), getOperands());
+  p.shadowRegionArgs(getRegion(), getOperands());
   p << ' ';
-  p.printRegion(region(), /*printEntryBlockArgs=*/false);
+  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false);
 }
 
 LogicalResult BenchmarkOp::verify() {
   BenchmarkOp op = *this;
   // Verify that the target benchmark region has exactly one return value.
-  auto &region = op.region();
+  auto &region = op.getRegion();
   auto &last_op = region.front().back();
   if (last_op.getName().getStringRef() != "tfrt.return") {
     return op.emitOpError("missing return statement");

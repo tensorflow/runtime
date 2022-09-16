@@ -430,7 +430,7 @@ void BEFExecutor::DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
   if (result->IsError()) {
     std::string error_message;
     llvm::raw_string_ostream os(error_message);
-    os << result->GetError();
+    os << result->GetError().ToString();
     DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
                 BefFile()->GetKernelName(kernel.kernel_code()),
                 os.str().c_str());

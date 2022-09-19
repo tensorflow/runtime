@@ -17,11 +17,11 @@
 module @multiply attributes { tfrt.compiled } {
   func.func private @multiply.cc(%arg0: memref<?x?xf32>,
                                  %arg1: memref<?x?xf32>)
-    attributes { rt.custom_call = "testlib.multiply" }
+    attributes { rt.dynamic, rt.custom_call = "testlib.multiply" }
 
   func.func private @multiply.x3.cc(%arg0: memref<?x?xf32>,
                                     %arg1: memref<?x?xf32>)
-    attributes { rt.custom_call = "testlib.multiply.x3" }
+    attributes { rt.dynamic, rt.custom_call = "testlib.multiply.x3" }
 
   func.func @main(%input: memref<?x?xf32>) -> (memref<?x?xf32>,
                                                memref<?x?xf32>) {
@@ -52,7 +52,7 @@ module @multiply_errors attributes { tfrt.compiled } {
       %arg0: memref<?x?xf32>,
       %arg1: memref<?x?xf32>,
       %arg1: memref<?x?xf32>
-    ) attributes { rt.custom_call = "testlib.multiply" }
+    ) attributes { rt.dynamic, rt.custom_call = "testlib.multiply" }
 
   func.func @main(%input: memref<?x?xf32>) -> memref<?x?xf32> {
     %c0 = arith.constant 0 : index
@@ -72,7 +72,7 @@ module @multiply_errors attributes { tfrt.compiled } {
 // Prints all attributes passed to the custom call handler.
 module @print_attrs attributes { tfrt.compiled } {
   func.func private @print_attrs.cc()
-     attributes { rt.custom_call = "testlib.print_attrs" }
+     attributes { rt.dynamic, rt.custom_call = "testlib.print_attrs" }
 
   func.func @main() {
     func.call @print_attrs.cc() {
@@ -104,7 +104,7 @@ module @print_attrs attributes { tfrt.compiled } {
 
 module @print_variant_attrs attributes { tfrt.compiled } {
   func.func private @print_variant_attrs.cc()
-     attributes { rt.custom_call = "testlib.print_variant_attrs" }
+     attributes { rt.dynamic, rt.custom_call = "testlib.print_variant_attrs" }
 
   func.func @main() {
     func.call @print_variant_attrs.cc() {
@@ -122,7 +122,7 @@ module @print_variant_attrs attributes { tfrt.compiled } {
 // Prints dialect specific attributes passed to the custom call handler.
 module @print_dialect_attrs attributes { tfrt.compiled } {
   func.func private @print_dialect_attrs.cc()
-     attributes { rt.custom_call = "testlib.print_dialect_attrs" }
+     attributes { rt.dynamic, rt.custom_call = "testlib.print_dialect_attrs" }
 
   func.func @main() {
 
@@ -140,7 +140,7 @@ module @print_dialect_attrs attributes { tfrt.compiled } {
 // attributes names checks.
 module @direct_print_attrs attributes { tfrt.compiled } {
   func.func private @print_attrs.cc()
-     attributes { rt.direct_custom_call = "testlib.print_attrs" }
+     attributes { rt.custom_call = "testlib.print_attrs" }
 
   func.func @main() {
     func.call @print_attrs.cc() {
@@ -178,7 +178,7 @@ module @variadic_args attributes { tfrt.compiled } {
       %arg4: memref<?xi64>,
       %arg5: memref<?xf32>,
       %arg6: memref<16x3xf32, affine_map<(d0, d1) -> (d0 + d1 * 16)>>)
-    attributes { rt.custom_call = "testlib.variadic_args" }
+    attributes { rt.dynamic, rt.custom_call = "testlib.variadic_args" }
 
   func.func private @memref_and_variadic_args.cc(
       %arg0: memref<?xi64>,
@@ -187,7 +187,7 @@ module @variadic_args attributes { tfrt.compiled } {
       %arg3: f32,
       %arg4: f64,
       %arg5: memref<?xf32>)
-    attributes { rt.custom_call = "testlib.memref_and_variadic_args" }
+    attributes { rt.dynamic, rt.custom_call = "testlib.memref_and_variadic_args" }
 
   func.func @main() {
     %c1 = arith.constant 1 : index
@@ -223,7 +223,7 @@ module @variadic_args attributes { tfrt.compiled } {
 
 module @variant_arg attributes { tfrt.compiled } {
   func.func private @variant_arg.cc(%arg0: i32, %arg1: i64, %arg2: memref<?xi64>)
-    attributes { rt.custom_call = "testlib.variant_arg" }
+    attributes { rt.dynamic, rt.custom_call = "testlib.variant_arg" }
 
   func.func @main() {
     %arg0 = arith.constant 123 : i32
@@ -241,9 +241,9 @@ module @variant_arg attributes { tfrt.compiled } {
   }
 }
 
-module @direct_custom_call attributes { tfrt.compiled } {
+module @custom_call attributes { tfrt.compiled } {
   func.func private @custom_call.cc()
-     attributes { rt.direct_custom_call = "testlib.direct_call" }
+     attributes { rt.custom_call = "testlib.direct_call" }
 
   func.func @main() {
     func.call @custom_call.cc() : () -> ()
@@ -470,7 +470,7 @@ func.func @compiled_direct_custom_call() {
 
   // CHECK: Direct custom call: num_args=0; num_attrs=0
   // CHECK-SAME: str=Called from: jitrt.execute
-  %executable = jitrt.compile { kernel = @direct_custom_call::@main }
+  %executable = jitrt.compile { kernel = @custom_call::@main }
   jitrt.execute %executable[%ch0]() : () -> ()
 
   tfrt.return

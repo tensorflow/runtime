@@ -141,7 +141,7 @@ static ExecutionEngine::SymbolsBinding Bind(StringRef name, SymPtr symbol_ptr) {
 
 static const char* custom_call_i32x1 = R"(
     func.func private @custom_call(%arg0: i32)
-      attributes { rt.direct_custom_call = "testlib.custom_call" }
+      attributes { rt.custom_call = "testlib.custom_call" }
 
     func.func @compute() {
       %0 = arith.constant 0 : i32
@@ -178,7 +178,7 @@ static const char* custom_call_i32x12 = R"(
                                    %arg3: i32, %arg4: i32, %arg5: i32,
                                    %arg6: i32, %arg7: i32, %arg8: i32,
                                    %arg9: i32, %arg10: i32, %arg11: i32)
-      attributes { rt.direct_custom_call = "testlib.custom_call" }
+      attributes { rt.custom_call = "testlib.custom_call" }
 
     func.func @compute() {
       %0 = arith.constant 0 : i32
@@ -239,7 +239,7 @@ BENCHMARK(BM_I32X12<none>);
 
 static const char* custom_call_memrefx1 = R"(
     func.func private @custom_call(%arg0: memref<?x?xf32>)
-      attributes { rt.direct_custom_call = "testlib.custom_call" }
+      attributes { rt.custom_call = "testlib.custom_call" }
 
     func.func @compute(%arg0 : memref<?x?xf32>) {
       func.call @custom_call(%arg0) : (memref<?x?xf32>) -> ()
@@ -303,7 +303,7 @@ static const char* custom_call_memrefx12 = R"(
       %arg3: memref<?x?xf32>, %arg4: memref<?x?xf32>, %arg5: memref<?x?xf32>,
       %arg6: memref<?x?xf32>, %arg7: memref<?x?xf32>, %arg8: memref<?x?xf32>,
       %arg9: memref<?x?xf32>, %arg10: memref<?x?xf32>, %arg11: memref<?x?xf32>
-    ) attributes { rt.direct_custom_call = "testlib.custom_call" }
+    ) attributes { rt.custom_call = "testlib.custom_call" }
 
     func.func @compute(
       %arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>, %arg2: memref<?x?xf32>,
@@ -415,7 +415,7 @@ BENCHMARK(BM_StridedMemrefX12<none>);
 
 static const char* custom_call_i32_attrx12 = R"(
     func.func private @custom_call()
-      attributes { rt.direct_custom_call = "testlib.custom_call" }
+      attributes { rt.custom_call = "testlib.custom_call" }
 
     func.func @compute() {
       func.call @custom_call()
@@ -478,7 +478,7 @@ BENCHMARK(BM_I32AttrX12<none>);
 
 static const char* custom_call_pair_of_dimsx1 = R"(
     func.func private @custom_call()
-      attributes { rt.direct_custom_call = "testlib.custom_call" }
+      attributes { rt.custom_call = "testlib.custom_call" }
 
     func.func @compute() {
       func.call @custom_call() {

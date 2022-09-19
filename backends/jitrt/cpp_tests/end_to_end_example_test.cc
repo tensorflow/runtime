@@ -85,7 +85,7 @@ static const char* mlir_module = R"(
   module {
     // Declare your own "runtime" intrinsics library in the compiled module.
     func.func private @my.runtime.intrinsic(%arg: !testlib.custom_arg)
-      attributes { rt.custom_call = "my.runtime.intrinsic" }
+      attributes { rt.dynamic, rt.custom_call = "my.runtime.intrinsic" }
 
     // Permutation argument annotated with a constraint, which means that
     // before compiling the function body, argument must be sunk into the

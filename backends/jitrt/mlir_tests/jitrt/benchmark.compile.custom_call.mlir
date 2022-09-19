@@ -17,7 +17,7 @@
 module @custom_call attributes { tfrt.compiled } {
   func.func private @noop.cc(%arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>,
                              %arg2: memref<?x?xf32>, %arg3: memref<?x?xf32>)
-    attributes { rt.custom_call = "testlib.noop" }
+    attributes { rt.dynamic, rt.custom_call = "testlib.noop" }
 
   func.func @main(%arg0: memref<?x?xf32>)  {
 
@@ -38,7 +38,7 @@ module @custom_call attributes { tfrt.compiled } {
 module @direct_custom_call attributes { tfrt.compiled } {
   func.func private @noop.cc(%arg0: memref<?x?xf32>, %arg1: memref<?x?xf32>,
                              %arg2: memref<?x?xf32>, %arg3: memref<?x?xf32>)
-    attributes { rt.direct_custom_call = "testlib.noop" }
+    attributes { rt.custom_call = "testlib.noop" }
 
   func.func @main(%arg0: memref<?x?xf32>)  {
 

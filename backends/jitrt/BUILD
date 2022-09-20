@@ -131,7 +131,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:Transforms",
 #         "@llvm-project//mlir:VectorToLLVM",
 #         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
-#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt_ops",
+#         "//third_party/tensorflow/compiler/xla/mlir/ir/runtime:rt",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/math:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/memref:passes",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:custom_call_encoding",

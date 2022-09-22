@@ -219,9 +219,9 @@ class AsyncValue {
       kError = 3,
     };
 
-    /* implicit */ State(StateEnum s) : state_(s) {}
+    State(StateEnum s) : state_(s) {}  // NOLINT
 
-    /* implicit */ operator StateEnum() { return state_; }
+    operator StateEnum() { return state_; }  // NOLINT
 
     // Return true if state is kUnconstructed.
     bool IsUnconstructed() const { return state_ == kUnconstructed; }
@@ -303,16 +303,14 @@ class AsyncValue {
   // safely cast to `T`. This means it is useful mainly as a debugging aid for
   // use in assert() etc.
 
-  template <typename T,
-            typename std::enable_if<internal::kMaybeBase<T>>::type* = nullptr>
+  template <typename T, std::enable_if_t<internal::kMaybeBase<T>>* = nullptr>
   bool IsTypeIdCompatible() const {
     // We can't do a GetTypeId<T> in this case because `T` might be an abstract
     // class.  So we conservatively return true.
     return true;
   }
 
-  template <typename T,
-            typename std::enable_if<!internal::kMaybeBase<T>>::type* = nullptr>
+  template <typename T, std::enable_if_t<!internal::kMaybeBase<T>>* = nullptr>
   bool IsTypeIdCompatible() const {
     return GetTypeId<T>() == type_id_;
   }
@@ -455,10 +453,10 @@ class AsyncValue {
   void EnqueueWaiter(llvm::unique_function<void()>&& waiter,
                      WaitersAndState old_value);
 
-  /// This is a global counter of the number of AsyncValue instances currently
-  /// live in the process.  This is intended to be used for debugging only, and
-  /// is only kept in sync if AsyncValueAllocationTrackingEnabled() returns
-  /// true.
+  // This is a global counter of the number of AsyncValue instances currently
+  // live in the process.  This is intended to be used for debugging only, and
+  // is only kept in sync if AsyncValueAllocationTrackingEnabled() returns
+  // true.
   static std::atomic<ssize_t> total_allocated_async_values_;
 };
 
@@ -790,7 +788,7 @@ class UnRefCountedAsyncValue : public internal::ConcreteAsyncValue<T> {
   using Base = internal::ConcreteAsyncValue<T>;
 
   template <typename... Args>
-  UnRefCountedAsyncValue(Args&&... args)
+  UnRefCountedAsyncValue(Args&&... args)  // NOLINT
       : Base(typename Base::UnRefCountedConcretePayload{},
              std::forward<Args>(args)...) {}
 };

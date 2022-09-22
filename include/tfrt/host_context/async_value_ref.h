@@ -30,6 +30,7 @@
 #include <cstddef>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include "absl/status/status.h"    // from @com_google_absl
 #include "absl/status/statusor.h"  // from @com_google_absl
@@ -60,19 +61,20 @@ template <typename T>
 class AsyncValueRef {
  public:
   AsyncValueRef() = default;
-  /*implicit */ AsyncValueRef(std::nullptr_t) {}  // NOLINT
-
-  // Support implicit conversion from AsyncValueRef<Derived> to
-  // AsyncValueRef<Base>.
-  template <typename DerivedT,
-            std::enable_if_t<std::is_base_of<T, DerivedT>::value, int> = 0>
-  AsyncValueRef(AsyncValueRef<DerivedT>&& u) : value_(u.ReleaseRCRef()) {}
+  AsyncValueRef(std::nullptr_t) {}  // NOLINT
 
   explicit AsyncValueRef(RCReference<AsyncValue> value)
       : value_(std::move(value)) {}
 
+  // Support implicit conversion from AsyncValueRef<Derived> to
+  // AsyncValueRef<Base>.
+  template <typename DerivedT,
+            std::enable_if_t<std::is_base_of<T, DerivedT>::value>* = nullptr>
+  AsyncValueRef(AsyncValueRef<DerivedT>&& u)  // NOLINT
+      : value_(u.ReleaseRCRef()) {}
+
   // Support implicit conversion from RCReference<AsyncValue>.
-  AsyncValueRef(RCReference<ErrorAsyncValue> value)
+  AsyncValueRef(RCReference<ErrorAsyncValue> value)  // NOLINT
       : value_(std::move(value)) {}
 
   AsyncValueRef& operator=(RCReference<ErrorAsyncValue> new_value) {
@@ -81,7 +83,7 @@ class AsyncValueRef {
   }
 
   // Allow implicit conversion to type-erased RCReference<AsyncValue>
-  operator RCReference<AsyncValue>() && { return std::move(value_); }
+  operator RCReference<AsyncValue>() && { return std::move(value_); }  // NOLINT
 
   // Return true if the AsyncValue is resolved to a concrete value or error.
   bool IsAvailable() const { return value_->IsAvailable(); }
@@ -99,7 +101,7 @@ class AsyncValueRef {
   // Return the stored value as a subclass type. The AsyncValueRef must be
   // available.
   template <typename SubclassT,
-            typename = std::enable_if_t<std::is_base_of<T, SubclassT>::value>>
+            std::enable_if_t<std::is_base_of<T, SubclassT>::value>* = nullptr>
   SubclassT& get() const {
     return value_->get<SubclassT>();
   }
@@ -244,7 +246,7 @@ class AsyncValuePtr {
   //   // async_value_ref is now ready.
   // });
   template <typename WaiterT,
-            std::enable_if_t<std::is_invocable_v<WaiterT>, bool> = true>
+            std::enable_if_t<std::is_invocable_v<WaiterT>>* = nullptr>
   void AndThen(WaiterT&& waiter) const {
     value_->AndThen(std::forward<WaiterT>(waiter));
   }
@@ -264,9 +266,8 @@ class AsyncValuePtr {
   //      // Handle the value in `*status_or`.
   //   }
   // });
-  template <typename WaiterT,
-            std::enable_if_t<std::is_invocable_v<WaiterT, absl::StatusOr<T*>>,
-                             bool> = true>
+  template <typename WaiterT, std::enable_if_t<std::is_invocable_v<
+                                  WaiterT, absl::StatusOr<T*>>>* = nullptr>
   void AndThen(WaiterT&& waiter) const {
     AndThen([waiter = std::forward<WaiterT>(waiter), av_ptr = *this]() mutable {
       if (av_ptr.IsError()) {
@@ -294,11 +295,10 @@ class AsyncValuePtr {
   //     // No error occurred.
   //   }
   // });
-  template <
-      typename WaiterT,
-      std::enable_if_t<(std::is_invocable_v<WaiterT, absl::Status> &&
-                        !std::is_invocable_v<WaiterT, absl::StatusOr<T*>>),
-                       bool> = true>
+  template <typename WaiterT,
+            std::enable_if_t<
+                (std::is_invocable_v<WaiterT, absl::Status> &&
+                 !std::is_invocable_v<WaiterT, absl::StatusOr<T*>>)>* = nullptr>
   void AndThen(WaiterT&& waiter) const {
     AndThen([waiter = std::forward<WaiterT>(waiter), av_ptr = *this]() mutable {
       if (av_ptr.IsError()) {

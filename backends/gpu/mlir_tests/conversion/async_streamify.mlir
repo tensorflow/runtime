@@ -24,13 +24,13 @@ func.func @to_chain_and_event(
   // CHECK-SAME: : !async.value<!gpu.async.token>
   // CHECK-SAME:   to !async.value<!tfrt.chain>, !async.value<!tfrt_gpu.event>
 
-  // CHECK: %token, %results:2 = async.execute [%arg0] (
+  // CHECK: %token, %bodyResults:2 = async.execute [%arg0] (
   // CHECK-SAME:   %[[args]]#0 as %arg2: !async.value<!tfrt.chain>,
   // CHECK-SAME:   %[[args]]#1 as %arg3: !async.value<!tfrt_gpu.event>
   // CHECK-SAME: ) -> (
   // CHECK-SAME:   !async.value<!tfrt.chain>, !async.value<!tfrt_gpu.event>
   // CHECK-SAME: ) {
-  %token, %results = async.execute [%arg0] (
+  %token, %bodyResults = async.execute [%arg0] (
    %arg1 as %t0: !async.value<!gpu.async.token>
   ) -> !async.value<!gpu.async.token> {
     // CHECK: %[[cast1:.*]] = builtin.unrealized_conversion_cast %arg2, %arg3
@@ -44,11 +44,11 @@ func.func @to_chain_and_event(
     async.yield %t0 : !gpu.async.token
   }
 
-  // CHECK: %[[chain:.*]] = async.await %results#0 : !async.value<!tfrt.chain>
-  // CHECK: %[[event:.*]] = async.await %results#1 : !async.value<!tfrt_gpu.event>
+  // CHECK: %[[chain:.*]] = async.await %bodyResults#0 : !async.value<!tfrt.chain>
+  // CHECK: %[[event:.*]] = async.await %bodyResults#1 : !async.value<!tfrt_gpu.event>
   // CHECK: builtin.unrealized_conversion_cast %[[chain]], %[[event]]
   // CHECK-SAME: !tfrt.chain, !tfrt_gpu.event to !gpu.async.token
-  %t1 = async.await %results : !async.value<!gpu.async.token>
+  %t1 = async.await %bodyResults : !async.value<!gpu.async.token>
 
   tfrt.return
 }

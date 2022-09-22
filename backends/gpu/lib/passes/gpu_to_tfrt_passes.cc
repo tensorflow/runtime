@@ -810,8 +810,8 @@ LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
     ConversionPatternRewriter &rewriter) const {
   Location loc = exec_op->getLoc();
 
-  auto operand_conversion =
-      OneToAnyConversion::Get(typeConverter, TypeRange(adaptor.operands()));
+  auto operand_conversion = OneToAnyConversion::Get(
+      typeConverter, TypeRange(adaptor.getBodyOperands()));
   auto result_conversion =
       OneToAnyConversion::Get(typeConverter, exec_op.getResultTypes());
   auto argument_conversion = OneToAnyConversion::Get(
@@ -827,7 +827,8 @@ LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
   // Create new async.execute op with converted operands.
   auto new_op = rewriter.create<mlir::async::ExecuteOp>(
       loc, terminator_conversion->GetTargetTypes(), adaptor.dependencies(),
-      operand_conversion->CastToTargetTypes(rewriter, loc, adaptor.operands()));
+      operand_conversion->CastToTargetTypes(rewriter, loc,
+                                            adaptor.getBodyOperands()));
 
   // Convert new results back to invalid types.
   rewriter.replaceOp(exec_op, result_conversion->CastToSourceTypes(
@@ -1207,7 +1208,7 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
       cast_to_ui64(adaptor.gridSizeX()), cast_to_ui64(adaptor.gridSizeY()),
       cast_to_ui64(adaptor.gridSizeZ()), cast_to_ui64(adaptor.blockSizeX()),
       cast_to_ui64(adaptor.blockSizeY()), cast_to_ui64(adaptor.blockSizeZ()),
-      shared_mem_size, chain, adaptor.operands());
+      shared_mem_size, chain, adaptor.getKernelOperands());
   rewriter.replaceOp(launch_op, CastToToken(rewriter, loc, {new_op, stream}));
   return success();
 }
@@ -1266,7 +1267,7 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
 LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
     StreamifyOp streamify_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.asyncDependencies().empty() || !streamify_op.getAsyncToken())
+  if (adaptor.asyncDependencies().empty() || !streamify_op.asyncToken())
     return rewriter.notifyMatchFailure(streamify_op,
                                        "no async deps or no result");
   auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
@@ -1399,7 +1400,7 @@ LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
     async::ExecuteOp exec_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   // Drop !async.token operands, they are not region arguments.
-  auto operands = adaptor.operands();
+  auto operands = adaptor.getBodyOperands();
   SmallVector<Value, 4> arguments(operands.begin(), operands.end());
   // Make all captures explicit arguments.
   SetVector<Value> captures;

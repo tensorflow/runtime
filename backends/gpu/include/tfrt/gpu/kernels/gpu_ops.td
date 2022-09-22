@@ -59,6 +59,7 @@ def TFRTGPU_StreamifyOp : TFRTGPU_Op<"streamify", [
   let extraClassDeclaration = [{
     result_range results();
     OpResult asyncToken();
+    OpResult getAsyncToken() { return asyncToken(); }
   }];
 
   let skipDefaultBuilders = 1;

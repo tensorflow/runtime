@@ -324,9 +324,10 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             Error error);
 
-// Create a ConcreteAsyncValue in error state for a specified error message.
+// Create a ConcreteAsyncValue in error state with the given status.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status);
 
+ABSL_DEPRECATED("Use the error async value constructor that takes absl::Status")
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(std::string_view message);
 
 // Allocate an unconstructed AsyncValueRef. The AsyncValueRef should be made

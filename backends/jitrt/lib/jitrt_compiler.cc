@@ -157,7 +157,7 @@ void CreateDefaultJitRtCompilationPipeline(
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
   if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
   pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
-  pm.addPass(mlir::createMemRefToLLVMPass());
+  pm.addPass(mlir::createMemRefToLLVMConversionPass());
   pm.addPass(mlir::createConvertFuncToLLVMPass());
   pm.addPass(mlir::createConvertComplexToLLVMPass());
   pm.addPass(mlir::createReconcileUnrealizedCastsPass());

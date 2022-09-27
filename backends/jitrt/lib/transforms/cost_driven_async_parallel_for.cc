@@ -52,11 +52,13 @@ using mlir::Operation;
 using mlir::Region;
 using mlir::Value;
 
-#define GEN_PASS_CLASSES
+#define GEN_PASS_DEF_COSTDRIVENASYNCPARALLELFOR
+#define GEN_PASS_DECL_COSTDRIVENASYNCPARALLELFOR
 #include "tfrt/jitrt/transforms/codegen_gen_passes.h.inc"
 
 struct CostDrivenAsyncParallelForPass
-    : public CostDrivenAsyncParallelForBase<CostDrivenAsyncParallelForPass> {
+    : public impl::CostDrivenAsyncParallelForBase<
+          CostDrivenAsyncParallelForPass> {
   CostDrivenAsyncParallelForPass() = default;
 
   CostDrivenAsyncParallelForPass(bool async_dispatch,

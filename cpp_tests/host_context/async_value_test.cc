@@ -16,22 +16,17 @@
 
 #include "tfrt/host_context/async_value.h"
 
+#include <memory>
+#include <utility>
+
 #include "gtest/gtest.h"
-#include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 namespace {
 
-class AsyncValueTest : public ::testing::Test {
- protected:
-  AsyncValueTest() { host_context_ = CreateHostContext(); }
-
-  std::unique_ptr<HostContext> host_context_;
-};
-
-TEST_F(AsyncValueTest, ConstructedToError) {
+TEST(AsyncValueTest, ConstructedToError) {
   AsyncValue* value = MakeConstructedAsyncValueRef<int32_t>(123).release();
   bool callback_triggered = false;
 
@@ -50,7 +45,7 @@ TEST_F(AsyncValueTest, ConstructedToError) {
   value->DropRef();
 }
 
-TEST_F(AsyncValueTest, ConstructedToConcrete) {
+TEST(AsyncValueTest, ConstructedToConcrete) {
   AsyncValue* value = MakeConstructedAsyncValueRef<int32_t>(123).release();
 
   EXPECT_TRUE(value->IsConstructed());
@@ -68,7 +63,7 @@ TEST_F(AsyncValueTest, ConstructedToConcrete) {
   value->DropRef();
 }
 
-TEST_F(AsyncValueTest, UnconstructedEmplace) {
+TEST(AsyncValueTest, UnconstructedEmplace) {
   AsyncValue* value = MakeUnconstructedAsyncValueRef<int32_t>().release();
 
   EXPECT_FALSE(value->IsConstructed());
@@ -87,7 +82,7 @@ TEST_F(AsyncValueTest, UnconstructedEmplace) {
   value->DropRef();
 }
 
-TEST_F(AsyncValueTest, AddAndDropRef) {
+TEST(AsyncValueTest, AddAndDropRef) {
   AsyncValue* value = MakeConstructedAsyncValueRef<int32_t>(123).release();
 
   value->AndThen([] {});
@@ -104,7 +99,7 @@ TEST_F(AsyncValueTest, AddAndDropRef) {
   value->DropRef();
 }
 
-TEST_F(AsyncValueTest, KeepPayloadOnError) {
+TEST(AsyncValueTest, KeepPayloadOnError) {
   int payload_value = 0;
 
   struct Payload : internal::KeepAsyncValuePayloadOnError {
@@ -145,25 +140,43 @@ TEST_F(AsyncValueTest, KeepPayloadOnError) {
   EXPECT_EQ(2, payload_value);
 }
 
-TEST_F(AsyncValueTest, UnRefCountedAsyncValue) {
-  UnRefCountedAsyncValue<int32_t> unref_av(100);
-  EXPECT_FALSE(unref_av.IsUnique());
+TEST(AsyncValueTest, StackAllocatedAsyncValue) {
+  int32_t counter = 0;
 
-  AsyncValue* av = &unref_av;
+  class Payload {
+   public:
+    explicit Payload(int32_t& counter) : counter_{counter} { counter_++; }
+    ~Payload() { counter_++; }
 
-  {
-    auto unref_av_ref = FormRef(av);
-    EXPECT_EQ(unref_av_ref->get<int32_t>(), 100);
-  }
+    int32_t count() const { return counter_; }
 
-  {
-    auto unref_av_ref = TakeRef(av);
-    EXPECT_EQ(unref_av_ref->get<int32_t>(), 100);
-  }
+   private:
+    int32_t& counter_;
+  };
 
-  EXPECT_EQ(unref_av.get(), 100);
-  unref_av.DropRef();
-  EXPECT_EQ(unref_av.get(), 100);
+  // Stack allocated storage for the async value.
+  internal::AsyncValueStorage<Payload> storage;
+
+  // Construct async value in the provided storage.
+  AsyncValueOwningRef<Payload> owner =
+      MakeConstructedAsyncValueRef<Payload>(storage, counter);
+
+  AsyncValuePtr<Payload> ptr = owner.AsPtr();
+  AsyncValue* value = ptr.value();
+
+  EXPECT_TRUE(value->IsConstructed());
+  EXPECT_FALSE(value->IsAvailable());
+
+  EXPECT_EQ(1, counter);
+  EXPECT_EQ(1, ptr->count());
+
+  ptr.SetStateConcrete();
+
+  EXPECT_TRUE(ptr.IsAvailable());
+
+  // Check that when owner is destructed it calls the payload destructor.
+  std::make_unique<AsyncValueOwningRef<Payload>>(std::move(owner));
+  EXPECT_EQ(2, counter);
 }
 
 }  // namespace

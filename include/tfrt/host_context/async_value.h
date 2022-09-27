@@ -450,7 +450,7 @@ class AsyncValue {
   // Returns the TypeInfoTable instance (there is one per process).
   static TypeInfoTable* GetTypeInfoTableSingleton();
 
-  void EnqueueWaiter(llvm::unique_function<void()> waiter,
+  void EnqueueWaiter(llvm::unique_function<void()>&& waiter,
                      WaitersAndState old_value);
 
   // This is a global counter of the number of AsyncValue instances currently
@@ -511,26 +511,24 @@ class ConcreteAsyncValue : public AsyncValue {
 
   // Tag type for making a ConcreteAsyncValue without calling underlying value's
   // constructor.
-  struct UnconstructedPayload {
-    bool is_refcounted = true;
-  };
+  struct UnconstructedPayload {};
 
   // Tag type for making a ConcreteAsyncValue with the underlying value
   // constructed but not available for consumption.
-  struct ConstructedPayload {
-    bool is_refcounted = true;
-  };
+  struct ConstructedPayload {};
 
   // Tag type for making a ConcreteAsyncValue with the underlying value
   // constructed and available for consumption.
-  struct ConcretePayload {
-    bool is_refcounted = true;
-  };
+  struct ConcretePayload {};
+
+  // Tag type for making an un-refcounted ConcreteAsyncValue with the underlying
+  // value constructed and available for consumption.
+  struct UnRefCountedConcretePayload {};
 
   // Make a ConcreteAsyncValue with kUnconstructed state.
-  explicit ConcreteAsyncValue(UnconstructedPayload payload)
+  explicit ConcreteAsyncValue(UnconstructedPayload)
       : AsyncValue(Kind::kConcrete, State::kUnconstructed,
-                   payload.is_refcounted, TypeTag<T>()) {
+                   /*is_refcounted=*/true, TypeTag<T>()) {
     VerifyOffsets();
   }
 
@@ -544,16 +542,26 @@ class ConcreteAsyncValue : public AsyncValue {
 
   // Make a ConcreteAsyncValue with kConstructed state.
   template <typename... Args>
-  explicit ConcreteAsyncValue(ConstructedPayload payload, Args&&... args)
-      : AsyncValue(Kind::kConcrete, State::kConstructed, payload.is_refcounted,
-                   TypeTag<T>()),
+  explicit ConcreteAsyncValue(ConstructedPayload, Args&&... args)
+      : AsyncValue(Kind::kConcrete, State::kConstructed,
+                   /*is_refcounted=*/true, TypeTag<T>()),
         data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
   // Make a ConcreteAsyncValue with kConcrete state.
   template <typename... Args>
-  explicit ConcreteAsyncValue(ConcretePayload payload, Args&&... args)
-      : AsyncValue(Kind::kConcrete, State::kConcrete, payload.is_refcounted,
-                   TypeTag<T>()),
+  explicit ConcreteAsyncValue(ConcretePayload, Args&&... args)
+      : AsyncValue(Kind::kConcrete, State::kConcrete,
+                   /*is_refcounted=*/true, TypeTag<T>()),
+        data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
+
+  // Make an un-refcounted ConcreteAsyncValue with kConcrete state. AddRef and
+  // DropRef have no effect on ConcreteAsyncValues produced by this constructor.
+  // These ConcreteAsyncValue must be destroyed conventionally, rather than with
+  // DropRef.
+  template <typename... Args>
+  explicit ConcreteAsyncValue(UnRefCountedConcretePayload, Args&&... args)
+      : AsyncValue(Kind::kConcrete, State::kConcrete,
+                   /*is_refcounted=*/false, TypeTag<T>()),
         data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
   ~ConcreteAsyncValue() { Destroy(); }
@@ -772,6 +780,19 @@ class IndirectAsyncValue : public AsyncValue {
   AsyncValue* value_ = nullptr;
 };
 
+// UnRefcountedAsyncValue is not refcounted and its lifetime should be managed
+// properly by users.
+template <typename T>
+class UnRefCountedAsyncValue : public internal::ConcreteAsyncValue<T> {
+ public:
+  using Base = internal::ConcreteAsyncValue<T>;
+
+  template <typename... Args>
+  UnRefCountedAsyncValue(Args&&... args)  // NOLINT
+      : Base(typename Base::UnRefCountedConcretePayload{},
+             std::forward<Args>(args)...) {}
+};
+
 // -----------------------------------------------------------
 // Implementation details follow.  Clients should ignore them.
 //
@@ -945,12 +966,12 @@ inline void AsyncValue::Destroy() {
     // explicit check and instead make ~IndirectAsyncValue go through the
     // GetTypeInfo().destructor case below.
     static_cast<IndirectAsyncValue*>(this)->~IndirectAsyncValue();
-    if (is_refcounted_) AlignedFree(this);
+    AlignedFree(this);
     return;
   }
 
   GetTypeInfo().destructor(this, /*destroys_object=*/true);
-  if (is_refcounted_) AlignedFree(this);
+  AlignedFree(this);
 }
 
 inline raw_ostream& operator<<(raw_ostream& os,

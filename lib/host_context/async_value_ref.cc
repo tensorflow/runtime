@@ -28,7 +28,7 @@
 namespace tfrt {
 
 RCReference<IndirectAsyncValue> MakeIndirectAsyncValue() {
-  return TakeRef(internal::AllocateAndConstruct<IndirectAsyncValue>());
+  return TakeRef(internal::SimpleConstruct<IndirectAsyncValue>());
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
@@ -49,8 +49,7 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status) {
   auto* error_value =
-      internal::AllocateAndConstruct<ErrorAsyncValue>(std::move(status));
-
+      internal::SimpleConstruct<ErrorAsyncValue>(std::move(status));
   return TakeRef(error_value);
 }
 

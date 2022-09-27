@@ -27,7 +27,6 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 
-#include <array>
 #include <cstddef>
 #include <string_view>
 #include <type_traits>
@@ -42,6 +41,17 @@
 namespace tfrt {
 
 class ExecutionContext;
+
+namespace internal {
+
+// Forward declaration from host_context.h.
+template <typename T, typename... Args>
+T* SimpleConstruct(Args&&... args) {
+  void* buf = AlignedAlloc(alignof(T), sizeof(T));
+  return new (buf) T(std::forward<Args>(args)...);
+}
+
+}  // namespace internal
 
 // Forward declare non-owning typed async value pointer.
 template <typename T>
@@ -320,37 +330,13 @@ RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status);
 ABSL_DEPRECATED("Use the error async value constructor that takes absl::Status")
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(std::string_view message);
 
-// Construct an empty IndirectAsyncValue, not forwarding to anything.
-RCReference<IndirectAsyncValue> MakeIndirectAsyncValue();
-
-//===----------------------------------------------------------------------===//
-
-namespace internal {
-
-template <typename T, typename... Args>
-T* PlacementConstruct(void* buf, Args&&... args) {
-  return new (buf) T(std::forward<Args>(args)...);
-}
-
-template <typename T, typename... Args>
-T* AllocateAndConstruct(Args&&... args) {
-  void* buf = AlignedAlloc(alignof(T), sizeof(T));
-  return PlacementConstruct<T, Args...>(buf, std::forward<Args>(args)...);
-}
-
-}  // namespace internal
-
-//===----------------------------------------------------------------------===//
-// Constructing reference-counted async values on the heap.
-//===----------------------------------------------------------------------===//
-
 // Allocate an unconstructed AsyncValueRef. The AsyncValueRef should be made
 // available later by invoking AsyncValueRef::emplace or
 // AsyncValueRef::SetError.
 template <typename T>
 AsyncValueRef<T> MakeUnconstructedAsyncValueRef() {
   return AsyncValueRef<T>(
-      TakeRef(internal::AllocateAndConstruct<internal::ConcreteAsyncValue<T>>(
+      TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::UnconstructedPayload{})));
 }
 
@@ -360,7 +346,7 @@ AsyncValueRef<T> MakeUnconstructedAsyncValueRef() {
 template <typename T, typename... Args>
 AsyncValueRef<T> MakeConstructedAsyncValueRef(Args&&... args) {
   return AsyncValueRef<T>(
-      TakeRef(internal::AllocateAndConstruct<internal::ConcreteAsyncValue<T>>(
+      TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::ConstructedPayload{},
           std::forward<Args>(args)...)));
 }
@@ -369,111 +355,13 @@ AsyncValueRef<T> MakeConstructedAsyncValueRef(Args&&... args) {
 template <typename T, typename... Args>
 AsyncValueRef<T> MakeAvailableAsyncValueRef(Args&&... args) {
   return AsyncValueRef<T>(
-      TakeRef(internal::AllocateAndConstruct<internal::ConcreteAsyncValue<T>>(
+      TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::ConcretePayload{},
           std::forward<Args>(args)...)));
 }
 
-//===----------------------------------------------------------------------===//
-// Constructing non-reference-counted values in user provided storage.
-//===----------------------------------------------------------------------===//
-
-namespace internal {
-
-// Properly sized and aligned storage for allocating async values of given type.
-template <typename T>
-struct AsyncValueStorage {
-  using Payload = ConcreteAsyncValue<T>;
-
-  AsyncValueStorage() = default;
-
-  AsyncValueStorage(const AsyncValueStorage&) = delete;
-  AsyncValueStorage& operator=(const AsyncValueStorage&) = delete;
-
-  void* buf() { return &storage[0]; }
-
-  alignas(Payload) std::byte storage[sizeof(Payload)];
-};
-
-}  // namespace internal
-
-// Exclusive owner of the non reference-counted async value (e.g. allocated in
-// the user provided storage) that is responsible for destructing it. If you'd
-// look at `AsyncValueRef` as `std::shared_ptr`, then this is `std::unique_ptr`.
-template <typename T>
-class AsyncValueOwningRef {
- public:
-  AsyncValueOwningRef() = default;
-  ~AsyncValueOwningRef() { Destroy(); }
-
-  AsyncValueOwningRef(const AsyncValueOwningRef&) = delete;
-  AsyncValueOwningRef& operator=(const AsyncValueOwningRef&) = delete;
-
-  AsyncValueOwningRef& operator=(AsyncValueOwningRef&& other) {
-    Destroy();
-    std::swap(value_, other.value_);
-    return *this;
-  }
-
-  AsyncValueOwningRef(AsyncValueOwningRef&& other) {
-    Destroy();
-    std::swap(value_, other.value_);
-  }
-
-  AsyncValueRef<T> AsRef() const { return AsyncValueRef<T>(FormRef(value_)); }
-  AsyncValuePtr<T> AsPtr() const { return AsyncValuePtr<T>(value_); }
-
- private:
-  template <typename U, typename... Args>
-  friend AsyncValueOwningRef<U> MakeConstructedAsyncValueRef(
-      internal::AsyncValueStorage<U>&, Args&&...);
-
-  template <typename U, typename... Args>
-  friend AsyncValueOwningRef<U> MakeAvailableAsyncValueRef(
-      internal::AsyncValueStorage<U>&, Args&&...);
-
-  explicit AsyncValueOwningRef(internal::ConcreteAsyncValue<T>* value)
-      : value_(value) {}
-
-  void Destroy() {
-    if (value_) {
-      CallDestructor(value_);
-      value_ = nullptr;
-    }
-  }
-
-  // Work around NVCC compilation error.
-  template <typename U>
-  void CallDestructor(U* ptr) {
-    ptr->~U();
-  }
-
-  internal::ConcreteAsyncValue<T>* value_ = nullptr;
-};
-
-// Constructs an AsyncValueRef in the provided storage without making it
-// available for consumption. The AsyncValueRef should be made available later
-// by invoking AsyncValueRef::SetStateConcrete or AsyncValueRef::SetError.
-template <typename T, typename... Args>
-AsyncValueOwningRef<T> MakeConstructedAsyncValueRef(
-    internal::AsyncValueStorage<T>& storage, Args&&... args) {
-  return AsyncValueOwningRef<T>(
-      internal::PlacementConstruct<internal::ConcreteAsyncValue<T>>(
-          storage.buf(),
-          typename internal::ConcreteAsyncValue<T>::ConstructedPayload{false},
-          std::forward<Args>(args)...));
-}
-
-// Construct an available AsyncValueRef in the provided storage.
-template <typename T, typename... Args>
-AsyncValueOwningRef<T> MakeAvailableAsyncValueRef(
-    internal::AsyncValueStorage<T>& storage, Args&&... args) {
-  return AsyncValueOwningRef<T>(
-      internal::PlacementConstruct<internal::ConcreteAsyncValue<T>>(
-          storage.buf(),
-          typename internal::ConcreteAsyncValue<T>::ConcretePayload{false},
-          std::forward<Args>(args)...));
-}
+// Construct an empty IndirectAsyncValue, not forwarding to anything.
+RCReference<IndirectAsyncValue> MakeIndirectAsyncValue();
 
 }  // namespace tfrt
 

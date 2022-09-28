@@ -23,12 +23,21 @@
 
 #include "tfrt/host_context/chain.h"
 
+#include <memory>
+
+#include "tfrt/host_context/async_value_ref.h"
+
 namespace tfrt {
 
 AsyncValueRef<Chain> GetReadyChain() {
-  static auto* chain = new internal::ConcreteAsyncValue<Chain>(
-      internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
-  return AsyncValueRef<Chain>(FormRef(chain));
+  static AsyncValueOwningRef<Chain>* chain = [] {
+    auto* storage = new internal::AsyncValueStorage<Chain>();
+    return std::make_unique<AsyncValueOwningRef<Chain>>(
+               MakeAvailableAsyncValueRef<Chain>(*storage))
+        .release();
+  }();
+
+  return chain->AsRef();
 }
 
 }  // namespace tfrt

@@ -100,7 +100,7 @@ void AsyncValue::RunWaiters(NotifierListNode* list) {
 // If the value is available or becomes available, this calls the closure
 // immediately. Otherwise, the add closure to the waiter list where it will be
 // called when the value becomes available.
-void AsyncValue::EnqueueWaiter(llvm::unique_function<void()>&& waiter,
+void AsyncValue::EnqueueWaiter(llvm::unique_function<void()> waiter,
                                WaitersAndState old_value) {
   // Create the node for our waiter.
   auto* node = new NotifierListNode(std::move(waiter));

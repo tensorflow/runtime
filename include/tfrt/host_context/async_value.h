@@ -40,7 +40,6 @@
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/ref_count.h"
-#include "tfrt/support/type_traits.h"
 
 namespace tfrt {
 
@@ -164,7 +163,7 @@ class AsyncValue {
   // immediately.  Otherwise, adds the waiter to the waiter list and calls it
   // when the value becomes available.
   template <typename WaiterT>
-  void AndThen(WaiterT&& waiter);
+  void AndThen(WaiterT waiter);
 
   /// Return the total number of async values that are currently live in the
   /// process. This is intended for debugging/assertions only, and shouldn't be
@@ -264,6 +263,10 @@ class AsyncValue {
  protected:
   // -----------------------------------------------------------
   // Implementation details follow.  Clients should ignore them.
+
+  // Utility template for tag dispatching.
+  template <typename T>
+  struct TypeTag {};
 
   friend class IndirectAsyncValue;
   template <typename T>
@@ -916,7 +919,7 @@ inline const absl::Status& AsyncValue::GetError() const {
 }
 
 template <typename WaiterT>
-void AsyncValue::AndThen(WaiterT&& waiter) {
+void AsyncValue::AndThen(WaiterT waiter) {
   // Clients generally want to use AndThen without them each having to check
   // to see if the value is present. Check for them, and immediately run the
   // lambda if it is already here.

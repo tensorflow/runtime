@@ -16,11 +16,11 @@
 //
 // This file implements AsyncValue.
 
+#include <utility>
+
 #include "llvm/ADT/FunctionExtras.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/host_context/function.h"
 #include "tfrt/support/concurrent_vector.h"
-#include "tfrt/support/string_util.h"
 
 namespace tfrt {
 
@@ -106,7 +106,7 @@ void AsyncValue::EnqueueWaiter(llvm::unique_function<void()> waiter,
   auto* node = new NotifierListNode(std::move(waiter));
   auto old_state = old_value.state();
 
-  // Swap the next link in. old_value.getInt() must be unavailable when
+  // Swap the next link in. old_value.state() must be unavailable when
   // evaluating the loop condition. The acquire barrier on the compare_exchange
   // ensures that prior changes to waiter list are visible here as we may call
   // RunWaiter() on it. The release barrier ensures that prior changes to *node

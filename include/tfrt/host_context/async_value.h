@@ -398,9 +398,7 @@ class AsyncValue {
   // Information about a ConcreteAsyncValue<T> subclass.
   struct TypeInfo {
     // Destructor returns the size of the derived AsyncValue to be deallocated.
-    // The second bool argument indicates whether to destruct the AsyncValue
-    // object or simply destroy the payloads.
-    using DestructorFn = size_t (*)(AsyncValue*, bool);
+    using DestructorFn = size_t (*)(AsyncValue*);
     using GetErrorFn = const absl::Status& (*)(const AsyncValue*);
     using SetErrorFn = void (*)(AsyncValue*, absl::Status);
     using HasDataFn = bool (*)(const AsyncValue*);
@@ -411,18 +409,11 @@ class AsyncValue {
     HasDataFn has_data;
   };
 
-  // The destructor function for a derived AsyncValue. The `destroys_object`
-  // argument indicates whether to destruct the AsyncValue object or simply
-  // destroy the payloads.
   template <typename Derived>
   static TypeInfo MakeTypeInfo() {
     return TypeInfo{
-        [](AsyncValue* v, bool destroys_object) {
-          if (destroys_object) {
-            static_cast<Derived*>(v)->~Derived();
-          } else {
-            static_cast<Derived*>(v)->Destroy();
-          }
+        [](AsyncValue* v) {
+          static_cast<Derived*>(v)->~Derived();
           return sizeof(Derived);
         },
         [](const AsyncValue* v) -> const absl::Status& {
@@ -704,9 +695,9 @@ class ConcreteAsyncValue : public AsyncValue {
     std::unique_ptr<absl::Status> error_;
   };
 
-  using DataStoreT = std::conditional_t<
-      std::is_base_of<KeepAsyncValuePayloadOnError, T>::value, DataAndError,
-      DataOrError>;
+  using DataStoreT =
+      std::conditional_t<std::is_base_of_v<KeepAsyncValuePayloadOnError, T>,
+                         DataAndError, DataOrError>;
   DataStoreT data_store_;
 
   void Destroy() { data_store_.Destroy(state()); }
@@ -970,7 +961,7 @@ inline void AsyncValue::Destroy() {
     return;
   }
 
-  GetTypeInfo().destructor(this, /*destroys_object=*/true);
+  GetTypeInfo().destructor(this);
   AlignedFree(this);
 }
 

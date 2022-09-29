@@ -271,7 +271,7 @@ class AsyncValue {
   friend class IndirectAsyncValue;
   template <typename T>
   AsyncValue(Kind kind, State state, bool is_refcounted, TypeTag<T>)
-      : refcount_(is_refcounted ? 1 : 0),
+      : refcount_(1),
         kind_(kind),
         has_vtable_(std::is_polymorphic<T>()),
         is_refcounted_(is_refcounted),
@@ -282,7 +282,7 @@ class AsyncValue {
   }
 
   AsyncValue(Kind kind, State state, bool is_refcounted)
-      : refcount_(is_refcounted ? 1 : 0),
+      : refcount_(1),
         kind_(kind),
         has_vtable_(false),
         is_refcounted_(is_refcounted),
@@ -346,7 +346,10 @@ class AsyncValue {
   // has_vtable_ to a global vector<bool> indexed by type_id_.
   const bool has_vtable_ : 1;
 
-  // When is_refcounted_ is false, AddRef and DropRef have no effect.
+  // When is_refcounted_ is false, `AddRef` and `DropRef` have no effect in
+  // optimized builds. We always do reference counting in debug builds to verify
+  // that async values used correctly and we do not have accidental dangling
+  // references.
   const bool is_refcounted_ : 1;
 
   // This is a 16-bit value that identifies the type.
@@ -806,7 +809,14 @@ inline bool AsyncValue::IsUnresolvedIndirect() const {
 }
 
 inline AsyncValue* AsyncValue::AddRef(uint32_t count) {
-  if (is_refcounted_ && count > 0) {
+  // Always enable reference counting in debug builds to verify that the use of
+  // async values is "ref count correct". In optimized builds the async value
+  // owner is responsible for destructing the non-reference-counted async value.
+#if defined(NDEBUG)
+  if (!is_refcounted_) return this;
+#endif
+
+  if (count > 0) {
     assert(refcount_.load(std::memory_order_relaxed) > 0);
     // Increasing the reference counter can always be done with
     // memory_order_relaxed: New references to an object can only be formed from
@@ -818,7 +828,12 @@ inline AsyncValue* AsyncValue::AddRef(uint32_t count) {
 }
 
 inline void AsyncValue::DropRef(uint32_t count) {
+  // Always enable reference counting in debug builds to verify that the use of
+  // async values is "ref count correct". In optimized builds the async value
+  // owner is responsible for destructing the non-reference-counted async value.
+#if defined(NDEBUG)
   if (!is_refcounted_) return;
+#endif
 
   assert(refcount_.load(std::memory_order_relaxed) > 0);
   // We expect that `count` argument will often equal the actual reference count

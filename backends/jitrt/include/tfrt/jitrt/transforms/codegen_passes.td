@@ -43,7 +43,7 @@ def CostDrivenAsyncParallelFor : Pass<"cost-driven-async-parallel-for", "mlir::M
   ];
 
   let dependentDialects = [
-    "::mlir::arith::ArithmeticDialect",
+    "::mlir::arith::ArithDialect",
     "::mlir::async::AsyncDialect",
     "::mlir::scf::SCFDialect"
   ];

@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "llvm/Support/CommandLine.h"
-#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -45,7 +45,7 @@
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
-  registry.insert<mlir::func::FuncDialect, mlir::arith::ArithmeticDialect,
+  registry.insert<mlir::func::FuncDialect, mlir::arith::ArithDialect,
                   mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
                   mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,

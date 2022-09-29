@@ -35,8 +35,8 @@
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -65,7 +65,7 @@ using xla::runtime::CreateConvertToEntrypoint;
 
 void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
   // Register MLIR dialects supported by the compiled kernels.
-  registry.insert<mlir::AffineDialect, mlir::arith::ArithmeticDialect,
+  registry.insert<mlir::AffineDialect, mlir::arith::ArithDialect,
                   mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
                   mlir::linalg::LinalgDialect, mlir::math::MathDialect,
                   mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
@@ -124,8 +124,7 @@ void CreateDefaultJitRtCompilationPipeline(
   pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
 
   // Expand math operations into std/arith dialect operations.
-  pm.addNestedPass<mlir::func::FuncOp>(
-      mlir::arith::createArithmeticExpandOpsPass());
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::arith::createArithExpandOpsPass());
   pm.addNestedPass<mlir::func::FuncOp>(mlir::memref::createExpandOpsPass());
 
   // Add alignment attribute to all memref allocations.

@@ -423,6 +423,9 @@ class AsyncValueOwningRef {
   AsyncValueRef<T> AsRef() const { return AsyncValueRef<T>(FormRef(value_)); }
   AsyncValuePtr<T> AsPtr() const { return AsyncValuePtr<T>(value_); }
 
+  T* operator->() const { return &value_->get(); }
+  T& operator*() const { return value_->get(); }
+
  private:
   template <typename U, typename... Args>
   friend AsyncValueOwningRef<U> MakeConstructedAsyncValueRef(

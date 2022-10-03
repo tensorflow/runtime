@@ -61,7 +61,7 @@
 namespace tfrt {
 namespace jitrt {
 
-using xla::runtime::CreateConvertToEntrypoint;
+using xla::runtime::CreateExportRuntimeFunctionsPass;
 
 void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
   // Register MLIR dialects supported by the compiled kernels.
@@ -86,7 +86,7 @@ void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
 void CreateDefaultJitRtCompilationPipeline(
     mlir::OpPassManager& pm, const CompilationPipelineOptions& opts) {
   // Convert entry function to the XLA entrypoint.
-  pm.addPass(CreateConvertToEntrypoint());
+  pm.addPass(CreateExportRuntimeFunctionsPass());
 
   pm.addPass(mlir::createInlinerPass());
   pm.addPass(mlir::createCanonicalizerPass());

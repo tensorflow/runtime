@@ -62,6 +62,7 @@ namespace tfrt {
 namespace jitrt {
 
 using xla::runtime::CreateConvertAssertsPass;
+using xla::runtime::CreateConvertCustomCallsPass;
 using xla::runtime::CreateExportRuntimeFunctionsPass;
 
 void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
@@ -88,6 +89,7 @@ void CreateDefaultJitRtCompilationPipeline(
     mlir::OpPassManager& pm, const CompilationPipelineOptions& opts) {
   // Convert entry function to the XLA entrypoint.
   pm.addPass(CreateExportRuntimeFunctionsPass());
+  pm.addPass(CreateConvertCustomCallsPass());
   pm.addPass(CreateConvertAssertsPass());
 
   pm.addPass(mlir::createInlinerPass());

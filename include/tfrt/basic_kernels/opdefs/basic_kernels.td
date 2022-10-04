@@ -58,7 +58,7 @@ def CallOp : TFRT_Op<"call", [CallOpInterface]> {
     // Gets the argument operands to the called function.
     ::mlir::Operation::operand_range getArgOperands() { return operands(); }
     // Returns the callee of this operation.
-    ::mlir::CallInterfaceCallable getCallableForCallee() { return calleeAttr(); }
+    ::mlir::CallInterfaceCallable getCallableForCallee() { return getCalleeAttr(); }
   }];
 }
 

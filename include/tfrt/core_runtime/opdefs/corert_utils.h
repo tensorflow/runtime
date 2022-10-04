@@ -27,7 +27,7 @@ namespace corert {
 
 template <typename OpTy>
 LogicalResult VerifyExecuteOpImpl(OpTy op) {
-  auto op_attr_array = op.op_attrs().getValue();
+  auto op_attr_array = op.getOpAttrs().getValue();
   for (auto op_attr : op_attr_array) {
     auto key_value = op_attr.template dyn_cast<ArrayAttr>();
     if (!key_value || key_value.getValue().size() != 2 ||
@@ -40,7 +40,7 @@ LogicalResult VerifyExecuteOpImpl(OpTy op) {
 
 template <typename OpTy>
 void PrintExecuteOpFuncAttribute(mlir::OpAsmPrinter &p, OpTy op) {
-  auto op_func_attrs = op.op_func_attrs();
+  auto op_func_attrs = op.getOpFuncAttrs();
   if (!op_func_attrs.empty()) {
     auto print_key_value = [&](mlir::Attribute attr) {
       auto key_value = attr.cast<mlir::ArrayAttr>().getValue();
@@ -62,7 +62,7 @@ void PrintExecuteOpFuncAttribute(mlir::OpAsmPrinter &p, OpTy op) {
 
 template <typename OpTy>
 void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
-  auto op_attrs = op.op_attrs();
+  auto op_attrs = op.getOpAttrs();
   if (!op_attrs.empty()) {
     auto print_key_value = [&](mlir::Attribute attr) {
       auto key_value = attr.cast<ArrayAttr>().getValue();

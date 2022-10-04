@@ -36,7 +36,7 @@ def CoreRTSync_Dialect : Dialect {
 
   let cppNamespace = "::tfrt::corert_sync";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }
 
 // Base class for corert dialect ops.

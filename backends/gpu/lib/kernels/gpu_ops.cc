@@ -265,15 +265,16 @@ static bool AllEqual(ArrayRef<wrapper::BlasDataType> types) {
 
 LogicalResult BlasSaxpyOp::verify() {
   BlasSaxpyOp op = *this;
-  if (!AllEqual({op.typeAlpha(), op.typeX(), op.typeY(), op.executionType()})) {
+  if (!AllEqual({op.getTypeAlpha(), op.getTypeX(), op.getTypeY(),
+                 op.getExecutionType()})) {
     // The actual requirements of typeAlpha/typeX/typeY and executionType are
     // less strict than this, but at the moment we only use all float or all
     // double. Relax this check when we add support for e.g. mixed precision.
     return op.emitOpError(
         "typeAlpha, typeX, typeY and executionType need to match");
   }
-  Type type_alpha = GetType(op.typeAlphaAttr());
-  if (op.alpha().getType() != type_alpha) {
+  Type type_alpha = GetType(op.getTypeAlphaAttr());
+  if (op.getAlpha().getType() != type_alpha) {
     return op.emitOpError("alpha's type doesn't match typeAlpha");
   }
   return mlir::success();
@@ -281,7 +282,7 @@ LogicalResult BlasSaxpyOp::verify() {
 
 template <class OpTy>
 static LogicalResult VerifyBlasGemmOp(OpTy op) {
-  if (op.typeA() != op.typeB()) {
+  if (op.getTypeA() != op.getTypeB()) {
     return op.emitOpError("typeA and typeB need to match");
   }
   return mlir::success();
@@ -292,25 +293,25 @@ LogicalResult BlasGemmBatchExOp::verify() { return VerifyBlasGemmOp(*this); }
 
 LogicalResult BlasScalOp::verify() {
   BlasScalOp op = *this;
-  if (!AllEqual({op.typeAlpha(), op.typeX(), op.executionType()})) {
+  if (!AllEqual({op.getTypeAlpha(), op.getTypeX(), op.getExecutionType()})) {
     // The actual requirements of typeAlpha/typeX/executionType are less strict
     // than this, but at the moment we only use all float or all double. Relax
     // this check when we add support for e.g. mixed precision.
     return op.emitOpError("typeAlpha, typeX, and executionType need to match");
   }
-  Type type_alpha = GetType(op.typeAlphaAttr());
-  if (op.alpha().getType() != type_alpha) {
+  Type type_alpha = GetType(op.getTypeAlphaAttr());
+  if (op.getAlpha().getType() != type_alpha) {
     return op.emitOpError("alpha's type doesn't match typeAlpha");
   }
   return mlir::success();
 }
 
 LogicalResult FftCreateOp::verify() {
-  if (dims().empty() || dims().size() > 3)
+  if (getDims().empty() || getDims().size() > 3)
     return emitOpError("dims should have rank 1, 2, or 3.");
-  if (in_strides().size() != dims().size() + 1)
+  if (getInStrides().size() != getDims().size() + 1)
     return emitOpError("in_strides should be one larger than dims.");
-  if (out_strides().size() != dims().size() + 1)
+  if (getOutStrides().size() != getDims().size() + 1)
     return emitOpError("out_strides should be one larger than dims.");
   return mlir::success();
 }
@@ -374,15 +375,15 @@ ParseResult StreamifyOp::parse(OpAsmParser &parser, OperationState &result) {
 
 void StreamifyOp::print(OpAsmPrinter &printer) {
   if (asyncToken()) printer << " async";
-  if (!asyncDependencies().empty()) {
+  if (!getAsyncDependencies().empty()) {
     printer << " [";
-    llvm::interleaveComma(asyncDependencies(), printer);
+    llvm::interleaveComma(getAsyncDependencies(), printer);
     printer << "]";
   }
 
   printer.printOptionalAttrDictWithKeyword(getOperation()->getAttrs());
   printer << ' ';
-  printer.printRegion(body());
+  printer.printRegion(getBody());
 
   if (!results().empty()) printer << " : " << results().getTypes();
 }

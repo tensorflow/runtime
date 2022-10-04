@@ -37,7 +37,7 @@ def TFRTGPU_Dialect : Dialect {
 
   let cppNamespace = "tfrt::gpu";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
   let useDefaultTypePrinterParser = 0;
   let useDefaultAttributePrinterParser = 0;
 }

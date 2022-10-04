@@ -1267,10 +1267,10 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
 LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
     StreamifyOp streamify_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.asyncDependencies().empty() || !streamify_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !streamify_op.asyncToken())
     return rewriter.notifyMatchFailure(streamify_op,
                                        "no async deps or no result");
-  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(streamify_op, "operand not def by cast");
 

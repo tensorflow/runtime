@@ -37,7 +37,7 @@ def DistDialect : Dialect {
 
   let cppNamespace = "::tfrt::dist";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }
 
 def DistributedContextType :

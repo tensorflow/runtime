@@ -37,7 +37,7 @@ def HostTensor_Dialect : Dialect {
 
   let cppNamespace = "::tfrt::ht";
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }
 
 //===----------------------------------------------------------------------===//

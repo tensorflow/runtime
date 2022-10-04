@@ -122,9 +122,12 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   FunctionType signature(std::move(operands), /*results=*/{});
   FunctionType rt_signature(std::move(rt_operands), /*results=*/{});
 
-  absl::StatusOr<Executable> loaded = Executable::LoadFromObjFile(
-      "aot", std::move(obj_file), entrypoint, std::move(signature),
-      std::move(rt_signature), /*runtime_symbol_map=*/{}, "aot_mem_region");
+  std::vector<Executable::LoadFunction> fns;
+  fns.push_back({entrypoint, std::move(signature), std::move(rt_signature)});
+
+  absl::StatusOr<Executable> loaded =
+      Executable::LoadFromObjFile("aot", std::move(obj_file), std::move(fns),
+                                  /*symbols_binding=*/{}, "aot_mem_region");
   ASSERT_TRUE(loaded.ok());
 
   // Execute AOT executable.

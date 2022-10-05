@@ -23,6 +23,7 @@ namespace tfrt {
 namespace {
 
 static mlir::TranslateToMLIRRegistration registration("bef-to-mlir",
+                                                      "translate BEF to MLIR",
                                                       BEFToMLIRTranslate);
 
 }  // namespace

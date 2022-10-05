@@ -26,7 +26,8 @@ namespace tfrt {
 namespace {
 
 static mlir::TranslateFromMLIRRegistration registration(
-    "mlir-to-bef", MLIRToBEFTranslate, [](mlir::DialectRegistry& registry) {
+    "mlir-to-bef", "convert MLIR to BEF", MLIRToBEFTranslate,
+    [](mlir::DialectRegistry& registry) {
       RegisterTFRTDialects(registry);
       RegisterTFRTCompiledDialects(registry);
     });

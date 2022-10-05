@@ -167,6 +167,8 @@ class HostContext {
 
   void ResetHostDevice(CpuDevice* device);
 
+  RCReference<Device> GetDeviceRef(string_view device);
+
   ConcurrentWorkQueue& work_queue() const { return *work_queue_; }
 
   //===--------------------------------------------------------------------===//

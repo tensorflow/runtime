@@ -153,4 +153,10 @@ void HostContext::ResetHostDevice(CpuDevice* device) {
   host_device_.reset(device);
 }
 
+RCReference<Device> HostContext::GetDeviceRef(string_view device) {
+  return device == host_device_->name()
+             ? host_device_
+             : device_mgr_.GetDeviceRef<Device>(device);
+}
+
 }  // namespace tfrt

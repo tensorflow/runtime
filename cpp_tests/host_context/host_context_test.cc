@@ -19,8 +19,10 @@
 #include "tfrt/host_context/host_context.h"
 
 #include <set>
+#include <string>
 #include <thread>
 
+#include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
@@ -33,10 +35,14 @@
 namespace tfrt {
 namespace {
 
+constexpr char kDefaultHostDeviceName[] =
+    "/job:localhost/replica:0/task:0/device:CPU:0";
+
 std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
   return std::make_unique<HostContext>(
       [](const DecodedDiagnostic&) {}, CreateMallocAllocator(),
-      CreateMultiThreadedWorkQueue(num_threads, num_threads));
+      CreateMultiThreadedWorkQueue(num_threads, num_threads),
+      kDefaultHostDeviceName);
 }
 
 TEST(HostContextTest, RunBlockingWork) {
@@ -79,6 +85,27 @@ TEST(HostContextTest, RunBlockingWorkWithResult) {
 
   ASSERT_EQ(result.get(), 42);
 }
+
+static void BM_HostDeviceDirectLookup(benchmark::State& state) {
+  static auto* host = CreateTestHostContext(1).release();
+  std::string device_name(kDefaultHostDeviceName);
+  benchmark::DoNotOptimize(device_name);
+  for (auto s : state) {
+    host->GetDeviceManager()->GetDeviceRef<tfrt::Device>(device_name);
+  }
+}
+
+static void BM_HostDeviceCachedLookup(benchmark::State& state) {
+  static auto* host = CreateTestHostContext(1).release();
+  std::string device_name(kDefaultHostDeviceName);
+  benchmark::DoNotOptimize(device_name);
+  for (auto s : state) {
+    host->GetDeviceRef(device_name);
+  }
+}
+
+BENCHMARK(BM_HostDeviceDirectLookup)->ThreadRange(1, 512);
+BENCHMARK(BM_HostDeviceCachedLookup)->ThreadRange(1, 512);
 
 }  // namespace
 }  // namespace tfrt

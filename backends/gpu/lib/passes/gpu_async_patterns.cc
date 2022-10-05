@@ -213,25 +213,25 @@ unsigned GetTypeSizeBytes(const Type &type) {
 LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     memref::ViewOp view_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (!adaptor.source().getType().isa<BufferType>())
+  if (!adaptor.getSource().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
-  if (!adaptor.sizes().empty())
+  if (!adaptor.getSizes().empty())
     return rewriter.notifyMatchFailure(view_op, "expected no sizes");
 
   auto const_offset =
-      adaptor.byte_shift().getDefiningOp<arith::ConstantIndexOp>();
+      adaptor.getByteShift().getDefiningOp<arith::ConstantIndexOp>();
   auto dst_size_bytes = GetTypeSizeBytes(view_op.getType());
-  auto src_size_bytes = GetTypeSizeBytes(view_op.source().getType());
+  auto src_size_bytes = GetTypeSizeBytes(view_op.getSource().getType());
   if (const_offset && const_offset.value() == 0 &&
       src_size_bytes == dst_size_bytes) {
-    rewriter.replaceOp(view_op, {adaptor.source()});
+    rewriter.replaceOp(view_op, {adaptor.getSource()});
     return success();
   }
   auto loc = view_op->getLoc();
   auto offset = rewriter.create<UnrealizedConversionCastOp>(
-      loc, rewriter.getIntegerType(64, false), adaptor.byte_shift());
+      loc, rewriter.getIntegerType(64, false), adaptor.getByteShift());
   auto size = rewriter.create<compiler::ConstantUI64Op>(loc, dst_size_bytes);
-  rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.source(),
+  rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.getSource(),
                                          offset.getResult(0), size);
   return success();
 }
@@ -239,14 +239,14 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
 LogicalResult FoldMemrefReinterpretCastPattern::matchAndRewrite(
     memref::ReinterpretCastOp cast_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (!adaptor.source().getType().isa<BufferType>())
+  if (!adaptor.getSource().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(cast_op, "expected BufferType source");
-  if (!adaptor.offsets().empty() ||
-      llvm::any_of(adaptor.static_offsets(), [](Attribute attribute) {
+  if (!adaptor.getOffsets().empty() ||
+      llvm::any_of(adaptor.getStaticOffsets(), [](Attribute attribute) {
         return attribute.cast<IntegerAttr>().getInt() != 0;
       }))
     return rewriter.notifyMatchFailure(cast_op, "expected static zero offsets");
-  rewriter.replaceOp(cast_op, {adaptor.source()});
+  rewriter.replaceOp(cast_op, {adaptor.getSource()});
   return success();
 }
 
@@ -265,7 +265,7 @@ LogicalResult RewriteMemrefDeallocPattern::matchAndRewrite(
     memref::DeallocOp dealloc_op, PatternRewriter &rewriter) const {
   rewriter.replaceOpWithNewOp<mlir::gpu::DeallocOp>(
       dealloc_op, /*asyncToken=*/Type(),
-      /*asyncDependencies=*/ValueRange(), dealloc_op.memref());
+      /*asyncDependencies=*/ValueRange(), dealloc_op.getMemref());
   return success();
 }
 

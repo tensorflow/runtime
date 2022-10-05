@@ -719,7 +719,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   // Collect `gpu.wait [...]` and `gpu.wait async []` ops.
   SmallVector<mlir::gpu::WaitOp, 4> wait_ops;
   func_op.walk([&](mlir::gpu::WaitOp op) {
-    if (!op.asyncToken() || op.asyncDependencies().empty())
+    if (!op.getAsyncToken() || op.getAsyncDependencies().empty())
       wait_ops.push_back(op);
   });
 
@@ -741,7 +741,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   }
 
   if (llvm::find_if(wait_ops, [](mlir::gpu::WaitOp op) {
-        return !op.asyncToken();
+        return !op.getAsyncToken();
       }) != wait_ops.end() - 1) {
     return rewriter.notifyMatchFailure(
         func_op, "expected all but the last gpu.wait to be async");
@@ -761,7 +761,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
 
   // Add %t1 from above to all `gpu.wait async []` ops.
   for (auto op : makeArrayRef(wait_ops).drop_back())
-    op.addAsyncDependency(first_wait_op.asyncToken());
+    op.addAsyncDependency(first_wait_op.getAsyncToken());
 
   // Make `gpu.wait [...]` async, cast result and add chain to returned
   // values.
@@ -769,10 +769,10 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
   rewriter.setInsertionPoint(terminator);
   auto last_wait_op = rewriter.create<mlir::gpu::WaitOp>(
       wait_ops.back().getLoc(), token.getType(),
-      wait_ops.back().asyncDependencies());
+      wait_ops.back().getAsyncDependencies());
   rewriter.eraseOp(wait_ops.back());
   auto chain_and_stream = CastToChainAndStream(rewriter, last_wait_op.getLoc(),
-                                               last_wait_op.asyncToken());
+                                               last_wait_op.getAsyncToken());
   auto results =
       MergeRanges(chain_and_stream.take_front(), terminator->getOperands());
   rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator, results);
@@ -826,7 +826,7 @@ LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
 
   // Create new async.execute op with converted operands.
   auto new_op = rewriter.create<mlir::async::ExecuteOp>(
-      loc, terminator_conversion->GetTargetTypes(), adaptor.dependencies(),
+      loc, terminator_conversion->GetTargetTypes(), adaptor.getDependencies(),
       operand_conversion->CastToTargetTypes(rewriter, loc,
                                             adaptor.getBodyOperands()));
 
@@ -867,7 +867,7 @@ LogicalResult ConvertAsyncYieldToChainAndEventPattern::matchAndRewrite(
 LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
     async::AwaitOp await_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  auto cast_op = adaptor.operand().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getOperand().getDefiningOp<CastOp>();
   if (!cast_op || !llvm::all_of(cast_op->getOperandTypes(), [](Type type) {
         return type.isa<async::ValueType>();
       }))
@@ -876,7 +876,8 @@ LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
   Location loc = await_op->getLoc();
   SmallVector<Value, 4> results;
   for (auto operand : cast_op->getOperands()) {
-    results.push_back(rewriter.create<async::AwaitOp>(loc, operand).result());
+    results.push_back(
+        rewriter.create<async::AwaitOp>(loc, operand).getResult());
   }
   rewriter.replaceOp(await_op, CastToToken(rewriter, loc, results));
   return success();
@@ -885,20 +886,20 @@ LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
 LogicalResult ConvertMemsetPattern::matchAndRewrite(
     mlir::gpu::MemsetOp memset_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.value().getType().getIntOrFloatBitWidth() != 32)
+  if (adaptor.getValue().getType().getIntOrFloatBitWidth() != 32)
     return rewriter.notifyMatchFailure(memset_op, "expected 32bit value");
-  if (!adaptor.dst().getType().isa<tfrt::gpu::BufferType>())
+  if (!adaptor.getDst().getType().isa<tfrt::gpu::BufferType>())
     return rewriter.notifyMatchFailure(memset_op, "expected buffer dst");
-  if (adaptor.asyncDependencies().empty() || !memset_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !memset_op.getAsyncToken())
     return rewriter.notifyMatchFailure(memset_op, "no async deps or no result");
-  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(memset_op, "operand not def by cast");
 
   auto loc = memset_op->getLoc();
   auto stream = cast_op.getOperand(1);
   auto new_op = rewriter.create<tfrt::gpu::MemSetOp>(
-      loc, adaptor.dst(), adaptor.value(), stream, cast_op.getOperand(0));
+      loc, adaptor.getDst(), adaptor.getValue(), stream, cast_op.getOperand(0));
   auto token = CastToToken(rewriter, loc, {new_op, stream});
   rewriter.replaceOp(memset_op, token);
   return success();
@@ -907,17 +908,17 @@ LogicalResult ConvertMemsetPattern::matchAndRewrite(
 LogicalResult ConvertMemcpyPattern::matchAndRewrite(
     mlir::gpu::MemcpyOp memcpy_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (!adaptor.src().getType().isa<tfrt::gpu::BufferType>() ||
-      !adaptor.dst().getType().isa<tfrt::gpu::BufferType>())
+  if (!adaptor.getSrc().getType().isa<tfrt::gpu::BufferType>() ||
+      !adaptor.getDst().getType().isa<tfrt::gpu::BufferType>())
     return rewriter.notifyMatchFailure(memcpy_op, "expected buffer operands");
-  if (adaptor.asyncDependencies().empty() || !memcpy_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !memcpy_op.getAsyncToken())
     return rewriter.notifyMatchFailure(memcpy_op, "no async deps or no result");
-  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(memcpy_op, "operand not def by cast");
 
   // Drop copy if memref type has zero elements.
-  if (!memcpy_op.dst().getType().cast<mlir::MemRefType>().getNumElements()) {
+  if (!memcpy_op.getDst().getType().cast<mlir::MemRefType>().getNumElements()) {
     rewriter.replaceOp(memcpy_op, cast_op.getResults());
     return success();
   }
@@ -925,7 +926,7 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   Location loc = memcpy_op->getLoc();
   Value stream = cast_op.getOperand(1);
   Value chain = rewriter.create<tfrt::gpu::MemCopyOp>(
-      loc, adaptor.dst(), adaptor.src(), stream, cast_op.getOperand(0));
+      loc, adaptor.getDst(), adaptor.getSrc(), stream, cast_op.getOperand(0));
   auto token = CastToToken(rewriter, loc, {chain, stream});
   rewriter.replaceOp(memcpy_op, token);
   return success();
@@ -934,9 +935,9 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
 LogicalResult ConvertAllocPattern::matchAndRewrite(
     mlir::gpu::AllocOp alloc_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.asyncDependencies().empty() || !alloc_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !alloc_op.getAsyncToken())
     return rewriter.notifyMatchFailure(alloc_op, "no async deps or no result");
-  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(alloc_op, "operand not def by cast");
 
@@ -955,17 +956,17 @@ LogicalResult ConvertAllocPattern::matchAndRewrite(
 LogicalResult ConvertDeallocPattern::matchAndRewrite(
     mlir::gpu::DeallocOp dealloc_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.asyncDependencies().empty() || !dealloc_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !dealloc_op.getAsyncToken())
     return rewriter.notifyMatchFailure(dealloc_op,
                                        "no async deps or no result");
-  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(dealloc_op, "operand not def by cast");
 
   Location loc = dealloc_op->getLoc();
   Value stream = cast_op.getOperand(1);
-  Value chain = rewriter.create<MemDeallocateOp>(loc, adaptor.memref(), stream,
-                                                 cast_op.getOperand(0));
+  Value chain = rewriter.create<MemDeallocateOp>(loc, adaptor.getMemref(),
+                                                 stream, cast_op.getOperand(0));
   auto token = CastToToken(rewriter, loc, {chain, stream});
   rewriter.replaceOp(dealloc_op, token);
   return success();
@@ -990,7 +991,7 @@ LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
   Location loc = get_global_op->getLoc();
   Value context = GetContextFromParentFunc(rewriter, get_global_op);
   auto once_op = rewriter.create<compiler::OnceOp>(
-      loc, rewriter.getType<BufferType>(), context, adaptor.name());
+      loc, rewriter.getType<BufferType>(), context, adaptor.getName());
   auto cast_op = rewriter.create<CastOp>(loc, get_global_op.getType(),
                                          once_op.getResults());
   rewriter.replaceOp(get_global_op, cast_op.getResults());
@@ -1064,9 +1065,10 @@ static Value CreateSetGlobal(ConversionPatternRewriter &rewriter,
                              memref::GlobalOp global_op, Value buffer,
                              Value chain, Value stream) {
   Location loc = global_op->getLoc();
-  auto init_attr = global_op.initial_valueAttr().cast<DenseElementsAttr>();
+  auto init_attr = global_op.getInitialValueAttr().cast<DenseElementsAttr>();
   auto type_name = GetDenseHostTensorTypeName(init_attr.getElementType());
-  Value tensor = CreateMakeTensor(rewriter, loc, type_name, global_op.type());
+  Value tensor =
+      CreateMakeTensor(rewriter, loc, type_name, global_op.getType());
   chain = CreateSetTensor(rewriter, loc, type_name, tensor, chain, init_attr);
   Type buffer_type = rewriter.getType<ht::HostBufferType>();
   auto buffer_op = rewriter.create<dht::GetBufferOp>(
@@ -1123,7 +1125,7 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
   mlir::FunctionType func_type = rewriter.getFunctionType(
       rewriter.getType<ContextType>(), rewriter.getType<BufferType>());
   auto func_op = rewriter.replaceOpWithNewOp<func::FuncOp>(
-      global_op, global_op.sym_name(), func_type);
+      global_op, global_op.getSymName(), func_type);
   rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
   Location loc = global_op->getLoc();
   Value context = func_op.getArgument(0);
@@ -1134,7 +1136,7 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
     auto once_op = rewriter.create<compiler::OnceOp>(
         loc, rewriter.getType<ModuleType>(), ValueRange(context), module_attr);
     Value buffer = rewriter.create<ModuleGetGlobalOp>(
-        loc, once_op->getResult(0), adaptor.sym_name());
+        loc, once_op->getResult(0), adaptor.getSymName());
     rewriter.create<compiler::ReturnOp>(loc, buffer);
     return success();
   }
@@ -1143,7 +1145,7 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
   Value allocator = rewriter.create<AllocatorCreateOp>(loc, context);
   Value stream = rewriter.create<StreamCreateOp>(loc, context);
   uint64_t size_bytes =
-      (global_op.type().cast<ShapedType>().getSizeInBits() + 7) / 8;
+      (global_op.getType().cast<ShapedType>().getSizeInBits() + 7) / 8;
   Value size = rewriter.create<compiler::ConstantI64Op>(loc, size_bytes);
   Value chain = rewriter.create<compiler::NewChainOp>(loc);
   Value buffer =
@@ -1164,8 +1166,8 @@ FailureOr<Value> ConvertMemrefLoadPattern::matchAndRewriteOp(
       loc, GetTypeSizeBytes(op.getType()));
   Value host_buffer =
       rewriter.create<MemAllocateHostOp>(loc, context, size, chain);
-  chain = rewriter.create<MemCopyOp>(loc, host_buffer, adaptor.memref(), stream,
-                                     chain);
+  chain = rewriter.create<MemCopyOp>(loc, host_buffer, adaptor.getMemref(),
+                                     stream, chain);
   chain = rewriter.create<StreamSynchronizeOp>(loc, stream, chain);
   rewriter.replaceOpWithNewOp<MemLoadOp>(op, op.getType(), host_buffer, chain,
                                          op.getType());
@@ -1175,9 +1177,9 @@ FailureOr<Value> ConvertMemrefLoadPattern::matchAndRewriteOp(
 LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
     mlir::gpu::LaunchFuncOp launch_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.asyncDependencies().empty() || !launch_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !launch_op.getAsyncToken())
     return rewriter.notifyMatchFailure(launch_op, "no async deps or no result");
-  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastFromChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(launch_op, "operand not def by cast");
 
@@ -1186,17 +1188,17 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   Value stream = cast_op.getOperand(1);
   Value context = GetContextFromParentFunc(rewriter, launch_op);
   auto func_op = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
-      launch_op, adaptor.kernel().getRootReference());
+      launch_op, adaptor.getKernel().getRootReference());
   auto once_op = rewriter.create<compiler::OnceOp>(
       loc, func_op.getFunctionType().getResults(), context, func_op.getName());
-  auto kernel_name = adaptor.kernel().getLeafReference().getValue();
+  auto kernel_name = adaptor.getKernel().getLeafReference().getValue();
   auto get_func_op = rewriter.create<ModuleGetFunctionOp>(
       loc, once_op->getResult(0), kernel_name);
   if (once_op.getNumResults() > 1) {
     chain = rewriter.create<compiler::MergeChainsOp>(
         loc, chain.getType(), ValueRange({chain, once_op->getResult(1)}));
   }
-  Value shared_mem_size = adaptor.dynamicSharedMemorySize();
+  Value shared_mem_size = adaptor.getDynamicSharedMemorySize();
   if (!shared_mem_size)
     shared_mem_size = rewriter.create<compiler::ConstantUI32Op>(loc, 0);
   auto cast_to_ui64 = [&](Value value) {
@@ -1205,10 +1207,13 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   };
   auto new_op = rewriter.create<FunctionLaunchOp>(
       loc, chain.getType(), stream, get_func_op.getResult(),
-      cast_to_ui64(adaptor.gridSizeX()), cast_to_ui64(adaptor.gridSizeY()),
-      cast_to_ui64(adaptor.gridSizeZ()), cast_to_ui64(adaptor.blockSizeX()),
-      cast_to_ui64(adaptor.blockSizeY()), cast_to_ui64(adaptor.blockSizeZ()),
-      shared_mem_size, chain, adaptor.getKernelOperands());
+      cast_to_ui64(adaptor.getGridSizeX()),
+      cast_to_ui64(adaptor.getGridSizeY()),
+      cast_to_ui64(adaptor.getGridSizeZ()),
+      cast_to_ui64(adaptor.getBlockSizeX()),
+      cast_to_ui64(adaptor.getBlockSizeY()),
+      cast_to_ui64(adaptor.getBlockSizeZ()), shared_mem_size, chain,
+      adaptor.getKernelOperands());
   rewriter.replaceOp(launch_op, CastToToken(rewriter, loc, {new_op, stream}));
   return success();
 }
@@ -1267,7 +1272,7 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
 LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
     StreamifyOp streamify_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (adaptor.getAsyncDependencies().empty() || !streamify_op.asyncToken())
+  if (adaptor.getAsyncDependencies().empty() || !streamify_op.getAsyncToken())
     return rewriter.notifyMatchFailure(streamify_op,
                                        "no async deps or no result");
   auto cast_op = adaptor.getAsyncDependencies().front().getDefiningOp<CastOp>();
@@ -1292,7 +1297,7 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
     mlir::gpu::WaitOp wait_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   auto operands = adaptor.getOperands();
-  if (operands.empty() || !wait_op.asyncToken())
+  if (operands.empty() || !wait_op.getAsyncToken())
     return rewriter.notifyMatchFailure(wait_op, "no operands or not async");
   CastOp cast_from_stream_op;
   SmallVector<CastOp, 2> cast_from_event_ops;
@@ -1348,7 +1353,7 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
 
   // Collect uses in other blocks and terminator uses.
   auto event_uses = llvm::make_filter_range(
-      wait_op.asyncToken().getUses(), [&](const OpOperand &operand) {
+      wait_op.getAsyncToken().getUses(), [&](const OpOperand &operand) {
         Operation *owner = operand.getOwner();
         if (owner->getBlock() != wait_op->getBlock()) return true;
         return owner->mightHaveTrait<OpTrait::IsTerminator>();

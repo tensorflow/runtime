@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <thread>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
@@ -86,6 +87,38 @@ TEST(SingleThreadeWorkQueueTest,
   host.Await(av.CopyRCRef());
   EXPECT_TRUE(av.IsAvailable());
   thread.join();
+}
+
+TEST(SingleThreadeWorkQueueTest, AwaitAndDestroy) {
+  std::unique_ptr<ConcurrentWorkQueue> work_queue =
+      CreateSingleThreadedWorkQueue();
+
+  int num_threads = 8;
+
+  std::vector<RCReference<AsyncValue>> avs;
+  for (int i = 0; i < num_threads; ++i) {
+    avs.push_back(MakeConstructedAsyncValueRef<int>(42));
+  }
+
+  std::vector<std::thread> threads;
+
+  for (int i = 0; i < num_threads; ++i) {
+    threads.emplace_back([&, i] {
+      work_queue->AddTask([&, i] { avs[i]->SetStateConcrete(); });
+    });
+  }
+
+  work_queue->Await(avs);
+
+  // When Await() returns, previous AddTask() calls that setting relevant
+  // AsyncValues should all return. So deleting the work queue should be safe
+  // now if the implementation is correct.
+  work_queue.reset();
+
+  for (int i = 0; i < num_threads; ++i) {
+    EXPECT_TRUE(avs[i]->IsAvailable());
+    threads[i].join();
+  }
 }
 
 }  // namespace

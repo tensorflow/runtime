@@ -15,6 +15,7 @@
 // This file implements a single threaded work queue.
 
 #include <atomic>
+#include <utility>
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
@@ -73,10 +74,8 @@ class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
 
 // Enqueue a block of work.
 void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
-  {
-    mutex_lock l(mu_);
-    work_items_.push_back(std::move(work));
-  }
+  mutex_lock l(mu_);
+  work_items_.push_back(std::move(work));
   cv_.notify_all();
 }
 
@@ -90,10 +89,8 @@ void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
 Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
     TaskFunction work, bool allow_queuing) {
   if (!allow_queuing) return {std::move(work)};
-  {
-    mutex_lock l(mu_);
-    work_items_.push_back(std::move(work));
-  }
+  mutex_lock l(mu_);
+  work_items_.push_back(std::move(work));
   cv_.notify_all();
   return llvm::None;
 }
@@ -128,10 +125,8 @@ void SingleThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
   // As each value becomes available, we can decrement our counts.
   for (auto& value : values) {
     value->AndThen([this, &values_remaining]() mutable {
-      {
-        mutex_lock l(mu_);
-        --values_remaining;
-      }
+      mutex_lock l(mu_);
+      --values_remaining;
       cv_.notify_all();
     });
   }

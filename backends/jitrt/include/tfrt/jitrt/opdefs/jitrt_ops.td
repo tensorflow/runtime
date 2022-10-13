@@ -40,7 +40,7 @@ class JITRT_Op<string mnemonic, list<Trait> traits = []> :
 // TFRT JIT Runtime op definitions to facilitate runtime lowerings.
 //===----------------------------------------------------------------------===//
 
-def CallOp : JITRT_Op<"call", [NoSideEffect]> {
+def CallOp : JITRT_Op<"call", [Pure]> {
   let summary = "jitrt function call operation";
   let description = [{
     This operation is used in graph rewrites to call compiled functions. This

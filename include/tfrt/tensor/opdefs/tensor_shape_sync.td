@@ -45,7 +45,7 @@ def TensorShapeSyncDialect : Dialect {
 class TS_SYNC_Op<string mnemonic, list<Trait> traits = []> :
     Op<TensorShapeSyncDialect, mnemonic, traits> {}
 
-def TS_SyncBuildShapeOp : TS_SYNC_Op<"build_shape", [NoSideEffect]> {
+def TS_SyncBuildShapeOp : TS_SYNC_Op<"build_shape", [Pure]> {
   let summary = "Build tensor shape operation";
 
   let description = [{
@@ -69,7 +69,7 @@ def TS_SyncGetNumElementsOp : TS_SYNC_Op<"get_num_elements"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-def TS_SyncBuildPartialShapeOp : TS_SYNC_Op<"build_partial_shape", [NoSideEffect]> {
+def TS_SyncBuildPartialShapeOp : TS_SYNC_Op<"build_partial_shape", [Pure]> {
   let summary = "Build partial tensor shape operation";
 
   let description = [{

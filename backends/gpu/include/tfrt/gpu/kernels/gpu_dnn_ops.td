@@ -80,7 +80,7 @@ def TFRTGPU_DnnCreateOp : TFRTGPU_Op<"dnn.create"> {
 }
 
 def TFRTGPU_DnnCreateConvolutionDescriptorOp
-  : TFRTGPU_Op<"dnn.create_convolution_descriptor", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.create_convolution_descriptor", [Pure]> {
   let description = [{
     tfrt_gpu.dnn.create_convolution_descriptor creates a convolution descriptor
     object by allocating the memory needed to hold its opaque structure. The
@@ -103,7 +103,7 @@ def TFRTGPU_DnnCreateConvolutionDescriptorOp
 }
 
 def TFRTGPU_DnnCreateFilterDescriptorOp
-  : TFRTGPU_Op<"dnn.create_filter_descriptor", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.create_filter_descriptor", [Pure]> {
   let description = [{
     tfrt_gpu.dnn.create_filter_descriptor creates a filter descriptor object by
     allocating the memory needed to hold its opaque structure. The data is
@@ -123,7 +123,7 @@ def TFRTGPU_DnnCreateFilterDescriptorOp
 }
 
 def TFRTGPU_DnnCreatePoolingDescriptorOp
-  : TFRTGPU_Op<"dnn.create_pooling_descriptor", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.create_pooling_descriptor", [Pure]> {
   let description = [{
     tfrt_gpu.dnn.create_pooling_descriptor creates a pooling descriptor object
     by allocating the memory needed to hold its opaque structure then it
@@ -159,7 +159,7 @@ def TFRTGPU_DnnCreatePoolingDescriptorOp
 }
 
 def TFRTGPU_DnnCreateTensorDescriptorOp
-  : TFRTGPU_Op<"dnn.create_tensor_descriptor", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.create_tensor_descriptor", [Pure]> {
   let description = [{
     tfrt_gpu.dnn.create_tensor_descriptor creates a generic tensor
     descriptor object by allocating the memory needed to hold its opaque
@@ -178,7 +178,7 @@ def TFRTGPU_DnnCreateTensorDescriptorOp
 }
 
 def TFRTGPU_DnnCreateActivationDescriptorOp
-  : TFRTGPU_Op<"dnn.create_activation_descriptor", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.create_activation_descriptor", [Pure]> {
   let description = [{
     tfrt_gpu.dnn.create_activation_descriptor creates an activation descriptor
     object by allocating the memory needed to hold its opaque structure. The
@@ -193,19 +193,19 @@ def TFRTGPU_DnnCreateActivationDescriptorOp
 }
 
 def TFRTGPU_DnnConvolutionForwardAlgorithmOp
-  : TFRTGPU_Op<"dnn.convolution_forward_algorithm", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.convolution_forward_algorithm", [Pure]> {
   let arguments = (ins TFRTGPU_DnnConvFwdAlgoAttr:$algo);
   let results = (outs TFRTGPU_DnnConvolutionAlgorithmType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
 def TFRTGPU_DnnConvolutionBackwardDataAlgorithmOp
-  : TFRTGPU_Op<"dnn.convolution_backward_data_algorithm", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.convolution_backward_data_algorithm", [Pure]> {
   let arguments = (ins TFRTGPU_DnnConvBwdDataAlgoAttr:$algo);
   let results = (outs TFRTGPU_DnnConvolutionAlgorithmType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
 def TFRTGPU_DnnConvolutionBackwardFilterAlgorithmOp
-  : TFRTGPU_Op<"dnn.convolution_backward_filter_algorithm", [NoSideEffect]> {
+  : TFRTGPU_Op<"dnn.convolution_backward_filter_algorithm", [Pure]> {
   let arguments = (ins TFRTGPU_DnnConvBwdFilterAlgoAttr:$algo);
   let results = (outs TFRTGPU_DnnConvolutionAlgorithmType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";

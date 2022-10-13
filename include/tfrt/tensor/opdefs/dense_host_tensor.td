@@ -47,7 +47,7 @@ class DHT_Op<string mnemonic, list<Trait> traits = []> :
 
 class CreateUninitializedTensorOp<string dtype, int rank>
   : DHT_Op<"create_uninitialized_tensor." # dtype # "." # rank,
-          [NoSideEffect]> {
+          [Pure]> {
   let summary = "tfrt_dht.create_uninitialized_tensor operation";
 
   let description = [{
@@ -237,7 +237,7 @@ def PrintBufferOp : DHT_Op<"print_buffer"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-def GetTensorShapeOp : DHT_Op<"get_tensor_shape", [NoSideEffect]> {
+def GetTensorShapeOp : DHT_Op<"get_tensor_shape", [Pure]> {
   let summary = "tfrt_dht.get_tensor_shape operation";
 
   let description = [{

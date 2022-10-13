@@ -49,7 +49,7 @@ class CoreRTSync_Op<string mnemonic, list<Trait> traits = []> :
 }
 
 class CreateDenseTensorOp<string dtype>
-  : CoreRTSync_Op<"create_dense_tensor." # dtype, [NoSideEffect]> {
+  : CoreRTSync_Op<"create_dense_tensor." # dtype, [Pure]> {
   let summary = "Create a constant dense host tensor with explicit dtype and rank.";
   let description = [{}];
 
@@ -77,7 +77,7 @@ foreach dtype = ["ui8", "ui16", "ui32", "ui64",
 }
 
 def ConstDenseTensorOp : CoreRTSync_Op<"const_dense_tensor",
-    [ConstantLike, NoSideEffect, CoreRT_TypedAttributeTrait]> {
+    [ConstantLike, Pure, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant host tensor.";
   let description = [{
     ConstDenseTensorOp creates a constant dense host tensor.
@@ -101,7 +101,7 @@ def ConstDenseTensorOp : CoreRTSync_Op<"const_dense_tensor",
   let hasFolder = 1;
 }
 
-def ExecuteOp : CoreRTSync_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {
+def ExecuteOp : CoreRTSync_Op<"executeop", [Pure, CoreRT_TypedAttributeTrait]> {
   let summary = "The CoreRuntime ExecuteOp";
   let description = [{
     The ExecuteOp executes an operation on the specified device.
@@ -136,7 +136,7 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeT
       "StringRef":$op_name)>];
 }
 
-def CoreRTSync_GetOpHandler : CoreRTSync_Op<"get_op_handler", [NoSideEffect]> {
+def CoreRTSync_GetOpHandler : CoreRTSync_Op<"get_op_handler", [Pure]> {
   let summary = "return the registered op handler";
   let description = [{
     GetOpHandler returns a registered op handler, which can be used by ExecuteOp.

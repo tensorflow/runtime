@@ -30,7 +30,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 class TS_Op<string mnemonic, list<Trait> traits = []> :
     Op<TensorShapeDialect, mnemonic, traits> {}
 
-def TS_BuildShapeOp : TS_Op<"build_shape", [NoSideEffect]> {
+def TS_BuildShapeOp : TS_Op<"build_shape", [Pure]> {
   let summary = "Build tensor shape operation";
 
   let description = [{
@@ -97,7 +97,7 @@ class TS_FixedRankShape<int rank>
   : OpaqueType<"ts", "fixed_rank_shape." # rank,
                "fixed_rank_shape">;
 
-class AsFixedRankShapeOp<int rank> : TS_Op<"as_fixed_rank_shape." # rank, [NoSideEffect]> {
+class AsFixedRankShapeOp<int rank> : TS_Op<"as_fixed_rank_shape." # rank, [Pure]> {
   let summary = "Convert TensorShape to FixedRankShape operation";
 
   let description = [{
@@ -130,7 +130,7 @@ foreach rank = [0, 1, 2, 3] in {
   def TS_PrintFixedRankShapeOp_#rank : PrintFixedRankShapeOp<rank>;
 }
 
-def TS_BuildPartialShapeOp : TS_Op<"build_partial_shape", [NoSideEffect]> {
+def TS_BuildPartialShapeOp : TS_Op<"build_partial_shape", [Pure]> {
   let summary = "Build partial tensor shape operation";
 
   let description = [{
@@ -142,7 +142,7 @@ def TS_BuildPartialShapeOp : TS_Op<"build_partial_shape", [NoSideEffect]> {
   let assemblyFormat = "$value attr-dict";
 }
 
-def TS_BuildUnrankedPartialShapeOp : TS_Op<"build_unranked_partial_shape", [NoSideEffect]> {
+def TS_BuildUnrankedPartialShapeOp : TS_Op<"build_unranked_partial_shape", [Pure]> {
   let summary = "Build unranked partial tensor shape operation";
 
   let description = [{

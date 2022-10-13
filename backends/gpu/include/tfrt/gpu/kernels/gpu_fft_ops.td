@@ -58,7 +58,7 @@ def TFRTGPU_FftCreateOp : TFRTGPU_Op<"fft.create"> {
   let hasVerifier = 1;
 }
 
-def TFRTGPU_FftGetWorkspaceSizeOp : TFRTGPU_Op<"fft.get_workspace_size", [NoSideEffect]> {
+def TFRTGPU_FftGetWorkspaceSizeOp : TFRTGPU_Op<"fft.get_workspace_size", [Pure]> {
   let description = [{
     tfrt_gpu.fft.create returns workspace size in bytes required to execute
     the FFT operation.

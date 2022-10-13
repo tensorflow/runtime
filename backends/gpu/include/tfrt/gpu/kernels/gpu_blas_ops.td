@@ -71,7 +71,7 @@ def TFRTGPU_BlasSaxpyOp : TFRTGPU_Op<"blas.axpy"> {
   let hasVerifier = 1;
 }
 
-def TFRTGPU_BlasGemmAlgoOp : TFRTGPU_Op<"blas.gemm.algo", [NoSideEffect]> {
+def TFRTGPU_BlasGemmAlgoOp : TFRTGPU_Op<"blas.gemm.algo", [Pure]> {
   let arguments = (ins TFRTGPU_BlasGemmAlgoAttr:$algo);
   let results = (outs TFRTGPU_BlasGemmAlgoType);
   let assemblyFormat = "custom<Enum>($algo) attr-dict";

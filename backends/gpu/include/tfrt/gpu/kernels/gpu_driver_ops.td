@@ -30,7 +30,7 @@ def TFRTGPU_DeviceType : TFRTGPU_Type<"Device"> { let mnemonic = "device"; }
 def TFRTGPU_EventType : TFRTGPU_Type<"Event"> { let mnemonic = "event"; }
 def TFRTGPU_FunctionType : TFRTGPU_Type<"Function"> { let mnemonic = "function"; }
 
-def TFRTGPU_DeviceGetOp : TFRTGPU_Op<"device.get", [NoSideEffect]> {
+def TFRTGPU_DeviceGetOp : TFRTGPU_Op<"device.get", [Pure]> {
   let description = [{
     tfrt_gpu.device.get returns the gpu device at the given index.
 
@@ -43,7 +43,7 @@ def TFRTGPU_DeviceGetOp : TFRTGPU_Op<"device.get", [NoSideEffect]> {
   let assemblyFormat = "custom<Enum>($platform)`,` operands attr-dict";
 }
 
-def TFRTGPU_ContextPrimaryOp : TFRTGPU_Op<"context.primary", [NoSideEffect]> {
+def TFRTGPU_ContextPrimaryOp : TFRTGPU_Op<"context.primary", [Pure]> {
   let description = [{
     tfrt_gpu.context.primary returns the primary gpu context of the device.
 
@@ -83,7 +83,7 @@ def TFRTGPU_StreamCreateOp : TFRTGPU_Op<"stream.create"> {
   let results = (outs TFRTGPU_StreamType);
 }
 
-def TFRTGPU_StreamGetContextOp : TFRTGPU_Op<"stream.get_context", [NoSideEffect]> {
+def TFRTGPU_StreamGetContextOp : TFRTGPU_Op<"stream.get_context", [Pure]> {
   let description = [{
     tfrt_gpu.stream.get_context returns the context the stream was created with.
 
@@ -158,7 +158,7 @@ def TFRTGPU_EventSynchronizeOp : TFRTGPU_Op<"event.synchronize"> {
   let results = (outs TFRT_ChainType);
 }
 
-def TFRTGPU_AllocatorCreateOp : TFRTGPU_Op<"allocator.create", [NoSideEffect]> {
+def TFRTGPU_AllocatorCreateOp : TFRTGPU_Op<"allocator.create", [Pure]> {
   let description = [{
     tfrt_gpu.allocator.create creates an allocator for the given context.
 
@@ -291,7 +291,7 @@ def TFRTGPU_MemRegisterOp : TFRTGPU_Op<"mem.register"> {
   let assemblyFormat = "$ctx`,` $buffer attr-dict";
 }
 
-def TFRTGPU_MemViewOp : TFRTGPU_Op<"mem.view", [NoSideEffect]> {
+def TFRTGPU_MemViewOp : TFRTGPU_Op<"mem.view", [Pure]> {
   let description = [{
     tfrt_gpu.mem.view returns a buffer view of the given byte size and offset.
 
@@ -395,7 +395,7 @@ def TFRTGPU_ModuleGetGlobalOp : TFRTGPU_Op<"module.get_global"> {
   let results = (outs TFRTGPU_BufferType);
 }
 
-def TFRTGPU_ModuleGetFunctionOp : TFRTGPU_Op<"module.get_function", [NoSideEffect]> {
+def TFRTGPU_ModuleGetFunctionOp : TFRTGPU_Op<"module.get_function", [Pure]> {
   let description = [{
     tfrt_gpu.module.get_function retrieves a GPU device function from a module.
 
@@ -441,7 +441,7 @@ def TFRTGPU_FunctionLaunchOp : TFRTGPU_Op<"function.launch"> {
 }
 
 def TFRTGPU_AliasOp : TFRTGPU_Op<"alias", [
-      NoSideEffect,
+      Pure,
       TypesMatchWith<"value type matches result type", "res", "value", "$_self">
 ]>{
 

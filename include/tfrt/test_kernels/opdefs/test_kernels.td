@@ -169,7 +169,7 @@ def SyncBenchmarkOp : Test_Op<"sync_benchmark"> {
 }
 
 class Count3Op<string suffix, Type type>
-  : Test_Op<"count3." # suffix, [NoSideEffect]> {
+  : Test_Op<"count3." # suffix, [Pure]> {
   let summary = "tfrt_test.count3 operation";
   let description = [{
      An operation that takes one input x and returns x+1, x+2, x+3 as the

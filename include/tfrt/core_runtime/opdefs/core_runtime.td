@@ -32,7 +32,7 @@ class CoreRT_Op<string mnemonic, list<Trait> traits = []> :
 }
 
 class CreateDenseTensorOp<string dtype>
-  : CoreRT_Op<"create_dense_tensor." # dtype, [NoSideEffect]> {
+  : CoreRT_Op<"create_dense_tensor." # dtype, [Pure]> {
   let summary = "Create a constant dense host tensor with explicit dtype and rank.";
   let description = [{}];
 
@@ -60,7 +60,7 @@ foreach dtype = ["ui8", "ui16", "ui32", "ui64",
 }
 
 def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
-    [ConstantLike, NoSideEffect, CoreRT_TypedAttributeTrait]> {
+    [ConstantLike, Pure, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant dense host tensor.";
   let description = [{
     ConstDenseTensorOp creates a constant dense host tensor.
@@ -86,7 +86,7 @@ def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
 
 // TODO(b/181257202): This should be `ConstantLike`.
 def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
-    [NoSideEffect, CoreRT_TypedAttributeTrait]> {
+    [Pure, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant string host tensor.";
   let description = [{
     ConstStringTensorOp creates a constant string host tensor.
@@ -114,7 +114,7 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
   let hasVerifier = 0;
 }
 
-def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {
+def ExecuteOp : CoreRT_Op<"executeop", [Pure, CoreRT_TypedAttributeTrait]> {
   let summary = "The CoreRuntime ExecuteOp";
   let description = [{
     The ExecuteOp executes an operation on the specified op handler.
@@ -203,7 +203,7 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   );
 }
 
-def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [NoSideEffect]> {
+def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [Pure]> {
   let summary = "return the registered op handler";
   let description = [{
     GetOpHandler returns a registered op handler, which can be used by ExecuteOp.

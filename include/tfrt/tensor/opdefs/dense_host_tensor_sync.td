@@ -47,7 +47,7 @@ class DHT_Sync_Op<string mnemonic, list<Trait> traits = []> :
 
 class SyncCreateUninitializedTensorOp<string dtype, int rank>
   : DHT_Sync_Op<"create_uninitialized_tensor." # dtype # "." # rank,
-          [NoSideEffect]> {
+          [Pure]> {
   let summary = "tfrt_dht_sync.create_uninitialized_tensor operation";
 
   let description = [{
@@ -98,7 +98,7 @@ def SyncAllocateBufferOp : DHT_Sync_Op<"allocate_buffer"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-def SyncGetTensorShapeOp : DHT_Sync_Op<"get_tensor_shape", [NoSideEffect]> {
+def SyncGetTensorShapeOp : DHT_Sync_Op<"get_tensor_shape", [Pure]> {
   let summary = "tfrt_dht_sync.get_tensor_shape operation";
 
   let description = [{

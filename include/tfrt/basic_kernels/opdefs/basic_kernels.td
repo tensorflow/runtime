@@ -63,7 +63,7 @@ def CallOp : TFRT_Op<"call", [CallOpInterface]> {
 }
 
 class ConstantOp<string suffix, Type baseType, Attr attr>
-  : TFRT_Op<"constant." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"constant." # suffix, [Pure]> {
   let summary = "host executor constant value constructor";
 
   let arguments = (ins attr:$value);
@@ -93,7 +93,7 @@ def ConstantUI32Op : ConstantOp<"ui32", UI32, UI32Attr>;
 def ConstantUI64Op : ConstantOp<"ui64", UI64, UI64Attr>;
 
 class ConstantComplexOp<string suffix, Type baseType, Attr attr>
-  : TFRT_Op<"constant.complex" # suffix, [NoSideEffect]> {
+  : TFRT_Op<"constant.complex" # suffix, [Pure]> {
   let summary = "host executor complex constant value constructor";
 
   let arguments = (ins attr:$real, attr:$imaginary);
@@ -109,7 +109,7 @@ def ConstantComplexF64Op : ConstantComplexOp<"128", F64, F64Attr>;
 // TODO(tf-runtime-team): Consider reusing op defitions for sync/async ops.
 // TODO(tf-runtime-team): Consider create `tfrt_sync` dialect.
 class SyncConstantOp<string suffix, Type baseType, Attr attr>
-  : TFRT_Op<"constant_s." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"constant_s." # suffix, [Pure]> {
   let summary = "host executor constant value constructor";
 
   let arguments = (ins attr:$value);
@@ -293,7 +293,7 @@ def OnceOp : TFRT_Op<"once"> {
   let hasVerifier = 0;
 }
 
-def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
+def NewChainOp : TFRT_Op<"new.chain", [Pure]> {
   let summary = "host executor chain constructor";
   let description = [{
     The "tfrt.new.chain" operation returns a !tfrt.chain value, which can be fed
@@ -313,7 +313,7 @@ def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
   let hasVerifier = 0;
 }
 
-def MergeChainsOp : TFRT_Op<"merge.chains", [NoSideEffect]> {
+def MergeChainsOp : TFRT_Op<"merge.chains", [Pure]> {
   let summary = "host executor merge chain";
   let description = [{
     The "tfrt.merge.chains" operation merges variadic number of inputs and
@@ -456,7 +456,7 @@ def ReturnOp : TFRT_Op<"return", [Terminator]> {
 }
 
 class AddOp<string suffix, Type type>
-  : TFRT_Op<"add." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"add." # suffix, [Pure]> {
   let summary = "tfrt.add operation";
   let description = [{
      An operation that takes two inputs and returns their sum as the result.
@@ -476,7 +476,7 @@ def AddF32Op : AddOp<"f32", F32>;
 def AddF64Op : AddOp<"f64", F64>;
 
 class AndOp<string suffix, Type type>
-  : TFRT_Op<"and." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"and." # suffix, [Pure]> {
   let summary = "tfrt.and operation";
   let description = [{
      An operation that takes two inputs and returns their conjunction as the
@@ -494,7 +494,7 @@ class AndOp<string suffix, Type type>
 def AndI1Op : AndOp<"i1", I1>;
 
 class EqualOp<string suffix, Type type>
-  : TFRT_Op<"equal." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"equal." # suffix, [Pure]> {
   let summary = "tfrt.equal operation";
   let description = [{
      An operation that takes two inputs and returns their equality as the
@@ -513,7 +513,7 @@ def EqualI32Op : EqualOp<"i32", I32>;
 def EqualI64Op : EqualOp<"i64", I64>;
 
 class DivOp<string suffix, Type type>
-  : TFRT_Op<"div." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"div." # suffix, [Pure]> {
   let summary = "tfrt.div operation";
   let description = [{
      An operation that takes two inputs and returns their quotient and remainder
@@ -532,7 +532,7 @@ def DivI32Op : DivOp<"i32", I32>;
 def DivI64Op : DivOp<"i64", I64>;
 
 class MulOp<string suffix, Type type>
-  : TFRT_Op<"mul." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"mul." # suffix, [Pure]> {
   let summary = "tfrt.mul operation";
   let description = [{
      An operation that takes two inputs and returns their product.
@@ -550,7 +550,7 @@ def MulI32Op : MulOp<"i32", I32>;
 def MulI64Op : MulOp<"i64", I64>;
 
 class SyncMulOp<string suffix, Type type>
-  : TFRT_Op<"mul_s." # suffix, [NoSideEffect]> {
+  : TFRT_Op<"mul_s." # suffix, [Pure]> {
   let summary = "tfrt.mul operation";
   let description = [{
      An operation that takes two inputs and returns their product.

@@ -27,6 +27,7 @@
 #include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/logging.h"
+#include "third_party/tensorflow/compiler/xla/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
@@ -64,9 +65,10 @@ TEST(AotCompilationTest, CompileSaveRestore) {
   opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
 
   CompilationPipelineOptions copts;
-  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
-    CreateDefaultJitRtCompilationPipeline(pm, copts);
-  };
+  opts.compiler.create_compilation_pipeline =
+      [&](xla::runtime::PassManager& passes) {
+        CreateDefaultJitRtCompilationPipeline(passes, copts);
+      };
 
   absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);

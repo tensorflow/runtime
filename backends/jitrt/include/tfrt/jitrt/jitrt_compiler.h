@@ -19,8 +19,8 @@
 
 #include <functional>
 
-#include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "third_party/tensorflow/compiler/xla/runtime/compiler.h"
 
 namespace xla {
 namespace runtime {
@@ -37,7 +37,7 @@ namespace jitrt {
 
 // Registers dialects, interfaces and dialects translations with the registry
 // required by the default JitRt compilation pipeline.
-void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry);
+void RegisterDefaultJitRtDialects(xla::runtime::DialectRegistry& dialects);
 
 struct CompilationPipelineOptions {
   // Byte alignment for allocated memrefs. Depending on the compiler flags
@@ -93,7 +93,7 @@ struct CompilationPipelineOptions {
 //  - program must be bufferized: inputs and results must be memrefs, no tensors
 //    in the function body are allowed
 void CreateDefaultJitRtCompilationPipeline(
-    mlir::OpPassManager& pm, const CompilationPipelineOptions& opts);
+    xla::runtime::PassManager& passes, const CompilationPipelineOptions& opts);
 
 }  // namespace jitrt
 }  // namespace tfrt

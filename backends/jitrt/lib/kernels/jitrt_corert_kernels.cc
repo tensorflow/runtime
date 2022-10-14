@@ -101,9 +101,10 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
     JitExecutable::Options opts;
     opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
-    opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
-      CreateDefaultJitRtCompilationPipeline(pm, copts);
-    };
+    opts.compiler.create_compilation_pipeline =
+        [copts](xla::runtime::PassManager& passes) {
+          CreateDefaultJitRtCompilationPipeline(passes, copts);
+        };
 
     string_view entrypoint = kernel.nested_symbols()[0];
     string_view module = kernel.serialized_operation();

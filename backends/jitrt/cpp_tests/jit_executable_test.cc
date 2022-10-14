@@ -83,9 +83,10 @@ void BenchmarkGetExecutable(benchmark::State& state,
   opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
 
   CompilationPipelineOptions copts;
-  opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
-    CreateDefaultJitRtCompilationPipeline(pm, copts);
-  };
+  opts.compiler.create_compilation_pipeline =
+      [copts](xla::runtime::PassManager& passes) {
+        CreateDefaultJitRtCompilationPipeline(passes, copts);
+      };
 
   absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);
@@ -119,9 +120,10 @@ void BenchmarkInitializeCallFrame(benchmark::State& state,
   opts.compiler.register_dialects = RegisterDefaultJitRtDialects;
 
   CompilationPipelineOptions copts;
-  opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
-    CreateDefaultJitRtCompilationPipeline(pm, copts);
-  };
+  opts.compiler.create_compilation_pipeline =
+      [copts](xla::runtime::PassManager& passes) {
+        CreateDefaultJitRtCompilationPipeline(passes, copts);
+      };
 
   absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);

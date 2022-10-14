@@ -47,6 +47,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
@@ -114,14 +115,16 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
     opts.compiler.symbols_binding = ToSymbolsBinding(
         RegisterDirectCustomCallTestLib, PopulateCustomCallTypeIdNames);
 
-    opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
-      registry.insert<xla::runtime::TestlibDialect>();
-      RegisterDefaultJitRtDialects(registry);
-    };
+    opts.compiler.register_dialects =
+        [](xla::runtime::DialectRegistry& dialects) {
+          dialects->insert<xla::runtime::TestlibDialect>();
+          RegisterDefaultJitRtDialects(dialects);
+        };
 
-    opts.compiler.create_compilation_pipeline = [copts](mlir::PassManager& pm) {
-      CreateDefaultJitRtCompilationPipeline(pm, copts);
-    };
+    opts.compiler.create_compilation_pipeline =
+        [copts](xla::runtime::PassManager& passes) {
+          CreateDefaultJitRtCompilationPipeline(passes, copts);
+        };
 
     string_view entrypoint = kernel.nested_symbols()[0];
     string_view module = kernel.serialized_operation();

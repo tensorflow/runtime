@@ -24,6 +24,7 @@
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
 #include "third_party/tensorflow/compiler/xla/runtime/executable.h"
@@ -68,17 +69,19 @@ static void BenchmarkCustomCall(benchmark::State& state, StringRef module,
   opts.specialization = JitExecutable::Specialization::kDisabled;
   opts.compiler.symbols_binding = symbols_binding;
 
-  opts.compiler.register_dialects = [&](mlir::DialectRegistry& registry) {
-    registry.insert<TestlibDialect>();
-    RegisterDefaultJitRtDialects(registry);
-  };
+  opts.compiler.register_dialects =
+      [&](xla::runtime::DialectRegistry& dialects) {
+        dialects->insert<TestlibDialect>();
+        RegisterDefaultJitRtDialects(dialects);
+      };
 
-  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
-    CompilationPipelineOptions copts;
-    copts.populate_type_id_names = PopulateCustomCallTypeIdNames;
-    copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
-    CreateDefaultJitRtCompilationPipeline(pm, copts);
-  };
+  opts.compiler.create_compilation_pipeline =
+      [&](xla::runtime::PassManager& passes) {
+        CompilationPipelineOptions copts;
+        copts.populate_type_id_names = PopulateCustomCallTypeIdNames;
+        copts.populate_attr_encodings = PopulateCustomCallAttrEncoding;
+        CreateDefaultJitRtCompilationPipeline(passes, copts);
+      };
 
   // Get the default executable (it must be always available).
   absl::StatusOr<JitExecutable> jit_executable =

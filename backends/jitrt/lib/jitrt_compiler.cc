@@ -55,6 +55,7 @@
 #include "tfrt/jitrt/transforms/codegen_passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/custom_call_encoding.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 
@@ -65,114 +66,118 @@ using xla::runtime::CreateConvertAssertsPass;
 using xla::runtime::CreateConvertCustomCallsPass;
 using xla::runtime::CreateExportRuntimeFunctionsPass;
 
-void RegisterDefaultJitRtDialects(mlir::DialectRegistry& registry) {
+void RegisterDefaultJitRtDialects(xla::runtime::DialectRegistry& dialects) {
   // Register MLIR dialects supported by the compiled kernels.
-  registry.insert<mlir::AffineDialect, mlir::arith::ArithDialect,
-                  mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
-                  mlir::linalg::LinalgDialect, mlir::math::MathDialect,
-                  mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
-                  mlir::func::FuncDialect, mlir::tensor::TensorDialect,
-                  mlir::vector::VectorDialect, xla::runtime::RuntimeDialect>();
+  dialects->insert<mlir::AffineDialect, mlir::arith::ArithDialect,
+                   mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
+                   mlir::linalg::LinalgDialect, mlir::math::MathDialect,
+                   mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
+                   mlir::func::FuncDialect, mlir::tensor::TensorDialect,
+                   mlir::vector::VectorDialect, xla::runtime::RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.
-  mlir::registerArmNeonDialectTranslation(registry);
-  mlir::registerAMXDialectTranslation(registry);
-  mlir::registerArmSVEDialectTranslation(registry);
-  mlir::registerLLVMDialectTranslation(registry);
-  mlir::registerX86VectorDialectTranslation(registry);
+  mlir::registerArmNeonDialectTranslation(*dialects);
+  mlir::registerAMXDialectTranslation(*dialects);
+  mlir::registerArmSVEDialectTranslation(*dialects);
+  mlir::registerLLVMDialectTranslation(*dialects);
+  mlir::registerX86VectorDialectTranslation(*dialects);
 
   // Register other information needed for JitRt passes.
-  mlir::tensor::registerInferTypeOpInterfaceExternalModels(registry);
+  mlir::tensor::registerInferTypeOpInterfaceExternalModels(*dialects);
 }
 
 void CreateDefaultJitRtCompilationPipeline(
-    mlir::OpPassManager& pm, const CompilationPipelineOptions& opts) {
+    xla::runtime::PassManager& passes, const CompilationPipelineOptions& opts) {
   // Convert entry function to the XLA entrypoint.
-  pm.addPass(CreateExportRuntimeFunctionsPass());
-  pm.addPass(CreateConvertCustomCallsPass());
-  pm.addPass(CreateConvertAssertsPass());
+  passes->addPass(CreateExportRuntimeFunctionsPass());
+  passes->addPass(CreateConvertCustomCallsPass());
+  passes->addPass(CreateConvertAssertsPass());
 
-  pm.addPass(mlir::createInlinerPass());
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
+  passes->addPass(mlir::createInlinerPass());
+  passes->addPass(mlir::createCanonicalizerPass());
+  passes->addPass(mlir::createCSEPass());
 
   // Optimize operations from the math dialect before outlining compute regions
   // into functions to see all constant operands.
-  pm.addNestedPass<mlir::func::FuncOp>(
+  passes->addNestedPass<mlir::func::FuncOp>(
       xla::runtime::CreateMathOptimizationPass(opts.math_avx2));
 
   // Convert all linalg operations to parallel loops.
-  pm.addNestedPass<mlir::func::FuncOp>(
+  passes->addNestedPass<mlir::func::FuncOp>(
       mlir::createConvertLinalgToParallelLoopsPass());
   // Canonicalize generated scf.parallel operations to remove single iterations.
-  pm.addPass(mlir::createCanonicalizerPass());
+  passes->addPass(mlir::createCanonicalizerPass());
 
   // Convert scf.parallel operations into async work sharding loops.
   if (opts.num_worker_threads > 1) {
-    pm.addPass(CreateCostDrivenAsyncParallelForPass(
+    passes->addPass(CreateCostDrivenAsyncParallelForPass(
         /*asyncDispatch=*/false, /*numWorkerThreads=*/opts.num_worker_threads,
         /*legacyBehavior=*/!opts.cost_driven_async_parallel_for));
 
     // Run canonicalization after async-parallel-for pass to remove async
     // operations that are not needed for executing small and cheap loops.
-    pm.addPass(mlir::createCanonicalizerPass());
+    passes->addPass(mlir::createCanonicalizerPass());
 
     // Cleanup unused async work dispatch functions after canonicalization.
-    pm.addPass(mlir::createSymbolDCEPass());
+    passes->addPass(mlir::createSymbolDCEPass());
   }
 
   // Lower from high level async operations to async runtime.
-  pm.addPass(mlir::createAsyncToAsyncRuntimePass());
+  passes->addPass(mlir::createAsyncToAsyncRuntimePass());
 
   // Add async.runtime reference counting operations.
-  pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
+  passes->addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
 
   // Expand math operations into std/arith dialect operations.
-  pm.addNestedPass<mlir::func::FuncOp>(mlir::arith::createArithExpandOpsPass());
-  pm.addNestedPass<mlir::func::FuncOp>(mlir::memref::createExpandOpsPass());
+  passes->addNestedPass<mlir::func::FuncOp>(
+      mlir::arith::createArithExpandOpsPass());
+  passes->addNestedPass<mlir::func::FuncOp>(
+      mlir::memref::createExpandOpsPass());
 
   // Add alignment attribute to all memref allocations.
-  pm.addNestedPass<mlir::func::FuncOp>(
+  passes->addNestedPass<mlir::func::FuncOp>(
       xla::runtime::CreateAlignedAllocationsPass(opts.alignment));
 
   // Lower everything down to LLVM dialect.
-  pm.addPass(mlir::createConvertLinalgToLLVMPass());
-  pm.addPass(mlir::createLowerAffinePass());
-  pm.addPass(mlir::createConvertSCFToCFPass());
+  passes->addPass(mlir::createConvertLinalgToLLVMPass());
+  passes->addPass(mlir::createLowerAffinePass());
+  passes->addPass(mlir::createConvertSCFToCFPass());
 
   // Convert runtime operations and custom calls to LLVM dialect.
   xla::runtime::ConvertRuntimeToLLvmOpts rt_opts = {
       opts.populate_type_id_names, opts.populate_type_conversions,
       opts.populate_arg_encodings,
       /*populate_ret_encodings=*/{}, opts.populate_attr_encodings};
-  pm.addPass(xla::runtime::CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
+  passes->addPass(
+      xla::runtime::CreateConvertRuntimeToLLVMPass(std::move(rt_opts)));
 
   // Convert async dialect to LLVM once everything else is in the LLVM dialect.
-  pm.addPass(mlir::createConvertAsyncToLLVMPass());
+  passes->addPass(mlir::createConvertAsyncToLLVMPass());
 
   {
-    mlir::OpPassManager& fpm = pm.nest<mlir::func::FuncOp>();
+    mlir::OpPassManager& fpm = passes->nest<mlir::func::FuncOp>();
     fpm.addPass(mlir::createConvertMathToLLVMPass());
   }
 
-  pm.addPass(mlir::createConvertMathToLibmPass());
+  passes->addPass(mlir::createConvertMathToLibmPass());
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
   if (opts.math_avx2) vector_to_llvm_opts.enableX86Vector();
-  pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
-  pm.addPass(mlir::createMemRefToLLVMConversionPass());
-  pm.addPass(mlir::createConvertFuncToLLVMPass());
-  pm.addPass(mlir::createConvertComplexToLLVMPass());
-  pm.addPass(mlir::createReconcileUnrealizedCastsPass());
+  passes->addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
+  passes->addPass(mlir::createMemRefToLLVMConversionPass());
+  passes->addPass(mlir::createConvertFuncToLLVMPass());
+  passes->addPass(mlir::createConvertComplexToLLVMPass());
+  passes->addPass(mlir::createReconcileUnrealizedCastsPass());
 
   // Prepare module for translation to LLVM.
-  pm.addPass(mlir::createCanonicalizerPass());
-  pm.addPass(mlir::createCSEPass());
+  passes->addPass(mlir::createCanonicalizerPass());
+  passes->addPass(mlir::createCSEPass());
 }
 
 static void CreateJitRtCompilationPipeline(mlir::OpPassManager& pm) {
   CompilationPipelineOptions copts;
-  CreateDefaultJitRtCompilationPipeline(pm, copts);
+  xla::runtime::PassManager passes(&pm);
+  CreateDefaultJitRtCompilationPipeline(passes, copts);
 }
 
 static mlir::PassPipelineRegistration<> jitrt_pipeline(

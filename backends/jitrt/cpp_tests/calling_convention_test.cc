@@ -24,6 +24,7 @@
 #include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
 #include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
+#include "third_party/tensorflow/compiler/xla/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
@@ -68,12 +69,14 @@ TEST_P(CallingConventionTest, TestSignature) {
   JitExecutable::Options opts;
   opts.specialization = JitExecutable::Specialization::kEnabled;
   opts.compiler.calling_convention = test_case.calling_convention;
-  opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
-    RegisterDefaultJitRtDialects(registry);
-  };
-  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
-    CreateDefaultJitRtCompilationPipeline(pm, {});
-  };
+  opts.compiler.register_dialects =
+      [](xla::runtime::DialectRegistry& dialects) {
+        RegisterDefaultJitRtDialects(dialects);
+      };
+  opts.compiler.create_compilation_pipeline =
+      [&](xla::runtime::PassManager& passes) {
+        CreateDefaultJitRtCompilationPipeline(passes, {});
+      };
 
   absl::StatusOr<JitExecutable> jit_executable =
       JitExecutable::Instantiate(mlir_module, entrypoint, opts);

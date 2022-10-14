@@ -36,6 +36,7 @@
 #include "tfrt/jitrt/results.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/calling_convention.h"
+#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/custom_call_encoding.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
@@ -262,15 +263,16 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
   // all the dialects that are considered legal for your input program.
   //
   // In this example in addition to "standard" JitRt dialects we add only Tosa.
-  opts.compiler.register_dialects = [](mlir::DialectRegistry& registry) {
-    // For testing value specialization.
-    registry.insert<mlir::tosa::TosaDialect>();
+  opts.compiler.register_dialects =
+      [](xla::runtime::DialectRegistry& dialects) {
+        // For testing value specialization.
+        dialects->insert<mlir::tosa::TosaDialect>();
 
-    // For testing passing custom arguments back to custom calls.
-    registry.insert<TestlibDialect>();
+        // For testing passing custom arguments back to custom calls.
+        dialects->insert<TestlibDialect>();
 
-    RegisterDefaultJitRtDialects(registry);
-  };
+        RegisterDefaultJitRtDialects(dialects);
+      };
 
   // Convert all tensors in the compute function signature to memrefs, because
   // tensors do not have any runtime representation and can't be passed across
@@ -295,37 +297,40 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
   // As a first step we lower from Tosa to Linalg on buffers, and then we rely
   // on a default JitRt compilation pipeline to lower further to LLVM.
-  opts.compiler.create_compilation_pipeline = [&](mlir::PassManager& pm) {
-    // 1. Lower Tosa to Linalg in tensors.
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToLinalg());
+  opts.compiler.create_compilation_pipeline =
+      [&](xla::runtime::PassManager& passes) {
+        // 1. Lower Tosa to Linalg in tensors.
+        passes->addNestedPass<mlir::func::FuncOp>(
+            mlir::tosa::createTosaToLinalg());
 
-    // 2. Lower Linalg on tensors to Linalg on buffers.
-    pm.addPass(mlir::func::createFuncBufferizePass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::createLinalgBufferizePass());
+        // 2. Lower Linalg on tensors to Linalg on buffers.
+        passes->addPass(mlir::func::createFuncBufferizePass());
+        passes->addNestedPass<mlir::func::FuncOp>(
+            mlir::createLinalgBufferizePass());
 
-    // 3. Clean up IR after lowering to Linalg on buffers.
-    pm.addPass(mlir::createCSEPass());
-    pm.addPass(mlir::createCanonicalizerPass());
+        // 3. Clean up IR after lowering to Linalg on buffers.
+        passes->addPass(mlir::createCSEPass());
+        passes->addPass(mlir::createCanonicalizerPass());
 
-    // 4. Continue compilation using the default JitRt pipeline.
-    CompilationPipelineOptions copts;
+        // 4. Continue compilation using the default JitRt pipeline.
+        CompilationPipelineOptions copts;
 
-    // Register type id to unique symbol name mappings.
-    copts.populate_type_id_names = RegisterMyRuntimeTypeNames;
+        // Register type id to unique symbol name mappings.
+        copts.populate_type_id_names = RegisterMyRuntimeTypeNames;
 
-    // Register type conversions from custom types (!testlib.custom_arg).
-    copts.populate_type_conversions = [](mlir::TypeConverter& converter) {
-      converter.addConversion(ConvertCustomArg);
-    };
+        // Register type conversions from custom types (!testlib.custom_arg).
+        copts.populate_type_conversions = [](mlir::TypeConverter& converter) {
+          converter.addConversion(ConvertCustomArg);
+        };
 
-    // Add custom call arguments encoding for custom types
-    // (!testlib.custom_arg).
-    copts.populate_arg_encodings = [](CustomCallArgEncodingSet& encoding) {
-      encoding.Add<CustomArgEncoding>();
-    };
+        // Add custom call arguments encoding for custom types
+        // (!testlib.custom_arg).
+        copts.populate_arg_encodings = [](CustomCallArgEncodingSet& encoding) {
+          encoding.Add<CustomArgEncoding>();
+        };
 
-    CreateDefaultJitRtCompilationPipeline(pm, copts);
-  };
+        CreateDefaultJitRtCompilationPipeline(passes, copts);
+      };
 
   // If your input IR requires specialization, you'll also need to define the
   // `opts.compiler.create_compilation_pipeline` callback. In this test we rely

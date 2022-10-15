@@ -143,6 +143,17 @@ licenses(["notice"])
 # )
 #
 # tfrt_cc_library(
+#     name = "async_task_runner",
+#     hdrs = ["include/tfrt/jitrt/async_task_runner.h"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:gce"],
+#     visibility = ["@tf_runtime//:friends"],
+#     deps = [
+#         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
+#         "@tf_runtime//:hostcontext",
+#     ],
+# )
+#
+# tfrt_cc_library(
 #     name = "results",
 #     srcs = ["lib/results.cc"],
 #     hdrs = ["include/tfrt/jitrt/results.h"],
@@ -192,6 +203,7 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":arguments",
+#         ":async_task_runner",
 #         ":custom_call_testlib",
 #         ":jitrt_compiler",
 #         ":results",
@@ -219,6 +231,7 @@ licenses(["notice"])
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":arguments",
+#         ":async_task_runner",
 #         ":jitrt_compiler",
 #         ":results",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",

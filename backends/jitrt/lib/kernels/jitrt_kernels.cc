@@ -37,6 +37,7 @@
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/jitrt/arguments.h"
+#include "tfrt/jitrt/async_task_runner.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/results.h"
@@ -68,7 +69,6 @@ using xla::runtime::CustomCall;
 using xla::runtime::Diagnostic;
 using xla::runtime::DiagnosticEngine;
 using xla::runtime::Executable;
-using xla::runtime::HostContextAsyncTaskRunner;
 using xla::runtime::JitExecutable;
 using xla::runtime::MemrefDesc;
 

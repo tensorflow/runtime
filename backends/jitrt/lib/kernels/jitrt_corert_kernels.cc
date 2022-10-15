@@ -37,6 +37,7 @@
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/jitrt/arguments.h"
+#include "tfrt/jitrt/async_task_runner.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/support/forward_decls.h"
@@ -58,7 +59,6 @@ using KernelArgument = ::tfrt::Argument<T>;
 
 using xla::runtime::AsyncValuesCache;
 using xla::runtime::Executable;
-using xla::runtime::HostContextAsyncTaskRunner;
 using xla::runtime::JitExecutable;
 using xla::runtime::MemrefDesc;
 

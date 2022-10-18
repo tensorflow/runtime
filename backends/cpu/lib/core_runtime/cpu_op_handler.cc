@@ -25,6 +25,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/tensor/coo_host_tensor.h"

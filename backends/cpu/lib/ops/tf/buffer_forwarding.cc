@@ -18,6 +18,7 @@
 
 #include <utility>
 
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {

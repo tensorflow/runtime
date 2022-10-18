@@ -23,6 +23,7 @@
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/kernel_utils.h"

@@ -25,6 +25,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"

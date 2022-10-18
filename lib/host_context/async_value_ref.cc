@@ -21,30 +21,10 @@
 #include <string_view>
 #include <utility>
 
-#include "llvm/Support/Error.h"
-#include "tfrt/host_context/diagnostic.h"
-#include "tfrt/host_context/execution_context.h"
-
 namespace tfrt {
 
 RCReference<IndirectAsyncValue> MakeIndirectAsyncValue() {
   return TakeRef(internal::AllocateAndConstruct<IndirectAsyncValue>());
-}
-
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            absl::Status status) {
-  return MakeErrorAsyncValueRef(EmitError(exec_ctx, status).status);
-}
-
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            std::string_view message) {
-  return EmitErrorAsync(exec_ctx, absl::InternalError(message));
-}
-
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            Error error) {
-  return EmitErrorAsync(exec_ctx,
-                        absl::InternalError(toString(std::move(error))));
 }
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status) {

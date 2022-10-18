@@ -30,6 +30,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/attribute_utils.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"

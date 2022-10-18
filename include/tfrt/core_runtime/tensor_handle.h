@@ -30,6 +30,7 @@
 
 namespace tfrt {
 
+class ExecutionContext;
 class Device;
 
 // An opaque representation of a rectangular tensor computed by the host/device

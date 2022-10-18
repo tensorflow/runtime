@@ -20,6 +20,7 @@
 #include <type_traits>
 
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/conversion_registry.h"

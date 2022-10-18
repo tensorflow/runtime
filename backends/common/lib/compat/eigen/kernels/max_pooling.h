@@ -21,6 +21,7 @@
 
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/parallel_for.h"

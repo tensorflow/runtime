@@ -27,6 +27,7 @@
 #include "skip_dataset.h"
 #include "slice_dataset.h"
 #include "tf_record_dataset.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"

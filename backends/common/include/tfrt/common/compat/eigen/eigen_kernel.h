@@ -26,6 +26,7 @@
 #include "tfrt/common/compat/eigen/thread_pool_device.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"

@@ -18,6 +18,7 @@
 #include "tfrt/core_runtime/kernels.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/tensor.h"
 

@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "absl/status/status.h"  // from @com_google_absl
+#include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/string_util.h"
@@ -65,6 +66,17 @@ DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx, Args&&... args) {
   return EmitError(exec_ctx,
                    absl::InternalError(StrCat(std::forward<Args>(args)...)));
 }
+
+// For consistency, the error message should start with a lower case letter
+// and not end with a period.
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            absl::Status status);
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            std::string_view message);
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            Error error);
 
 }  // namespace tfrt
 

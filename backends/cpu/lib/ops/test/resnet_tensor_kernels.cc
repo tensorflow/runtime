@@ -19,6 +19,7 @@
 #include "../../kernels/cpu_kernels.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/cpu/ops/test/cpu_ops_and_kernels.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"

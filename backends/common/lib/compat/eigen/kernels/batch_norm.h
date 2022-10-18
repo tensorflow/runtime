@@ -19,6 +19,7 @@
 
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"

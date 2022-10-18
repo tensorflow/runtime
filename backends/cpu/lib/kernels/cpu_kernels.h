@@ -24,6 +24,7 @@
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"

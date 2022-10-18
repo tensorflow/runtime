@@ -35,13 +35,10 @@
 
 #include "absl/status/status.h"    // from @com_google_absl
 #include "absl/status/statusor.h"  // from @com_google_absl
-#include "llvm/Support/Error.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/support/alloc.h"
 
 namespace tfrt {
-
-class ExecutionContext;
 
 // Forward declare non-owning typed async value pointer.
 template <typename T>
@@ -302,17 +299,6 @@ class AsyncValuePtr {
  private:
   AsyncValue* value_;  // doesn't own the async value
 };
-
-// For consistency, the error message should start with a lower case letter
-// and not end with a period.
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            absl::Status status);
-
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            std::string_view message);
-
-RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
-                                            Error error);
 
 // Create a ConcreteAsyncValue in error state with the given status.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(absl::Status status);

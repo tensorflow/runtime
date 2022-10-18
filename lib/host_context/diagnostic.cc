@@ -18,6 +18,10 @@
 
 #include "tfrt/host_context/diagnostic.h"
 
+#include <string_view>
+#include <utility>
+
+#include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
@@ -43,6 +47,22 @@ DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
   host->EmitError(diag);
 
   return diag;
+}
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            absl::Status status) {
+  return MakeErrorAsyncValueRef(EmitError(exec_ctx, status).status);
+}
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            std::string_view message) {
+  return EmitErrorAsync(exec_ctx, absl::InternalError(message));
+}
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            Error error) {
+  return EmitErrorAsync(exec_ctx,
+                        absl::InternalError(toString(std::move(error))));
 }
 
 }  // namespace tfrt

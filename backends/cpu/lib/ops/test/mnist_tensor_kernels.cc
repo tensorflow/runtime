@@ -28,6 +28,7 @@
 #include "tfrt/cpu/ops/test/cpu_ops_and_kernels.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/tensor/btf.h"

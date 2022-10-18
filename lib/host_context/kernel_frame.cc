@@ -19,6 +19,7 @@
 
 #include "tfrt/host_context/kernel_frame.h"
 
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {

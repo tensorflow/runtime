@@ -26,6 +26,7 @@
 #include "tfrt/core_runtime/op_utils.h"
 #include "tfrt/cpu/core_runtime/cpu_op_registry.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/host_tensor.h"

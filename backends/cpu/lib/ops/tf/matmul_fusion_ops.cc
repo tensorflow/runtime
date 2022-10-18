@@ -26,6 +26,7 @@
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
 #include "tfrt/cpu/core_runtime/cpu_op_registry.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"

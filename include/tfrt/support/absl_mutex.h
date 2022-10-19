@@ -22,9 +22,9 @@
 
 #include <chrono>
 
-#include "synchronization/mutex.h"  // from @com_google_absl
+#include "absl/synchronization/mutex.h"  // from @com_google_absl
+#include "absl/time/time.h"              // from @com_google_absl
 #include "tfrt/support/thread_annotations.h"
-#include "time/time.h"  // from @com_google_absl
 
 // Avoid conflict with @org_tensorflow/core/platform/mutex.h:181
 // TODO(tfrt-devs): remove the macro in @org_tensorflow/core/platform/mutex.h

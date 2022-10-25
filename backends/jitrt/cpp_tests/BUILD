@@ -14,7 +14,7 @@ licenses(["notice"])
 #     deps = [
 #         "@com_google_googletest//:gtest_main",
 #         "@llvm-project//llvm:Support",
-#         "//third_party/tensorflow/compiler/xla/runtime:compiler_headers",
+#         "//third_party/tensorflow/compiler/xla/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",
 #         "@tf_runtime//:dtype",
 #         "@tf_runtime//:hostcontext",
@@ -34,7 +34,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:BufferizationTransforms",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:calling_convention",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:compiler",
-#         "//third_party/tensorflow/compiler/xla/runtime:compiler_headers",
+#         "//third_party/tensorflow/compiler/xla/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",
 #         "@tf_runtime//backends/jitrt:arguments",
 #         "@tf_runtime//backends/jitrt:jitrt_compiler",

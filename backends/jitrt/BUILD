@@ -137,7 +137,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:custom_call_encoding",
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:passes",
-#         "//third_party/tensorflow/compiler/xla/runtime:compiler_headers",
+#         "//third_party/tensorflow/compiler/xla/runtime:compiler",
 #     ],
 #     alwayslink = 1,
 # )
@@ -210,7 +210,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/runtime:arguments",
 #         "//third_party/tensorflow/compiler/xla/runtime:async_runtime",
-#         "//third_party/tensorflow/compiler/xla/runtime:compiler_headers",
+#         "//third_party/tensorflow/compiler/xla/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call",
 #         "//third_party/tensorflow/compiler/xla/runtime:custom_call_registry",
 #         "//third_party/tensorflow/compiler/xla/runtime:diagnostics",

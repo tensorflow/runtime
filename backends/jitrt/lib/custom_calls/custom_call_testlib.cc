@@ -331,7 +331,7 @@ static bool DirectNoOp(xla::runtime::ExecutionContext* ctx, void** args,
 // Direct PrintAttrs custom call for testing disabled attributes checks.
 static bool DirectPrintAttrs(xla::runtime::ExecutionContext* ctx, void** args,
                              void** attrs, void** rets) {
-  static auto* call = CustomCall::Bind("testlib.print_attrs")
+  static auto* call = CustomCall::Bind("testlib.print_attrs", {false})
                           .UserData<const char*>()
                           .Attr<int32_t>("i32")
                           .Attr<int64_t>("i64")
@@ -378,7 +378,7 @@ void RegisterDynamicCustomCallTestLib(DynamicCustomCallRegistry& registry) {
                         .Value(3.0)         // cst
                         .To(Multiply));
 
-  registry.Register(CustomCall::Bind("testlib.print_attrs")
+  registry.Register(CustomCall::Bind("testlib.print_attrs", {false})
                         .UserData<const char*>()
                         .Attr<int32_t>("i32")
                         .Attr<int64_t>("i64")

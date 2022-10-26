@@ -53,7 +53,7 @@ using RuntimeChecks = CustomCall::RuntimeChecks;
 
 // Give short aliases to enums for benchmarks pretty printing.
 static constexpr RuntimeChecks all = RuntimeChecks::kDefault;
-static constexpr RuntimeChecks types = RuntimeChecks::kTypes;
+static constexpr RuntimeChecks less = RuntimeChecks::kLess;
 static constexpr RuntimeChecks none = RuntimeChecks::kNone;
 
 // -------------------------------------------------------------------------- //
@@ -472,7 +472,7 @@ static void BM_I32AttrX12(benchmark::State& state) {
 }
 
 BENCHMARK(BM_I32AttrX12<all>);
-BENCHMARK(BM_I32AttrX12<types>);
+BENCHMARK(BM_I32AttrX12<less>);
 BENCHMARK(BM_I32AttrX12<none>);
 
 // -------------------------------------------------------------------------- //
@@ -511,7 +511,7 @@ static void BM_PairOfDimsX1(benchmark::State& state) {
 }
 
 BENCHMARK(BM_PairOfDimsX1<all>);
-BENCHMARK(BM_PairOfDimsX1<types>);
+BENCHMARK(BM_PairOfDimsX1<less>);
 BENCHMARK(BM_PairOfDimsX1<none>);
 
 }  // namespace jitrt

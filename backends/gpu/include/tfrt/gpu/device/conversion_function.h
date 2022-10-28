@@ -26,8 +26,6 @@
 namespace tfrt {
 
 class HostContext;
-template <typename T>
-class AsyncValueRef;
 class DenseHostTensor;
 class TensorConversionFnRegistry;
 

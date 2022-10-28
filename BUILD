@@ -185,9 +185,6 @@ tfrt_cc_library(
     name = "hostcontext",
     srcs = [
         "lib/host_context/async_dispatch.cc",
-        "lib/host_context/async_value.cc",
-        "lib/host_context/async_value_ref.cc",
-        "lib/host_context/chain.cc",
         "lib/host_context/concurrent_work_queue.cc",
         "lib/host_context/device.cc",
         "lib/host_context/diagnostic.cc",
@@ -243,6 +240,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
+        ":async_value",
         ":bef",
         ":support",
         "@com_google_absl//absl/status",
@@ -323,7 +321,6 @@ tfrt_cc_library(
         "lib/support/hash_util.cc",
         "lib/support/logging.cc",
         "lib/support/random_util.cc",
-        "lib/support/ref_count.cc",
         "lib/support/stack_trace.cc",
         "lib/support/string_util.cc",
     ],
@@ -366,6 +363,8 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
+        ":concurrent_vector",
+        ":ref_count",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ] + select({

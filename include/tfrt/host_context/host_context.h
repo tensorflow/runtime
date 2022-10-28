@@ -38,7 +38,6 @@ struct DecodedDiagnostic;
 class ConcurrentWorkQueue;
 class HostAllocator;
 class TypeDescriptor;
-class IndirectAsyncValue;
 class SharedContext;
 
 // This represents one instance of a CPU device, which can have multiple

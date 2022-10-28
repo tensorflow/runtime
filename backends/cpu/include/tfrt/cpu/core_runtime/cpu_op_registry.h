@@ -28,8 +28,6 @@
 
 namespace tfrt {
 
-class AsyncValue;
-class Chain;
 class CoreRuntime;
 class HostContext;
 class HostTensor;

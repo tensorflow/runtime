@@ -24,13 +24,13 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/resource_context.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/map_by_type.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 
 class HostContext;
-class ErrorAsyncValue;
 class ConcurrentWorkQueue;
 
 // A request refers to either a BEFFunction execution or an op execution.

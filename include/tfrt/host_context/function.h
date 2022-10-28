@@ -28,7 +28,6 @@
 
 namespace tfrt {
 
-class AsyncValue;
 class ExecutionContext;
 
 class Function {

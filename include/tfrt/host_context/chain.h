@@ -26,19 +26,15 @@
 #ifndef TFRT_HOST_CONTEXT_CHAIN_H_
 #define TFRT_HOST_CONTEXT_CHAIN_H_
 
+#include "tfrt/concurrency/chain.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/host_context/host_context.h"
 
 namespace tfrt {
 
-class Chain {};
+using ::tsl::Chain;  // NOLINT
 
-AsyncValueRef<Chain> GetReadyChain();
-
-// Specialization of MakeAvailableAsyncValueRef<Chain> that calls GetReadyChain.
-template <>
-inline AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>() {
-  return GetReadyChain();
+inline AsyncValueRef<Chain> GetReadyChain() {
+  return MakeAvailableAsyncValueRef<Chain>();
 }
 
 }  // namespace tfrt

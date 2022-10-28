@@ -19,6 +19,7 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 #define TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 
+#include "tfrt/concurrency/async_value.h"  // See note on RunWhenReady below.
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/latch.h"
@@ -211,13 +212,9 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
   return result;
 }
 
-// Run the specified function when the specified set of AsyncValue's are all
-// resolved.  This is a set-version of "AndThen".
-void RunWhenReady(ArrayRef<AsyncValue*> values,
-                  llvm::unique_function<void()> callee);
-
-void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
-                  llvm::unique_function<void()> callee);
+// TODO(b/254083070): Remove this 'using' and the concurrency/async_value.h
+// include when completing the transition to the standalone TSL repo.
+using ::tsl::RunWhenReady;  // NOLINT
 
 void Await(HostContext* host, ArrayRef<RCReference<AsyncValue>> values);
 

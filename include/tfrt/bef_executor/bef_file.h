@@ -33,7 +33,6 @@ class SmallVectorImpl;
 
 namespace tfrt {
 
-class AsyncValue;
 struct DecodedDiagnostic;
 class Function;
 class HostAllocator;

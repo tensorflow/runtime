@@ -42,8 +42,6 @@
 #define DEBUG_TYPE "tfrt-gpu-op-op_handler"
 
 namespace tfrt {
-class AsyncValue;
-class Chain;
 class Tensor;
 
 namespace gpu {

@@ -24,7 +24,6 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-class AsyncValue;
 class ExecutionContext;
 class OpAttrsRef;
 struct TensorMetadata;

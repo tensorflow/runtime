@@ -24,6 +24,7 @@
 #include "llvm/ADT/PointerIntPair.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tensor/tensor_type_registration.h"

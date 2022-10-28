@@ -32,7 +32,6 @@
 
 namespace tfrt {
 
-class AsyncValue;
 class RequestContextBuilder;
 
 // This is a pure virtual base class for concurrent work queue implementations.

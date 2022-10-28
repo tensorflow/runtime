@@ -25,9 +25,6 @@
 
 namespace tfrt {
 
-template <typename T>
-class AsyncValueRef;
-class Chain;
 class ConcurrentWorkQueue;
 struct DecodedDiagnostic;
 class ExecutionContext;

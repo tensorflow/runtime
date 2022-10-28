@@ -26,7 +26,6 @@
 
 namespace tfrt {
 
-class Chain;
 class OpAttrsRef;
 class TensorHandle;
 

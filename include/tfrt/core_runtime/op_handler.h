@@ -29,8 +29,6 @@ namespace tfrt {
 class OpInvocation;
 class CoreRuntime;
 
-template <typename T>
-class AsyncValueRef;
 class DenseHostTensor;
 class ExecutionContext;
 class HostTensor;
@@ -38,7 +36,6 @@ class Tensor;
 class TensorHandle;
 class Location;
 class OpAttrsRef;
-class Chain;
 
 class OpHandler {
  public:

@@ -49,17 +49,36 @@ template <typename FunctionT>
 class function_ref;
 }  // namespace llvm
 
-namespace tfrt {
-
-// Common TFRT types.
+namespace tsl {
+class AsyncValue;
 template <typename T>
 class AsyncValueRef;
-template <typename T>
-class ConcurrentVector;
-template <typename SubClass>
-class ReferenceCounted;
+class Chain;
+class ErrorAsyncValue;
+class IndirectAsyncValue;
 template <typename T>
 class RCReference;
+template <typename SubClass>
+class ReferenceCounted;
+
+namespace internal {
+template <typename T>
+class ConcurrentVector;
+}  // namespace internal
+
+}  // namespace tsl
+
+namespace tfrt {
+
+// Common TSL types.
+using ::tsl::AsyncValue;                  // NOLINT
+using ::tsl::AsyncValueRef;               // NOLINT
+using ::tsl::Chain;                       // NOLINT
+using ::tsl::ErrorAsyncValue;             // NOLINT
+using ::tsl::IndirectAsyncValue;          // NOLINT
+using ::tsl::RCReference;                 // NOLINT
+using ::tsl::ReferenceCounted;            // NOLINT
+using ::tsl::internal::ConcurrentVector;  // NOLINT
 
 template <typename T>
 using Expected = llvm::Expected<T>;

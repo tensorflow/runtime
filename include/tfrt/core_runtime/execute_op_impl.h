@@ -23,10 +23,8 @@
 
 namespace tfrt {
 
-class Chain;
 class AggregateAttr;
 class ExecutionContext;
-class AsyncValue;
 class CoreRuntimeOp;
 class OpAttrs;
 class Value;

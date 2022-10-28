@@ -29,7 +29,6 @@ namespace tfrt {
 
 class TensorHandle;
 class OpAttrsRef;
-class Chain;
 class ExecutionContext;
 
 // A callable op handle prepared by a specific OpHandler.

@@ -25,8 +25,6 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-class AsyncValue;
-class Chain;
 class CoreRuntime;
 class Tensor;
 class ExecutionContext;

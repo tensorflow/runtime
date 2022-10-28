@@ -31,6 +31,8 @@
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Transforms/Passes.h"
+#include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/async_value.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/results.h"

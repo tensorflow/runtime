@@ -36,6 +36,7 @@ licenses(["notice"])
 #         "//third_party/tensorflow/compiler/xla/mlir/transforms/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/runtime:compiler",
 #         "//third_party/tensorflow/compiler/xla/runtime:jit_executable",
+#         "@tf_runtime//:hostcontext",
 #         "@tf_runtime//backends/jitrt:arguments",
 #         "@tf_runtime//backends/jitrt:jitrt_compiler",
 #     ],

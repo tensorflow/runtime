@@ -22,6 +22,7 @@
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/jitrt/arguments.h"

@@ -17,7 +17,7 @@
 #ifndef TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_
 #define TFRT_BACKENDS_JITRT_CUSTOM_CALLS_CUSTOM_CALLS_TESTLIB_H_
 
-#include "third_party/tensorflow/compiler/xla/mlir/ir/runtime/tests/testlib.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/ir/tests/testlib.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/type_id.h"

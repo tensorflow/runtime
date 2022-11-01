@@ -24,7 +24,7 @@
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
 #include "third_party/tensorflow/compiler/xla/runtime/executable.h"

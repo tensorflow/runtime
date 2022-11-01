@@ -27,7 +27,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/custom_call_encoding.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
 #include "third_party/tensorflow/compiler/xla/runtime/executable.h"

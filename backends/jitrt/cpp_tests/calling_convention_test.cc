@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/calling_convention.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/calling_convention.h"
 
 #include <string>
 

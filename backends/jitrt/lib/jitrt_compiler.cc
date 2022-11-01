@@ -53,11 +53,11 @@
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/custom_call_encoding.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/passes.h"
 
 namespace tfrt {
 namespace jitrt {

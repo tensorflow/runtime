@@ -49,7 +49,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/runtime/compiler.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
 #include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 #include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 #include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"

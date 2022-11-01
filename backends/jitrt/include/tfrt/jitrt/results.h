@@ -26,7 +26,7 @@
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/msan.h"
-#include "third_party/tensorflow/compiler/xla/mlir/utils/runtime/async_runtime_api.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/utils/async_runtime_api.h"
 #include "third_party/tensorflow/compiler/xla/runtime/results.h"
 #include "third_party/tensorflow/compiler/xla/runtime/types.h"
 

@@ -53,11 +53,11 @@
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/math/transforms/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/memref/transforms/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
 #include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
 #include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/passes.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -100,7 +100,7 @@ void CreateDefaultJitRtCompilationPipeline(
   // Optimize operations from the math dialect before outlining compute regions
   // into functions to see all constant operands.
   pm.addNestedPass<mlir::func::FuncOp>(
-      xla::runtime::CreateMathOptimizationPass(opts.math_avx2));
+      xla::CreateMathOptimizationPass(opts.math_avx2));
 
   // Convert all linalg operations to parallel loops.
   pm.addNestedPass<mlir::func::FuncOp>(

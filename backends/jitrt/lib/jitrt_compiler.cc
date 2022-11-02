@@ -53,11 +53,11 @@
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/memref/transforms/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
 #include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
 #include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/passes.h"
 #include "third_party/tensorflow/compiler/xla/mlir/transforms/math/passes.h"
-#include "third_party/tensorflow/compiler/xla/mlir/transforms/memref/passes.h"
 
 namespace tfrt {
 namespace jitrt {
@@ -134,7 +134,7 @@ void CreateDefaultJitRtCompilationPipeline(
 
   // Add alignment attribute to all memref allocations.
   pm.addNestedPass<mlir::func::FuncOp>(
-      xla::runtime::CreateAlignedAllocationsPass(opts.alignment));
+      xla::CreateAlignedAllocationsPass(opts.alignment));
 
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());

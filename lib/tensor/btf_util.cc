@@ -123,7 +123,7 @@ Error WriteTensorsToBTF(std::ostream* stream, ArrayRef<const Tensor*> tensors) {
   for (const Tensor* tensor : tensors) {
     auto dtype_or = btf::ToTensorDType(tensor->dtype());
     if (!dtype_or) return dtype_or.takeError();
-    btf::TensorHeader header;
+    btf::TensorHeader header{};
     header.rank = static_cast<uint64_t>(tensor->shape().GetRank());
     header.dtype = *dtype_or;
     header.layout = btf::TensorLayout::kRMD;

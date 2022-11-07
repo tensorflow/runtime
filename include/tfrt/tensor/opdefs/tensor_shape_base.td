@@ -35,7 +35,6 @@ def TensorShapeDialect : Dialect {
   let cppNamespace = "::tfrt::ts";
 
   let useDefaultTypePrinterParser = 1;
-  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }
 
 // Type definition.

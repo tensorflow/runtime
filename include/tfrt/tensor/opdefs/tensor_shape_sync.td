@@ -37,8 +37,6 @@ def TensorShapeSyncDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::ts_sync";
-
-  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }
 
 // Base class for the operation in this dialect

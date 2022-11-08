@@ -83,7 +83,7 @@ class ConcurrentVector {
   absl::Span<const T> ToConstSpan() const {
     auto state = State::Decode(state_.load(std::memory_order_acquire));
     auto& storage = all_allocated_elements_[state.last_allocated];
-    return absl::MakeConstSpan(&storage[0], &storage[state.size]);
+    return absl::MakeConstSpan(storage.data(), state.size);
   }
 
   // Return the number of elements currently valid in this vector.  The vector

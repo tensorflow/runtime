@@ -59,6 +59,17 @@ selects.config_setting_group(
     ],
 )
 
+# copybara:uncomment_begin
+# selects.config_setting_group(
+#     name = "linux_x86_64-google",
+#     match_all = [
+#         # keep sorted
+#         ":linux_x86_64",
+#         "//tools/cc_target_os:linux-google",
+#     ],
+# )
+# copybara:uncomment_end
+
 # Flag to build tf_runtime with std::thread/mutex instead of ABSL's:
 # bazel build --@tf_runtime//:std_thread
 # This is the default and only valid option in open-source.
@@ -109,7 +120,7 @@ config_setting(
 alias(
     name = "gpu_enabled",
     actual = if_google(
-        "//tools/cc_target_os:linux-google",
+        ":linux_x86_64-google",
         ":gpu_enabled_oss",
     ),
 )

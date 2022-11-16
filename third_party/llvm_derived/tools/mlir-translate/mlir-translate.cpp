@@ -12,6 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <memory>
+
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
@@ -50,7 +52,7 @@ int main(int argc, char **argv) {
   llvm::InitLLVM y(argc, argv);
 
   // Add flags for all the registered translations.
-  llvm::cl::opt<const TranslateFunction *, false, TranslationParser>
+  llvm::cl::opt<const Translation *, false, TranslationParser>
       translationRequested("", llvm::cl::desc("Translation to perform"),
                            llvm::cl::Required);
   registerAsmPrinterCLOptions();
@@ -58,7 +60,11 @@ int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv, "MLIR translation driver\n");
 
   std::string errorMessage;
-  auto input = openInputFile(inputFilename, &errorMessage);
+  std::unique_ptr<llvm::MemoryBuffer> input;
+  if (auto inputAlignment = translationRequested->getInputAlignment())
+    input = openInputFile(inputFilename, *inputAlignment, &errorMessage);
+  else
+    input = openInputFile(inputFilename, &errorMessage);
   if (!input) {
     llvm::errs() << errorMessage << "\n";
     return 1;

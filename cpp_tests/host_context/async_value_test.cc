@@ -95,7 +95,10 @@ TEST(AsyncValueTest, AddAndDropRef) {
   EXPECT_FALSE(value->IsUnique());
 
   EXPECT_EQ(123, value->get<int32_t>());
+
   value->DropRef();
+  EXPECT_TRUE(value->IsUnique());
+
   value->DropRef();
 }
 

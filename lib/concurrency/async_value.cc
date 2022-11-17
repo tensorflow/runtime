@@ -41,7 +41,7 @@ class NotifierListNode {
   absl::AnyInvocable<void()> notification_;
 };
 
-/*static*/ uint16_t AsyncValue::CreateTypeInfoAndReturnTypeIdImpl(
+uint16_t AsyncValue::CreateTypeInfoAndReturnTypeIdImpl(
     const TypeInfo& type_info) {
   size_t type_id = GetTypeInfoTableSingleton()->emplace_back(type_info) + 1;
   // Detect overflow.
@@ -51,7 +51,7 @@ class NotifierListNode {
 }
 
 AsyncValue::TypeInfoTable* AsyncValue::GetTypeInfoTableSingleton() {
-  const int kInitialCapacity = 64;
+  constexpr int kInitialCapacity = 64;
   static auto* type_info_table = new TypeInfoTable(kInitialCapacity);
   return type_info_table;
 }

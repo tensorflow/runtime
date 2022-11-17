@@ -123,8 +123,8 @@ void AsyncValue::EnqueueWaiter(absl::AnyInvocable<void()> waiter,
     if (old_value.state() == State::kConcrete ||
         old_value.state() == State::kError) {
       assert(old_value.waiter() == nullptr);
-      node->next_ = nullptr;
-      RunWaiters(node);
+      node->notification_();
+      delete node;
       return;
     }
     // Update the waiter list in new_value.

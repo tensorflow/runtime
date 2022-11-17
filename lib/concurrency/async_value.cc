@@ -191,8 +191,8 @@ void BlockUntilReady(AsyncValue* async_value) {
 
 void RunWhenReady(absl::Span<AsyncValue* const> values,
                   absl::AnyInvocable<void()> callee) {
-  // Perform a quick scan of the arguments.  If they are all available, or if
-  // any is already an error, then we can run the callee synchronously.
+  // Perform a quick scan of the arguments.  If they are all available,
+  // then we can run the callee synchronously.
   absl::InlinedVector<AsyncValue*, 4> unavailable_values;
   for (auto i : values) {
     if (!i->IsAvailable()) unavailable_values.push_back(i);

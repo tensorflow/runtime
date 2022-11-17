@@ -71,6 +71,7 @@ licenses(["notice"])
 #     deps = [
 #         "@com_google_googletest//:gtest_main",
 #         "@llvm-project//llvm:Support",
+#         "@llvm-project//mlir:ArithDialect",
 #         "@llvm-project//mlir:BufferizationTransforms",
 #         "@llvm-project//mlir:FuncTransforms",
 #         "@llvm-project//mlir:LLVMDialect",

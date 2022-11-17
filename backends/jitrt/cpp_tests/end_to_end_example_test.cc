@@ -25,6 +25,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ExtensibleRTTI.h"
 #include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
 #include "mlir/Dialect/Func/Transforms/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
@@ -179,6 +180,19 @@ struct CustomArgument
 // Forward declare.
 struct CustomArg;
 
+// Packs value on the stack. Returns allocation holding the value.
+static LLVM::AllocaOp PackValue(mlir::ImplicitLocOpBuilder& b,
+                                mlir::Value value) {
+  mlir::Type ptr = mlir::LLVM::LLVMPointerType::get(b.getContext());
+
+  auto one = b.create<mlir::arith::ConstantOp>(b.getI32IntegerAttr(1));
+  auto mem = b.create<mlir::LLVM::AllocaOp>(ptr, value.getType(), one, 0);
+
+  b.create<mlir::LLVM::StoreOp>(value, mem);
+
+  return mem;
+}
+
 // Custom argument encoding passed to the `rt-to-llvm` pipeline and responsible
 // for encoding custom argument value for passing to the custom call. Because we
 // chose an opaque pointer implementation, we just pass it directly to the call.
@@ -194,8 +208,8 @@ class CustomArgEncoding : public CustomCallArgEncoding {
   FailureOr<Encoded> Encode(Globals& g, mlir::ImplicitLocOpBuilder& b,
                             mlir::Value, mlir::Value converted) const final {
     Encoded encoded;
-    encoded.type_id = PackTypeId(g, b, TypeID::get<Tagged<CustomArg>>());
-    encoded.value = converted;
+    encoded.type_id = EncodeTypeId(g, b, TypeID::get<Tagged<CustomArg>>());
+    encoded.value = PackValue(b, converted);
     return encoded;
   }
 };
@@ -491,7 +505,7 @@ template <CustomCall::RuntimeChecks checks>
 struct CustomCallArgDecoding<CustomArg, checks> {
   static FailureOr<CustomArg> Decode(TypeID type_id, void* value) {
     if (!CustomCall::Isa<CustomArg>(checks, type_id)) return failure();
-    return CustomArg{reinterpret_cast<const std::string*>(value)};
+    return CustomArg{*reinterpret_cast<const std::string**>(value)};
   }
 };
 

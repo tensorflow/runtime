@@ -185,7 +185,7 @@ static ParseResult parseConvAlgoEnum(OpAsmParser &parser,
   MLIRContext *context = parser.getBuilder().getContext();
   uint64_t rocm_value;
   auto result = parser.parseOptionalInteger(rocm_value);
-  if (!result.hasValue() || result.getValue())
+  if (!result.has_value() || result.value())
     return parseEnum<T>(parser, attribute);
   attribute = EnumAttr<T>::get(context, T(rocm_value, wrapper::Platform::ROCm));
   return success();
@@ -423,7 +423,8 @@ LogicalResult StreamifyOp::verify() {
 Type tfrt::gpu::GpuDialect::parseType(DialectAsmParser &parser) const {
   StringRef typeTag;
   Type genType;
-  if (generatedTypeParser(parser, &typeTag, genType).hasValue()) return genType;
+  if (generatedTypeParser(parser, &typeTag, genType).has_value())
+    return genType;
   auto identifier = StringAttr::get(parser.getContext(), getDialectNamespace());
   return OpaqueType::get(identifier, typeTag);
 }

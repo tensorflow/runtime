@@ -18,6 +18,10 @@
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CPU_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CPU_KERNELS_H_
+#define EIGEN_USE_THREADS
+#if GOOGLE_CUDA || TENSORFLOW_USE_ROCM
+#define EIGEN_USE_GPU
+#endif  // GOOGLE_CUDA || TENSORFLOW_USE_ROCM
 
 #include <type_traits>
 
@@ -31,6 +35,7 @@
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/scalar_host_tensor.h"
+#include "tfrt/tensor/tensor_shape.h"
 
 #ifdef __x86_64__
 #include "dnnl.h"  // from @dnnl
@@ -350,6 +355,144 @@ llvm::Error SyncSum2D(const DenseHostTensor& A, DenseHostTensor* B, int axis,
     output = input.rowwise().sum();
   }
   return llvm::Error::success();
+}
+
+//===----------------------------------------------------------------------===//
+// CPU Exp kernels
+//===----------------------------------------------------------------------===//
+
+// Computes B = Exp(A) in sync style.
+template <typename T>
+llvm::Error SyncExp(const DenseHostTensor& A, DenseHostTensor* B,
+                    const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.exp(); };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
+}
+
+//===----------------------------------------------------------------------===//
+// CPU comparison kernels
+//===----------------------------------------------------------------------===//
+
+// Computes c = Greater(A, B) in sync style.
+template <typename T>
+llvm::Error SyncGreater(const DenseHostTensor& A, const DenseHostTensor& B,
+                        DenseHostTensor* C, const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b, auto& c) { return a > b; };
+  if (B.shape().GetRank() == 0) {
+    return ::tfrt::compat::BinaryEigenKernelBroadcast<T, bool>(
+        A, B.data<T>()[0], C, std::move(fn), exec_ctx);
+  } else {
+    return ::tfrt::compat::BinaryEigenKernel<T, bool>(A, B, C, std::move(fn),
+                                                      exec_ctx);
+  }
+}
+
+// Computes c = Min(A, B) in sync style.
+template <typename T>
+llvm::Error SyncMinimum(const DenseHostTensor& A, const DenseHostTensor& B,
+                        DenseHostTensor* C, const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b, auto& c) { return a.cwiseMin(b); };
+
+  if (B.shape().GetRank() == 0) {
+    return ::tfrt::compat::BinaryEigenKernelBroadcast<T, T>(
+        A, B.data<T>()[0], C, std::move(fn), exec_ctx);
+  } else {
+    return ::tfrt::compat::BinaryEigenKernel<T, T>(A, B, C, std::move(fn),
+                                                   exec_ctx);
+  }
+}
+
+// Computes c = Max(A, B) in sync style.
+template <typename T>
+llvm::Error SyncMaximum(const DenseHostTensor& A, const DenseHostTensor& B,
+                        DenseHostTensor* C, const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b, auto& c) { return a.cwiseMax(b); };
+
+  if (B.shape().GetRank() == 0) {
+    return ::tfrt::compat::BinaryEigenKernelBroadcast<T, T>(
+        A, B.data<T>()[0], C, std::move(fn), exec_ctx);
+  } else {
+    return ::tfrt::compat::BinaryEigenKernel<T, T>(A, B, C, std::move(fn),
+                                                   exec_ctx);
+  }
+}
+
+template <typename T>
+llvm::Error SyncSoftplus(const DenseHostTensor& input, DenseHostTensor* output,
+                         const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& c) {
+    static const T threshold =
+        Eigen::numext::log(Eigen::NumTraits<T>::epsilon()) + T(2);
+    // Value above which exp(x) may overflow, but softplus(x) == x
+    // is within machine epsilon.
+    auto too_large = a > a.constant(-threshold);
+    // Value below which exp(x) may underflow, but softplus(x) == exp(x)
+    // is within machine epsilon.
+    auto too_small = a < a.constant(threshold);
+    auto features_exp = a.exp();
+    return too_large.select(
+        a,                              // softplus(x) ~= x for x large
+        too_small.select(features_exp,  // softplus(x) ~= exp(x) for x small
+                         features_exp.log1p()));
+  };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(input, output, std::move(fn),
+                                                exec_ctx);
+}
+
+// Computes B = Sqrt(A) in sync style.
+template <typename T>
+llvm::Error SyncSqrt(const DenseHostTensor& A, DenseHostTensor* B,
+                     const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.sqrt(); };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
+}
+
+// Computes B = Mean(A) in sync style for 2D tensors (only). Note this supports
+// reduction only along 1 axis for now
+template <typename T, int NDIMS>
+llvm::Error SyncMean2D(const DenseHostTensor& input,
+                       Eigen::array<int, 1> reduction_axes,
+                       DenseHostTensor* result,
+                       const ExecutionContext& exec_ctx) {
+  auto input_view = DHTIndexableView<T, NDIMS>(
+      input.data<T>(), FixedRankShape<NDIMS>(input.shape()));
+
+  auto result_view = MutableDHTArrayView<T>(result);
+
+  auto a_tensor_eigen = AsEigenConstTensor(input_view);
+  auto result_tensor_eigen = AsEigenTensor(result_view);
+  Eigen::internal::SumReducer<T> sum_reducer;
+  result_tensor_eigen.device(
+      exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>().Device()) =
+      a_tensor_eigen.reduce(reduction_axes, sum_reducer) /
+      static_cast<T>(a_tensor_eigen.size() / result_tensor_eigen.size());
+
+  return llvm::Error::success();
+}
+
+// Computes B = Log1p(A) in sync style.
+template <typename T>
+llvm::Error SyncLog1p(const DenseHostTensor& A, DenseHostTensor* B,
+                      const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.log1p(); };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
+}
+
+// Computes B = Tanh(A) in sync style.
+template <typename T>
+llvm::Error SyncTanh(const DenseHostTensor& A, DenseHostTensor* B,
+                     const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.tanh(); };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
+}
+
+// Computes B = Cast(A) in sync style.
+template <typename SrcT, typename DstT>
+llvm::Error SyncCast(const DenseHostTensor& A, DenseHostTensor* B,
+                     const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.template cast<DstT>(); };
+  return ::tfrt::compat::UnaryEigenKernel<SrcT, DstT>(A, B, std::move(fn),
+                                                      exec_ctx);
 }
 
 }  // namespace cpu

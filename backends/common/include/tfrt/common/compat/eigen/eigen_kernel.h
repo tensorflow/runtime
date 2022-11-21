@@ -137,22 +137,43 @@ AsyncValueRef<Chain> UnaryEigenKernelAsync(
 // tensor expression that can be assigned to an object of type
 // EigenTensor<Tout, Rank>.
 template <typename Tin, typename Tout, typename Fn>
-Expected<Chain> BinaryEigenKernel(
-    DHTArrayView<Tin> left, DHTArrayView<Tin> right,
+llvm::Error BinaryEigenKernel(
+    const DenseHostTensor& left, const DenseHostTensor& right,
     // `output` supplies the buffer in which to write the output.
-    MutableDHTArrayView<Tout>& output, Fn fn) {
-  const auto& shape_left = left.Shape();
-  const auto& shape_right = right.Shape();
-  const auto& shape_output = output.Shape();
-  if (shape_left != shape_right || shape_left != shape_output) {
+    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto left_view = DHTArrayView<Tin>(&left);
+  auto right_view = DHTArrayView<Tin>(&right);
+  auto output_view = MutableDHTArrayView<Tout>(output);
+  const TensorShape& shape_left = left.shape();
+  const TensorShape& shape_right = right.shape();
+  if (shape_left != shape_right) {
     return MakeStringError(" tensor shape mismatch: ", shape_left, " vs. ",
-                           shape_right, " vs. ", shape_output);
+                           shape_right);
   }
-  auto lhs = AsEigenConstTensor(left);
-  auto rhs = AsEigenConstTensor(right);
-  auto out = AsEigenTensor(output);
-  out = fn(lhs, rhs, out);
-  return Chain();
+  auto left_tensor = AsEigenConstTensor(left_view);
+  auto right_tensor = AsEigenConstTensor(right_view);
+  auto out_tensor = AsEigenTensor(output_view);
+  auto expr = fn(left_tensor, right_tensor, out_tensor);
+  out_tensor.device(
+      host->GetOrCreateSharedContext<EigenHostContext>().Device()) = expr;
+  return llvm::Error::success();
+}
+
+template <typename Tin, typename Tout, typename Fn>
+llvm::Error BinaryEigenKernelBroadcast(
+    const DenseHostTensor& left, Tin s,
+    // `output` supplies the buffer in which to write the output.
+    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto left_view = DHTArrayView<Tin>(&left);
+  auto output_view = MutableDHTArrayView<Tout>(output);
+  auto left_tensor = AsEigenConstTensor(left_view);
+  auto out_tensor = AsEigenTensor(output_view);
+  auto expr = fn(left_tensor, s, out_tensor);
+  out_tensor.device(
+      host->GetOrCreateSharedContext<EigenHostContext>().Device()) = expr;
+  return llvm::Error::success();
 }
 
 // Helper function for implementing asynchronous Eigen-based binary kernels with

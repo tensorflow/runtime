@@ -5,7 +5,6 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
-# copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
     default_visibility = [":__subpackages__"],
@@ -1451,174 +1450,6 @@ tfrt_cc_library(
     ],
 )
 
-tfrt_cc_library(
-    name = "distributed_runtime",
-    srcs = [
-        "lib/distributed_runtime/callback_registry.cc",
-        "lib/distributed_runtime/cluster_info.cc",
-        "lib/distributed_runtime/distributed_context.cc",
-        "lib/distributed_runtime/distributed_init_helper.cc",
-        "lib/distributed_runtime/function_cache.cc",
-        "lib/distributed_runtime/op_handler_kernels.cc",
-        "lib/distributed_runtime/remote_chain_manager.cc",
-        "lib/distributed_runtime/remote_device.cc",
-        "lib/distributed_runtime/remote_object_manager.cc",
-        "lib/distributed_runtime/remote_op_handler.cc",
-        "lib/distributed_runtime/remote_tensor.cc",
-        "lib/distributed_runtime/request_handler_impl.cc",
-        "lib/distributed_runtime/server_context.cc",
-        "lib/distributed_runtime/task_handle.cc",
-        "lib/distributed_runtime/task_name_util.cc",
-    ],
-    hdrs = [
-        "include/tfrt/distributed_runtime/callback_registry.h",
-        "include/tfrt/distributed_runtime/cluster_info.h",
-        "include/tfrt/distributed_runtime/distributed_context.h",
-        "include/tfrt/distributed_runtime/distributed_init_helper.h",
-        "include/tfrt/distributed_runtime/fabric_communicator.h",
-        "include/tfrt/distributed_runtime/function_cache.h",
-        "include/tfrt/distributed_runtime/payload.h",
-        "include/tfrt/distributed_runtime/remote_chain_manager.h",
-        "include/tfrt/distributed_runtime/remote_client.h",
-        "include/tfrt/distributed_runtime/remote_device.h",
-        "include/tfrt/distributed_runtime/remote_execute.h",
-        "include/tfrt/distributed_runtime/remote_object.h",
-        "include/tfrt/distributed_runtime/remote_object_manager.h",
-        "include/tfrt/distributed_runtime/remote_op_handler.h",
-        "include/tfrt/distributed_runtime/remote_tensor.h",
-        "include/tfrt/distributed_runtime/request_handler.h",
-        "include/tfrt/distributed_runtime/request_handler_impl.h",
-        "include/tfrt/distributed_runtime/server_context.h",
-        "include/tfrt/distributed_runtime/task_handle.h",
-        "include/tfrt/distributed_runtime/task_name_util.h",
-        "lib/distributed_runtime/op_handler_kernels.h",
-    ],
-    alwayslink_static_registration_src = "lib/distributed_runtime/static_registration.cc",
-    visibility = [":friends"],
-    deps = [
-        ":bef",
-        ":befexecutor",
-        ":cluster_config_cc_proto",
-        ":compiler_pass",
-        ":core_runtime",
-        ":hostcontext",
-        ":mlir_src_to_bef",
-        ":mlirtobef",
-        ":remote_message_cc_proto",
-        ":support",
-        ":tensor",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:ArithDialect",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Parser",
-        "@llvm-project//mlir:Pass",
-    ],
-)
-
-proto_library(
-    name = "cluster_config_proto",
-    srcs = ["include/tfrt/distributed_runtime/proto/cluster_config.proto"],
-    # copybara:uncomment cc_api_version = 2,
-    visibility = [":friends"],
-)
-
-cc_proto_library(
-    name = "cluster_config_cc_proto",
-    visibility = [":friends"],
-    deps = [":cluster_config_proto"],
-)
-
-proto_library(
-    name = "remote_message_proto",
-    srcs = ["include/tfrt/distributed_runtime/proto/remote_message.proto"],
-    # copybara:uncomment cc_api_version = 2,
-    visibility = [":friends"],
-    deps = [":cluster_config_proto"],
-)
-
-cc_proto_library(
-    name = "remote_message_cc_proto",
-    visibility = [":friends"],
-    deps = [":remote_message_proto"],
-)
-
-tfrt_cc_library(
-    name = "distributed_kernels",
-    srcs = [
-        "lib/distributed_runtime/kernels.cc",
-        "lib/distributed_runtime/test_kernels.cc",
-    ],
-    hdrs = [
-        "include/tfrt/distributed_runtime/distributed_kernels.h",
-    ],
-    alwayslink_static_registration_src = "lib/distributed_runtime/kernels_static_registration.cc",
-    visibility = [":friends"],
-    deps = [
-        ":compiler_pass",
-        ":core_runtime",
-        ":distributed_runtime",
-        ":hostcontext",
-        ":init_tfrt_dialects",
-        ":remote_message_cc_proto",
-        ":support",
-        ":tensor",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:ArithDialect",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Parser",
-        "@llvm-project//mlir:Pass",
-        "@tf_runtime//third_party/llvm_derived:raw_ostream",
-    ],
-)
-
-gentbl_cc_library(
-    name = "distributed_kernels_opdefs_inc_gen",
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    includes = ["include"],
-    tbl_outs = [
-        (
-            ["-gen-op-decls"],
-            "include/tfrt/distributed_runtime/opdefs/kernels.h.inc",
-        ),
-        (
-            ["-gen-op-defs"],
-            "include/tfrt/distributed_runtime/opdefs/kernels_opdefs.cpp.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/distributed_runtime/opdefs/kernels.td",
-    deps = [
-        ":CoreRTTdFiles",
-        ":OpBaseTdFiles",
-        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
-    ],
-)
-
-tfrt_cc_library(
-    name = "distributed_kernels_opdefs",
-    srcs = [
-        "lib/distributed_runtime/opdefs/kernels.cc",
-    ],
-    hdrs = [
-        "include/tfrt/distributed_runtime/opdefs/kernels.h",
-        "include/tfrt/distributed_runtime/opdefs/types.h",
-    ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
-    deps = [
-        ":basic_kernels_opdefs",
-        ":core_runtime_opdefs",
-        ":distributed_kernels_opdefs_inc_gen",
-        ":tensor_opdefs",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:InferTypeOpInterface",
-        "@llvm-project//mlir:SideEffectInterfaces",
-    ],
-)
-
 td_library(
     name = "compiler_td_files",
     srcs = [
@@ -1755,7 +1586,6 @@ tfrt_cc_library(
         ":core_runtime_opdefs",
         ":core_runtime_sync_opdefs",
         ":data_opdefs",
-        ":distributed_kernels_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs",
         "@llvm-project//mlir:AffineDialect",

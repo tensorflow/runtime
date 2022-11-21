@@ -163,7 +163,7 @@ class AsyncValue {
   // Return the total number of async values that are currently live in the
   // process. This is intended for debugging/assertions only, and shouldn't be
   // used for mainline logic in the runtime.
-  static ssize_t GetNumAsyncValueInstances() {
+  static size_t GetNumAsyncValueInstances() {
     assert(AsyncValueAllocationTrackingEnabled() &&
            "AsyncValue instance tracking disabled!");
     return total_allocated_async_values_.load(std::memory_order_relaxed);
@@ -449,7 +449,7 @@ class AsyncValue {
   // live in the process.  This is intended to be used for debugging only, and
   // is only kept in sync if AsyncValueAllocationTrackingEnabled() returns
   // true.
-  static std::atomic<ssize_t> total_allocated_async_values_;
+  static std::atomic<size_t> total_allocated_async_values_;
 };
 
 // We only optimize the code for 64-bit architectures for now.

@@ -56,7 +56,7 @@ AsyncValue::TypeInfoTable* AsyncValue::GetTypeInfoTableSingleton() {
   return type_info_table;
 }
 
-std::atomic<ssize_t> AsyncValue::total_allocated_async_values_;
+std::atomic<size_t> AsyncValue::total_allocated_async_values_;
 
 const AsyncValue::TypeInfo& AsyncValue::GetTypeInfo() const {
   TypeInfoTable* type_info_table = AsyncValue::GetTypeInfoTableSingleton();

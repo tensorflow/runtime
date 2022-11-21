@@ -61,9 +61,6 @@ std::atomic<ssize_t> AsyncValue::total_allocated_async_values_;
 const AsyncValue::TypeInfo& AsyncValue::GetTypeInfo() const {
   TypeInfoTable* type_info_table = AsyncValue::GetTypeInfoTableSingleton();
   assert(type_id_ != 0);
-
-  // TODO(sanjoy): Once ConcurentVector supports it, we should check that
-  // type_id_ - 1 is within range.
   return (*type_info_table)[type_id_ - 1];
 }
 

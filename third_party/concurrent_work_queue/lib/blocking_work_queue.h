@@ -124,7 +124,7 @@ class BlockingWorkQueue
   std::list<DynamicThread> dynamic_threads_ TFRT_GUARDED_BY(mutex_);
 
   // Idle threads must stop waiting for the next task in the `idle_task_queue_`.
-  bool stop_waiting_ = false;
+  bool stop_waiting_ TFRT_GUARDED_BY(mutex_) = false;
 };
 
 template <typename ThreadingEnvironment>

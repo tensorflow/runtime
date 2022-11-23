@@ -411,8 +411,8 @@ class WorkQueueBase {
 inline std::vector<unsigned> ComputeCoprimes(int n) {
   std::vector<unsigned> coprimes;
   for (unsigned i = 1; i <= n; i++) {
-    unsigned a = i;
-    unsigned b = n;
+    unsigned a = n;
+    unsigned b = i;
     // If GCD(a, b) == 1, then a and b are coprimes.
     while (b != 0) {
       unsigned tmp = a;

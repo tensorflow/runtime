@@ -21,7 +21,6 @@
 
 #include "gtest/gtest.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 namespace {

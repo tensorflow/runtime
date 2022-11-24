@@ -198,15 +198,14 @@ static LogicalResult PrintVariantAttrs(CustomCall::VariantAttr attr1,
       tfrt::outs() << "f64: " << attr.get<double>();
     } else if (attr.isa<ArrayRef<int32_t>>()) {
       print_arr<ArrayRef<int32_t>>("i32",
-                                   attr.get<ArrayRef<int32_t>>().getValue());
+                                   attr.get<ArrayRef<int32_t>>().value());
     } else if (attr.isa<ArrayRef<int64_t>>()) {
       print_arr<ArrayRef<int64_t>>("i64",
-                                   attr.get<ArrayRef<int64_t>>().getValue());
+                                   attr.get<ArrayRef<int64_t>>().value());
     } else if (attr.isa<ArrayRef<float>>()) {
-      print_arr("f32", attr.get<ArrayRef<float>>().getValue());
+      print_arr("f32", attr.get<ArrayRef<float>>().value());
     } else if (attr.isa<ArrayRef<double>>()) {
-      print_arr<ArrayRef<double>>("f64",
-                                  attr.get<ArrayRef<double>>().getValue());
+      print_arr<ArrayRef<double>>("f64", attr.get<ArrayRef<double>>().value());
     } else if (attr.isa<std::string_view>()) {
       tfrt::outs() << "str: " << attr.get<std::string_view>();
     } else {

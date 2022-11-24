@@ -56,7 +56,7 @@ llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(
     return MakeStringError("error creating DenseHostTensor");
   }
 
-  auto& result_tensor = result_alloc.getValue();
+  auto& result_tensor = result_alloc.value();
   std::memcpy(result_tensor.data(), attr.GetElements(),
               result_tensor.DataSizeInBytes());
   return std::move(result_tensor);

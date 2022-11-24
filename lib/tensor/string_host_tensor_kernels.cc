@@ -41,7 +41,7 @@ llvm::Expected<StringHostTensor> CreateStringTensor(
     strings[i] = values.GetAttributeOfType<StringAttr>(i).GetValue().str();
   }
 
-  return std::move(result).getValue();
+  return std::move(result).value();
 }
 
 static Expected<StringHostTensor> CreateUninitializedStringTensor(

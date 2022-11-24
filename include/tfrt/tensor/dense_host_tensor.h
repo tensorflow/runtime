@@ -63,7 +63,7 @@ class DenseHostTensor final : public HostTensor,
                                                       HostContext* host) {
     auto dht_or = CreateUninitialized(TensorMetadata(GetDType<T>(), {}), host);
     if (!dht_or.has_value()) return dht_or;
-    *dht_or.getValue().data<T>() = value;
+    *dht_or.value().data<T>() = value;
     return dht_or;
   }
 

@@ -70,16 +70,16 @@ TEST(TensorTest, MutableIndexableViewCanBeCastedToIndexableView) {
 
 TEST(TensorTest, CreateScalar) {
   auto context = CreateHostContext();
-  auto tensor = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  auto tensor = DenseHostTensor::CreateScalar(1, context.get()).value();
   EXPECT_EQ(*tensor.data<int>(), 1);
 }
 
 TEST(TensorTest, CompareTensors) {
   auto context = CreateHostContext();
-  auto a = DenseHostTensor::CreateScalar(1, context.get()).getValue();
-  auto b = DenseHostTensor::CreateScalar(1, context.get()).getValue();
-  auto c = DenseHostTensor::CreateScalar(2, context.get()).getValue();
-  auto d = DenseHostTensor::CreateScalar(2.5f, context.get()).getValue();
+  auto a = DenseHostTensor::CreateScalar(1, context.get()).value();
+  auto b = DenseHostTensor::CreateScalar(1, context.get()).value();
+  auto c = DenseHostTensor::CreateScalar(2, context.get()).value();
+  auto d = DenseHostTensor::CreateScalar(2.5f, context.get()).value();
   // This requires that DHT implements operator<< for std::ostream.
   EXPECT_EQ(a, a.CopyRef());
   EXPECT_EQ(a, b);
@@ -100,7 +100,7 @@ TEST(TensorTest, ChipDenseHostTensor) {
   auto context = CreateHostContext();
   auto dht = DenseHostTensor::CreateUninitialized(
                  TensorMetadata::Create<int>(3, 2), context.get())
-                 .getValue();
+                 .value();
   MutableDHTArrayView<int> view(&dht);
   for (int i = 0; i < view.NumElements(); i++) {
     view[i] = i;
@@ -121,17 +121,17 @@ TEST(TensorTest, ChipDenseHostTensor) {
 
 TEST(TensorTest, CopyTo) {
   auto context = CreateHostContext();
-  auto a = DenseHostTensor::CreateScalar(1, context.get()).getValue();
-  auto b = DenseHostTensor::CreateScalar(2, context.get()).getValue();
+  auto a = DenseHostTensor::CreateScalar(1, context.get()).value();
+  auto b = DenseHostTensor::CreateScalar(2, context.get()).value();
   EXPECT_TRUE(CopyTo(a, &b));
   EXPECT_EQ(a, b);
-  auto c = DenseHostTensor::CreateScalar(true, context.get()).getValue();
+  auto c = DenseHostTensor::CreateScalar(true, context.get()).value();
   EXPECT_FALSE(CopyTo(a, &c));
 }
 
 TEST(TensorTest, FlattenScalar) {
   auto context = CreateHostContext();
-  auto dht = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  auto dht = DenseHostTensor::CreateScalar(1, context.get()).value();
   EXPECT_EQ(dht.shape().GetRank(), 0);
   auto flat = Flatten(dht);
   EXPECT_EQ(flat.shape().GetRank(), 1);
@@ -141,7 +141,7 @@ TEST(TensorTest, FlattenTensor) {
   auto context = CreateHostContext();
   auto dht = DenseHostTensor::CreateUninitialized(
                  TensorMetadata::Create<int>(3, 2), context.get())
-                 .getValue();
+                 .value();
   auto flat = Flatten(dht);
   EXPECT_EQ(flat.shape().GetRank(), 1);
   EXPECT_EQ(flat.shape().GetDimensionSize(0), 6);

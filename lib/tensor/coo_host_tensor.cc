@@ -114,7 +114,7 @@ static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
     return MakeErrorAsyncValueRef(
         "out of memory converting coo tensor to dht tensor");
   }
-  auto &result_tensor = result_alloc.getValue();
+  auto &result_tensor = result_alloc.value();
 
   switch (tensor.dtype()) {
     default:

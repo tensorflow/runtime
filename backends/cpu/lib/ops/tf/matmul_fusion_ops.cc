@@ -65,7 +65,7 @@ static AsyncValueRef<DenseHostTensor> TfFusedMatMulOp(
   // TODO(ezhulenev): Keep these types consistent with graph rewrite that
   // does fusion (kernel matcher pass).
   internal::TypeDispatch<float, int32_t> type_dispatch(a.dtype());
-  return ForwardValue(output.getValue(), type_dispatch(dispatch, unsupported));
+  return ForwardValue(output.value(), type_dispatch(dispatch, unsupported));
 }
 
 }  // namespace

@@ -60,7 +60,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
     return;
   }
 
-  auto& dest_tensor = dest_alloc.getValue();
+  auto& dest_tensor = dest_alloc.value();
 
   // Handle attributes.
   bool transpose_a = attrs.GetAsserting<bool>("transpose_a");
@@ -153,7 +153,7 @@ static AsyncValueRef<DenseHostTensor> ReluOp(Argument<DenseHostTensor> A,
     AsyncValueRef<Chain> chain =
         ReluHelper(A.get(), dest.getPointer(), exec_ctx);
 
-    return WaitForChain(std::move(dest).getValue(), std::move(chain), exec_ctx);
+    return WaitForChain(std::move(dest).value(), std::move(chain), exec_ctx);
   }
 }
 
@@ -240,8 +240,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
   }
 
   auto* chain_av = chain.GetAsyncValue();
-  chain_av->AndThen([dest = std::move(dest).getValue(),
-                     chain = std::move(chain),
+  chain_av->AndThen([dest = std::move(dest).value(), chain = std::move(chain),
                      dest_tensor = *dest_tensor]() mutable {
     if (chain.IsError()) {
       dest_tensor->SetError(chain.GetError());
@@ -303,8 +302,8 @@ static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
   }
 
   auto* chain_av = chain.GetAsyncValue();
-  chain_av->AndThen([dest = std::move(dest).getValue(),
-                     chain = std::move(chain), B_tensor = *B_tensor]() mutable {
+  chain_av->AndThen([dest = std::move(dest).value(), chain = std::move(chain),
+                     B_tensor = *B_tensor]() mutable {
     if (chain.IsError()) {
       B_tensor->SetError(chain.GetError());
     } else {
@@ -391,7 +390,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
     return;
   }
 
-  auto& dest_tensor = dest_alloc.getValue();
+  auto& dest_tensor = dest_alloc.value();
 
   switch (src.dtype()) {
     default:
@@ -486,7 +485,7 @@ static void ArgmaxOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
     return;
   }
 
-  auto& dest_tensor = dest_alloc.getValue();
+  auto& dest_tensor = dest_alloc.value();
 
   switch (attrs.GetAsserting<int32_t>("axis")) {
     case 1:
@@ -578,7 +577,7 @@ static void ReduceMeanOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
     return;
   }
 
-  auto& dest_tensor = dest_alloc.getValue();
+  auto& dest_tensor = dest_alloc.value();
 
   switch (attrs.GetAsserting<int32_t>("axis")) {
     case 0:
@@ -621,7 +620,7 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
     return;
   }
 
-  auto& dest_tensor = dest_alloc.getValue();
+  auto& dest_tensor = dest_alloc.value();
   switch (dest_md.dtype) {
 #define DTYPE_TRIVIAL(ENUM)                                       \
   case DType::ENUM:                                               \

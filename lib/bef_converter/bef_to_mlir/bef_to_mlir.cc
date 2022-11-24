@@ -464,7 +464,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctionIndex(
 
     // Add this function to `bef_file_`.
     bef_file_.function_index.emplace_back(
-        function_offset, bef_file_.GetString(name_offset).getValue(),
+        function_offset, bef_file_.GetString(name_offset).value(),
         static_cast<FunctionKind>(function_kind));
     auto& bef_function = bef_file_.function_index.back();
 
@@ -524,7 +524,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctions(
       auto loc_and_region = function_reader.ReadFunction(
           &location_reader, &attribute_names_reader, &register_types_reader);
       if (!loc_and_region) return mlir::failure();
-      function_context->regions.push_back(std::move(loc_and_region).getValue());
+      function_context->regions.push_back(std::move(loc_and_region).value());
     }
   }
   return mlir::success();

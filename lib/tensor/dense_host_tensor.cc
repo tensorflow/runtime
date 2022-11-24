@@ -62,7 +62,7 @@ AsyncValueRef<DenseHostTensor> DenseHostTensor::MakeConstructedAsyncValueRef(
   if (!dht) return {};
 
   return tfrt::MakeConstructedAsyncValueRef<DenseHostTensor>(
-      std::move(dht.getValue()));
+      std::move(dht.value()));
 }
 
 void DenseHostTensor::Print(raw_ostream& os) const {
@@ -117,7 +117,7 @@ static AsyncValueRef<DenseHostTensor> ConvertDenseHostTensorToDenseHostTensor(
   if (!result_alloc)
     return MakeErrorAsyncValueRef("out of memory copying tensor");
 
-  auto& result_tensor = result_alloc.getValue();
+  auto& result_tensor = result_alloc.value();
 
   // TODO(tfrt-devs): This could be done in parallel in the background for
   // large tensors.  We could also detect when the tensor is full of broadcasted

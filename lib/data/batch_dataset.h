@@ -141,7 +141,7 @@ static llvm::Expected<DenseHostTensor> TruncateTensor(
     return MakeStringError("out of memory");
   }
 
-  auto output_tensor = std::move(dht.getValue());
+  auto output_tensor = std::move(dht.value());
   std::memcpy(output_tensor.data(), input_tensor.data(),
               output_tensor.DataSizeInBytes());
   return std::move(output_tensor);

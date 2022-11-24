@@ -410,7 +410,7 @@ static Chain TestPrintDebugInfo(const ExecutionContext& exec_ctx) {
   auto debug_info = exec_ctx.location().GetDebugInfo();
 
   if (debug_info.has_value()) {
-    tfrt::outs() << debug_info.getValue().info << "\n";
+    tfrt::outs() << debug_info.value().info << "\n";
   } else {
     tfrt::outs() << "Kernel has no debug info\n";
   }

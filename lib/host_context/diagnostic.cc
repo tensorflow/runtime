@@ -31,7 +31,7 @@ namespace tfrt {
 
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diag) {
   if (diag.location) {
-    os << diag.location.getValue() << ": ";
+    os << diag.location.value() << ": ";
   } else {
     os << "UnknownLocation: ";
   }

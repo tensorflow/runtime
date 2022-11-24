@@ -58,7 +58,7 @@ static AsyncValueRef<DenseHostTensor> TfSoftmaxOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(dest.getValue(), std::move(chain));
+  return ForwardValue(dest.value(), std::move(chain));
 }
 
 }  // namespace

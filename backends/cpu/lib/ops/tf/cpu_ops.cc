@@ -55,7 +55,7 @@ static Expected<DenseHostTensor> TfConstOp(const OpAttrsRef& attrs,
     return MakeStringError("out of memory allocating dht tensor");
   }
 
-  auto& dest_tensor = dest_alloc.getValue();
+  auto& dest_tensor = dest_alloc.value();
 
   // Copy data from `value` attribute to dht.
   DenseAttr dense_attr = attrs.GetAsserting<DenseAttr>("value");
@@ -92,7 +92,7 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(dest.getValue(), std::move(chain));
+  return ForwardValue(dest.value(), std::move(chain));
 }
 
 //===----------------------------------------------------------------------===//
@@ -162,7 +162,7 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
 
   bool keep_dims = false;
   if (auto attr = op_attrs.GetOptional<bool>("keep_dims"))
-    keep_dims = attr.getValue();
+    keep_dims = attr.value();
 
   // Compute output tensor metadata from reduction indices.
   auto helper = TfMeanOutputMd(input, reduction_indices, keep_dims);
@@ -241,7 +241,7 @@ static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain));
+  return ForwardValue(output.value(), std::move(chain));
 }
 
 }  // namespace

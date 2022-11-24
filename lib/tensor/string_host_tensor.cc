@@ -52,7 +52,7 @@ AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(
     const TensorMetadata& metadata, HostContext* host) {
   if (auto result = CreateUninitialized(metadata, host))
     return tfrt::MakeConstructedAsyncValueRef<StringHostTensor>(
-        std::move(result).getValue());
+        std::move(result).value());
 
   return {};
 }
@@ -71,7 +71,7 @@ ConvertStringHostTensorToStringHostTensor(const StringHostTensor& tensor,
   if (!result_alloc)
     return MakeErrorAsyncValueRef("out of memory copying tensor");
 
-  auto& result_tensor = result_alloc.getValue();
+  auto& result_tensor = result_alloc.value();
 
   // Copy over the data.
   for (int i = 0; i < tensor.NumElements(); ++i) {

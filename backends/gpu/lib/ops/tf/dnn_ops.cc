@@ -359,8 +359,8 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
         TensorShape(llvm::makeArrayRef(filter_dims_hwio).take_back(2)));
     if (auto error = RunCublasGemm(dctx->current_context(), dctx->blas_handle(),
                                    /*transpose_a=*/false, /*transpose_b=*/false,
-                                   reshaped_input.getValue(),
-                                   reshaped_filter.getValue(), output_buffer)) {
+                                   reshaped_input.value(),
+                                   reshaped_filter.value(), output_buffer)) {
       return std::move(error);
     }
     return DenseGpuTensor(

@@ -34,7 +34,7 @@ class TensorSerializeUtilsTest : public ::testing::Test {
       : host_context_(CreateHostContext()),
         dht_(DenseHostTensor::CreateUninitialized<float>(TensorShape({2, 2}),
                                                          host_context_.get())
-                 .getValue()) {
+                 .value()) {
     MutableDHTArrayView<float> tensor_view(&dht_);
     tensor_view[0] = 1.0f;
     tensor_view[1] = 2.0f;

@@ -71,7 +71,7 @@ llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
           (input_size + explicit_padding->padding_before +
            explicit_padding->padding_after - effective_filter_size + stride) /
           stride;
-      output_dimensions.padding = explicit_padding.getValue();
+      output_dimensions.padding = explicit_padding.value();
       break;
 
     case PaddingType::kValid:

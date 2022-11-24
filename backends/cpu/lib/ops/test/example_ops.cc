@@ -63,7 +63,7 @@ static Expected<DenseHostTensor> OddCollectorOp(
   for (auto& elt : input_view)
     if (elt & 1) result_view[result_elt++] = elt;
 
-  return std::move(result.getValue());
+  return std::move(result.value());
 }
 
 //===----------------------------------------------------------------------===//
@@ -141,8 +141,7 @@ AsyncValueRef<HostTensor> TestAddOpImpl(const HostTensor& lhs_ref,
     for (size_t i = 0, e = dest_view.NumElements(); i != e; ++i)
       dest_view[i] = lhs_view[i] + rhs_view[i];
   }
-  return MakeAvailableAsyncValueRef<DenseHostTensor>(
-      std::move(dest.getValue()));
+  return MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest.value()));
 }
 }  // namespace
 
@@ -200,7 +199,7 @@ static Expected<DenseHostTensor> TestAddDenseOnlyOp(
 #include "tfrt/dtype/dtype.def"
   }
 
-  return std::move(dest.getValue());
+  return std::move(dest.value());
 }
 
 // This implements the test.add.denseonly op, which is a simple add operation,

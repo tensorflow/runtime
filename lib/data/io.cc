@@ -205,7 +205,7 @@ void PrefetchingIterator::MaterializeOutputs(const ExecutionContext& exec_ctx) {
   if (reached_eof && prefetch_buffer_size == 0) {
     IterationResult eof_result = IterationResult::Eof(exec_ctx.host(), 1);
     while (auto output = DequeueOutputBuffer()) {
-      ForwardInputToOutput(eof_result.CopyRef(), std::move(output.getValue()),
+      ForwardInputToOutput(eof_result.CopyRef(), std::move(output.value()),
                            exec_ctx);
     }
   }

@@ -77,7 +77,7 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
 
   if (!result_alloc) return llvm::None;
 
-  auto& result_tensor = result_alloc.getValue();
+  auto& result_tensor = result_alloc.value();
 
   auto num_elements = result_tensor.NumElements();
   auto element_size = GetHostSize(tensor.dtype());
@@ -128,7 +128,7 @@ static AsyncValueRef<DenseHostTensor> ConvertScalarHostTensorToDenseHostTensor(
   if (!optional_dht)
     return MakeErrorAsyncValueRef("out of memory copying tensor");
 
-  result.emplace(std::move(optional_dht.getValue()));
+  result.emplace(std::move(optional_dht.value()));
   return result;
 }
 

@@ -200,15 +200,15 @@ raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value) {
 
   os << '[';
   if (!value.GetShape()->empty()) {
-    llvm::interleaveComma(value.GetShape().getValue(), os);
+    llvm::interleaveComma(value.GetShape().value(), os);
   }
   return os << ']';
 }
 
 PartialTensorShape::PartialTensorShape(Optional<ArrayRef<Index>> dims) {
   if (dims.has_value()) {
-    llvm::SmallVector<Index, 4> dims_vec{dims.getValue().begin(),
-                                         dims.getValue().end()};
+    llvm::SmallVector<Index, 4> dims_vec{dims.value().begin(),
+                                         dims.value().end()};
     dims_ = std::move(dims_vec);
   }
 }
@@ -224,7 +224,7 @@ Optional<ArrayRef<Index>> PartialTensorShape::GetShape() const {
   if (IsUnranked()) {
     return llvm::None;
   }
-  return llvm::makeArrayRef(dims_.getValue());
+  return llvm::makeArrayRef(dims_.value());
 }
 
 bool PartialTensorShape::IsShapeKnown() const {
@@ -240,7 +240,7 @@ int PartialTensorShape::GetRank() const {
   if (IsUnranked()) {
     return PartialTensorShape::kUnknownDimSize;
   }
-  return GetShape().getValue().size();
+  return GetShape().value().size();
 }
 
 int64_t PartialTensorShape::GetDimensionSize(int dim_idx) const {
@@ -253,7 +253,7 @@ int64_t PartialTensorShape::GetDimensionSize(int dim_idx) const {
 
 Expected<TensorShape> PartialTensorShape::ToTensorShape() const {
   if (IsShapeKnown()) {
-    return TensorShape(dims_.getValue());
+    return TensorShape(dims_.value());
   }
 
   if (IsUnranked()) {
@@ -262,7 +262,7 @@ Expected<TensorShape> PartialTensorShape::ToTensorShape() const {
 
   llvm::SmallVector<Index, 4> unknown_dims;
   for (int i = 0; i < dims_->size(); i++) {
-    if (IsUnknownDim(dims_.getValue()[i])) {
+    if (IsUnknownDim(dims_.value()[i])) {
       unknown_dims.push_back(i);
     }
   }

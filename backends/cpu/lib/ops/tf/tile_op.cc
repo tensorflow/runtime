@@ -95,7 +95,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
 #include "tfrt/dtype/dtype.def"  // NOLINT
     }
 
-    return ForwardValue(dest.getValue(), std::move(chain));
+    return ForwardValue(dest.value(), std::move(chain));
 
   } else if (isa<StringHostTensor>(input_arg)) {
     const StringHostTensor& input = cast<StringHostTensor>(input_arg);

@@ -56,7 +56,7 @@ static Expected<TensorMetadata> CwiseBinaryOpMd(const TensorMetadata& lhs,
   TFRT_ASSIGN_OR_RETURN(auto broadcasted_shape,
                         GetBroadcastedShape(lhs.shape, rhs.shape));
 
-  DType out_dtype(kind.getValueOr(lhs.dtype));
+  DType out_dtype(kind.value_or(lhs.dtype));
   return TensorMetadata(out_dtype, broadcasted_shape);
 }
 

@@ -57,7 +57,7 @@ static AsyncValueRef<DenseHostTensor> TfPadOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain));
+  return ForwardValue(*output, std::move(chain));
 }
 
 static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
@@ -81,7 +81,7 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
     return EmitErrorAsync(exec_ctx, "ksize should have 4 elements");
   }
 
-  if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
+  if (data_format.has_value() && data_format->str() != "NHWC") {
     return EmitErrorAsync(exec_ctx, "only channel last order is supported");
   }
 
@@ -101,7 +101,7 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain));
+  return ForwardValue(*output, std::move(chain));
 }
 
 static AsyncValueRef<DenseHostTensor> TfConv2DOp(
@@ -119,7 +119,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
   auto strides = attrs.GetArrayOptional<Index>("strides");
   auto data_format = attrs.GetStringOptional("data_format");
 
-  if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
+  if (data_format.has_value() && data_format->str() != "NHWC") {
     return EmitErrorAsync(exec_ctx, "only channel last order is supported");
   }
 
@@ -147,7 +147,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain));
+  return ForwardValue(*output, std::move(chain));
 }
 
 static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
@@ -186,7 +186,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
   }
 
   auto data_format = attrs.GetStringOptional("data_format");
-  if (data_format.has_value() && data_format.getValue().str() != "NHWC") {
+  if (data_format.has_value() && data_format->str() != "NHWC") {
     result.SetError(
         absl::InternalError("only channel last order is supported"));
     return results;
@@ -208,7 +208,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  result = ForwardValue(output.getValue(), std::move(chain));
+  result = ForwardValue(*output, std::move(chain));
   for (int i = 0; i < 6; ++i) {
     results[i] = result.CopyRef();
   }

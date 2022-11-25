@@ -76,7 +76,7 @@ TEST(ResourceContextTest, CreateAndGet) {
   Optional<SomeResource*> resource =
       resource_context.GetResource<SomeResource>("some_name");
   EXPECT_EQ(resource.has_value(), true);
-  EXPECT_EQ(resource.getValue()->GetData(), 41);
+  EXPECT_EQ((*resource)->GetData(), 41);
 }
 
 TEST(ResourceContextTest, DestructionOrder) {

@@ -48,8 +48,7 @@ inline std::unique_ptr<HostContext> CreateHostContext() {
 template <typename T>
 DenseHostTensor CreateDummyTensor(ArrayRef<Index> dims, HostContext* host_ctx) {
   const TensorMetadata metadata(GetDType<T>(), dims);
-  auto dht =
-      DenseHostTensor::CreateUninitialized(metadata, host_ctx).getValue();
+  auto dht = *DenseHostTensor::CreateUninitialized(metadata, host_ctx);
   MutableDHTArrayView<T> view(&dht);
   for (int i = 0, s = dht.NumElements(); i < s; i++) {
     view[i] = i;
@@ -71,7 +70,7 @@ DenseHostTensor CreateTensorFromValues(ArrayRef<Index> dims,
   const TensorMetadata metadata(GetDType<T>(), dims);
   DenseHostTensor dht;
   if (host_ctx) {
-    dht = DenseHostTensor::CreateUninitialized(metadata, host_ctx).getValue();
+    dht = *DenseHostTensor::CreateUninitialized(metadata, host_ctx);
   } else {
     auto host_buf = CreateHostBufferOnHeap(metadata.GetHostSizeInBytes());
     dht = DenseHostTensor(metadata, std::move(host_buf));

@@ -242,9 +242,8 @@ LogicalResult FoldMemrefReinterpretCastPattern::matchAndRewrite(
   if (!adaptor.getSource().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(cast_op, "expected BufferType source");
   if (!adaptor.getOffsets().empty() ||
-      llvm::any_of(adaptor.getStaticOffsets(), [](Attribute attribute) {
-        return attribute.cast<IntegerAttr>().getInt() != 0;
-      }))
+      llvm::any_of(adaptor.getStaticOffsets(),
+                   [](int64_t value) { return value != 0; }))
     return rewriter.notifyMatchFailure(cast_op, "expected static zero offsets");
   rewriter.replaceOp(cast_op, {adaptor.getSource()});
   return success();

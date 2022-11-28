@@ -31,7 +31,6 @@
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/Optional.h"
-#include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/task_function.h"
 
 namespace tfrt {
@@ -39,7 +38,7 @@ namespace internal {
 
 class TaskQueue {
  public:
-  static const unsigned kCapacity = 1024;
+  static constexpr unsigned kCapacity = 1024;
 
   static_assert((kCapacity > 2) && (kCapacity <= (64u << 10u)),
                 "TaskQueue capacity must be in [4, 65536] range");

@@ -33,7 +33,6 @@ filegroup(
     name = "concurrent_work_queue_srcs",
     srcs = [
         "lib/multi_threaded_work_queue.cc",
-        "lib/task_queue.cc",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 )

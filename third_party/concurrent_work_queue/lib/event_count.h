@@ -17,13 +17,13 @@
 //
 //   if (predicate)
 //     return act();
-//   EventCount::Waiter& w = waiters[my_index];
-//   ec.Prewait(&w);
+//   EventCount::Waiter* w = ec.waiters(my_index);
+//   ec.Prewait();
 //   if (predicate) {
-//     ec.CancelWait(&w);
+//     ec.CancelWait();
 //     return act();
 //   }
-//   ec.CommitWait(&w);
+//   ec.CommitWait(w);
 //
 // Notifying thread does:
 //

@@ -68,16 +68,18 @@ class TaskQueue {
       int64_t diff = static_cast<int64_t>(state) - static_cast<int64_t>(front);
 
       // Try to acquire an ownership of element at `front`.
-      if (diff == 0 && front_.compare_exchange_strong(
-                           front, front + 1, std::memory_order_relaxed)) {
-        break;
+      if (diff == 0) {
+        if (front_.compare_exchange_strong(front, front + 1,
+                                           std::memory_order_relaxed)) {
+          break;
+        }
+      } else if (diff > 0) {
+        // Another thread acquired element at `front` index.
+        front = front_.load(std::memory_order_relaxed);
+      } else {
+        // We wrapped around the queue, and have no space in the queue.
+        return {std::move(task)};
       }
-
-      // We wrapped around the queue, and have no space in the queue.
-      if (diff < 0) return {std::move(task)};
-
-      // Another thread acquired element at `front` index.
-      if (diff > 0) front = front_.load(std::memory_order_relaxed);
     }
 
     // Move the task to the acquired element.
@@ -101,16 +103,18 @@ class TaskQueue {
           static_cast<int64_t>(state) - static_cast<int64_t>(back + 1);
 
       // Element at `back` is ready, try to acquire its ownership.
-      if (diff == 0 && back_.compare_exchange_strong(
-                           back, back + 1, std::memory_order_relaxed)) {
-        break;
+      if (diff == 0) {
+        if (back_.compare_exchange_strong(back, back + 1,
+                                          std::memory_order_relaxed)) {
+          break;
+        }
+      } else if (diff > 0) {
+        // Another thread popped a task from element at 'back'.
+        back = back_.load(std::memory_order_relaxed);
+      } else {
+        // We've reached an empty element.
+        return llvm::None;
       }
-
-      // We've reached an empty element.
-      if (diff < 0) return llvm::None;
-
-      // Another thread popped a task from element at 'back'.
-      if (diff > 0) back = back_.load(std::memory_order_relaxed);
     }
 
     TaskFunction task = std::move(e->task);

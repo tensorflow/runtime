@@ -564,12 +564,19 @@ void WorkQueueBase<Derived>::WorkerLoop(int thread_id) {
           if (!WaitForWork(waiter, &t)) {
             return;
           }
+          if (!t.has_value()) {
+            continue;
+          }
         }
       }
     }
-    if (t.has_value()) {
-      (*t)();  // Execute a task.
-    }
+    // When reaching here, the task is always available:
+    // Case 0: there are pending tasks in the queue, NextTask returns a task;
+    // Case 1: no pending task in the queue, stealed a task from others';
+    // Case 2: no pending task in the queue and cannot steal a task, WaitForWork
+    //         returns a new enqueued task.
+    assert(t.has_value());
+    (*t)();  // Execute a task.
   }
 }
 

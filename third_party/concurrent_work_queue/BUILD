@@ -2,10 +2,7 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_test")
 
 licenses(["reciprocal"])
 
-package(
-    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
-    default_visibility = ["@tf_runtime//:friends"],
-)
+package(default_visibility = ["@tf_runtime//:friends"])
 
 exports_files(["LICENSE"])
 
@@ -43,6 +40,7 @@ tfrt_cc_test(
         "cpp_tests/blocking_work_queue_test.cc",
         ":concurrent_work_queue_hdrs",
     ],
+    # copybara:uncomment(no default_copts) copts = ["-Wc++14-compat"],
     includes = ["lib"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -58,6 +56,7 @@ tfrt_cc_test(
         "cpp_tests/multi_threaded_work_queue_test.cc",
         ":concurrent_work_queue_hdrs",
     ],
+    # copybara:uncomment(no default_copts) copts = ["-Wc++14-compat"],
     includes = ["lib"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -73,6 +72,7 @@ tfrt_cc_test(
         "cpp_tests/non_blocking_work_queue_test.cc",
         ":concurrent_work_queue_hdrs",
     ],
+    # copybara:uncomment(no default_copts) copts = ["-Wc++14-compat"],
     includes = ["lib"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -88,6 +88,7 @@ tfrt_cc_test(
         "cpp_tests/task_deque_test.cc",
         ":concurrent_work_queue_hdrs",
     ],
+    # copybara:uncomment(no default_copts) copts = ["-Wc++14-compat"],
     includes = ["lib"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -103,6 +104,7 @@ tfrt_cc_test(
         "cpp_tests/task_priority_deque_test.cc",
         ":concurrent_work_queue_hdrs",
     ],
+    # copybara:uncomment(no default_copts) copts = ["-Wc++14-compat"],
     includes = ["lib"],
     deps = [
         "@com_google_googletest//:gtest_main",
@@ -118,6 +120,7 @@ tfrt_cc_test(
         "cpp_tests/task_queue_test.cc",
         ":concurrent_work_queue_hdrs",
     ],
+    # copybara:uncomment(no default_copts) copts = ["-Wc++14-compat"],
     includes = ["lib"],
     deps = [
         "@com_google_googletest//:gtest_main",

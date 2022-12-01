@@ -1361,95 +1361,6 @@ tfrt_cc_library(
     ],
 )
 
-tfrt_cc_library(
-    name = "data",
-    srcs = [
-        "lib/data/batch_dataset.h",
-        "lib/data/data_kernels.cc",
-        "lib/data/dataset.cc",
-        "lib/data/filter_dataset.cc",
-        "lib/data/filter_dataset.h",
-        "lib/data/interleave_dataset.cc",
-        "lib/data/interleave_dataset.h",
-        "lib/data/io.cc",
-        "lib/data/io.h",
-        "lib/data/log_dataset.h",
-        "lib/data/map_dataset.cc",
-        "lib/data/map_dataset.h",
-        "lib/data/memory_dataset.h",
-        "lib/data/prefetch_dataset.cc",
-        "lib/data/prefetch_dataset.h",
-        "lib/data/range_dataset.cc",
-        "lib/data/range_dataset.h",
-        "lib/data/repeat_dataset.cc",
-        "lib/data/repeat_dataset.h",
-        "lib/data/shuffle_dataset.cc",
-        "lib/data/shuffle_dataset.h",
-        "lib/data/skip_dataset.cc",
-        "lib/data/skip_dataset.h",
-        "lib/data/slice_dataset.h",
-        "lib/data/tf_record_dataset.cc",
-        "lib/data/tf_record_dataset.h",
-    ],
-    hdrs = [
-        "include/tfrt/data/dataset.h",
-    ],
-    alwayslink_static_registration_src = "lib/data/static_registration.cc",
-    visibility = [":friends"],
-    deps = [
-        ":dtype",
-        ":hostcontext",
-        ":io",
-        ":support",
-        ":tensor",
-        ":tracing",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//third_party/llvm_derived:raw_ostream",
-    ],
-)
-
-gentbl_cc_library(
-    name = "data_opdefs_inc_gen",
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    includes = ["include"],
-    tbl_outs = [
-        (
-            ["-gen-op-decls"],
-            "include/tfrt/data/opdefs/data_ops.h.inc",
-        ),
-        (
-            ["-gen-op-defs"],
-            "include/tfrt/data/opdefs/data_ops_opdefs.cpp.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/data/opdefs/data_ops.td",
-    deps = [
-        ":OpBaseTdFiles",
-    ],
-)
-
-tfrt_cc_library(
-    name = "data_opdefs",
-    srcs = [
-        "lib/data/opdefs/data_ops.cc",
-    ],
-    hdrs = [
-        "include/tfrt/data/opdefs/data_ops.h",
-        "include/tfrt/data/opdefs/types.h",
-    ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
-    deps = [
-        ":basic_kernels_opdefs",
-        ":data_opdefs_inc_gen",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
 td_library(
     name = "compiler_td_files",
     srcs = [
@@ -1585,7 +1496,6 @@ tfrt_cc_library(
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs",
         ":core_runtime_sync_opdefs",
-        ":data_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs",
         "@llvm-project//mlir:AffineDialect",

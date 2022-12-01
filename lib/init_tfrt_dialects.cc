@@ -31,7 +31,6 @@
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
-#include "tfrt/data/opdefs/data_ops.h"
 #include "tfrt/tensor/opdefs/coo_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor_sync.h"
@@ -46,7 +45,6 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<compiler::TFRTDialect>();
   registry.insert<corert::CoreRTDialect>();
   registry.insert<corert_sync::CoreRTSyncDialect>();
-  registry.insert<data::DataDialect>();
   registry.insert<ts::TensorShapeDialect>();
   registry.insert<dht::DenseHostTensorDialect>();
   registry.insert<dht::DenseHostTensorSyncDialect>();

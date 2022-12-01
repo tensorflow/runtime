@@ -73,6 +73,7 @@ licenses(["notice"])
 #         "@llvm-project//llvm:Support",
 #         "@llvm-project//mlir:ArithDialect",
 #         "@llvm-project//mlir:BufferizationTransforms",
+#         "@llvm-project//mlir:FuncDialect",
 #         "@llvm-project//mlir:FuncTransforms",
 #         "@llvm-project//mlir:LLVMDialect",
 #         "@llvm-project//mlir:LinalgTransforms",

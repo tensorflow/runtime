@@ -84,7 +84,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
       case DType::I1: {
         using T = EigenTypeForDTypeKind<DType::I1>;
         chain = ::tfrt::cpu::Tile<T, compat::AsyncEigenEvaluator>(
-            input, *expected_multiples, dest.getPointer(), exec_ctx);
+            input, *expected_multiples, &*dest, exec_ctx);
       } break;
 #define DTYPE_NUMERIC(ENUM)                                       \
   case DType::ENUM: {                                             \
@@ -105,7 +105,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
       return EmitErrorAsync(exec_ctx, "out of memory allocating result");
     }
 
-    cpu::TileStringTensor(input, dest.getPointer());
+    cpu::TileStringTensor(input, &*dest);
 
     return MakeAvailableAsyncValueRef<StringHostTensor>(std::move(*dest));
 

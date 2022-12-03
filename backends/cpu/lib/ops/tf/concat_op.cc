@@ -50,7 +50,7 @@ static Expected<DenseHostTensor> TfConcatOpDense(
       break;
     case DType::I1: {
       using T = EigenTypeForDTypeKind<DType::I1>;
-      auto error = ::tfrt::cpu::ConcatKernel<T>(args, axis, dest.getPointer());
+      auto error = ::tfrt::cpu::ConcatKernel<T>(args, axis, &*dest);
       if (error) return std::move(error);
       break;
     }

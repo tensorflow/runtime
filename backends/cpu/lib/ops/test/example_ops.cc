@@ -58,7 +58,7 @@ static Expected<DenseHostTensor> OddCollectorOp(
   if (!result.has_value()) return MakeStringError("cannot allocate tensor");
 
   // Fill in the result.
-  MutableDHTArrayView<int32_t> result_view(result.getPointer());
+  MutableDHTArrayView<int32_t> result_view(&*result);
   size_t result_elt = 0;
   for (auto& elt : input_view)
     if (elt & 1) result_view[result_elt++] = elt;
@@ -126,7 +126,7 @@ AsyncValueRef<HostTensor> TestAddOpImpl(const HostTensor& lhs_ref,
   auto dest = DenseHostTensor::CreateUninitialized(lhs->metadata(), host);
   if (!dest) return MakeErrorAsyncValueRef("out of memory allocating result");
 
-  MutableDHTArrayView<T> dest_view(dest.getPointer());
+  MutableDHTArrayView<T> dest_view(&*dest);
 
   // Handle scalar+dense.
   DHTArrayView<T> rhs_view(cast<DenseHostTensor>(rhs));
@@ -186,7 +186,7 @@ static Expected<DenseHostTensor> TestAddDenseOnlyOp(
     return MakeStringError("out of memory allocating result");
   }
 
-  auto* dest_ptr = dest.getPointer();
+  auto* dest_ptr = &*dest;
   switch (lhs.dtype()) {
     default:
       assert(0 && "shape function failure");

@@ -150,8 +150,7 @@ static AsyncValueRef<DenseHostTensor> ReluOp(Argument<DenseHostTensor> A,
       return EmitErrorAsync(exec_ctx, "out of memory allocating result");
     }
 
-    AsyncValueRef<Chain> chain =
-        ReluHelper(A.get(), dest.getPointer(), exec_ctx);
+    AsyncValueRef<Chain> chain = ReluHelper(A.get(), &*dest, exec_ctx);
 
     return WaitForChain(std::move(dest).value(), std::move(chain), exec_ctx);
   }
@@ -226,7 +225,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
       MakeUnconstructedAsyncValueRef<DenseHostTensor>().ReleaseRCRef();
 
   AsyncValueRef<Chain> chain;
-  auto* dest_dht = dest.getPointer();
+  auto* dest_dht = &*dest;
   switch (lhs.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for equal");
@@ -370,7 +369,7 @@ static Expected<DenseHostTensor> Broadcast1D(const DenseHostTensor& A,
   if (!tensor.has_value())
     return MakeStringError("cannot allocate result tensor");
 
-  Broadcast1DKernel<T, N>(A, tensor.getPointer());
+  Broadcast1DKernel<T, N>(A, &*tensor);
 
   return std::move(*tensor);
 }
@@ -443,7 +442,7 @@ static Expected<DenseHostTensor> Argmax(const DenseHostTensor& A,
     return MakeStringError("Cannot allocate result tensor.");
   }
 
-  ArgmaxKernel<T, Rank, Axis>(A, tensor.getPointer());
+  ArgmaxKernel<T, Rank, Axis>(A, &*tensor);
 
   return std::move(*tensor);
 }
@@ -534,7 +533,7 @@ static Expected<DenseHostTensor> ReduceMean(const DenseHostTensor& A,
   if (!tensor.has_value())
     return MakeStringError("cannot allocate result tensor");
 
-  ReduceMeanKernel<T, Rank, Axis>(A, tensor.getPointer());
+  ReduceMeanKernel<T, Rank, Axis>(A, &*tensor);
 
   return std::move(*tensor);
 }

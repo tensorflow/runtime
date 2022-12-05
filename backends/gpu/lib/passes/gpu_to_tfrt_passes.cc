@@ -797,7 +797,7 @@ FailureOr<Value> AddChainAndStreamToWhilePattern::matchAndRewriteOp(
     tfrt::compiler::WhileOp op, OpAdaptor adaptor, Value chain, Value stream,
     ConversionPatternRewriter &rewriter) const {
   llvm::SmallVector<Value, 8> operands = {chain, stream};
-  llvm::copy(adaptor.operands(), std::back_inserter(operands));
+  llvm::copy(adaptor.getOperands(), std::back_inserter(operands));
   auto while_op = rewriter.create<tfrt::compiler::WhileOp>(
       op->getLoc(), TypeRange(ValueRange(operands)), adaptor.getCond(),
       operands, adaptor.getBodyFn());

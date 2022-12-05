@@ -138,15 +138,13 @@ def ExecuteOp : CoreRT_Op<"executeop", [Pure, CoreRT_TypedAttributeTrait]> {
 
   let arguments = (ins
     CoreRT_OpHandlerType:$op_handler,
-    Variadic<CoreRT_TensorHandleType>:$operands,
+    Variadic<CoreRT_TensorHandleType>:$arguments,
     ArrayAttr:$op_attrs,
     ArrayAttr:$op_func_attrs,
     StrAttr:$op_name
   );
 
-  let results = (outs
-    Variadic<CoreRT_TensorHandleType>:$results
-  );
+  let results = (outs Variadic<CoreRT_TensorHandleType>);
 
   let hasFolder = 1;
 
@@ -158,7 +156,7 @@ def ExecuteOp : CoreRT_Op<"executeop", [Pure, CoreRT_TypedAttributeTrait]> {
 
   let builders = [
     OpBuilder<(ins "TypeRange":$results, "Value":$op_handler,
-      "ValueRange":$operands,
+      "ValueRange":$arguments,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_func_attrs,
       "StringRef":$op_name)>];
@@ -191,7 +189,7 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   let arguments = (ins
     CoreRT_OpHandlerType:$op_handler,
     TFRT_ChainType:$in_op_chain,
-    Variadic<CoreRT_TensorHandleType>:$operands,
+    Variadic<CoreRT_TensorHandleType>:$arguments,
     ArrayAttr:$op_attrs,
     ArrayAttr:$op_func_attrs,
     StrAttr:$op_name

@@ -273,7 +273,7 @@ ParseResult ExecuteOpSeq::parse(OpAsmParser &parser, OperationState &result) {
 }
 void ExecuteOp::print(OpAsmPrinter &p) {
   p << "(" << getOpHandler() << ") " << (*this)->getAttr("op_name") << '('
-    << operands() << ')';
+    << getArguments() << ')';
 
   PrintExecuteOpImpl(p, *this);
   PrintExecuteOpFuncAttribute(p, *this);
@@ -281,7 +281,7 @@ void ExecuteOp::print(OpAsmPrinter &p) {
 }
 void ExecuteOpSeq::print(OpAsmPrinter &p) {
   p << "(" << getOpHandler() << ", " << getInOpChain() << ") "
-    << (*this)->getAttr("op_name") << '(' << operands() << ')';
+    << (*this)->getAttr("op_name") << '(' << getArguments() << ')';
 
   PrintExecuteOpImpl(p, *this);
   PrintExecuteOpFuncAttribute(p, *this);

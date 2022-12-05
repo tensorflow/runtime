@@ -134,16 +134,14 @@ def ExecuteOp : JITRT_Op<"execute"> {
   let arguments = (ins
     JitExecutableType:$jit_executable,
     TFRT_ChainType:$in_chain,
-    Variadic<TensorType>:$operands
+    Variadic<TensorType>:$arguments
   );
 
-  let results = (outs
-    Variadic<AnyType>:$results
-  );
+  let results = (outs Variadic<AnyType>);
 
   let assemblyFormat = [{
-    $jit_executable `[` $in_chain `]` `(` $operands `)` attr-dict `:`
-    functional-type($operands, $results)
+    $jit_executable `[` $in_chain `]` `(` $arguments `)` attr-dict `:`
+    functional-type($arguments, results)
   }];
 }
 
@@ -176,16 +174,14 @@ def CoreRtExecuteOp : JITRT_Op<"corert.execute"> {
 
   let arguments = (ins
     JitExecutableType:$jit_executable,
-    Variadic<CoreRT_TensorHandleType>:$operands
+    Variadic<CoreRT_TensorHandleType>:$arguments
   );
 
-  let results = (outs
-    Variadic<CoreRT_TensorHandleType>:$results
-  );
+  let results = (outs Variadic<CoreRT_TensorHandleType>);
 
   let assemblyFormat = [{
-    $jit_executable `(` $operands `)` attr-dict `:`
-    functional-type($operands, $results)
+    $jit_executable `(` $arguments `)` attr-dict `:`
+    functional-type($arguments, results)
   }];
 }
 

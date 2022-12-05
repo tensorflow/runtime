@@ -56,7 +56,7 @@ def CallOp : TFRT_Op<"call", [CallOpInterface]> {
     // The following methods are needed by CallOpInterface.
 
     // Gets the argument operands to the called function.
-    ::mlir::Operation::operand_range getArgOperands() { return operands(); }
+    ::mlir::Operation::operand_range getArgOperands() { return getOperands(); }
     // Returns the callee of this operation.
     ::mlir::CallInterfaceCallable getCallableForCallee() { return getCalleeAttr(); }
   }];
@@ -245,19 +245,19 @@ def WhileOp : TFRT_Op<"while"> {
   }];
 
   let arguments = (ins I1:$cond,
-                       Variadic<AnyType>:$operands,
+                       Variadic<AnyType>:$arguments,
                        FlatSymbolRefAttr:$body_fn,
                        I64Attr:$parallel_iterations);
 
-  let results = (outs Variadic<AnyType>:$results);
+  let results = (outs Variadic<AnyType>);
 
   let assemblyFormat = [{
-    $cond $body_fn `(` $operands `)` attr-dict `parallel_iterations` `(` $parallel_iterations `)` `:` `(` type($operands) `)` `->` `(` type($results) `)`
+    $cond $body_fn `(` $arguments `)` attr-dict `parallel_iterations` `(` $parallel_iterations `)` `:` `(` type($arguments) `)` `->` `(` type(results) `)`
   }];
 
   let builders = [
-    OpBuilder<(ins "::mlir::TypeRange":$results, "::mlir::Value":$cond, "::mlir::ValueRange":$operands, "::llvm::StringRef":$body_fn, CArg<"int64_t", "1">:$parallel_iterations), [{
-      build($_builder, $_state, results, cond, operands, ::mlir::FlatSymbolRefAttr::get($_builder.getStringAttr(body_fn)), $_builder.getI64IntegerAttr(parallel_iterations));
+    OpBuilder<(ins "::mlir::TypeRange":$results, "::mlir::Value":$cond, "::mlir::ValueRange":$arguments, "::llvm::StringRef":$body_fn, CArg<"int64_t", "1">:$parallel_iterations), [{
+      build($_builder, $_state, results, cond, arguments, ::mlir::FlatSymbolRefAttr::get($_builder.getStringAttr(body_fn)), $_builder.getI64IntegerAttr(parallel_iterations));
     }]>
   ];
 
@@ -280,14 +280,14 @@ def OnceOp : TFRT_Op<"once"> {
     %1 = tfrt.once @once(%0)
   }];
 
-  let arguments = (ins Variadic<AnyType>:$operands,
+  let arguments = (ins Variadic<AnyType>,
                        FlatSymbolRefAttr:$function);
 
-  let results = (outs Variadic<AnyType>:$results);
+  let results = (outs Variadic<AnyType>);
 
   let assemblyFormat = [{
-    $function `(` $operands `)` attr-dict
-    `:` `(` type($operands) `)` `->` `(` type($results) `)`
+    $function `(` operands `)` attr-dict
+    `:` `(` type(operands) `)` `->` `(` type(results) `)`
   }];
 
   let hasVerifier = 0;
@@ -431,7 +431,7 @@ def ParallelCallI32Op : TFRT_Op<"parallel_call.i32"> {
 
   let arguments = (ins FlatSymbolRefAttr:$callee,
                    I32:$start, I32:$end, I32:$block_size,
-                   Variadic<AnyType>:$operands);
+                   Variadic<AnyType>:$arguments);
   let results = (outs Variadic<AnyType>);
 }
 
@@ -448,7 +448,7 @@ def ReturnOp : TFRT_Op<"return", [Terminator]> {
         tfrt.return %0, %1 : i32, f8
   }];
 
-  let arguments = (ins Variadic<AnyType>:$operands);
+  let arguments = (ins Variadic<AnyType>);
 
   let builders = [
     OpBuilder<(ins),

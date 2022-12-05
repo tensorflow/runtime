@@ -48,7 +48,7 @@ struct TFRTInlinerInterface : public mlir::DialectInlinerInterface {
     auto return_op = llvm::dyn_cast<ReturnOp>(op);
     if (!return_op) return;
 
-    for (auto iter : llvm::zip(values_to_replace, return_op.operands())) {
+    for (auto iter : llvm::zip(values_to_replace, return_op.getOperands())) {
       auto original_value = std::get<0>(iter);
       auto new_value = std::get<1>(iter);
       original_value.replaceAllUsesWith(new_value);

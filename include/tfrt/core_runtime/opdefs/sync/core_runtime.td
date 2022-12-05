@@ -112,7 +112,7 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [Pure, CoreRT_TypedAttributeTrait]> {
 
   let arguments = (ins
     CoreRT_OpHandlerType:$op_handler,
-    Variadic<CoreRT_TensorHandleType>:$operands,
+    Variadic<CoreRT_TensorHandleType>:$arguments,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
   );
@@ -129,7 +129,7 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [Pure, CoreRT_TypedAttributeTrait]> {
 
   let builders = [
     OpBuilder<(ins "TypeRange":$results, "Value":$device,
-      "ValueRange":$operands,
+      "ValueRange":$arguments,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
       "StringRef":$op_name)>];
 }

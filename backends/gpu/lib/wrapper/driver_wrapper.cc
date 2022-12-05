@@ -961,8 +961,7 @@ class RawModuleLoadOptions {
     }
     if (in_options.log_verbose) {
       options_.push_back(JitOptions<kPlatform>::kLogVerbose);
-      option_values_.push_back(
-          const_cast<int*>(in_options.log_verbose.getPointer()));
+      option_values_.push_back(const_cast<int*>(&*in_options.log_verbose));
     }
 
     if (in_options.fallback_strategy) {

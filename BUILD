@@ -185,7 +185,6 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "ref_count",
-    srcs = ["lib/concurrency/ref_count.cc"],
     hdrs = ["include/tfrt/concurrency/ref_count.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],

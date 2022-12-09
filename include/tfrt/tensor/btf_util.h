@@ -74,7 +74,7 @@ Expected<DenseHostTensor> ParseDenseHostTensorFromStream(
   }
 
   using DHTView = MutableDHTIndexableView<DType, Rank>;
-  DHTView tensor{dht.getPointer()};
+  DHTView tensor{&*dht};
 
   // This can read a large amount of data from the stream. Depending on the
   // underlying file system implementation, we may need to have a more optimal

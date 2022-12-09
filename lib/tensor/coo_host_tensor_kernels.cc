@@ -71,8 +71,8 @@ static void ConvertFromDHT(ArgumentView<MutableDHTIndexableView<T, Rank>> in,
     handler.ReportError("Cannot allocate index tensor");
     return;
   }
-  auto values_view = MutableDHTIndexableView<T, 1>(values.getPointer());
-  auto indices_view = MutableDHTIndexableView<int64_t, 2>(indices.getPointer());
+  auto values_view = MutableDHTIndexableView<T, 1>(&*values);
+  auto indices_view = MutableDHTIndexableView<int64_t, 2>(&*indices);
   const auto elements = in->Elements();
   // Index of the next element in the sparse tensor to be filled.
   int sparse_index = 0;

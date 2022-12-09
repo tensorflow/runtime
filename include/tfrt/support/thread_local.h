@@ -144,7 +144,7 @@ class ThreadLocal {
     data_[insertion_index] = {this_thread, constructor_.Construct()};
 
     // That's the pointer we'll put into the lookup table.
-    Entry* inserted = data_[insertion_index].getPointer();
+    Entry* inserted = &*data_[insertion_index];
 
     // We'll use nullptr pointer to Entry in a compare-and-swap loop.
     Entry* empty = nullptr;

@@ -25,11 +25,6 @@
 #include <memory>
 #include <utility>
 
-#include "compiler/xla/runtime/arguments.h"       // from @tsl
-#include "compiler/xla/runtime/async_runtime.h"   // from @tsl
-#include "compiler/xla/runtime/executable.h"      // from @tsl
-#include "compiler/xla/runtime/jit_executable.h"  // from @tsl
-#include "compiler/xla/runtime/types.h"           // from @tsl
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -51,6 +46,11 @@
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

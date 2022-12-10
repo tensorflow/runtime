@@ -52,5 +52,4 @@ tf_runtime/third_party/rules_cuda/test/defs.bzl:
 tf_runtime/third_party/systemlibs/protobuf.BUILD:
 tf_runtime/third_party/systemlibs/protobuf.bzl:
 tf_runtime/third_party/systemlibs/zlib.BUILD:
-tf_runtime/third_party/tsl/BUILD:
 tf_runtime/third_party/zlib.BUILD:

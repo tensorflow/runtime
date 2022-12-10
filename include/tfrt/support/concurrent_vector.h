@@ -19,7 +19,7 @@
 #ifndef TFRT_SUPPORT_CONCURRENT_VECTOR_H_
 #define TFRT_SUPPORT_CONCURRENT_VECTOR_H_
 
-#include "tsl/concurrency/concurrent_vector.h"  // from @tsl
+#include "tfrt/concurrency/concurrent_vector.h"
 
 namespace tfrt {
 

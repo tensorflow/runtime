@@ -23,11 +23,6 @@
 #include <memory>
 #include <utility>
 
-#include "compiler/xla/mlir/math/transforms/passes.h"       // from @tsl
-#include "compiler/xla/mlir/memref/transforms/passes.h"     // from @tsl
-#include "compiler/xla/mlir/runtime/transforms/compiler.h"  // from @tsl
-#include "compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"  // from @tsl
-#include "compiler/xla/mlir/runtime/transforms/passes.h"  // from @tsl
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
@@ -58,6 +53,11 @@
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/jitrt/transforms/codegen_passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/math/transforms/passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/memref/transforms/passes.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/passes.h"
 
 namespace tfrt {
 namespace jitrt {

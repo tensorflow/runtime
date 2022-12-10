@@ -21,13 +21,6 @@
 #include <utility>
 #include <vector>
 
-#include "compiler/xla/mlir/runtime/transforms/calling_convention.h"  // from @tsl
-#include "compiler/xla/mlir/runtime/transforms/compiler.h"  // from @tsl
-#include "compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"  // from @tsl
-#include "compiler/xla/runtime/arguments.h"             // from @tsl
-#include "compiler/xla/runtime/custom_call_registry.h"  // from @tsl
-#include "compiler/xla/runtime/executable.h"            // from @tsl
-#include "compiler/xla/runtime/jit_executable.h"        // from @tsl
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ExtensibleRTTI.h"
@@ -46,6 +39,13 @@
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/jitrt/results.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/calling_convention.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
 namespace jitrt {

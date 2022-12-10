@@ -19,9 +19,9 @@
 
 #include <utility>
 
-#include "compiler/xla/runtime/async_runtime.h"  // from @tsl
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/host_context.h"
+#include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
 
 namespace tfrt {
 namespace jitrt {

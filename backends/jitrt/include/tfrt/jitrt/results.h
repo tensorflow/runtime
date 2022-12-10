@@ -21,14 +21,14 @@
 #include <type_traits>
 #include <utility>
 
-#include "compiler/xla/mlir/runtime/utils/async_runtime_api.h"  // from @tsl
-#include "compiler/xla/runtime/results.h"                       // from @tsl
-#include "compiler/xla/runtime/types.h"                         // from @tsl
 #include "llvm/Support/Compiler.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/msan.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/utils/async_runtime_api.h"
+#include "third_party/tensorflow/compiler/xla/runtime/results.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

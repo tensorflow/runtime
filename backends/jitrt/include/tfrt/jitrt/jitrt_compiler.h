@@ -19,8 +19,8 @@
 
 #include <functional>
 
-#include "compiler/xla/runtime/compiler.h"  // from @tsl
 #include "mlir/Transforms/DialectConversion.h"
+#include "third_party/tensorflow/compiler/xla/runtime/compiler.h"
 
 namespace xla {
 namespace runtime {

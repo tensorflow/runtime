@@ -20,8 +20,6 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "compiler/xla/runtime/compiler.h"        // from @tsl
-#include "compiler/xla/runtime/jit_executable.h"  // from @tsl
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -30,6 +28,8 @@
 #include "tfrt/jitrt/arguments.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/logging.h"
+#include "third_party/tensorflow/compiler/xla/runtime/compiler.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
 
 namespace tfrt {
 namespace jitrt {

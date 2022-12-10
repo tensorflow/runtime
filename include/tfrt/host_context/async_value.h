@@ -25,8 +25,7 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_VALUE_H_
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_H_
 
-#include "tfrt/support/logging.h"         // IWYU pragma: export
-#include "tsl/concurrency/async_value.h"  // from @tsl
+#include "tfrt/concurrency/async_value.h"
 
 namespace tfrt {
 

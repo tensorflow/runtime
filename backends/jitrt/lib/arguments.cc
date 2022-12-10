@@ -16,11 +16,11 @@
 
 #include "tfrt/jitrt/arguments.h"
 
-#include "compiler/xla/runtime/arguments.h"  // from @tsl
 #include "llvm/ADT/ArrayRef.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
 namespace jitrt {

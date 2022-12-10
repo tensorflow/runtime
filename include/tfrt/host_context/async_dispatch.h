@@ -19,10 +19,10 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 #define TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 
+#include "tfrt/concurrency/async_value.h"  // See note on RunWhenReady below.
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/latch.h"
-#include "tsl/concurrency/async_value.h"  // from @tsl  // See note on RunWhenReady below.
 
 namespace tfrt {
 

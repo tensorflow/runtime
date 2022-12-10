@@ -89,7 +89,3 @@ build:code_size_test --config=disable_rtti_and_exceptions
 
 # Put user-specific options in .bazelrc.user
 try-import %workspace%/.bazelrc.user
-
-# Disable subpackages defined by TSL. We define our own targets in the
-# third_party/tsl/BUILD.oss file that do not depend on other parts of TSL.
-build --deleted_packages=@tsl//tsl,@tsl//tsl/concurrency

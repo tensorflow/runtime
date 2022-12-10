@@ -25,15 +25,6 @@
 #include <string>
 #include <utility>
 
-#include "compiler/xla/mlir/runtime/transforms/compiler.h"  // from @tsl
-#include "compiler/xla/runtime/arguments.h"                 // from @tsl
-#include "compiler/xla/runtime/async_runtime.h"             // from @tsl
-#include "compiler/xla/runtime/custom_call.h"               // from @tsl
-#include "compiler/xla/runtime/custom_call_registry.h"      // from @tsl
-#include "compiler/xla/runtime/diagnostics.h"               // from @tsl
-#include "compiler/xla/runtime/executable.h"                // from @tsl
-#include "compiler/xla/runtime/jit_executable.h"            // from @tsl
-#include "compiler/xla/runtime/types.h"                     // from @tsl
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
@@ -58,6 +49,15 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
+#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
+#include "third_party/tensorflow/compiler/xla/runtime/async_runtime.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
+#include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

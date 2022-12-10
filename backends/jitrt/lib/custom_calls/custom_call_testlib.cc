@@ -23,14 +23,14 @@
 #include <utility>
 #include <vector>
 
-#include "compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"  // from @tsl
-#include "compiler/xla/runtime/custom_call.h"           // from @tsl
-#include "compiler/xla/runtime/custom_call_registry.h"  // from @tsl
-#include "compiler/xla/runtime/executable.h"            // from @tsl
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
+#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/custom_call_encoding.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "third_party/tensorflow/compiler/xla/runtime/custom_call_registry.h"
+#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
 
 XLA_RUNTIME_DEFINE_EXPLICIT_TYPE_ID(tfrt::jitrt::RuntimeEnumType);
 

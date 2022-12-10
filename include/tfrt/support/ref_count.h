@@ -19,7 +19,7 @@
 #ifndef TFRT_SUPPORT_REF_COUNT_H_
 #define TFRT_SUPPORT_REF_COUNT_H_
 
-#include "tsl/concurrency/ref_count.h"  // from @tsl
+#include "tfrt/concurrency/ref_count.h"
 
 namespace tfrt {
 

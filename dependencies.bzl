@@ -17,6 +17,7 @@ load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
 load("@tf_runtime//third_party/absl:workspace.bzl", absl = "repo")
 load("@tf_runtime//third_party/eigen:workspace.bzl", eigen = "repo")
 load("@tf_runtime//third_party/llvm:workspace.bzl", llvm = "repo")
+load("@tf_runtime//third_party/tsl:workspace.bzl", tsl = "repo")
 load("@tf_runtime//third_party/cuda:dependencies.bzl", "cuda_dependencies")
 
 def _rules_cuda_impl(repository_ctx):
@@ -50,6 +51,8 @@ def tfrt_dependencies():
     absl(name = "com_google_absl")
 
     eigen(name = "eigen_archive")
+
+    tsl(name = "tsl")
 
     tfrt_http_archive(
         name = "dnnl",

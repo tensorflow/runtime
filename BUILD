@@ -146,51 +146,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "async_value",
-    srcs = [
-        "lib/concurrency/async_value.cc",
-        "lib/concurrency/async_value_ref.cc",
-    ],
-    hdrs = [
-        "include/tfrt/concurrency/async_value.h",
-        "include/tfrt/concurrency/async_value_ref.h",
-        "include/tfrt/concurrency/chain.h",
-    ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":concurrent_vector",
-        ":ref_count",
-        ":support",
-        "@com_google_absl//absl/container:inlined_vector",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/types:span",
-    ],
-)
-
-tfrt_cc_library(
-    name = "concurrent_vector",
-    hdrs = ["include/tfrt/concurrency/concurrent_vector.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/types:span",
-    ],
-)
-
-tfrt_cc_library(
-    name = "ref_count",
-    hdrs = ["include/tfrt/concurrency/ref_count.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = ["//visibility:public"],
-)
-
-tfrt_cc_library(
     name = "hostcontext",
     srcs = [
         "lib/host_context/async_dispatch.cc",
@@ -249,13 +204,13 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
-        ":async_value",
         ":bef",
         ":support",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
+        "@tsl//:concurrency/async_value",
     ],
 )
 
@@ -372,8 +327,8 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
-        ":concurrent_vector",
-        ":ref_count",
+        "@tsl//:concurrency/ref_count",
+        "@tsl//:concurrency/concurrent_vector",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ] + select({

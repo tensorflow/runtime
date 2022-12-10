@@ -17,8 +17,8 @@
 #ifndef TFRT_BACKENDS_JITRT_JITRT_H_
 #define TFRT_BACKENDS_JITRT_JITRT_H_
 
+#include "compiler/xla/runtime/arguments.h"  // from @tsl
 #include "llvm/Support/Error.h"
-#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
 
 namespace tfrt {
 

@@ -22,10 +22,10 @@
 
 #include <utility>
 
+#include "compiler/xla/mlir/runtime/utils/async_runtime_api.h"  // from @tsl
+#include "compiler/xla/runtime/types.h"                         // from @tsl
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
-#include "third_party/tensorflow/compiler/xla/mlir/runtime/utils/async_runtime_api.h"
-#include "third_party/tensorflow/compiler/xla/runtime/types.h"
 
 namespace tfrt {
 namespace jitrt {

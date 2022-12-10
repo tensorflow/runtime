@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-#include "third_party/tensorflow/compiler/xla/runtime/custom_call.h"
+#include "compiler/xla/runtime/custom_call.h"  // from @tsl
 
 #include <utility>
 
 #include "benchmark/benchmark.h"
+#include "compiler/xla/mlir/runtime/transforms/compiler.h"  // from @tsl
+#include "compiler/xla/runtime/arguments.h"                 // from @tsl
+#include "compiler/xla/runtime/diagnostics.h"               // from @tsl
+#include "compiler/xla/runtime/executable.h"                // from @tsl
+#include "compiler/xla/runtime/execution_engine.h"          // from @tsl
+#include "compiler/xla/runtime/jit_executable.h"            // from @tsl
 #include "gtest/gtest.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/jitrt/custom_calls/custom_call_testlib.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
-#include "third_party/tensorflow/compiler/xla/mlir/runtime/transforms/compiler.h"
-#include "third_party/tensorflow/compiler/xla/runtime/arguments.h"
-#include "third_party/tensorflow/compiler/xla/runtime/diagnostics.h"
-#include "third_party/tensorflow/compiler/xla/runtime/executable.h"
-#include "third_party/tensorflow/compiler/xla/runtime/execution_engine.h"
-#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+#include "tfrt/support/logging.h"
 
 // Forward declare types enabling compiled kernel <-> runtime integration.
 namespace xla {

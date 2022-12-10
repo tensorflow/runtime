@@ -26,8 +26,8 @@
 #ifndef TFRT_HOST_CONTEXT_CHAIN_H_
 #define TFRT_HOST_CONTEXT_CHAIN_H_
 
-#include "tfrt/concurrency/chain.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tsl/concurrency/chain.h"  // from @tsl
 
 namespace tfrt {
 

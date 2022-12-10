@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#include "third_party/tensorflow/compiler/xla/runtime/jit_executable.h"
+#include "compiler/xla/runtime/jit_executable.h"  // from @tsl
 
 #include <memory>
 #include <utility>
 
 #include "benchmark/benchmark.h"
+#include "compiler/xla/runtime/symbolic_shape.h"  // from @tsl
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -28,7 +29,6 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/jitrt/jitrt_compiler.h"
 #include "tfrt/support/logging.h"
-#include "third_party/tensorflow/compiler/xla/runtime/symbolic_shape.h"
 
 namespace tfrt {
 namespace jitrt {

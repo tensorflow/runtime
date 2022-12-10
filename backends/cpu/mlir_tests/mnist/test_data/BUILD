@@ -1,6 +1,8 @@
 licenses(["notice"])
 
-package(default_visibility = ["@tf_runtime//:__subpackages__"])
+package(
+    default_visibility = ["@tf_runtime//:__subpackages__"],
+)
 
 exports_files([
     "matmul_test_f32.btf",

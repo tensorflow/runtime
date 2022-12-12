@@ -18,6 +18,8 @@
 
 #include "tfrt/host_context/resource_context.h"
 
+#include <optional>
+
 #include "gtest/gtest.h"
 #include "tfrt/support/string_util.h"
 
@@ -62,7 +64,7 @@ TEST(ResourceContextDeathTest, GetAndDie) {
 
 TEST(ResourceContextTest, GetNotCreated) {
   ResourceContext resource_context;
-  Optional<SomeResource*> resource =
+  std::optional<SomeResource*> resource =
       resource_context.GetResource<SomeResource>("some_name");
   EXPECT_EQ(resource.has_value(), false);
 }
@@ -73,7 +75,7 @@ TEST(ResourceContextTest, CreateAndGet) {
       resource_context.CreateResource<SomeResource>("some_name", 41);
   ASSERT_EQ(rc->GetData(), 41);
 
-  Optional<SomeResource*> resource =
+  std::optional<SomeResource*> resource =
       resource_context.GetResource<SomeResource>("some_name");
   EXPECT_EQ(resource.has_value(), true);
   EXPECT_EQ((*resource)->GetData(), 41);

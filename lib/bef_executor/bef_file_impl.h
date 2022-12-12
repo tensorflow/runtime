@@ -19,6 +19,7 @@
 #ifndef TFRT_LIB_BEF_EXECUTOR_BEF_FILE_IMPL_H_
 #define TFRT_LIB_BEF_EXECUTOR_BEF_FILE_IMPL_H_
 
+#include <optional>
 #include <type_traits>
 
 #include "llvm/ADT/ArrayRef.h"
@@ -214,7 +215,7 @@ class BEFLocationHandler final : public LocationHandler {
   explicit BEFLocationHandler(BEFFileImpl* bef_file) : bef_file_(bef_file) {}
 
   DecodedLocation DecodeLocation(Location loc) const override;
-  Optional<DebugInfo> GetDebugInfo(Location loc) const override;
+  std::optional<DebugInfo> GetDebugInfo(Location loc) const override;
 
  private:
   BEFFileImpl* bef_file_;
@@ -304,7 +305,7 @@ class BEFFileImpl : public BEFFile {
   // Given an offset into the LocationPositions section, decode it and return
   // a DecodedDiagnostic.
   DecodedLocation DecodeLocation(size_t location_position_offset);
-  Optional<DebugInfo> GetDebugInfo(size_t location_position_offset);
+  std::optional<DebugInfo> GetDebugInfo(size_t location_position_offset);
 
   // Only used for debugging. If TFRT_BEF_DEBUG is not defined, it
   // returns "unknown".

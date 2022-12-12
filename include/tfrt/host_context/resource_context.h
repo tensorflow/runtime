@@ -23,6 +23,7 @@
 #include <array>
 #include <atomic>
 #include <memory>
+#include <optional>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
@@ -49,11 +50,11 @@ class ResourceContext {
 
   // Get a resource T with a `resource_name`. Thread-safe.
   template <typename T>
-  Optional<T*> GetResource(string_view resource_name) TFRT_EXCLUDES(mu_) {
+  std::optional<T*> GetResource(string_view resource_name) TFRT_EXCLUDES(mu_) {
     tfrt::mutex_lock lock(mu_);
     auto it = resources_.find(resource_name);
     if (it == resources_.end()) {
-      return llvm::None;
+      return std::nullopt;
     }
     T* data = tfrt::any_cast<T>(&it->second);
     return data;

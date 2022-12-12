@@ -19,6 +19,8 @@
 #ifndef TFRT_BEF_BEF_LOCATION_H_
 #define TFRT_BEF_BEF_LOCATION_H_
 
+#include <optional>
+
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/host_context/location.h"
@@ -159,7 +161,7 @@ DecodedLocation DecodeBefLocation(ArrayRef<uint8_t> location_strings_section,
                                   const BefLocation &loc);
 
 // Get a DebugInfo string from a BefLocation.
-Optional<DebugInfo> GetDebugInfoFromBefLocation(
+std::optional<DebugInfo> GetDebugInfoFromBefLocation(
     ArrayRef<uint8_t> location_strings_section, const BefLocation &loc);
 }  // namespace tfrt
 

@@ -16,6 +16,8 @@
 
 #include "tfrt/bef/bef_location.h"
 
+#include <optional>
+
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/location.h"
 
@@ -150,7 +152,7 @@ DecodedLocation DecodeBefLocation(ArrayRef<uint8_t> location_strings_section,
   return result;
 }
 
-Optional<DebugInfo> GetDebugInfoFromBefLocation(
+std::optional<DebugInfo> GetDebugInfoFromBefLocation(
     ArrayRef<uint8_t> location_strings_section, const BefLocation& loc) {
   // Treats BefNameLocation as DebugInfo.
   if (auto name = loc.dyn_cast<BefNameLocation>()) {
@@ -175,7 +177,7 @@ Optional<DebugInfo> GetDebugInfoFromBefLocation(
     }
   }
 
-  return llvm::None;
+  return std::nullopt;
 }
 
 }  // namespace tfrt

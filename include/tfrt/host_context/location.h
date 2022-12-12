@@ -22,6 +22,7 @@
 #define TFRT_HOST_CONTEXT_LOCATION_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "tfrt/support/forward_decls.h"
@@ -61,7 +62,7 @@ class Location {
 
   DecodedLocation Decode() const;
 
-  Optional<DebugInfo> GetDebugInfo() const;
+  std::optional<DebugInfo> GetDebugInfo() const;
 
   const LocationHandler* GetHandler() const { return handler_; }
 
@@ -80,8 +81,8 @@ class LocationHandler {
   virtual ~LocationHandler();
 
   virtual DecodedLocation DecodeLocation(Location loc) const = 0;
-  virtual Optional<DebugInfo> GetDebugInfo(Location loc) const {
-    return llvm::None;
+  virtual std::optional<DebugInfo> GetDebugInfo(Location /*loc*/) const {
+    return std::nullopt;
   }
 };
 
@@ -90,8 +91,8 @@ inline DecodedLocation Location::Decode() const {
   return handler_->DecodeLocation(*this);
 }
 
-inline Optional<DebugInfo> Location::GetDebugInfo() const {
-  if (!handler_) return llvm::None;
+inline std::optional<DebugInfo> Location::GetDebugInfo() const {
+  if (!handler_) return std::nullopt;
   return handler_->GetDebugInfo(*this);
 }
 

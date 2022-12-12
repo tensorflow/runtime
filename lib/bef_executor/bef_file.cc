@@ -19,6 +19,8 @@
 
 #include "tfrt/bef_executor/bef_file.h"
 
+#include <optional>
+
 #include "bef_file_impl.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/bef/bef_location.h"
@@ -472,7 +474,7 @@ DecodedLocation BEFLocationHandler::DecodeLocation(Location loc) const {
   return bef_file_->DecodeLocation(loc.data);
 }
 
-Optional<DebugInfo> BEFLocationHandler::GetDebugInfo(Location loc) const {
+std::optional<DebugInfo> BEFLocationHandler::GetDebugInfo(Location loc) const {
   return bef_file_->GetDebugInfo(loc.data);
 }
 
@@ -565,8 +567,10 @@ DecodedLocation BEFFileImpl::DecodeLocation(size_t location_position_offset) {
   return DecodeBefLocation(location_strings_section_, loc);
 }
 
-Optional<DebugInfo> BEFFileImpl::GetDebugInfo(size_t location_position_offset) {
-  if (location_position_offset >= locations_section_.size()) return llvm::None;
+std::optional<DebugInfo> BEFFileImpl::GetDebugInfo(
+    size_t location_position_offset) {
+  if (location_position_offset >= locations_section_.size())
+    return std::nullopt;
 
   BefLocation loc(locations_section_.data() + location_position_offset);
   return GetDebugInfoFromBefLocation(location_strings_section_, loc);

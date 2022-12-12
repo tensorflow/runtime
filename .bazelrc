@@ -17,6 +17,11 @@
 # Instead, users are required to pick a compiler with `--config=clang/gcc/msvc`.
 build --@rules_cuda//cuda:compiler="Please specify a compiler (--config=clang/gcc/msvc)."
 
+# Prevent regressions on those two incompatible changes
+# TODO: remove those flags when they are flipped in the default Bazel version used.
+build --incompatible_enforce_config_setting_visibility
+build --incompatible_config_setting_private_default_visibility
+
 # LLVM's LIT test runner needs %PATHEXT% on Windows
 test:windows --test_env=PATHEXT
 

@@ -292,10 +292,10 @@ static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
     default:
       *B_tensor = EmitErrorAsync(exec_ctx, "unsupported dtype for cast");
       return;
-#define DTYPE_NUMERIC(ENUM)                                     \
-  case DType::ENUM:                                             \
-    chain = CastForOutType<EigenTypeForDTypeKind<DType::ENUM>>( \
-        A, dest.getPointer(), exec_ctx);                        \
+#define DTYPE_NUMERIC(ENUM)                                               \
+  case DType::ENUM:                                                       \
+    chain = CastForOutType<EigenTypeForDTypeKind<DType::ENUM>>(A, &*dest, \
+                                                               exec_ctx); \
     break;
 #include "tfrt/dtype/dtype.def"
   }

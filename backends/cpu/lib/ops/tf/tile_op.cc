@@ -86,11 +86,11 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
         chain = ::tfrt::cpu::Tile<T, compat::AsyncEigenEvaluator>(
             input, *expected_multiples, &*dest, exec_ctx);
       } break;
-#define DTYPE_NUMERIC(ENUM)                                       \
-  case DType::ENUM: {                                             \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;                 \
-    chain = ::tfrt::cpu::Tile<T, compat::AsyncEigenEvaluator>(    \
-        input, *expected_multiples, dest.getPointer(), exec_ctx); \
+#define DTYPE_NUMERIC(ENUM)                                    \
+  case DType::ENUM: {                                          \
+    using T = EigenTypeForDTypeKind<DType::ENUM>;              \
+    chain = ::tfrt::cpu::Tile<T, compat::AsyncEigenEvaluator>( \
+        input, *expected_multiples, &*dest, exec_ctx);         \
   } break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
     }

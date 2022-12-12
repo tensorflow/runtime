@@ -54,12 +54,12 @@ static Expected<DenseHostTensor> TfConcatOpDense(
       if (error) return std::move(error);
       break;
     }
-#define DTYPE_NUMERIC(ENUM)                                                   \
-  case DType::ENUM: {                                                         \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;                             \
-    auto error = ::tfrt::cpu::ConcatKernel<T>(args, axis, dest.getPointer()); \
-    if (error) return std::move(error);                                       \
-    break;                                                                    \
+#define DTYPE_NUMERIC(ENUM)                                        \
+  case DType::ENUM: {                                              \
+    using T = EigenTypeForDTypeKind<DType::ENUM>;                  \
+    auto error = ::tfrt::cpu::ConcatKernel<T>(args, axis, &*dest); \
+    if (error) return std::move(error);                            \
+    break;                                                         \
   }
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

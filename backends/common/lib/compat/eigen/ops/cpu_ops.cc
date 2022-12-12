@@ -51,8 +51,7 @@ static AsyncValueRef<DenseHostTensor> TfPadOp(
   case DType::ENUM:                                                      \
     chain = TfPadImpl<EigenTypeForDTypeKind<DType::ENUM>>(               \
         input, padding_view[{1, 0}], padding_view[{1, 1}],               \
-        padding_view[{2, 0}], padding_view[{2, 1}], output.getPointer(), \
-        exec_ctx);                                                       \
+        padding_view[{2, 0}], padding_view[{2, 1}], &*output, exec_ctx); \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
@@ -93,10 +92,10 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfMaxPoolOp");
       break;
-#define DTYPE_FLOAT(ENUM)                                                   \
-  case DType::ENUM:                                                         \
-    chain = MaxPoolImpl<EigenTypeForDTypeKind<DType::ENUM>>(                \
-        input, output.getPointer(), padding, strides_t, ksize_t, exec_ctx); \
+#define DTYPE_FLOAT(ENUM)                                        \
+  case DType::ENUM:                                              \
+    chain = MaxPoolImpl<EigenTypeForDTypeKind<DType::ENUM>>(     \
+        input, &*output, padding, strides_t, ksize_t, exec_ctx); \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
@@ -138,11 +137,11 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfConv2DOp");
       break;
-#define DTYPE_NUMERIC(ENUM)                                           \
-  case DType::ENUM:                                                   \
-    chain = internal::Conv2DImpl<EigenTypeForDTypeKind<DType::ENUM>>( \
-        input, filter, output.getPointer(), padding, strides_t,       \
-        std::move(output_kernel), exec_ctx);                          \
+#define DTYPE_NUMERIC(ENUM)                                                    \
+  case DType::ENUM:                                                            \
+    chain = internal::Conv2DImpl<EigenTypeForDTypeKind<DType::ENUM>>(          \
+        input, filter, &*output, padding, strides_t, std::move(output_kernel), \
+        exec_ctx);                                                             \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
@@ -202,8 +201,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
 #define DTYPE_FLOAT(ENUM)                                                 \
   case DType::ENUM:                                                       \
     chain = FusedBatchNormV3Impl<EigenTypeForDTypeKind<DType::ENUM>>(     \
-        input, scale, bias, mean, variance, output.getPointer(), epsilon, \
-        exec_ctx);                                                        \
+        input, scale, bias, mean, variance, &*output, epsilon, exec_ctx); \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

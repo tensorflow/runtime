@@ -56,6 +56,7 @@ selects.config_setting_group(
         ":linux_k8",
         ":linux_haswell",
     ],
+    visibility = ["//visibility:public"],
 )
 
 # copybara:uncomment_begin

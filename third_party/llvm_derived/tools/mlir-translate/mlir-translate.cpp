@@ -82,18 +82,18 @@ int main(int argc, char **argv) {
     MLIRContext context;
     context.allowUnregisteredDialects();
     context.printOpOnDiagnostic(!verifyDiagnostics);
-    llvm::SourceMgr sourceMgr;
-    sourceMgr.AddNewSourceBuffer(std::move(ownedBuffer), llvm::SMLoc());
+    auto sourceMgr = std::make_shared<llvm::SourceMgr>();
+    sourceMgr->AddNewSourceBuffer(std::move(ownedBuffer), llvm::SMLoc());
 
     if (!verifyDiagnostics) {
-      SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, &context);
+      SourceMgrDiagnosticHandler sourceMgrHandler(*sourceMgr, &context);
       return (*translationRequested)(sourceMgr, os, &context);
     }
 
     // In the diagnostic verification flow, we ignore whether the translation
     // failed (in most cases, it is expected to fail). Instead, we check if the
     // diagnostics were produced as expected.
-    SourceMgrDiagnosticVerifierHandler sourceMgrHandler(sourceMgr, &context);
+    SourceMgrDiagnosticVerifierHandler sourceMgrHandler(*sourceMgr, &context);
     (void)(*translationRequested)(sourceMgr, os, &context);
     return sourceMgrHandler.verify();
   };

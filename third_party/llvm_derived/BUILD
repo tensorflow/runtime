@@ -2,10 +2,12 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 
 licenses(["notice"])
 
-package(default_visibility = [
-    "@tf_runtime//:friends",
-    "@tf_runtime//third_party/llvm_derived/cpp_tests:__subpackages__",
-])
+package(
+    default_visibility = [
+        "@tf_runtime//:friends",
+        "@tf_runtime//third_party/llvm_derived/cpp_tests:__subpackages__",
+    ],
+)
 
 exports_files(["LICENSE"])
 

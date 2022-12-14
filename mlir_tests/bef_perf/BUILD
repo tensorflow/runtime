@@ -4,11 +4,13 @@ load("@tf_runtime//mlir_tests/bef_perf:gen_benchmark.bzl", "gen_benchmark")
 
 licenses(["notice"])
 
-package(default_visibility = [
-    # copybara:uncomment "//third_party/tensorflow/core/runtime_fallback:__subpackages__",
-    "@tf_runtime//:__subpackages__",
-    # copybara:uncomment "//third_party/tf_runtime_google:__subpackages__",
-])
+package(
+    default_visibility = [
+        # copybara:uncomment "//third_party/tensorflow/core/runtime_fallback:__subpackages__",
+        "@tf_runtime//:__subpackages__",
+        # copybara:uncomment "//third_party/tf_runtime_google:__subpackages__",
+    ],
+)
 
 py_library(
     name = "benchmark_utils_lib",

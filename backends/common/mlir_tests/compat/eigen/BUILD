@@ -2,7 +2,9 @@ load("@tf_runtime//tools:mlir_to_bef.bzl", "glob_tfrt_lit_tests")
 
 licenses(["notice"])
 
-package(default_visibility = ["@tf_runtime//:__subpackages__"])
+package(
+    default_visibility = ["@tf_runtime//:__subpackages__"],
+)
 
 exports_files([
     "conv2d.bias.benchmarks.mlir",

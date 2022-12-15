@@ -64,7 +64,7 @@ def TFRTGPU_StreamifyOp : TFRTGPU_Op<"streamify", [
 
   let skipDefaultBuilders = 1;
   let builders = [
-    OpBuilder<(ins CArg<"::mlir::ValueRange", "::llvm::None">:$results)>
+    OpBuilder<(ins CArg<"::mlir::ValueRange", "::std::nullopt">:$results)>
   ];
 
   let assemblyFormat = ?;

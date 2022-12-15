@@ -16,6 +16,8 @@
 
 #include "tfrt/tensor/scalar_host_tensor.h"
 
+#include <optional>
+
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype_formatter.h"
 #include "tfrt/host_context/execution_context.h"
@@ -75,7 +77,7 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
   auto result_alloc =
       DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
 
-  if (!result_alloc) return llvm::None;
+  if (!result_alloc) return std::nullopt;
 
   auto& result_tensor = result_alloc.value();
 

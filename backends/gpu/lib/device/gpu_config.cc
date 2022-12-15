@@ -17,6 +17,7 @@
 #include "tfrt/gpu/device/gpu_config.h"
 
 #include <functional>
+#include <optional>
 #include <unordered_map>
 
 #include "llvm/ADT/Optional.h"
@@ -43,7 +44,7 @@ class GpuResourcesMap {
     if (it != map_.end()) {
       return it->second;
     }
-    return llvm::None;
+    return std::nullopt;
   }
 
  private:

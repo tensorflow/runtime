@@ -17,6 +17,7 @@
 #include "conv2d_shape_functions.h"
 
 #include <array>
+#include <optional>
 
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
@@ -44,12 +45,12 @@ llvm::Expected<Conv2DParams> ComputeConv2DParams(
 
   auto output_height = ComputeWindowedOutputDimension(
       input_shape[1], kernel_shape[0], strides[0], dilations[0], *padding_type,
-      /*explicit_padding=*/llvm::None);
+      /*explicit_padding=*/std::nullopt);
   if (!output_height) return output_height.takeError();
 
   auto output_width = ComputeWindowedOutputDimension(
       input_shape[2], kernel_shape[1], strides[1], dilations[1], *padding_type,
-      /*explicit_padding=*/llvm::None);
+      /*explicit_padding=*/std::nullopt);
   if (!output_width) return output_width.takeError();
 
   // Expected output shape.

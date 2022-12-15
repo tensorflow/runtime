@@ -336,7 +336,7 @@ static llvm::Optional<ReductionDims2> IsOuterReduction(
 
   // Check that reduction indices are indeed outer reduction.
   for (int i = 0; i < reduction_indices.size(); ++i) {
-    if (reduction_indices[i] != i) return llvm::None;
+    if (reduction_indices[i] != i) return std::nullopt;
   }
 
   for (int i = 0; i < shape.GetRank(); ++i) {
@@ -359,7 +359,7 @@ static llvm::Optional<ReductionDims2> IsInnerReduction(
   // Check that reduction indices are indeed inner reduction.
   const int offset = shape.GetRank() - reduction_indices.size();
   for (int i = 0; i < reduction_indices.size(); ++i) {
-    if (reduction_indices[i] != offset + i) return llvm::None;
+    if (reduction_indices[i] != offset + i) return std::nullopt;
   }
 
   for (int i = 0; i < shape.GetRank(); ++i) {
@@ -380,7 +380,8 @@ static llvm::Optional<ReductionDims3> IsMiddleReduction(
     outer_dim_size *= shape.GetDimensionSize(i);
   Index middle_dim_size = shape.GetDimensionSize(reduction_indices.front());
   for (int i = 1; i < reduction_indices.size(); ++i) {
-    if (reduction_indices[i] != reduction_indices[i - 1] + 1) return llvm::None;
+    if (reduction_indices[i] != reduction_indices[i - 1] + 1)
+      return std::nullopt;
     middle_dim_size *= shape.GetDimensionSize(reduction_indices[i]);
   }
   Index inner_dim_size = 1;

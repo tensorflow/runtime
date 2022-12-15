@@ -16,6 +16,8 @@
 // themselves eventually be useful, but for right now they are primarily
 // intended for testing.
 
+#include <optional>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
@@ -74,7 +76,7 @@ static PartialTensorShape TsBuildPartialShape(ArrayAttribute<Index> shape) {
 }
 
 static PartialTensorShape TsBuildUnrankedPartialShape() {
-  return PartialTensorShape(llvm::None);
+  return PartialTensorShape(std::nullopt);
 }
 
 static Chain TsPrintPartialShape(Argument<PartialTensorShape> arg) {

@@ -15,6 +15,7 @@
 // Collates list of all TF DNN operations.
 
 #include <numeric>
+#include <optional>
 #include <unordered_map>
 
 #include "dnn_ops_cu.h"
@@ -190,7 +191,7 @@ static llvm::Optional<cudnnConvolutionFwdAlgo_t>
 DefaultCudnnCovolutionForwardAlgorithm() {
   static auto default_algo = []() -> llvm::Optional<cudnnConvolutionFwdAlgo_t> {
     string_view var = std::getenv("TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO");
-    if (var.empty()) return llvm::None;
+    if (var.empty()) return std::nullopt;
 
     cudnnConvolutionFwdAlgo_t default_algo =
         llvm::StringSwitch<cudnnConvolutionFwdAlgo_t>(var)

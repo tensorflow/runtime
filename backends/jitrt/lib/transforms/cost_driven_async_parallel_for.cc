@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <optional>
 #include <utility>
 
 #include "llvm/ADT/Optional.h"
@@ -296,7 +297,7 @@ Optional<Value> CostModel::GetIterations(Operation &op, Value lower_bound,
     }
     return val;
   }
-  return llvm::None;
+  return std::nullopt;
 }
 
 Cost CostModel::NewCost(size_t ram_cost, size_t cpu_cost) {

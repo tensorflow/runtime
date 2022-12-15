@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/support/logging.h"
@@ -136,7 +137,7 @@ llvm::Error CudnnDestroyTensorDescriptor(cudnnTensorDescriptor_t descriptor) {
 }
 
 // Returns the dimensions of a CUDNN_TENSOR_NCHW_VECT_C tensor if the arguments
-// describe such a tensor, llvm::None otherwise.
+// describe such a tensor, std::nullopt otherwise.
 llvm::Optional<llvm::SmallVector<int, 4>> GetNchwVectDimensions(
     cudnnDataType_t data_type, llvm::ArrayRef<int> dimensions,
     llvm::ArrayRef<int> strides) {
@@ -146,17 +147,17 @@ llvm::Optional<llvm::SmallVector<int, 4>> GetNchwVectDimensions(
     case CUDNN_DATA_INT8x32:
       break;
     default:
-      return llvm::None;
+      return std::nullopt;
   }
   // Test whether format is NCHW (i.e. dense row-major).
   int stride = 1;
   assert(dimensions.size() == strides.size());
   for (int i = dimensions.size() - 1; i >= 0; --i) {
-    if (strides[i] != stride) return llvm::None;
+    if (strides[i] != stride) return std::nullopt;
     stride *= dimensions[i];
   }
   auto result = llvm::to_vector<4>(dimensions);
-  if (result.size() < 2) return llvm::None;
+  if (result.size() < 2) return std::nullopt;
   // Multiply channel count by vector width.
   result[1] *= data_type == CUDNN_DATA_INT8x32 ? 32 : 4;
   return result;

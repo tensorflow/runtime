@@ -15,6 +15,7 @@
 // This file implements a single threaded work queue.
 
 #include <atomic>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -92,7 +93,7 @@ Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
   mutex_lock l(mu_);
   work_items_.push_back(std::move(work));
   cv_.notify_all();
-  return llvm::None;
+  return std::nullopt;
 }
 
 // Block until the system is quiescent (no pending work and no inflight work).

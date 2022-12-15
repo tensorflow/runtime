@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <optional>
 
 #include "llvm/ADT/Optional.h"
 #include "llvm/Support/CommandLine.h"
@@ -134,20 +135,20 @@ class BtfFile {
   //   - The returned tensor should not be modified.
   //   - The returned tensor should not outlive this BtfFile.
   //
-  // Returns llvm::None if the payload is malformed.
+  // Returns std::nullopt if the payload is malformed.
   llvm::Optional<DenseHostTensor> ReadDenseHostTensorPayload(
       size_t* pos, DType type, uint64_t rank) const {
     // Technically, the BTF spec defines dims as unsigned, but the difference
     // should not matter because each tensor dimension should be significantly
     // smaller than std::numeric_limits<int64_t>::max().
     const int64_t* dims = Read<int64_t>(pos, rank);
-    if (!dims) return llvm::None;
+    if (!dims) return std::nullopt;
 
     TensorMetadata metadata(type, llvm::ArrayRef<tfrt::Index>(dims, rank));
 
     size_t data_size = GetHostSize(type) * metadata.shape.GetNumElements();
     const void* data = Read<char>(pos, data_size);
-    if (!data) return llvm::None;
+    if (!data) return std::nullopt;
 
     RCReference<HostBuffer> buf = HostBuffer::CreateFromExternal(
         const_cast<void*>(data), data_size, [](void*, size_t) {});
@@ -159,28 +160,28 @@ class BtfFile {
   // The caveats described in the ReadDenseHostTensorPayload documentation also
   // apply to the returned CooHostTensor object.
   //
-  // Returns llvm::None if the payload is malformed.
+  // Returns std::nullopt if the payload is malformed.
   llvm::Optional<CooHostTensor> ReadCooHostTensorPayload(size_t* pos,
                                                          DType type,
                                                          uint64_t rank) const {
     const int64_t* dims = Read<int64_t>(pos, rank);
-    if (!dims) return llvm::None;
+    if (!dims) return std::nullopt;
 
     TensorShape shape(llvm::ArrayRef<tfrt::Index>(dims, rank));
 
     llvm::Optional<DenseHostTensor> indices =
         ReadDenseHostTensorPayload(pos, DType(DType::I64), 2);
-    if (!indices) return llvm::None;
+    if (!indices) return std::nullopt;
 
     llvm::Optional<DenseHostTensor> values =
         ReadDenseHostTensorPayload(pos, type, 1);
-    if (!values) return llvm::None;
+    if (!values) return std::nullopt;
 
     // Check that dimensions are valid
     if (indices->shape().GetDimensionSize(0) !=
             values->shape().GetDimensionSize(0) ||
         indices->shape().GetDimensionSize(1) != rank)
-      return llvm::None;
+      return std::nullopt;
 
     return CooHostTensor(shape, type, std::move(*indices), std::move(*values));
   }

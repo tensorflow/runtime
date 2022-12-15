@@ -452,7 +452,7 @@ def ReturnOp : TFRT_Op<"return", [Terminator]> {
 
   let builders = [
     OpBuilder<(ins),
-    [{ build($_builder, $_state, llvm::None); }]>];
+    [{ build($_builder, $_state, std::nullopt); }]>];
 }
 
 class AddOp<string suffix, Type type>

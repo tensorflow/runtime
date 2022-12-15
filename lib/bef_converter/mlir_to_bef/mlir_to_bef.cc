@@ -26,6 +26,7 @@
 #include "tfrt/bef_converter/mlir_to_bef.h"
 
 #include <cstring>
+#include <optional>
 
 #include "bef_attr_emitter.h"
 #include "bef_compilation_units.h"
@@ -422,14 +423,14 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
             // added to the attributes section as compilation units.
             auto bef_function_ref = [&]() -> Optional<mlir::SymbolRefAttr> {
               auto sym_attr = attr.getValue().dyn_cast<mlir::SymbolRefAttr>();
-              if (!sym_attr) return llvm::None;
+              if (!sym_attr) return std::nullopt;
 
               // Check if the referenced symbol is in the compiled module.
               auto* module_op = module.getOperation();
               auto* sym_op =
                   mlir::SymbolTable::lookupSymbolIn(module_op, sym_attr);
               if (sym_op && BefCompilationUnits::IsInCompiledModule(sym_op))
-                return llvm::None;
+                return std::nullopt;
 
               return sym_attr;
             };

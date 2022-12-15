@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <optional>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
@@ -47,7 +48,7 @@ llvm::Optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
   auto data = HostBuffer::CreateUninitialized(
       GetHostSize(metadata.dtype) * shape.GetNumElements(), alignment,
       allocator);
-  if (!data) return llvm::None;
+  if (!data) return std::nullopt;
   return DenseHostTensor(metadata, std::move(data));
 }
 

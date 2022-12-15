@@ -24,6 +24,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -286,7 +287,7 @@ class GpuWorkQueue : public ConcurrentWorkQueue {
   Optional<TaskFunction> AddBlockingTask(TaskFunction work,
                                          bool allow_queuing) override {
     AddBlockingTaskImpl(std::move(work), allow_queuing);
-    return llvm::None;
+    return std::nullopt;
   }
 
   void Await(ArrayRef<RCReference<AsyncValue>> values) override {

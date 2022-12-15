@@ -208,12 +208,12 @@ class FixedRankShape {
 class PartialTensorShape {
  public:
   // Create a PartialTensorShape with the dimensions. If rank itself is unknown,
-  // (dims is llvm::None), this is an unranked. Else, it is ranked where each
+  // (dims is std::nullopt), this is an unranked. Else, it is ranked where each
   // dimensions could still be unknown (indicated by kUnknownDimSize) as well.
   explicit PartialTensorShape(Optional<ArrayRef<Index>> dims);
 
   // Returns the shape of the tensor.
-  // If unranked, return llvm::None
+  // If unranked, return std::nullopt
   // If ranked, return dimensions (including kUnknownDimSize for unknown dim).
   Optional<ArrayRef<Index>> GetShape() const;
 

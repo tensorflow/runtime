@@ -22,6 +22,10 @@
 
 #include "tfrt/bef_converter/bef_to_mlir.h"
 
+#include <optional>
+#include <utility>
+#include <vector>
+
 #include "bef_attr_reader.h"
 #include "bef_location_reader.h"
 #include "llvm/ADT/DenseMap.h"
@@ -112,7 +116,7 @@ struct BEFFile {
   llvm::Optional<string_view> GetString(size_t offset) const {
     auto str_iter = strings.find(offset);
     if (str_iter != strings.end()) return str_iter->second;
-    return llvm::None;
+    return std::nullopt;
   }
 
   // Returns the attributes at `offset` into Attributes section, or a null
@@ -638,7 +642,7 @@ BEFFunctionReader::ReadFunction(BefLocationReader* location_reader,
                                 BEFReader* register_types) {
   auto emit_error = [this](string_view message) {
     EmitError(bef_file_.location, message);
-    return llvm::None;
+    return std::nullopt;
   };
 
   // Read function location.

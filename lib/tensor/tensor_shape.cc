@@ -16,6 +16,8 @@
 
 #include "tfrt/tensor/tensor_shape.h"
 
+#include <optional>
+
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/raw_ostream.h"
@@ -222,7 +224,7 @@ bool PartialTensorShape::IsUnranked() const {
 
 Optional<ArrayRef<Index>> PartialTensorShape::GetShape() const {
   if (IsUnranked()) {
-    return llvm::None;
+    return std::nullopt;
   }
   return llvm::makeArrayRef(dims_.value());
 }

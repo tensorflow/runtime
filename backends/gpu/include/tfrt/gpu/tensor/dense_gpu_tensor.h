@@ -59,7 +59,7 @@ class DenseGpuTensor final : public Tensor,
   // Otherwise, returns an empty optional.
   llvm::Optional<DenseGpuTensor> WithShape(const TensorShape& new_shape) const {
     if (new_shape.GetNumElements() != NumElements()) {
-      return llvm::None;
+      return std::nullopt;
     }
     return DenseGpuTensor(new_shape, dtype(), buffer_.CopyRef());
   }

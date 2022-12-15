@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/None.h"
@@ -237,7 +238,7 @@ class OpAttrs final {
     if (success) {
       return value;
     } else {
-      return llvm::None;
+      return std::nullopt;
     }
   }
 
@@ -313,7 +314,7 @@ class OpAttrs final {
     if (success) {
       return value;
     } else {
-      return llvm::None;
+      return std::nullopt;
     }
   }
 
@@ -356,7 +357,7 @@ class OpAttrs final {
     if (success) {
       return value;
     } else {
-      return llvm::None;
+      return std::nullopt;
     }
   }
 
@@ -519,7 +520,7 @@ class OpAttrsRef {
     if (success) {
       return value;
     } else {
-      return llvm::None;
+      return std::nullopt;
     }
   }
 
@@ -572,7 +573,7 @@ class OpAttrsRef {
     if (success) {
       return value;
     } else {
-      return llvm::None;
+      return std::nullopt;
     }
   }
 
@@ -604,7 +605,7 @@ class OpAttrsRef {
     if (success) {
       return value;
     } else {
-      return llvm::None;
+      return std::nullopt;
     }
   }
 

@@ -45,8 +45,8 @@ enum class RuntimeEnumType : uint32_t { kFoo, kBar, kBaz };
 // to test attributes conversion.
 struct RuntimePairOfDims {
   int64_t rank;
-  llvm::ArrayRef<int64_t> a;
-  llvm::ArrayRef<int64_t> b;
+  absl::Span<const int64_t> a;
+  absl::Span<const int64_t> b;
 };
 
 // Populate type names for the custom enums and structs.
@@ -68,8 +68,8 @@ XLA_RUNTIME_REGISTER_ENUM_ATTR_DECODING(tfrt::jitrt::RuntimeEnumType);
 
 XLA_RUNTIME_REGISTER_AGGREGATE_ATTR_DECODING(
     tfrt::jitrt::RuntimePairOfDims, AggregateMember<int64_t>("rank"),
-    AggregateMember<llvm::ArrayRef<int64_t>>("a"),
-    AggregateMember<llvm::ArrayRef<int64_t>>("b"));
+    AggregateMember<absl::Span<const int64_t>>("a"),
+    AggregateMember<absl::Span<const int64_t>>("b"));
 
 }  // namespace runtime
 }  // namespace xla

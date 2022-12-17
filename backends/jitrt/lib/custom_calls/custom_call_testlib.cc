@@ -113,8 +113,8 @@ static void print_arr(std::string_view type, Array arr) {
 }
 
 template <typename T>
-static void TensorToString(llvm::ArrayRef<int64_t> shapes,
-                           llvm::ArrayRef<T> data,
+static void TensorToString(absl::Span<const int64_t> shapes,
+                           absl::Span<const T> data,
                            llvm::raw_string_ostream& os) {
   // Print all elements if it is a vector.
   if (shapes.size() == 1) {
@@ -123,12 +123,12 @@ static void TensorToString(llvm::ArrayRef<int64_t> shapes,
   }
 
   size_t stride = data.size() / shapes[0];
-  llvm::ArrayRef<int64_t> inner_shape(std::next(shapes.begin()), shapes.end());
+  absl::Span<const int64_t> inner_shape(shapes.data() + 1, shapes.size() - 1);
 
   os << "(";
   for (size_t i = 0; i < data.size(); i += stride) {
     auto start = data.begin() + i;
-    llvm::ArrayRef<T> inner_data(start, start + stride);
+    absl::Span<const T> inner_data(start, stride);
     TensorToString(inner_shape, inner_data, os);
     if (i + stride < data.size()) os << ", ";
   }
@@ -140,7 +140,7 @@ static void PrintTensor(std::string_view type,
                         CustomCall::TensorRef<T> tensor) {
   std::string tensor_str;
   llvm::raw_string_ostream os(tensor_str);
-  TensorToString<T>(tensor.shape.vec(), tensor.data.vec(), os);
+  TensorToString<T>(tensor.shape, tensor.data, os);
   tfrt::outs() << type << "[" << Join(tensor.shape, "x") << "] " << os.str()
                << "\n";
 }
@@ -148,12 +148,13 @@ static void PrintTensor(std::string_view type,
 // A custom call for testing attributes encoding/decoding.
 static LogicalResult PrintAttrs(
     const char* caller, int32_t i32, int64_t i64, float f32, double f64,
-    ArrayRef<int32_t> i32_arr, ArrayRef<int64_t> i64_arr,
-    ArrayRef<float> f32_arr, ArrayRef<double> f64_arr,
-    CustomCall::TensorRef<int64_t> i64_2d_arr, ArrayRef<int32_t> i32_array,
-    ArrayRef<int64_t> i64_array, ArrayRef<float> f32_array,
-    ArrayRef<double> f64_array, ArrayRef<int64_t> i64_dense_array,
-    ArrayRef<int64_t> empty_array, std::string_view str) {
+    absl::Span<const int32_t> i32_arr, absl::Span<const int64_t> i64_arr,
+    absl::Span<const float> f32_arr, absl::Span<const double> f64_arr,
+    CustomCall::TensorRef<int64_t> i64_2d_arr,
+    absl::Span<const int32_t> i32_array, absl::Span<const int64_t> i64_array,
+    absl::Span<const float> f32_array, absl::Span<const double> f64_array,
+    absl::Span<const int64_t> i64_dense_array,
+    absl::Span<const int64_t> empty_array, std::string_view str) {
   tfrt::outs() << caller << "\n";
 
   tfrt::outs() << "i32: " << i32 << "\n";
@@ -161,18 +162,18 @@ static LogicalResult PrintAttrs(
   tfrt::outs() << "f32: " << f32 << "\n";
   tfrt::outs() << "f64: " << f64 << "\n";
 
-  print_arr<ArrayRef<int32_t>>("i32", i32_arr);
-  print_arr<ArrayRef<int64_t>>("i64", i64_arr);
-  print_arr<ArrayRef<float>>("f32", f32_arr);
-  print_arr<ArrayRef<double>>("f64", f64_arr);
+  print_arr<absl::Span<const int32_t>>("i32", i32_arr);
+  print_arr<absl::Span<const int64_t>>("i64", i64_arr);
+  print_arr<absl::Span<const float>>("f32", f32_arr);
+  print_arr<absl::Span<const double>>("f64", f64_arr);
   PrintTensor<int64_t>("i64", i64_2d_arr);
 
-  print_arr<ArrayRef<int32_t>>("i32", i32_array);
-  print_arr<ArrayRef<int64_t>>("i64", i64_array);
-  print_arr<ArrayRef<float>>("f32", f32_array);
-  print_arr<ArrayRef<double>>("f64", f64_array);
-  print_arr<ArrayRef<int64_t>>("i64", i64_dense_array);
-  print_arr<ArrayRef<int64_t>>("i64", empty_array);
+  print_arr<absl::Span<const int32_t>>("i32", i32_array);
+  print_arr<absl::Span<const int64_t>>("i64", i64_array);
+  print_arr<absl::Span<const float>>("f32", f32_array);
+  print_arr<absl::Span<const double>>("f64", f64_array);
+  print_arr<absl::Span<const int64_t>>("i64", i64_dense_array);
+  print_arr<absl::Span<const int64_t>>("i64", empty_array);
 
   tfrt::outs() << "str: " << str << "\n";
   tfrt::outs().flush();
@@ -196,16 +197,17 @@ static LogicalResult PrintVariantAttrs(CustomCall::VariantAttr attr1,
       tfrt::outs() << "f32: " << attr.get<float>();
     } else if (attr.isa<double>()) {
       tfrt::outs() << "f64: " << attr.get<double>();
-    } else if (attr.isa<ArrayRef<int32_t>>()) {
-      print_arr<ArrayRef<int32_t>>("i32",
-                                   attr.get<ArrayRef<int32_t>>().value());
-    } else if (attr.isa<ArrayRef<int64_t>>()) {
-      print_arr<ArrayRef<int64_t>>("i64",
-                                   attr.get<ArrayRef<int64_t>>().value());
-    } else if (attr.isa<ArrayRef<float>>()) {
-      print_arr("f32", attr.get<ArrayRef<float>>().value());
-    } else if (attr.isa<ArrayRef<double>>()) {
-      print_arr<ArrayRef<double>>("f64", attr.get<ArrayRef<double>>().value());
+    } else if (attr.isa<absl::Span<const int32_t>>()) {
+      print_arr<absl::Span<const int32_t>>(
+          "i32", attr.get<absl::Span<const int32_t>>().value());
+    } else if (attr.isa<absl::Span<const int64_t>>()) {
+      print_arr<absl::Span<const int64_t>>(
+          "i64", attr.get<absl::Span<const int64_t>>().value());
+    } else if (attr.isa<absl::Span<const float>>()) {
+      print_arr("f32", attr.get<absl::Span<const float>>().value());
+    } else if (attr.isa<absl::Span<const double>>()) {
+      print_arr<absl::Span<const double>>(
+          "f64", attr.get<absl::Span<const double>>().value());
     } else if (attr.isa<std::string_view>()) {
       tfrt::outs() << "str: " << attr.get<std::string_view>();
     } else {
@@ -336,17 +338,17 @@ static bool DirectPrintAttrs(xla::runtime::ExecutionContext* ctx, void** args,
                           .Attr<int64_t>("i64")
                           .Attr<float>("f32")
                           .Attr<double>("f64")
-                          .Attr<ArrayRef<int32_t>>("i32_dense")
-                          .Attr<ArrayRef<int64_t>>("i64_dense")
-                          .Attr<ArrayRef<float>>("f32_dense")
-                          .Attr<ArrayRef<double>>("f64_dense")
+                          .Attr<absl::Span<const int32_t>>("i32_dense")
+                          .Attr<absl::Span<const int64_t>>("i64_dense")
+                          .Attr<absl::Span<const float>>("f32_dense")
+                          .Attr<absl::Span<const double>>("f64_dense")
                           .Attr<CustomCall::TensorRef<int64_t>>("i64_2d_dense")
-                          .Attr<ArrayRef<int32_t>>("i32_array")
-                          .Attr<ArrayRef<int64_t>>("i64_array")
-                          .Attr<ArrayRef<float>>("f32_array")
-                          .Attr<ArrayRef<double>>("f64_array")
-                          .Attr<ArrayRef<int64_t>>("i64_dense_array")
-                          .Attr<ArrayRef<int64_t>>("empty_array")
+                          .Attr<absl::Span<const int32_t>>("i32_array")
+                          .Attr<absl::Span<const int64_t>>("i64_array")
+                          .Attr<absl::Span<const float>>("f32_array")
+                          .Attr<absl::Span<const double>>("f64_array")
+                          .Attr<absl::Span<const int64_t>>("i64_dense_array")
+                          .Attr<absl::Span<const int64_t>>("empty_array")
                           .Attr<std::string_view>("str")
                           .To<CustomCall::RuntimeChecks::kNone>(PrintAttrs)
                           .release();
@@ -383,17 +385,17 @@ void RegisterDynamicCustomCallTestLib(DynamicCustomCallRegistry& registry) {
                         .Attr<int64_t>("i64")
                         .Attr<float>("f32")
                         .Attr<double>("f64")
-                        .Attr<ArrayRef<int32_t>>("i32_dense")
-                        .Attr<ArrayRef<int64_t>>("i64_dense")
-                        .Attr<ArrayRef<float>>("f32_dense")
-                        .Attr<ArrayRef<double>>("f64_dense")
+                        .Attr<absl::Span<const int32_t>>("i32_dense")
+                        .Attr<absl::Span<const int64_t>>("i64_dense")
+                        .Attr<absl::Span<const float>>("f32_dense")
+                        .Attr<absl::Span<const double>>("f64_dense")
                         .Attr<CustomCall::TensorRef<int64_t>>("i64_2d_dense")
-                        .Attr<ArrayRef<int32_t>>("i32_array")
-                        .Attr<ArrayRef<int64_t>>("i64_array")
-                        .Attr<ArrayRef<float>>("f32_array")
-                        .Attr<ArrayRef<double>>("f64_array")
-                        .Attr<ArrayRef<int64_t>>("i64_dense_array")
-                        .Attr<ArrayRef<int64_t>>("empty_array")
+                        .Attr<absl::Span<const int32_t>>("i32_array")
+                        .Attr<absl::Span<const int64_t>>("i64_array")
+                        .Attr<absl::Span<const float>>("f32_array")
+                        .Attr<absl::Span<const double>>("f64_array")
+                        .Attr<absl::Span<const int64_t>>("i64_dense_array")
+                        .Attr<absl::Span<const int64_t>>("empty_array")
                         .Attr<std::string_view>("str")
                         .To(PrintAttrs));
 

@@ -206,8 +206,9 @@ class CustomArgEncoding : public CustomCallArgEncoding {
     return success(value.getType().isa<CustomArgType>());
   }
 
-  FailureOr<Encoded> Encode(Globals& g, mlir::ImplicitLocOpBuilder& b,
-                            mlir::Value, mlir::Value converted) const final {
+  FailureOr<Encoded> Encode(Globals& g, Allocas& a,
+                            mlir::ImplicitLocOpBuilder& b, mlir::Value,
+                            mlir::Value converted) const final {
     Encoded encoded;
     encoded.type_id = EncodeTypeId(g, b, TypeID::get<Tagged<CustomArg>>());
     encoded.value = PackValue(b, converted);

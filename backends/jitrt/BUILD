@@ -95,7 +95,7 @@ licenses(["notice"])
 #     name = "jitrt_compiler",
 #     srcs = ["lib/jitrt_compiler.cc"],
 #     hdrs = ["include/tfrt/jitrt/jitrt_compiler.h"],
-#     compatible_with = ["//buildenv/target:gce"],
+#     compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":codegen_transforms",
@@ -253,7 +253,7 @@ licenses(["notice"])
 #
 # gentbl_cc_library(
 #     name = "codegen_transforms_passes_inc_gen",
-#     compatible_with = ["//buildenv/target:gce"],
+#     compatible_with = ["//buildenv/target:non_prod"],
 #     tbl_outs = [
 #         (
 #             [
@@ -272,7 +272,7 @@ licenses(["notice"])
 #     name = "codegen_transforms",
 #     srcs = ["lib/transforms/cost_driven_async_parallel_for.cc"],
 #     hdrs = ["include/tfrt/jitrt/transforms/codegen_passes.h"],
-#     compatible_with = ["//buildenv/target:gce"],
+#     compatible_with = ["//buildenv/target:non_prod"],
 #     deps = [
 #         ":codegen_transforms_passes_inc_gen",
 #         "@llvm-project//llvm:Support",

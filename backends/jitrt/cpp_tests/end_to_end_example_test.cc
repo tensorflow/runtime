@@ -507,6 +507,7 @@ template <CustomCall::RuntimeChecks checks>
 struct CustomCallArgDecoding<CustomArg, checks> {
   static FailureOr<CustomArg> Decode(TypeID type_id, void* value) {
     if (!CustomCall::Isa<CustomArg>(checks, type_id)) return failure();
+    ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(value, sizeof(void*));
     return CustomArg{*reinterpret_cast<const std::string**>(value)};
   }
 };

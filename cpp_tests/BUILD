@@ -16,7 +16,6 @@ tfrt_cc_library(
     visibility = [
         # copybara:uncomment_begin
         # ":__subpackages__",
-        # "//learning/brain/experimental/tfrt/cpp_tests:__subpackages__",
         # "//learning/brain/tfrt:__subpackages__",
         # "//third_party/tensorflow/core/tfrt:__subpackages__",
         # "@tf_runtime//backends/gpu/cpp_tests:__subpackages__",

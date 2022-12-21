@@ -100,7 +100,8 @@ void MultiThreadedWorkQueue::Quiesce() {
 void MultiThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
   // We might block on a latch waiting for the completion of all tasks, and
   // this is not allowed to do inside non blocking work queue.
-  non_blocking_work_queue_.CheckCallerThread("MultiThreadedWorkQueue::Await");
+  non_blocking_work_queue_.CheckCallerThread("MultiThreadedWorkQueue::Await",
+                                             /*is_fatal=*/false);
 
   // We are done when values_remaining drops to zero.
   tfrt::latch values_remaining(values.size());

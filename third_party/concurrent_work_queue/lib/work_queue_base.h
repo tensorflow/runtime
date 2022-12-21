@@ -227,10 +227,10 @@ class WorkQueueBase {
   // yet unparked and running. For strong guarantee must use use Quiesce.
   bool AllBlocked() const { return NumBlockedThreads() == num_threads_; }
 
-  // CheckCallerThread() will abort the program if the caller thread is managed
-  // by `*this`. This is required to prevent deadlocks from calling `Quiesce`
-  // from a thread managed by the current worker queue.
-  void CheckCallerThread(const char* function_name) const;
+  // CheckCallerThread() will abort the program or issue warning message if the
+  // caller thread is managed by `*this`. This is required to prevent deadlocks
+  // from calling `Quiesce` from a thread managed by the current worker queue.
+  void CheckCallerThread(const char* function_name, bool is_fatal) const;
 
   // Returns true if the caller thread is managed by this work queue.
   bool IsInWorkerThread() const {
@@ -467,17 +467,25 @@ WorkQueueBase<Derived>::~WorkQueueBase() {
 }
 
 template <typename Derived>
-void WorkQueueBase<Derived>::CheckCallerThread(
-    const char* function_name) const {
+void WorkQueueBase<Derived>::CheckCallerThread(const char* function_name,
+                                               bool is_fatal) const {
   PerThread* pt = GetPerThread();
-  TFRT_LOG_IF(FATAL, pt->parent == this)
-      << "Error at " << __FILE__ << ":" << __LINE__ << ": " << function_name
-      << " should not be called by a work thread already managed by the queue.";
+  if (is_fatal) {
+    TFRT_LOG_IF(FATAL, pt->parent == this)
+        << "Error at " << __FILE__ << ":" << __LINE__ << ": " << function_name
+        << " should not be called by a work thread already managed by the "
+           "queue.";
+  } else {
+    TFRT_DLOG_IF(WARNING, pt->parent == this)
+        << "Warning at " << __FILE__ << ":" << __LINE__ << ": " << function_name
+        << " should not be called by a work thread already managed by the "
+           "queue.";
+  }
 }
 
 template <typename Derived>
 void WorkQueueBase<Derived>::Quiesce() {
-  CheckCallerThread("WorkQueueBase::Quiesce");
+  CheckCallerThread("WorkQueueBase::Quiesce", /*is_fatal=*/true);
 
   // Keep stealing tasks until we reach a point when we have nothing to steal
   // and all worker threads are in blocked state.

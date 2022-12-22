@@ -24,6 +24,7 @@
 #include <memory>
 
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 
 // We don't forward declare:
 //   DenseMap, SmallVector, StringMap, StringSet
@@ -39,8 +40,8 @@ class Expected;
 class Error;
 template <typename T>
 class MutableArrayRef;
-template <typename T>
-class Optional;
+template <class T>
+using Optional = std::optional<T>;
 class StringRef;
 
 template <typename FunctionT>
@@ -92,8 +93,8 @@ template <typename T>
 using ArrayRef = llvm::ArrayRef<T>;
 template <typename T>
 using MutableArrayRef = llvm::MutableArrayRef<T>;
-template <typename T>
-using Optional = llvm::Optional<T>;
+template <class T>
+using Optional = std::optional<T>;
 using string_view = llvm::StringRef;
 
 // Casting operators.

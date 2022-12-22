@@ -25,6 +25,7 @@
 #include <iosfwd>
 #include <type_traits>
 
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/bf16.h"

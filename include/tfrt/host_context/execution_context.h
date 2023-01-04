@@ -75,18 +75,15 @@ class RequestContext : public ReferenceCounted<RequestContext> {
 
   int64_t id() const { return id_; }
 
-  bool IsCostMeasurementEnabled() const { return enable_cost_measurement_; }
-
  private:
   friend class RequestContextBuilder;
 
   RequestContext(HostContext* host, ResourceContext* resource_context,
-                 ContextData ctx_data, int64_t id, bool enable_cost_measurement)
+                 ContextData ctx_data, int64_t id)
       : id_{id},
         host_{host},
         resource_context_{resource_context},
-        context_data_{std::move(ctx_data)},
-        enable_cost_measurement_{enable_cost_measurement} {}
+        context_data_{std::move(ctx_data)} {}
 
   int64_t id_;
   HostContext* const host_ = nullptr;
@@ -102,8 +99,6 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   ContextData context_data_;
 
   std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
-  // If true, the cost of op will be measured at the execution time.
-  bool enable_cost_measurement_ = false;
 };
 
 struct RequestOptions {

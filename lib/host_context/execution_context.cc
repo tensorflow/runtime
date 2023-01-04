@@ -51,8 +51,7 @@ void RequestContext::Cancel() {
 
 Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
   return TakeRef(new RequestContext(host_, resource_context_,
-                                    std::move(context_data_), id_,
-                                    enable_cost_measurement_));
+                                    std::move(context_data_), id_));
 };
 
 ExecutionContext::ExecutionContext(RCReference<RequestContext> req_ctx,

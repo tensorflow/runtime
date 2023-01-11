@@ -41,9 +41,9 @@ size_t SerializeDenseHostTensorToDenseAttr(const DenseHostTensor& dht,
   }
 
   const size_t offset = encoder->EncodeDenseAttr(
-      element_type, llvm::makeArrayRef(shape),
-      llvm::makeArrayRef(static_cast<const uint8_t*>(dht.data()),
-                         dht.DataSizeInBytes()));
+      element_type, llvm::ArrayRef(shape),
+      llvm::ArrayRef(static_cast<const uint8_t*>(dht.data()),
+                     dht.DataSizeInBytes()));
   return offset;
 }
 

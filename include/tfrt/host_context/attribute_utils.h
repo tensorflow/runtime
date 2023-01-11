@@ -84,7 +84,7 @@ class ArrayAttribute {
     AttrSizeT element_count;
     std::memcpy(&element_count, ptr, sizeof(AttrSizeT));
     ptr += sizeof(AttrSizeT);
-    data_ = llvm::makeArrayRef(reinterpret_cast<const T*>(ptr), element_count);
+    data_ = llvm::ArrayRef(reinterpret_cast<const T*>(ptr), element_count);
   }
 
   ArrayRef<T> data() const { return data_; }
@@ -305,8 +305,8 @@ class ArrayAttr : public TypedAttrBase {
   ArrayRef<T> GetValue() const {
     // For empty arrays, we don't care the element type.
     if (GetNumElements() == 0) return {};
-    return llvm::makeArrayRef(static_cast<const T*>(GetElements()),
-                              GetNumElements());
+    return llvm::ArrayRef(static_cast<const T*>(GetElements()),
+                          GetNumElements());
   }
 
   size_t GetNumElements() const { return element_count_; }
@@ -425,7 +425,7 @@ class ShapeAttr
   bool HasRank() const { return header_ != nullptr; }
 
   ArrayRef<AttrShapeT> GetShape() const {
-    return llvm::makeArrayRef(header_->dims, header_->rank);
+    return llvm::ArrayRef<AttrShapeT>(header_->dims, header_->rank);
   }
 };
 
@@ -437,14 +437,14 @@ class DenseAttr
   DType dtype() const { return header_->base.element_type; }
 
   llvm::ArrayRef<int64_t> shape() const {
-    return llvm::makeArrayRef(header_->dims, header_->rank);
+    return llvm::ArrayRef(header_->dims, header_->rank);
   }
   size_t GetNumElements() const { return header_->element_count; }
 
   const void* GetElements() const { return data() + header_->element_offset; }
 
   ArrayRef<char> GetRawData() const {
-    return llvm::makeArrayRef(
+    return llvm::ArrayRef<char>(
         reinterpret_cast<const char*>(data() + header_->element_offset),
         header_->base.byte_size - header_->element_offset);
   }

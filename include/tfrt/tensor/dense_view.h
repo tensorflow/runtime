@@ -44,8 +44,8 @@ class DenseView {
   template <typename T>
   ArrayRef<T> GetFlat() const {
     assert(dtype() == GetDType<T>());
-    return llvm::makeArrayRef<T>(static_cast<const T*>(data()),
-                                 shape().GetNumElements());
+    return llvm::ArrayRef<T>(static_cast<const T*>(data()),
+                             shape().GetNumElements());
   }
 
   template <typename T, size_t Rank>
@@ -107,8 +107,8 @@ class DenseTensorView {
   DenseTensorView(const DenseView* dense_view) : shape_(dense_view->shape()) {
     assert(dense_view->dtype() == GetDType<T>());
     assert(dense_view->shape().GetRank() == Rank);
-    data_ = llvm::makeArrayRef(static_cast<const T*>(dense_view->data()),
-                               shape_.GetNumElements());
+    data_ = llvm::ArrayRef(static_cast<const T*>(dense_view->data()),
+                           shape_.GetNumElements());
   }
 
   FixedRankShape<Rank> shape_;

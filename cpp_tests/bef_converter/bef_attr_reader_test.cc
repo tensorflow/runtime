@@ -262,8 +262,8 @@ TEST_F(BefAttrReaderTest, ReadDenseAttribute) {
   BefAttrEncoder encoder;
   auto offset = encoder.EncodeDenseAttr(
       md.dtype, shape,
-      llvm::makeArrayRef(static_cast<const uint8_t*>(dht.data()),
-                         dht.DataSizeInBytes()));
+      llvm::ArrayRef(static_cast<const uint8_t*>(dht.data()),
+                     dht.DataSizeInBytes()));
 
   auto buffer = encoder.TakeResult();
   BefAttrReader reader(buffer, &context_);

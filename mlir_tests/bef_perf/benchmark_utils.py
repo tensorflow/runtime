@@ -29,8 +29,9 @@ STR_ENCODING = 'utf-8'
 class Env:
   """Runtime environment."""
 
-  def __init__(self, tfrt_translate, bef_executor, host_allocator_type,
-               work_queue_type):
+  def __init__(
+      self, tfrt_translate, bef_executor, host_allocator_type, work_queue_type
+  ):
     """Initialize various runtime env parameters."""
     self.tfrt_translate = tfrt_translate
     self.bef_executor = bef_executor
@@ -52,19 +53,23 @@ class Env:
       from bef_executor. example:
       {"fully_serial_100" : {"Min(us)" : "252"}, {"50%(us)" : "259"}}
     """
-    cmd = ('{} -mlir-to-bef | {} {} --host_allocator_type={} '
-           '--work_queue_type={}').format(self.tfrt_translate,
-                                          self.bef_executor,
-                                          additional_executor_flags,
-                                          self.host_allocator_type,
-                                          self.work_queue_type)
+    cmd = (
+        '{} -mlir-to-bef | {} {} --host_allocator_type={} --work_queue_type={}'
+    ).format(
+        self.tfrt_translate,
+        self.bef_executor,
+        additional_executor_flags,
+        self.host_allocator_type,
+        self.work_queue_type,
+    )
     proc = subprocess.run(
         cmd,
         input=in_str.encode(STR_ENCODING),
         shell=True,
         check=True,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
+        stderr=subprocess.PIPE,
+    )
 
     return self._parse_bm_output(proc.stdout.decode(STR_ENCODING))
 

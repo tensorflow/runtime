@@ -199,8 +199,8 @@ void BEFInterpreterImpl::SetupKernelEntries() {
 
     // Set the retired registers for this kernel.
     kernel_entry.retired_regs =
-        llvm::makeArrayRef(retired_register_pool_.begin() + retired_reg_start,
-                           retired_register_pool_.end());
+        llvm::ArrayRef(retired_register_pool_.begin() + retired_reg_start,
+                       retired_register_pool_.end());
 
     // Collect the attributes
     int attribute_start = attribute_pool_.size();
@@ -265,9 +265,9 @@ Error BEFInterpreterImpl::Execute(const ExecutionContext& exec_ctx,
     BEFKernel kernel(kernel_entry.kernel_start);
 
     kernel_frame.SetArguments(kernel.GetArguments());
-    kernel_frame.SetAttributes(llvm::makeArrayRef(
-        attribute_pool_.data() + kernel_entry.attribute_start,
-        kernel_entry.num_attributes));
+    kernel_frame.SetAttributes(
+        llvm::ArrayRef(attribute_pool_.data() + kernel_entry.attribute_start,
+                       kernel_entry.num_attributes));
     kernel_frame.SetResults(kernel.GetResults());
 
     kernel_entry.kernel_fn(&kernel_frame);

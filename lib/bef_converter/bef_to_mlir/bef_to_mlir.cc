@@ -670,7 +670,7 @@ BEFFunctionReader::ReadFunction(BefLocationReader* location_reader,
   if (!function_reader_.ReadAlignment(kKernelEntryAlignment) ||
       mlir::failed(ReadKernels(
           location_reader,
-          llvm::makeArrayRef(
+          llvm::ArrayRef(
               reinterpret_cast<const uint32_t*>(
                   function_reader_.file().begin()),
               function_reader_.file().size() / kKernelEntryAlignment),

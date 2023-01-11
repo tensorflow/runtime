@@ -33,11 +33,14 @@ def getSource(cursor):
 
 def main():
   parser = argparse.ArgumentParser(
-      description='Generate dynamic loading stubs for CUDA and HIP APIs.')
+      description='Generate dynamic loading stubs for CUDA and HIP APIs.'
+  )
   parser.add_argument(
-      'input', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+      'input', nargs='?', type=argparse.FileType('r'), default=sys.stdin
+  )
   parser.add_argument(
-      'output', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
+      'output', nargs='?', type=argparse.FileType('w'), default=sys.stdout
+  )
   args = parser.parse_args()
 
   config = json.load(args.input)
@@ -46,7 +49,8 @@ def main():
   translation_unit = index.parse(
       config['header'],
       args=config['extra_args'],
-      options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+      options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
+  )
 
   def HandleFunction(cursor):
     if cursor.kind != clang.cindex.CursorKind.FUNCTION_DECL:
@@ -81,8 +85,10 @@ def main():
     if cursor.kind != clang.cindex.CursorKind.TYPEDEF_DECL:
       return
 
-    HandleEnum(cursor.underlying_typedef_type.get_canonical().get_declaration(),
-               cursor.spelling)
+    HandleEnum(
+        cursor.underlying_typedef_type.get_canonical().get_declaration(),
+        cursor.spelling,
+    )
 
   for cursor in translation_unit.cursor.get_children():
     HandleFunction(cursor)

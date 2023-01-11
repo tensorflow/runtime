@@ -226,7 +226,7 @@ Optional<ArrayRef<Index>> PartialTensorShape::GetShape() const {
   if (IsUnranked()) {
     return std::nullopt;
   }
-  return llvm::makeArrayRef(dims_.value());
+  return llvm::ArrayRef(dims_.value());
 }
 
 bool PartialTensorShape::IsShapeKnown() const {

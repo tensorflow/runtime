@@ -26,11 +26,14 @@ import clang.cindex
 
 def main():
   parser = argparse.ArgumentParser(
-      description='Generate dynamic loading stubs for CUDA and HIP APIs.')
+      description='Generate dynamic loading stubs for CUDA and HIP APIs.'
+  )
   parser.add_argument(
-      'input', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+      'input', nargs='?', type=argparse.FileType('r'), default=sys.stdin
+  )
   parser.add_argument(
-      'output', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
+      'output', nargs='?', type=argparse.FileType('w'), default=sys.stdout
+  )
   args = parser.parse_args()
 
   config = json.load(args.input)
@@ -57,7 +60,8 @@ def main():
 
     arg_names = [arg.spelling for arg in cursor.get_arguments()]
     implementation = function_impl.format(
-        cursor.spelling, ', '.join(['"%s"' % cursor.spelling] + arg_names))
+        cursor.spelling, ', '.join(['"%s"' % cursor.spelling] + arg_names)
+    )
 
     args.output.write('%s {%s\n}\n\n' % (declaration, implementation))
 

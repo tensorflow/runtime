@@ -6,8 +6,8 @@ def repo(name):
     """Imports Eigen."""
 
     # Attention: tools parse and update these lines.
-    EIGEN_COMMIT = "3bb6a48d8c171cf20b5f8e48bfb4e424fbd4f79e"
-    EIGEN_SHA256 = "eca9847b3fe6249e0234a342b78f73feec07d29f534e914ba5f920f3e09383a3"
+    EIGEN_COMMIT = "3564668908afc66351c1c3cc47dca2fcdb91dc12"
+    EIGEN_SHA256 = "242bf03ec7371f48c3c5b61aacf313659be1d323b94e21e0002ee927ebb3add7"
 
     tfrt_http_archive(
         name = name,

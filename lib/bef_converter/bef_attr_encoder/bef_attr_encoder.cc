@@ -45,8 +45,8 @@ size_t BefAttrEncoder::EncodeHeader(BefAttrBase* base, uint8_t alignment,
   EmitAlignment(alignment, llvm::offsetToAlignment(size() + prefix_size,
                                                    llvm::Align(alignment)));
   const auto offset = size();
-  EmitBytes(llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(base),
-                               sizeof(BefAttrBase) + emit_size));
+  EmitBytes(llvm::ArrayRef(reinterpret_cast<const uint8_t*>(base),
+                           sizeof(BefAttrBase) + emit_size));
   return offset;
 }
 
@@ -182,7 +182,7 @@ size_t BefAttrEncoder::EncodeShapeListAttr(const int64_t** shapes,
                         alignof(AttrShapeT), [&](int index) -> AttrSizeT {
                           return (ranks[index] < 0)
                                      ? EncodeUnrankedShapeAttr()
-                                     : EncodeRankedShapeAttr(llvm::makeArrayRef(
+                                     : EncodeRankedShapeAttr(llvm::ArrayRef(
                                            shapes[index], ranks[index]));
                         });
 }

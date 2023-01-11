@@ -158,7 +158,7 @@ TEST_F(BefAttrEmitterTest, EmitShapeAttribute) {
   EXPECT_EQ(attr.GetRank(), kTestShapeRank);
 
   EXPECT_THAT(attr.GetShape(),
-              ::testing::ContainerEq(llvm::makeArrayRef(kTestShape, 3)));
+              ::testing::ContainerEq(llvm::ArrayRef(kTestShape, 3)));
 }
 
 TEST_F(BefAttrEmitterTest, EmitUnrankedShapeAttribute) {
@@ -187,7 +187,7 @@ TEST_F(BefAttrEmitterTest, EmitI32ArrayAttribute) {
   auto buffer = emitter_.TakeResult();
   ArrayAttribute<int32_t> attr(buffer.data() + offset);
 
-  EXPECT_THAT(attr.data(), ::testing::ContainerEq(llvm::makeArrayRef(
+  EXPECT_THAT(attr.data(), ::testing::ContainerEq(llvm::ArrayRef(
                                kTestI32Array, kTestI32ArraySize)));
 }
 
@@ -207,7 +207,7 @@ TEST_F(BefAttrEmitterTest, EmitF64ArrayAttribute) {
   auto buffer = emitter_.TakeResult();
   ArrayAttribute<double> attr(buffer.data() + offset);
 
-  EXPECT_THAT(attr.data(), ::testing::ContainerEq(llvm::makeArrayRef(
+  EXPECT_THAT(attr.data(), ::testing::ContainerEq(llvm::ArrayRef(
                                kTestF64Array, kTestF64ArraySize)));
 }
 

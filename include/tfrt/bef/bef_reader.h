@@ -163,24 +163,24 @@ class BEFKernel {
 
   // Return num_entries kernel entries starting at offset.
   ArrayRef<uint32_t> GetKernelEntries(int offset, int num_entries) const {
-    return llvm::makeArrayRef(body_start_ + offset, num_entries);
+    return llvm::ArrayRef(body_start_ + offset, num_entries);
   }
 
   ArrayRef<uint32_t> GetArguments() const {
-    return llvm::makeArrayRef(body_start_, num_arguments());
+    return llvm::ArrayRef(body_start_, num_arguments());
   }
 
   ArrayRef<uint32_t> GetAttributes() const {
-    return llvm::makeArrayRef(body_start_ + num_arguments(), num_attributes());
+    return llvm::ArrayRef(body_start_ + num_arguments(), num_attributes());
   }
 
   ArrayRef<uint32_t> GetFunctions() const {
-    return llvm::makeArrayRef(body_start_ + num_arguments() + num_attributes(),
-                              num_functions());
+    return llvm::ArrayRef(body_start_ + num_arguments() + num_attributes(),
+                          num_functions());
   }
 
   ArrayRef<uint32_t> GetResults() const {
-    return llvm::makeArrayRef(
+    return llvm::ArrayRef(
         body_start_ + num_arguments() + num_attributes() + num_functions(),
         num_results());
   }

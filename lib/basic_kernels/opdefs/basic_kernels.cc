@@ -176,7 +176,7 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
   if (operands.empty())
     return parser.emitError(parser.getCurrentLocation(), "expected condition");
 
-  auto body_operands = llvm::makeArrayRef(operands).drop_front();
+  auto body_operands = llvm::ArrayRef(operands).drop_front();
   auto body_types = types.getInputs();
   auto i1_type = IntegerType::get(result.getContext(), 1);
   if (parser.resolveOperand(operands[0], i1_type, result.operands) ||
@@ -322,7 +322,7 @@ ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
   if (operands.empty())
     return parser.emitError(parser.getCurrentLocation(), "expected trip count");
 
-  auto loop_operands = llvm::makeArrayRef(operands).drop_front();
+  auto loop_operands = llvm::ArrayRef(operands).drop_front();
   auto i32_type = IntegerType::get(result.getContext(), 32);
 
   if (parser.resolveOperand(operands[0], i32_type, result.operands) ||

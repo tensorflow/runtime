@@ -53,7 +53,8 @@ def generate_fully_serial_mlir(num_kernels):
 
   def gen_line(c):
     return '  %c{} = "tfrt.add.i32"(%c{}, %a) : (i32, i32) -> i32'.format(
-        c + 1, c)
+        c + 1, c
+    )
 
   body += '\n'.join([gen_line(c) for c in range(num_kernels)])
   # Add return statement.
@@ -83,15 +84,18 @@ def generate_fully_parallel_mlir(num_kernels):
 """
 
   def gen_line(c):
-    return '  %c{} = "tfrt_test.async_add.i32"(%c0, %a) : (i32, i32) -> i32'.format(
-        c + 1)
+    return (
+        '  %c{} = "tfrt_test.async_add.i32"(%c0, %a) : (i32, i32) -> i32'
+        .format(c + 1)
+    )
 
   body += '\n'.join([gen_line(c) for c in range(num_kernels)])
   # Add return statement.
   body += '\n  tfrt.return %c{} : i32'.format(num_kernels)
 
-  return generate_benchmark_mlir('BM_full_parallel_{}'.format(num_kernels),
-                                 body)
+  return generate_benchmark_mlir(
+      'BM_full_parallel_{}'.format(num_kernels), body
+  )
 
 
 def generate_star_mlir(num_kernels):
@@ -117,8 +121,10 @@ def generate_star_mlir(num_kernels):
 """
 
   def gen_line(c):
-    return '  %c{} = "tfrt_test.async_add.i32"(%c0, %a) : (i32, i32) -> i32'.format(
-        c + 1)
+    return (
+        '  %c{} = "tfrt_test.async_add.i32"(%c0, %a) : (i32, i32) -> i32'
+        .format(c + 1)
+    )
 
   # Construct sum statement:
   # %s = "tfrt_test.sum100"(%c1, %c2, ...) : (i32, ..., i32) -> i32
@@ -128,7 +134,7 @@ def generate_star_mlir(num_kernels):
   )
 
   body += '\n'.join([gen_line(c) for c in range(num_kernels)])
-  body += ('\n' + sum_line)
+  body += '\n' + sum_line
   # Add return statement.
   body += '\n  tfrt.return %s : i32'
 
@@ -160,16 +166,18 @@ def generate_dense_host_tensor(num_kernels):
   def gen_line(c):
     return (
         '  %c{} = "dht.no_op_dht.i32.2"(%t, %c{}) : '
-        '(!dht.dense_host_tensor.i32.2, !tfrt.chain) -> !tfrt.chain').format(
-            c + 1, c)
+        '(!dht.dense_host_tensor.i32.2, !tfrt.chain) -> !tfrt.chain'
+    ).format(c + 1, c)
 
   body += '\n'.join([gen_line(c) for c in range(num_kernels)])
   # Add return statement.
   body += '\n  tfrt.return %c{} : !tfrt.chain'.format(num_kernels)
 
-  return generate_benchmark_mlir(
-      'BM_DenseHostTensor_{}'.format(num_kernels),
-      body) + '\n' + generate_host_tensor(num_kernels)
+  return (
+      generate_benchmark_mlir('BM_DenseHostTensor_{}'.format(num_kernels), body)
+      + '\n'
+      + generate_host_tensor(num_kernels)
+  )
 
 
 def generate_host_tensor(num_kernels):
@@ -197,8 +205,8 @@ def generate_host_tensor(num_kernels):
   def gen_line(c):
     return (
         '  %c{} = "dht.no_op_ht"(%t, %c{}) : '
-        '(!dht.dense_host_tensor.i32.2, !tfrt.chain) -> !tfrt.chain').format(
-            c + 1, c)
+        '(!dht.dense_host_tensor.i32.2, !tfrt.chain) -> !tfrt.chain'
+    ).format(c + 1, c)
 
   body += '\n'.join([gen_line(c) for c in range(num_kernels)])
   # Add return statement.

@@ -96,7 +96,7 @@ static PartialTensorShape TsToPartialShape(const TensorShape& arg) {
   llvm::SmallVector<Index, 4> dims;
   dims.reserve(arg.GetRank());
   arg.GetDimensions(&dims);
-  return PartialTensorShape(llvm::makeArrayRef(dims));
+  return PartialTensorShape(llvm::ArrayRef(dims));
 }
 
 void RegisterTensorShapeKernels(KernelRegistry* registry) {

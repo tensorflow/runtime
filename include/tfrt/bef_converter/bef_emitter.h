@@ -61,8 +61,7 @@ class BefEmitter {
   void Emit(T value) {
     ASSERT_LITTLE_ENDIAN();
     EmitAlignment(alignof(T));
-    EmitBytes(
-        llvm::makeArrayRef(reinterpret_cast<uint8_t*>(&value), sizeof(T)));
+    EmitBytes(llvm::ArrayRef(reinterpret_cast<uint8_t*>(&value), sizeof(T)));
   }
 
   // Many parts of the emitter logic includes forward references into stuff

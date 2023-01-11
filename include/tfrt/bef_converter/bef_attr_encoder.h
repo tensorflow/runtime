@@ -55,14 +55,14 @@ class BefAttrEncoder : public BefEmitter {
 
   // Encode a string attribute.
   size_t EncodeStringAttr(string_view sv) {
-    return EncodeArrayAttr(llvm::makeArrayRef(
-        reinterpret_cast<const char*>(sv.data()), sv.size()));
+    return EncodeArrayAttr(
+        llvm::ArrayRef(reinterpret_cast<const char*>(sv.data()), sv.size()));
   }
 
   // Encode a function attribute.
   size_t EncodeFuncAttr(string_view sv) {
-    return EncodeArrayAttr(llvm::makeArrayRef(
-        reinterpret_cast<const char*>(sv.data()), sv.size()));
+    return EncodeArrayAttr(
+        llvm::ArrayRef(reinterpret_cast<const char*>(sv.data()), sv.size()));
   }
 
   // Encode a ranked shape attribute.
@@ -131,7 +131,7 @@ size_t BefAttrEncoder::EncodeAttr(T attr) {
   EmitAlignment(alignof(T));
   const auto offset = size();
   EmitBytes(
-      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(&attr), entry_size));
+      llvm::ArrayRef(reinterpret_cast<const uint8_t*>(&attr), entry_size));
   return offset;
 }
 
@@ -148,8 +148,8 @@ size_t BefAttrEncoder::EncodeArrayAttr(ArrayRef<T> array) {
 
   const auto offset = EncodeArrayAttrHeader(element_count, alignof(T));
   assert(size() % alignof(T) == 0);
-  EmitBytes(llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(array.data()),
-                               element_count * sizeof(T)));
+  EmitBytes(llvm::ArrayRef(reinterpret_cast<const uint8_t*>(array.data()),
+                           element_count * sizeof(T)));
   return offset;
 }
 

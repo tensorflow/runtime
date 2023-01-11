@@ -551,9 +551,9 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
   if (!reader.ReadAlignment(kKernelEntryAlignment)) return format_error();
 
   // We found the start of our kernel section.
-  function_info->kernels = llvm::makeArrayRef(
-      reinterpret_cast<const uint32_t*>(reader.file().begin()),
-      reader.file().size() / kKernelEntryAlignment);
+  function_info->kernels =
+      llvm::ArrayRef(reinterpret_cast<const uint32_t*>(reader.file().begin()),
+                     reader.file().size() / kKernelEntryAlignment);
 
   return true;
 }
@@ -704,9 +704,9 @@ Error SyncBEFFunction::Init() {
     return format_error("Failed to align BEF to kKernelEntryAlignment");
 
   // We found the start of our kernel section.
-  kernels_ = llvm::makeArrayRef(
-      reinterpret_cast<const uint32_t*>(reader.file().begin()),
-      reader.file().size() / kKernelEntryAlignment);
+  kernels_ =
+      llvm::ArrayRef(reinterpret_cast<const uint32_t*>(reader.file().begin()),
+                     reader.file().size() / kKernelEntryAlignment);
 
   return Error::success();
 }

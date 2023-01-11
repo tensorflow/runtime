@@ -49,7 +49,7 @@ size_t BefLocationEmitter::CountSupportedLocations(const mlir::FusedLoc& loc) {
 
 ArrayRef<uint8_t> BefLocationEmitter::GetStringsSection() const {
   auto& result = strings_.result();
-  return llvm::makeArrayRef(result.data(), result.size());
+  return llvm::ArrayRef(result.data(), result.size());
 }
 
 void BefLocationEmitter::EmitLocationStringAsVbrOffset(string_view str) {

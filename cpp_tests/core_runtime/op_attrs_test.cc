@@ -252,8 +252,7 @@ BENCHMARK(BM_OpAttrSetUnrankedShape);
 void BM_OpAttrSetRankedShape(benchmark::State& state) {
   int64_t dims[2] = {2, 2};
   tfrt::BefAttrEncoder encoder;
-  const size_t offset =
-      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2));
+  const size_t offset = encoder.EncodeRankedShapeAttr(llvm::ArrayRef(dims, 2));
   auto buf = encoder.TakeResult();
 
   for (auto _ : state) {
@@ -284,8 +283,7 @@ void BM_OpAttrGetRankedShape(benchmark::State& state) {
 
   int64_t dims[2] = {2, 2};
   tfrt::BefAttrEncoder encoder;
-  const size_t offset =
-      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2));
+  const size_t offset = encoder.EncodeRankedShapeAttr(llvm::ArrayRef(dims, 2));
   auto buf = encoder.TakeResult();
   tfrt::ShapeAttr shape_attr(buf.data() + offset);
 

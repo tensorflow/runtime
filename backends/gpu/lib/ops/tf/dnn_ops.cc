@@ -345,7 +345,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   };
   if (channel_order == ChannelOrder::ChannelLast &&
       input_dims_nchw[1] == filter_dims_oihw[1] &&  // No grouped convolutions.
-      all_equal_to(llvm::makeArrayRef(filter_dims_oihw).drop_front(2), 1) &&
+      all_equal_to(llvm::ArrayRef(filter_dims_oihw).drop_front(2), 1) &&
       all_equal_to(windowed_output_data.strides, 1) &&
       all_equal_to(paddings, 0)) {
     auto batch_count = input_dims_nchw[0];
@@ -357,7 +357,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
         (padded_input ? *padded_input : input)
             .WithShape(TensorShape({batch_count * pixel_count, channel_count}));
     auto reshaped_filter = filter.WithShape(
-        TensorShape(llvm::makeArrayRef(filter_dims_hwio).take_back(2)));
+        TensorShape(llvm::ArrayRef(filter_dims_hwio).take_back(2)));
     if (auto error = RunCublasGemm(dctx->current_context(), dctx->blas_handle(),
                                    /*transpose_a=*/false, /*transpose_b=*/false,
                                    reshaped_input.value(),
@@ -534,7 +534,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
                         wrapper::CudnnCreatePoolingDescriptor());
   if (auto error = wrapper::CudnnSetPoolingDescriptor(
           pooling_desc.get(), CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN,
-          ToIntVec(llvm::makeArrayRef(filter_dims).drop_front(2)),
+          ToIntVec(llvm::ArrayRef(filter_dims).drop_front(2)),
           // Use 'paddings_before' (equal to or one smaller than
           // 'paddings_after') to match TF's behaviour.
           //

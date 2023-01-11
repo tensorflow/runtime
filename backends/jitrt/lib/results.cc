@@ -40,7 +40,7 @@ struct ConversionCtx {};
 
 template <typename T, int rank>
 static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
-  return llvm::makeArrayRef(memref->sizes);
+  return llvm::ArrayRef(memref->sizes);
 }
 
 template <typename T>

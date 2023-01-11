@@ -536,7 +536,7 @@ static void TFRTRepeatI32Block(
     passed_args[0]->AndThen(
         [end, block_size, count_value, exec_ctx,
          body_fn_ref = std::move(body_fn_ref),
-         arg_refs = RCArray<AsyncValue>(llvm::makeArrayRef(passed_args)),
+         arg_refs = RCArray<AsyncValue>(llvm::ArrayRef(passed_args)),
          result_refs = std::move(result_refs)]() mutable {
           TFRTRepeatI32Block(end, block_size, count_value, exec_ctx,
                              std::move(body_fn_ref), std::move(arg_refs),

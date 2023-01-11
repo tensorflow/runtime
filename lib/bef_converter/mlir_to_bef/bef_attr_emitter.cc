@@ -399,7 +399,7 @@ size_t BefAttrEmitter::EmitDenseAttribute(BEFAttributeType attribute_type,
   } else {
     ArrayRef<char> raw_data = attr.getRawData();
     for (int i = 0; i < (attr.isSplat() ? element_count : 1); ++i) {
-      EmitBytes(llvm::makeArrayRef(
+      EmitBytes(llvm::ArrayRef(
           reinterpret_cast<const uint8_t*>(raw_data.data()), raw_data.size()));
     }
   }

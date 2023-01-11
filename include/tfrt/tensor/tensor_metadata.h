@@ -37,7 +37,7 @@ struct TensorMetadata {
 
   template <typename Container>
   TensorMetadata(DType dtype, const Container& shape)
-      : TensorMetadata(dtype, llvm::makeArrayRef(shape)) {}
+      : TensorMetadata(dtype, llvm::ArrayRef(shape)) {}
 
   template <typename DType, typename... Dims>
   static TensorMetadata Create(Dims... dims) {

@@ -60,8 +60,7 @@ TEST(BefAttrEncoderTest, EncodeBasicTypes) {
 constexpr int32_t kTestInt32Array[] = {1, 2, 3, 4, 5, 6, 7};
 constexpr auto kTestInt32ArraySize = sizeof(kTestInt32Array) / sizeof(int32_t);
 TEST(BefAttrEncoderTest, EncodeInt32ArrayAttribute) {
-  auto input_array_ref =
-      llvm::makeArrayRef(kTestInt32Array, kTestInt32ArraySize);
+  auto input_array_ref = llvm::ArrayRef(kTestInt32Array, kTestInt32ArraySize);
 
   BefAttrEncoder encoder;
 
@@ -76,7 +75,7 @@ TEST(BefAttrEncoderTest, EncodeEmptyArray) {
   BefAttrEncoder encoder;
 
   const size_t offset =
-      encoder.EncodeArrayAttr(llvm::makeArrayRef(kTestInt32Array, 0));
+      encoder.EncodeArrayAttr(llvm::ArrayRef(kTestInt32Array, size_t{0}));
   auto buffer = encoder.TakeResult();
   ArrayAttribute<int32_t> attr(buffer.data() + offset);
   EXPECT_EQ(attr.size(), 0);
@@ -86,8 +85,7 @@ constexpr double kTestDoubleArray[] = {1.1, 2.2, 3.3, 4.4, 5.5,
                                        6.6, 7.7, 8.8, 9.9};
 constexpr auto kTestDoubleArraySize = sizeof(kTestDoubleArray) / sizeof(double);
 TEST(BefAttrEncoderTest, EncodeDoubleArrayAttribute) {
-  auto input_array_ref =
-      llvm::makeArrayRef(kTestDoubleArray, kTestDoubleArraySize);
+  auto input_array_ref = llvm::ArrayRef(kTestDoubleArray, kTestDoubleArraySize);
 
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeArrayAttr(input_array_ref);
@@ -102,7 +100,7 @@ TEST(BefAttrEncoderTest, EncodeZeroShape) {
 
   BefAttrEncoder encoder;
   const size_t offset =
-      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0));
+      encoder.EncodeRankedShapeAttr(llvm::ArrayRef(dims, size_t{0}));
 
   auto buf = encoder.TakeResult();
   ShapeAttr shape_attr(buf.data() + offset);
@@ -124,7 +122,7 @@ TEST(BefAttrEncoderTest, EncodeUnrankedShape) {
 
 TEST(BefAttrEncoderTest, EncodeRankedShape) {
   int64_t dims[3] = {1, 2, 3};
-  auto input_shape = llvm::makeArrayRef(dims, 3);
+  auto input_shape = llvm::ArrayRef(dims, 3);
 
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeRankedShapeAttr(input_shape);
@@ -154,16 +152,13 @@ TEST(BefAttrEncoderTest, EncodeShapeList) {
   EXPECT_EQ(aggr_attr.GetNumElements(), 4);
 
   ShapeAttr shape_a = aggr_attr.GetAttributeOfType<ShapeAttr>(0);
-  EXPECT_THAT(shape_a.GetShape(),
-              ::testing::ContainerEq(llvm::makeArrayRef(a, 1)));
+  EXPECT_THAT(shape_a.GetShape(), ::testing::ContainerEq(llvm::ArrayRef(a, 1)));
 
   ShapeAttr shape_b = aggr_attr.GetAttributeOfType<ShapeAttr>(1);
-  EXPECT_THAT(shape_b.GetShape(),
-              ::testing::ContainerEq(llvm::makeArrayRef(b, 2)));
+  EXPECT_THAT(shape_b.GetShape(), ::testing::ContainerEq(llvm::ArrayRef(b, 2)));
 
   ShapeAttr shape_c = aggr_attr.GetAttributeOfType<ShapeAttr>(2);
-  EXPECT_THAT(shape_c.GetShape(),
-              ::testing::ContainerEq(llvm::makeArrayRef(c, 3)));
+  EXPECT_THAT(shape_c.GetShape(), ::testing::ContainerEq(llvm::ArrayRef(c, 3)));
 
   ShapeAttr shape_d = aggr_attr.GetAttributeOfType<ShapeAttr>(3);
   ASSERT_FALSE(shape_d.HasRank());

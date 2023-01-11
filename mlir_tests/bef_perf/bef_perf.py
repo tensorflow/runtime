@@ -53,8 +53,9 @@ import sys
 from mlir_tests.bef_perf.benchmark_utils import Env  # from @tf_runtime
 
 
-assert sys.version_info >= (3, 5), \
+assert sys.version_info >= (3, 5), (
     'Detected Python version %s. Please use Python >= 3.5.' % sys.version
+)
 
 BUILD_DIR = 'bazel-bin'
 
@@ -118,36 +119,47 @@ def run_benchmark(env: Env, in_file):
 
 def main():
   parser = argparse.ArgumentParser(
-      description='Run benchmark functions in the input mlir files.')
+      description='Run benchmark functions in the input mlir files.'
+  )
   parser.add_argument(
       'mlirs',
       metavar='MLIRS',
       nargs='*',
       type=argparse.FileType('r'),
       default=[sys.stdin],
-      help='MLIR code containing the function to be '
-      'benchmarked. Default: STDIN.')
+      help=(
+          'MLIR code containing the function to be benchmarked. Default: STDIN.'
+      ),
+  )
   parser.add_argument(
       '--host_allocator_type',
       default='malloc',
-      help='Type of host allocator (malloc, ...)')
+      help='Type of host allocator (malloc, ...)',
+  )
   parser.add_argument(
       '--work_queue_type',
       default='s',
-      help='Type of work queue (s(default), mstd, ...)')
+      help='Type of work queue (s(default), mstd, ...)',
+  )
   parser.add_argument(
       '--tfrt_translate',
       default=os.path.join(BUILD_DIR, 'tools/tfrt_translate'),
-      help='Path to tfrt_translate')
+      help='Path to tfrt_translate',
+  )
   parser.add_argument(
       '--bef_executor',
       default=os.path.join(BUILD_DIR, 'tools/bef_executor'),
-      help='Path to bef_executor')
+      help='Path to bef_executor',
+  )
 
   args = parser.parse_args()
 
-  env = Env(args.tfrt_translate, args.bef_executor, args.host_allocator_type,
-            args.work_queue_type)
+  env = Env(
+      args.tfrt_translate,
+      args.bef_executor,
+      args.host_allocator_type,
+      args.work_queue_type,
+  )
 
   # Run through each of the input mlir files.
   print('-' * 40)
@@ -161,7 +173,8 @@ def main():
 
   if not merged_results:
     print(
-        'Empty result. Please check if MLIR file is correct.', file=sys.stderr)
+        'Empty result. Please check if MLIR file is correct.', file=sys.stderr
+    )
 
   cpu_info = env.get_cpu_info()
 

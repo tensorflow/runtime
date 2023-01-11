@@ -53,10 +53,15 @@ def _AddToolSubstitutions(targets):
       t.lstrip('/').replace('@', '../').replace('//', '/').replace(':', '/')
       for t in targets
   ]
-  llvm_config.add_tool_substitutions([
-      ToolSubst(os.path.basename(p), os.path.join(cwd, p), unresolved='ignore')
-      for p in paths
-  ], [])
+  llvm_config.add_tool_substitutions(
+      [
+          ToolSubst(
+              os.path.basename(p), os.path.join(cwd, p), unresolved='ignore'
+          )
+          for p in paths
+      ],
+      [],
+  )
 
 
 _AddToolSubstitutions([

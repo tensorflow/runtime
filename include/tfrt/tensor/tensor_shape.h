@@ -51,7 +51,7 @@ class TensorShape {
 
   template <typename Container>
   explicit TensorShape(const Container& dims)
-      : TensorShape(llvm::makeArrayRef(dims)) {}
+      : TensorShape(llvm::ArrayRef(dims)) {}
 
   TensorShape(const TensorShape& rhs);
   TensorShape(TensorShape&& rhs);

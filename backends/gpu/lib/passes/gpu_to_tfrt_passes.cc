@@ -760,7 +760,7 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
       rewriter.create<mlir::gpu::WaitOp>(loc, token.getType(), token);
 
   // Add %t1 from above to all `gpu.wait async []` ops.
-  for (auto op : makeArrayRef(wait_ops).drop_back())
+  for (auto op : llvm::ArrayRef(wait_ops).drop_back())
     op.addAsyncDependency(first_wait_op.getAsyncToken());
 
   // Make `gpu.wait [...]` async, cast result and add chain to returned

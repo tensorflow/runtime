@@ -71,13 +71,19 @@ class ConcurrentVector {
   T& operator[](size_t index) {
     auto state = State::Decode(state_.load(std::memory_order_acquire));
     assert(index < state.size);
-    return all_allocated_elements_[state.last_allocated][index];
+    // Use data() to make test compartible with libc++ assertions.
+    // vector::operator[] needs to access .size() which is changed by another
+    // thread.
+    return all_allocated_elements_.data()[state.last_allocated].data()[index];
   }
 
   const T& operator[](size_t index) const {
     auto state = State::Decode(state_.load(std::memory_order_acquire));
     assert(index < state.size);
-    return all_allocated_elements_[state.last_allocated][index];
+    // Use data() to make test compartible with libc++ assertions.
+    // vector::operator[] needs to access .size() which is changed by another
+    // thread.
+    return all_allocated_elements_.data()[state.last_allocated].data()[index];
   }
 
   absl::Span<const T> ToConstSpan() const {

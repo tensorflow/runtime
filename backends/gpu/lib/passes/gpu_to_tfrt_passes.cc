@@ -29,10 +29,10 @@
 #include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/Attributes.h"
-#include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
@@ -843,7 +843,7 @@ LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
       rewriter, loc, region->getArguments());
 
   // Clone original body into the new region.
-  BlockAndValueMapping mapping;
+  IRMapping mapping;
   rewriter.cloneRegionBefore(exec_op.getRegion(), *region, region->end(),
                              mapping);
   rewriter.mergeBlocks(&region->back(), &region->front(), arguments);
@@ -1428,7 +1428,7 @@ LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
   Block *block =
       rewriter.createBlock(region, region->end(), arg_types,
                            SmallVector<Location, 2>(arg_types.size(), loc));
-  BlockAndValueMapping mapping;
+  IRMapping mapping;
   mapping.map(arguments, block->getArguments());
   rewriter.cloneRegionBefore(exec_op.getRegion(), *region, region->end(),
                              mapping);
@@ -1493,7 +1493,7 @@ LogicalResult HoistCreateHandlePattern::matchAndRewrite(
           loc, op->getName().getIdentifier(), callee_type);
       symbol_table.insert(callee_op);
       rewriter.setInsertionPointToEnd(callee_op.addEntryBlock());
-      BlockAndValueMapping mapper;
+      IRMapping mapper;
       mapper.map(context, callee_op.getArgument(0));
       Value handle = rewriter.clone(*op, mapper)->getResult(0);
       rewriter.create<tfrt::compiler::ReturnOp>(loc, handle);

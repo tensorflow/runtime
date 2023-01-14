@@ -35,7 +35,7 @@ struct TFRTInlinerInterface : public mlir::DialectInlinerInterface {
   }
 
   bool isLegalToInline(Operation *op, Region *dest, bool would_be_cloned,
-                       BlockAndValueMapping &) const final {
+                       IRMapping &) const final {
     // All TFRT dialect ops can be inlined.
     return true;
   }

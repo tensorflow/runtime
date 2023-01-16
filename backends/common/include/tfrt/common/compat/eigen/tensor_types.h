@@ -71,7 +71,7 @@ Eigen::DSizes<IndexType, Rank> AsEigenDSizes(const TensorShape& shape) {
   if (Rank == 1) {
     dims[0] = shape.GetNumElements();
   } else if (Rank > 0) {
-    shape.GetDimensions(llvm::makeMutableArrayRef(&dims.front(), Rank));
+    shape.GetDimensions(llvm::MutableArrayRef(&dims.front(), Rank));
   }
   return dims;
 }

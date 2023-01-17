@@ -1587,8 +1587,10 @@ static LogicalResult ConvertGpuModuleOps(ModuleOp module_op) {
 
   RewritePatternSet patterns(module_op->getContext());
   patterns.add<ConvertGpuModulePattern>(module_op->getContext());
-  return success(applyOpPatternsAndFold(gpu_module_ops, std::move(patterns),
-                                        /*strict=*/true));
+  bool changed = false;
+  (void)applyOpPatternsAndFold(gpu_module_ops, std::move(patterns),
+                               /*strict=*/true, &changed);
+  return success(changed);
 }
 
 void ConvertGpuToTfrtGpuPass::runOnOperation() {
@@ -1630,7 +1632,7 @@ void HoistingPass::runOnOperation() {
   SmallVector<Operation *, 4> func_ops;
   llvm::copy(getOperation().getOps<func::FuncOp>(),
              std::back_inserter(func_ops));
-  applyOpPatternsAndFold(func_ops, std::move(patterns), /*strict=*/false);
+  (void)applyOpPatternsAndFold(func_ops, std::move(patterns), /*strict=*/false);
 
   SmallVector<func::FuncOp, 4> preload_callees;
   getOperation().walk([&](func::FuncOp func_op) {

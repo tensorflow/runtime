@@ -98,7 +98,7 @@ void ExecuteOp::getOpAttrs(
   }
 }
 
-LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
+LogicalResult ExecuteOp::fold(FoldAdaptor,
                               llvm::SmallVectorImpl<OpFoldResult> &results) {
   if (getOpName() == "tf.Const") {
     auto op_attr_array = getOpAttrs().getValue();
@@ -116,9 +116,7 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
   return failure();
 }
 
-OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
-  return getValue();
-}
+OpFoldResult ConstDenseTensorOp::fold(FoldAdaptor) { return getValue(); }
 
 }  // namespace corert_sync
 }  // namespace tfrt

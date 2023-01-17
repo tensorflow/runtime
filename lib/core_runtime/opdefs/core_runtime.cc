@@ -318,7 +318,7 @@ void ExecuteOp::getOpFuncAttrs(
   }
 }
 
-LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
+LogicalResult ExecuteOp::fold(FoldAdaptor,
                               SmallVectorImpl<OpFoldResult> &results) {
   if (getOpName() == "tf.Const") {
     auto op_attr_array = getOpAttrs().getValue();
@@ -340,8 +340,8 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
 // ConstDenseTensorOp
 //===----------------------------------------------------------------------===//
 
-OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
-  assert(operands.empty() && "constant has no operands");
+OpFoldResult ConstDenseTensorOp::fold(FoldAdaptor adaptor) {
+  assert(adaptor.getOperands().empty() && "constant has no operands");
   return getValue();
 }
 

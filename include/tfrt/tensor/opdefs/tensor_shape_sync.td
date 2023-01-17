@@ -37,6 +37,7 @@ def TensorShapeSyncDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::ts_sync";
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 // Base class for the operation in this dialect

@@ -35,6 +35,7 @@ def CoreRTSync_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::corert_sync";
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 // Base class for corert dialect ops.

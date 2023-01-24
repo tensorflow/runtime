@@ -468,7 +468,8 @@ TEST(EndToEndExampleTest, CompiledAndExecute) {
 
   // Execute Jit compiled executable.
   auto executed = (*executable)->Execute(args, converter, execute_opts);
-  ASSERT_TRUE(executed.ok()) << "Failed to execute: " << executed.message();
+  ASSERT_TRUE(executed.ok())
+      << "Failed to execute: " << executed.status().message();
 
   // Check the result returned from the compiled function.
   ASSERT_TRUE(result_values[0]->IsAvailable());

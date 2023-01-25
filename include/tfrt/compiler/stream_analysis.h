@@ -49,6 +49,7 @@
 #ifndef TFRT_COMPILER_STREAM_ANALYSIS_H_
 #define TFRT_COMPILER_STREAM_ANALYSIS_H_
 
+#include "llvm/ADT/SetVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -78,11 +79,37 @@ class Stream {
   // of this stream. It can be nullptr in the case of root stream.
   mlir::Operation* parent_op() const { return parent_op_; }
 
+  // The operations in this stream in the original topological order.
+  llvm::ArrayRef<mlir::Operation*> ops() const { return ops_; }
+
+  // Returns the child streams for the `op` in this stream.
+  const llvm::SmallSetVector<const Stream*, 4>& GetChildStreams(
+      mlir::Operation* op) const {
+    auto iter = child_streams_.find(op);
+    if (iter != child_streams_.end()) return iter->second;
+
+    static const auto* empty_set = new llvm::SmallSetVector<const Stream*, 4>();
+    return *empty_set;
+  }
+
+  // Returns the child streams for the root op if this is a root stream.
+  const llvm::SmallSetVector<const Stream*, 4>& GetChildStreamsForRootOp()
+      const {
+    assert(parent_id_ == -1);
+    return GetChildStreams(nullptr);
+  }
+
  private:
   int id_ = -1;
   int64_t cost_ = 0;
   int parent_id_ = -1;
   mlir::Operation* parent_op_ = nullptr;
+  // The operations in this stream in the original topological order.
+  llvm::SmallVector<mlir::Operation*> ops_;
+  llvm::DenseMap<mlir::Operation*, llvm::SmallSetVector<const Stream*, 4>>
+      child_streams_;
+
+  friend class StreamAnalysis;
 
   // TODO(chky): Add more information for a stream, such as incoming and
   // outgoing data dependencies, and child streams.
@@ -106,6 +133,8 @@ class StreamAnalysis {
   // Return the root stream of the current function, which is the entry of the
   // function.
   const Stream& GetRootStream() const;
+
+  size_t GetNumStreams() const { return streams_.size(); }
 
   // The cost threshold is used to decide whether to merge two streams. When
   // there are independent streams, if the cost of a stream is smaller than this

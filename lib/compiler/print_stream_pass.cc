@@ -16,6 +16,9 @@
 
 // This implements PrintStreamPass for testing StreamAnalysis.
 
+#include <string>
+
+#include "llvm/ADT/StringExtras.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "tfrt/compiler/stream_analysis.h"
@@ -44,9 +47,22 @@ class PrintStreamPass
     auto emit_stream = [&](mlir::Operation* op, mlir::Location loc) {
       const auto& stream = stream_analysis.GetStream(op);
 
-      mlir::emitRemark(loc, "stream id: ")
-          << stream.id() << ", stream cost: " << stream.cost()
-          << ", parent stream: " << stream.parent_id();
+      auto diag = mlir::emitRemark(loc, "stream id: ");
+      diag << stream.id() << ", stream cost: " << stream.cost()
+           << ", parent stream: " << stream.parent_id();
+
+      const auto& child_streams = stream.GetChildStreams(op);
+
+      if (!child_streams.empty()) {
+        llvm::SmallVector<std::string> child_stream_ids;
+        child_stream_ids.reserve(child_streams.size());
+        for (const auto* stream : child_streams) {
+          child_stream_ids.push_back(std::to_string(stream->id()));
+        }
+
+        diag << ", child streams: [" << llvm::join(child_stream_ids, ", ")
+             << "]";
+      }
     };
 
     emit_stream(nullptr, func_op.getLoc());

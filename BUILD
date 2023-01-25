@@ -1459,6 +1459,7 @@ tfrt_cc_library(
     deps = [
         ":basic_kernels_opdefs",
         ":compiler_tfrt_op_interfaces",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
     ],
@@ -1470,6 +1471,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":stream_analysis",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:Pass",
     ],

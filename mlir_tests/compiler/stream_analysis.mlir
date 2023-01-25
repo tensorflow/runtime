@@ -16,7 +16,7 @@
 
 module attributes {tfrt.cost_threshold = 10 : i64} {
 
-// expected-remark@+1 {{stream id: 0, stream cost: 22, parent stream: -1}}
+// expected-remark@+1 {{stream id: 0, stream cost: 22, parent stream: -1, child streams: [1]}}
 func.func @stream(%a: i32, %b: i32) -> i32 attributes {tfrt.cost_threshold = 5} {
   // stream 0 cost = 1 (root) + 5 (%a0) + 5 (%a1) + 5 (%a2) + 5 (%result) + 1 (return)
   // stream 1 cost = 5 (%b0) + 5 (%b1) + 5 (%b2)
@@ -48,7 +48,7 @@ func.func @stream(%a: i32, %b: i32) -> i32 attributes {tfrt.cost_threshold = 5} 
   tfrt.return %result : i32
 }
 
-// expected-remark@+1 {{stream id: 0, stream cost: 12, parent stream: -1}}
+// expected-remark@+1 {{stream id: 0, stream cost: 12, parent stream: -1, child streams: [2, 1]}}
 func.func @no_merge() -> (i32, i32, i32) {
   // %0, %1, and %2 are independent. Since they are above cost threshold,
   // each of them is assigned to a different stream.
@@ -62,7 +62,7 @@ func.func @no_merge() -> (i32, i32, i32) {
   tfrt.return %0, %1, %2 : i32, i32, i32
 }
 
-// expected-remark@+1 {{stream id: 0, stream cost: 18, parent stream: -1}}
+// expected-remark@+1 {{stream id: 0, stream cost: 18, parent stream: -1, child streams: [4]}}
 func.func @merge(%ch0: i32) -> i32 {
   // stream 0 cost = 1 (root) + 11 (%ch3) + 4 (%ch5) + 1 (%ch6) + 1 (return)
   // stream 4 cost = 4 (%ch1) + 4 (%ch2) + 4 (%ch4)
@@ -93,7 +93,7 @@ func.func @merge(%ch0: i32) -> i32 {
 func.func @merge_limit(%ch0: i32) -> i32 attributes {tfrt.upper_cost_threshold = 17} {
   // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
   %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 8 : i64} : i32
-  // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
+  // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1, child streams: [0]}}
   %ch2 = tfrt_test.test_cost %ch1 {id = 1 : i64, _tfrt_cost = 8 : i64} : i32
   // Though %ch2 and %ch3 are dependent ops, they are in different streams because the cost exceed the upper threshold.
   // expected-remark@+1 {{stream id: 0, stream cost: 17, parent stream: 1}}
@@ -104,7 +104,7 @@ func.func @merge_limit(%ch0: i32) -> i32 attributes {tfrt.upper_cost_threshold =
   tfrt.return %ch4 : i32
 }
 
-// expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+// expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1, child streams: [5, 2]}}
 func.func @merge_inter_dependent_streams(%c0: i32) -> i32 attributes {tfrt.merge_inter_dependent_streams = true} {
 
   // expected-remark@+1 {{stream id: 5, stream cost: 11, parent stream: 0}}

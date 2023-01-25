@@ -474,7 +474,13 @@ void StreamAnalysis::FinalizeStreams(mlir::Block& block) {
       stream = streams_.back().get();
     }
 
+    stream->ops_.push_back(&op);
     stream_map_[&op] = stream;
+
+    auto* parent_stream = stream_id_map.lookup(stream->parent_id());
+    if (parent_stream) {
+      parent_stream->child_streams_[stream->parent_op()].insert(stream);
+    }
   }
 }
 

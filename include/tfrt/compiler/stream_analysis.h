@@ -169,6 +169,8 @@ class StreamAnalysis {
       // `side_deps` are data dependencies from other streams instead of the
       // parent stream.
       llvm::SmallDenseSet<mlir::Operation*, 2> side_deps;
+      // Whether this stream contains the return op.
+      bool contains_return_op = false;
     };
 
     struct OpInfo {
@@ -210,9 +212,6 @@ class StreamAnalysis {
     // merge independent streams to one stream with a cost that is barely
     // exceeding this threshold.
     int64_t cost_threshold = 1;
-    // `upper_cost_threshold` is the upper threshold for stream costs. For
-    // dependent streams, we won't merge them if it is exceeding this threshold.
-    int64_t upper_cost_threshold = -1;
     // If `merge_inter_dependent_streams` is true, when merging independent
     // streams, it will try to merge those with inter data dependencies first.
     bool merge_inter_dependent_streams = false;

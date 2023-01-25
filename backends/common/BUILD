@@ -4,6 +4,7 @@ load(
     "if_oss",
     "tfrt_cc_library",
 )
+load("@bazel_skylib//lib:selects.bzl", "selects")
 
 package(
     # copybara:uncomment default_compatible_with = ["//buildenv/target:non_prod"],
@@ -12,18 +13,22 @@ package(
 
 licenses(["notice"])
 
-# Add "--define disable_eigen_mkldnn_contraction_kernel=true" to your build
-# command to disable MKL-DNN sgemm in Eigen tensor contractions (matrix
-# multiplications and convolutions). The MKL-DNN kernels are generated at
-# runtime and use avx/avx2/fma/avx512 based on cpu status registers
-# (https://en.wikipedia.org/wiki/CPUID).
-#
-# When MKL-DNN contraction kernel is disabled, default kernel is:
-#   Eigen::internal::gebp_kernel (general block-panel kernel).
 config_setting(
-    name = "disable_eigen_mkldnn_contraction_kernel",
-    define_values = {"disable_eigen_mkldnn_contraction_kernel": "true"},
-    visibility = ["//visibility:public"],
+    name = "disable_mkldnn",
+    flag_values = {"@tf_runtime//:eigen_mkldnn_contraction_kernel": "False"},
+)
+
+config_setting(
+    name = "enable_mkldnn",
+    flag_values = {"@tf_runtime//:eigen_mkldnn_contraction_kernel": "True"},
+)
+
+selects.config_setting_group(
+    name = "use_mkldnn",
+    match_all = [
+        ":enable_mkldnn",
+        "@tf_runtime//:linux_x86_64",
+    ],
 )
 
 tfrt_cc_library(
@@ -146,8 +151,7 @@ tfrt_cc_library(
         "EIGEN_CONDVAR=std::condition_variable",
         "EIGEN_AVOID_STL_ARRAY",
     ]) + select({
-        ":disable_eigen_mkldnn_contraction_kernel": [],
-        "@tf_runtime//:linux_x86_64": [
+        ":use_mkldnn": [
             # Custom contraction kernel defines.
             "TFRT_EIGEN_USE_CUSTOM_CONTRACTION_KERNEL",
             "TFRT_EIGEN_USE_MKLDNN_CONTRACTION_KERNEL",
@@ -167,9 +171,7 @@ tfrt_cc_library(
         "//third_party/tensorflow/core/platform:types",
         "//third_party/tensorflow/core/platform:mutex",
     ]) + select({
-        ":disable_eigen_mkldnn_contraction_kernel": [],
-        "@tf_runtime//:linux_x86_64": [
-            # Custom contraction kernel dependencies.
+        ":use_mkldnn": [
             "@dnnl//:dnnl_single_threaded",
         ],
         "//conditions:default": [],

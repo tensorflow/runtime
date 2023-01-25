@@ -70,6 +70,20 @@ selects.config_setting_group(
 # )
 # copybara:uncomment_end
 
+# Add "--@tf_runtime//:eigen_mkldnn_contraction_kernel=false" to your build
+# command to disable MKL-DNN sgemm in Eigen tensor contractions (matrix
+# multiplications and convolutions). The MKL-DNN kernels are generated at
+# runtime and use avx/avx2/fma/avx512 based on cpu status registers
+# (https://en.wikipedia.org/wiki/CPUID).
+#
+# When MKL-DNN contraction kernel is disabled, default kernel is:
+#   Eigen::internal::gebp_kernel (general block-panel kernel).
+bool_flag(
+    name = "eigen_mkldnn_contraction_kernel",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
 # Flag to build tf_runtime with std::thread/mutex instead of ABSL's:
 # bazel build --@tf_runtime//:std_thread
 # This is the default and only valid option in open-source.

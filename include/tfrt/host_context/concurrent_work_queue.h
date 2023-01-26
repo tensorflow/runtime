@@ -25,7 +25,7 @@
 #include <functional>
 #include <memory>
 
-#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/support/forward_decls.h"

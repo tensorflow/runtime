@@ -23,6 +23,7 @@
 
 #include <type_traits>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/device.h"

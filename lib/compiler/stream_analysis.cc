@@ -58,6 +58,19 @@ int64_t GetCostThresholdForBlock(mlir::Block& block) {
   return kDefaultCostThreshold;
 }
 
+int64_t GetUpperCostThresholdForBlock(mlir::Block& block) {
+  // Use -1 as the default, which means there is no limit on the cost of a
+  // stream.
+  static constexpr int64_t kDefaultMaxStreamCost = -1;
+
+  if (auto attr = GetOptionAttribute(block, "tfrt.upper_cost_threshold")
+                      .dyn_cast_or_null<mlir::IntegerAttr>()) {
+    return attr.getInt();
+  }
+
+  return kDefaultMaxStreamCost;
+}
+
 bool GetMergeInterDependentStreams(mlir::Block& block) {
   if (auto attr =
           GetOptionAttribute(block, "tfrt.merge_inter_dependent_streams")
@@ -201,7 +214,6 @@ void StreamAnalysis::MergeStreams(int from_id, int to_id) {
     }
   }
 
-  to_stream.contains_return_op |= from_stream.contains_return_op;
   // Add the cost of from_id to to_id.
   to_stream.cost += from_stream.cost;
   // Set to_id in from_id's stream to indicate that they are merged.
@@ -271,11 +283,6 @@ void StreamAnalysis::AssignOpToStream(mlir::Operation* op,
   assert(stream_info.merge_to_stream_id == -1);
   op_info.stream_id = stream_id;
   stream_info.cost += op_info.cost;
-  // It is possible that `op` is a nullptr, which is kRootOperation.
-  if (op != nullptr) {
-    stream_info.contains_return_op |=
-        llvm::isa<mlir::func::ReturnOp, ReturnOp>(op);
-  }
   // Update the side dependencies of the stream by adding the side dependencies
   // of the op. The op might be a side dep of some child streams itself, remove
   // in this case.
@@ -340,11 +347,13 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
   //  2) find out the child stream with the highest cost.
   int max_cost_stream_id = -1;
   int64_t max_cost = 0;
-  int return_op_stream_id = -1;
 
   auto update_max_cost_stream = [&](int64_t cost, int stream_id) {
-    // Try to find the stream with the largest cost.
-    if (max_cost < cost) {
+    // Try to find the stream with the largest cost that is also smaller than
+    // the upper_cost_threshold among the candidates.
+    if ((options_.upper_cost_threshold < 0 ||
+         cost < options_.upper_cost_threshold) &&
+        max_cost < cost) {
       max_cost = cost;
       max_cost_stream_id = stream_id;
     }
@@ -358,9 +367,6 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
 
     if (child_stream_info.cost >= GetCostThreshold()) {
       update_max_cost_stream(child_stream_info.cost, child_stream_id);
-      if (child_stream_info.contains_return_op) {
-        return_op_stream_id = child_stream_id;
-      }
       continue;
     }
 
@@ -376,48 +382,47 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
       merged_child_stream_ids.push_back(child_stream_id);
     } else {
       MergeStreams(child_stream_id, merged_child_stream_ids.back());
+      // Update the stream_id in the op_info to the merged stream_id.
+      child_stream_id = merged_child_stream_ids.back();
     }
-    int merged_child_stream_id = merged_child_stream_ids.back();
-    const auto& merged_child_stream_info =
-        build_info_.stream_infos[merged_child_stream_id];
-    update_max_cost_stream(merged_child_stream_info.cost,
-                           merged_child_stream_id);
-    if (merged_child_stream_info.contains_return_op) {
-      return_op_stream_id = merged_child_stream_id;
-    }
+    update_max_cost_stream(
+        build_info_.stream_infos[merged_child_stream_ids.back()].cost,
+        merged_child_stream_ids.back());
   }
 
   assert(op_info.stream_id < 0);
-  assert(max_cost_stream_id >= 0);
 
-  // Assign the current op to one of the child streams. If one of the child
-  // streams contains the return op, we assign it to that stream, so the the
-  // root stream will always contain the return op. Otherwise, assign it to the
-  // stream with the highest cost found.
-  int stream_id =
-      return_op_stream_id >= 0 ? return_op_stream_id : max_cost_stream_id;
-  assert(op != kRootOperation || return_op_stream_id >= 0);
+  if (max_cost_stream_id < 0) {
+    // Create a new stream for ops without if it fails to find an appropriate
+    // child stream.
+    int new_stream_id = build_info_.stream_infos.size();
+    build_info_.stream_infos.push_back({});
+    auto& new_stream_info = build_info_.stream_infos.back();
+    AssignOpToStream(op, op_info, new_stream_id, new_stream_info);
+  } else {
+    // Otherwise assign the current op to the stream with the highest cost
+    // found.
+    auto& current_op_stream = build_info_.stream_infos[max_cost_stream_id];
+    assert(current_op_stream.merge_to_stream_id == -1);
+    // Reset parent_op because we haven't found the parent_op for this newly
+    // merged stream yet.
+    current_op_stream.parent_op = nullptr;
+    AssignOpToStream(op, op_info, max_cost_stream_id, current_op_stream);
 
-  auto& current_op_stream = build_info_.stream_infos[stream_id];
-  assert(current_op_stream.merge_to_stream_id == -1);
-  // Reset parent_op because we haven't found the parent_op for this newly
-  // merged stream yet.
-  current_op_stream.parent_op = nullptr;
-  AssignOpToStream(op, op_info, stream_id, current_op_stream);
-
-  // There is at most one single cheap stream (ie. the stream whose cost is
-  // below cost_threshold) left, and it must be the last one in
-  // `merged_child_stream_ids`. If there is, merge it into the current stream.
-  //
-  // TODO(chky): This effectively merges this cheap stream with the highest cost
-  // child stream for the simplicity in implementation. Consider if it should be
-  // merged to the next lowest cost child stream if there are use cases that
-  // shows the latter approach is better..
-  if (!merged_child_stream_ids.empty() &&
-      build_info_.stream_infos[merged_child_stream_ids.back()].cost <
-          GetCostThreshold() &&
-      stream_id != merged_child_stream_ids.back()) {
-    MergeStreams(merged_child_stream_ids.back(), op_info.stream_id);
+    // There is at most one single cheap stream (ie. the stream whose cost is
+    // below cost_threshold) left, and it must be the last one in
+    // `merged_child_stream_ids`. If there is, merge it into the current stream.
+    //
+    // TODO(chky): This effectively merges this cheap stream with the highest
+    // cost child stream for the simplicity in implementation. Consider if it
+    // should be merged to the next lowest cost child stream if there are use
+    // cases that shows the latter approach is better..
+    if (!merged_child_stream_ids.empty() &&
+        build_info_.stream_infos[merged_child_stream_ids.back()].cost <
+            GetCostThreshold() &&
+        max_cost_stream_id != merged_child_stream_ids.back()) {
+      MergeStreams(merged_child_stream_ids.back(), op_info.stream_id);
+    }
   }
 }
 
@@ -514,6 +519,7 @@ void StreamAnalysis::BuildInfo::ResolveStreamId(mlir::Operation* op) {
 
 void StreamAnalysis::GetOptionsForBlock(mlir::Block& block) {
   options_.cost_threshold = GetCostThresholdForBlock(block);
+  options_.upper_cost_threshold = GetUpperCostThresholdForBlock(block);
   options_.merge_inter_dependent_streams = GetMergeInterDependentStreams(block);
 }
 

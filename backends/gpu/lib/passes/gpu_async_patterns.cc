@@ -306,7 +306,10 @@ struct StreamifyOpsPass
 void StreamifyOpsPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   patterns.add<StreamifyOpsPattern>(&getContext(), op_names);
-  if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
+  GreedyRewriteConfig config;
+  config.strictMode = GreedyRewriteStrictness::ExistingOps;
+  if (failed(
+          applyOpPatternsAndFold(getOperation(), std::move(patterns), config)))
     return signalPassFailure();
 }
 

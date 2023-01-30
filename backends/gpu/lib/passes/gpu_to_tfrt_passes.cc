@@ -1588,8 +1588,9 @@ static LogicalResult ConvertGpuModuleOps(ModuleOp module_op) {
   RewritePatternSet patterns(module_op->getContext());
   patterns.add<ConvertGpuModulePattern>(module_op->getContext());
   bool changed = false;
-  (void)applyOpPatternsAndFold(gpu_module_ops, std::move(patterns),
-                               GreedyRewriteStrictness::ExistingAndNewOps,
+  GreedyRewriteConfig config;
+  config.strictMode = GreedyRewriteStrictness::ExistingAndNewOps;
+  (void)applyOpPatternsAndFold(gpu_module_ops, std::move(patterns), config,
                                &changed);
   return success(changed);
 }
@@ -1633,8 +1634,7 @@ void HoistingPass::runOnOperation() {
   SmallVector<Operation *, 4> func_ops;
   llvm::copy(getOperation().getOps<func::FuncOp>(),
              std::back_inserter(func_ops));
-  (void)applyOpPatternsAndFold(func_ops, std::move(patterns),
-                               GreedyRewriteStrictness::AnyOp);
+  (void)applyOpPatternsAndFold(func_ops, std::move(patterns));
 
   SmallVector<func::FuncOp, 4> preload_callees;
   getOperation().walk([&](func::FuncOp func_op) {

@@ -24,6 +24,7 @@ licenses(["notice"])
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),
 #         "all_to_all.mlir": [
+#             "notap",
 #             "requires-gpu-nvidia:2",
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),
@@ -33,6 +34,7 @@ licenses(["notice"])
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),
 #         "send_recv.mlir": [
+#             "notap",
 #             "requires-gpu-nvidia:2",
 #             "requires-net:ipv4",
 #         ] + if_oss(["no-sandbox"]),

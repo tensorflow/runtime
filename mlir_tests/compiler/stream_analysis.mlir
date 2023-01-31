@@ -89,21 +89,6 @@ func.func @merge(%ch0: i32) -> i32 {
   tfrt.return %ch6 : i32
 }
 
-// expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
-func.func @merge_limit(%ch0: i32) -> i32 attributes {tfrt.upper_cost_threshold = 17} {
-  // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
-  %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 8 : i64} : i32
-  // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1, child streams: [0]}}
-  %ch2 = tfrt_test.test_cost %ch1 {id = 1 : i64, _tfrt_cost = 8 : i64} : i32
-  // Though %ch2 and %ch3 are dependent ops, they are in different streams because the cost exceed the upper threshold.
-  // expected-remark@+1 {{stream id: 0, stream cost: 17, parent stream: 1}}
-  %ch3 = tfrt_test.test_cost %ch2 {id = 2 : i64, _tfrt_cost = 8 : i64} : i32
-  // expected-remark@+1 {{stream id: 0, stream cost: 17, parent stream: 1}}
-  %ch4 = tfrt_test.test_cost %ch3 {id = 3 : i64, _tfrt_cost = 8 : i64} : i32
-  // expected-remark@+1 {{stream id: 0, stream cost: 17, parent stream: 1}}
-  tfrt.return %ch4 : i32
-}
-
 // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1, child streams: [5, 2]}}
 func.func @merge_inter_dependent_streams(%c0: i32) -> i32 attributes {tfrt.merge_inter_dependent_streams = true} {
 

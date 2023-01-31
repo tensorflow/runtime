@@ -166,9 +166,9 @@ class StreamAnalysis {
       // `merge_to_stream_id` is the id of the stream that this stream should be
       // merged into.
       int merge_to_stream_id = -1;
-      // `side_deps` are data dependencies from other streams instead of the
-      // parent stream.
-      llvm::SmallDenseSet<mlir::Operation*, 2> side_deps;
+      // `side_deps` are ids of streams that are ancestors of the current stream
+      // and that have data dependencies with the current stream.
+      llvm::SmallSetVector<int, 4> side_deps;
     };
 
     struct OpInfo {
@@ -184,10 +184,9 @@ class StreamAnalysis {
       // ScheduleOpForwardPass().
       llvm::SmallVector<mlir::Operation*, 4> scheduled_users;
 
-      // `side_defs` are the defining ops of this op's operands that are not the
-      // one triggering the execution of this op, as analyzed in
-      // ScheduleOpForwardPass().
-      llvm::SmallDenseSet<mlir::Operation*, 2> side_defs;
+      // `side_uses` are the user ops of this op's results that are not in
+      // `scheduled_users`.
+      llvm::SmallDenseSet<mlir::Operation*, 2> side_uses;
     };
 
     // `stream_infos` is a temporary data structure to keep stream information
@@ -200,6 +199,9 @@ class StreamAnalysis {
     // streams might be merged to others, so the stream_id of an op might be
     // stale.
     void ResolveStreamId(mlir::Operation* op);
+    // Find the latest stream id of `stream_id` if it is merged to another
+    // stream.
+    int FindLatestStreamId(int stream_id) const;
   };
 
   void AssignOpToStream(mlir::Operation* op, BuildInfo::OpInfo& op_info,

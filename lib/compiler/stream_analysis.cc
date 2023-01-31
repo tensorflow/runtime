@@ -149,7 +149,7 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
         // be preferred to be merged. Note that control dependencies are skipped
         // as we prefer to merge for data dependencies.
         if (!operand.getType().isa<ChainType>()) {
-          current_op_info.side_defs.insert(def);
+          build_info_.op_map[def].side_uses.insert(&op);
         }
 
         if (operand_cost_from_root > parent_cost_from_root) {
@@ -157,7 +157,7 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
           parent_cost_from_root = operand_cost_from_root;
         }
       }
-      current_op_info.side_defs.erase(parent_op);
+      build_info_.op_map[parent_op].side_uses.erase(&op);
       build_info_.op_map[parent_op].scheduled_users.push_back(&op);
 
       cost_from_root += parent_cost_from_root;
@@ -175,44 +175,14 @@ void StreamAnalysis::MergeStreams(int from_id, int to_id) {
   assert(from_stream.merge_to_stream_id < 0);
   assert(to_stream.merge_to_stream_id < 0);
 
-  // First, we merge inter-stream data dependencies. This is done by 1) removing
-  // dependencies in `to_stream` that are produced by `from_stream`; and 2) copy
-  // dependencies in `from_stream` that are not produced by `to_stream` to
-  // `to_stream`.
-  llvm::SmallVector<mlir::Operation*, 2> stale_side_defs;
-  for (auto* side_def : to_stream.side_deps) {
-    auto& side_def_info = build_info_.op_map[side_def];
-    // If the defining op of this dep has not been assigned to a stream yet, we
-    // don't need to remove it.
-    if (side_def_info.stream_id < 0) continue;
-    // Try update the stream id of the defining op as its original stream might
-    // be merged.
-    build_info_.ResolveStreamId(side_def);
-    if (side_def_info.stream_id == from_id) {
-      // Remove if the defining op is in `from_stream`.
-      stale_side_defs.push_back(side_def);
+  // Merge inter-stream data dependencies.
+  for (int id : from_stream.side_deps) {
+    id = build_info_.FindLatestStreamId(id);
+    if (id != to_id) {
+      to_stream.side_deps.insert(id);
     }
   }
-  for (auto* side_def : stale_side_defs) {
-    to_stream.side_deps.erase(side_def);
-  }
-
-  for (auto* side_def : from_stream.side_deps) {
-    auto& side_def_info = build_info_.op_map[side_def];
-    if (side_def_info.stream_id < 0) {
-      // If the defining op of this dep has not been assigned to a stream yet,
-      // we should keep it in the `to_stream`.
-      to_stream.side_deps.insert(side_def);
-    } else {
-      // Try update the stream id of the defining op as its original stream
-      // might be merged.
-      build_info_.ResolveStreamId(side_def);
-      if (side_def_info.stream_id != to_id) {
-        // Keep if the defining op is not in `to_stream`.
-        to_stream.side_deps.insert(side_def);
-      }
-    }
-  }
+  to_stream.side_deps.remove(from_id);
 
   // Add the cost of from_id to to_id.
   to_stream.cost += from_stream.cost;
@@ -242,21 +212,13 @@ void StreamAnalysis::MergeInterDependentStreams(
     // Iterate through all side dependencies and try to merge those that are in
     // the candidate stream pool.
     llvm::SmallDenseSet<int, 2> side_def_streams_to_merge;
-    for (auto* side_def : child_stream_info.side_deps) {
-      auto& side_def_info = build_info_.op_map[side_def];
-      // Skip if the defining op has not been assigned to a stream yet.
-      if (side_def_info.stream_id < 0) continue;
-      // Update the stream id of the defining op.
-      build_info_.ResolveStreamId(side_def);
-      assert(side_def_info.stream_id != child_stream_id);
-
-      // If the stream is in the candidate stream pool, and the its cost is
-      // below the threshold, try merge it into the current stream.
-      if (child_stream_id_set.count(side_def_info.stream_id) > 0) {
-        auto& side_def_stream_info =
-            build_info_.stream_infos[side_def_info.stream_id];
+    for (int id : child_stream_info.side_deps) {
+      assert(id != child_stream_id);
+      if (child_stream_id_set.contains(id)) {
+        id = build_info_.FindLatestStreamId(id);
+        const auto& side_def_stream_info = build_info_.stream_infos[id];
         if (side_def_stream_info.cost >= GetCostThreshold()) continue;
-        side_def_streams_to_merge.insert(side_def_info.stream_id);
+        side_def_streams_to_merge.insert(id);
       }
     }
 
@@ -284,15 +246,16 @@ void StreamAnalysis::AssignOpToStream(mlir::Operation* op,
   op_info.stream_id = stream_id;
   stream_info.cost += op_info.cost;
   // Update the side dependencies of the stream by adding the side dependencies
-  // of the op. The op might be a side dep of some child streams itself, remove
-  // in this case.
-  stream_info.side_deps.erase(op);
-  for (auto* side_def : op_info.side_defs) {
-    // The defining op of side dependencies of the current op must not have
-    // been assigned to a stream yet, because we are building streams in a
-    // reverse topological order.
-    assert(build_info_.op_map[side_def].stream_id < 0);
-    stream_info.side_deps.insert(side_def);
+  // of the op.
+  for (auto* user : op_info.side_uses) {
+    build_info_.ResolveStreamId(user);
+    int id = build_info_.op_map[user].stream_id;
+    assert(id >= 0);
+
+    if (id != stream_id) {
+      stream_info.side_deps.insert(id);
+      build_info_.stream_infos[id].side_deps.insert(stream_id);
+    }
   }
 }
 
@@ -337,8 +300,9 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
   }
 
   // First, we try merging child streams that have inter-dependencies.
-  if (options_.merge_inter_dependent_streams)
+  if (options_.merge_inter_dependent_streams && child_stream_ids.size() > 1) {
     MergeInterDependentStreams(child_stream_ids);
+  }
 
   // After we merge streams with inter-dependencies, there might be still small
   // streams left. Then we just merge them in a random order. The loop below
@@ -495,17 +459,21 @@ const Stream& StreamAnalysis::GetRootStream() const {
   return GetStream(kRootOperation);
 }
 
+int StreamAnalysis::BuildInfo::FindLatestStreamId(int stream_id) const {
+  // Find out the latest stream_id it belongs to.
+  while (stream_infos[stream_id].merge_to_stream_id >= 0) {
+    stream_id = stream_infos[stream_id].merge_to_stream_id;
+  }
+  return stream_id;
+}
+
 void StreamAnalysis::BuildInfo::ResolveStreamId(mlir::Operation* op) {
   assert(op_map.count(op) > 0);
   auto& op_info = op_map[op];
   int stream_id = op_info.stream_id;
   assert(stream_id >= 0);
 
-  // Find out the final stream_id it belongs to.
-  while (stream_infos[stream_id].merge_to_stream_id >= 0) {
-    stream_id = stream_infos[stream_id].merge_to_stream_id;
-  }
-  int final_stream_id = stream_id;
+  int final_stream_id = FindLatestStreamId(stream_id);
 
   // Update the relevant stream infos.
   stream_id = op_info.stream_id;

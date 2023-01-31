@@ -308,8 +308,8 @@ void StreamifyOpsPass::runOnOperation() {
   patterns.add<StreamifyOpsPattern>(&getContext(), op_names);
   GreedyRewriteConfig config;
   config.strictMode = GreedyRewriteStrictness::ExistingOps;
-  if (failed(
-          applyOpPatternsAndFold(getOperation(), std::move(patterns), config)))
+  if (failed(applyOpPatternsAndFold(getOperation().getOperation(),
+                                    std::move(patterns), config)))
     return signalPassFailure();
 }
 

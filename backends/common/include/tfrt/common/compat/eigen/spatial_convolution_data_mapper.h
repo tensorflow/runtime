@@ -980,7 +980,9 @@ struct gemm_pack_rhs<
   using DataMapper = SubMapper;
   using Packet = typename packet_traits<Scalar>::type;
 
+#ifndef __aarch64__
   static_assert(nr == 4, "nr must be equal to 4");
+#endif
 
   EIGEN_DONT_INLINE void operator()(Scalar* block, const DataMapper& rhs,
                                     Index depth, Index num_cols,
@@ -1185,7 +1187,9 @@ struct gemm_pack_rhs<
   using DataMapper = SubMapper;
   using Packet = typename packet_traits<Scalar>::type;
 
+#ifndef __aarch64__
   static_assert(nr == 4, "nr must be equal to 4");
+#endif
 
   EIGEN_DONT_INLINE void operator()(Scalar* block, const DataMapper& rhs,
                                     Index depth, Index num_cols,

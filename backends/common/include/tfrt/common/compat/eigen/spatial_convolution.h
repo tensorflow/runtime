@@ -19,6 +19,9 @@
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_SPATIAL_CONVOLUTION_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_SPATIAL_CONVOLUTION_H_
 
+#include <array>
+#include <cassert>
+
 #include "contraction_kernel.h"
 #include "spatial_convolution_data_mapper.h"
 #include "tfrt/tensor/tensor_shape.h"

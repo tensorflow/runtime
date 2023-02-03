@@ -17,6 +17,7 @@
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_
 
+#include <cassert>
 #include <cstdint>
 
 #include "tfrt/common/compat/eigen/eigen_kernel.h"

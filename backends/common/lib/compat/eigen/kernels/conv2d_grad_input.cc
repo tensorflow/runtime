@@ -16,6 +16,7 @@
 //
 // Conv2D input gradient.
 
+#include <cassert>
 #include <cstdint>
 
 #include "conv2d_shape_functions.h"

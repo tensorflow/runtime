@@ -36,6 +36,8 @@
 
 #define EIGEN_USE_THREADS
 
+#include <cassert>
+
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
 #if defined(TFRT_EIGEN_USE_MKLDNN_CONTRACTION_KERNEL)

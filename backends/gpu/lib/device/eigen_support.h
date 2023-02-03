@@ -20,6 +20,7 @@
 #ifndef TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_
 #define TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_
 
+#include <cassert>
 #include <memory>
 
 #include "tfrt/common/compat/eigen/tensor_types.h"

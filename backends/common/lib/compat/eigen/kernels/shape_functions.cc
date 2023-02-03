@@ -16,6 +16,8 @@
 
 #include "tfrt/common/compat/eigen/kernels/shape_functions.h"
 
+#include <cassert>
+
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {

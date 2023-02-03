@@ -19,6 +19,7 @@
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNEL_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNEL_H_
 
+#include <cassert>
 #include <functional>
 
 #include "llvm/Support/Error.h"

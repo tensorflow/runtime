@@ -65,6 +65,8 @@
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_CONTRACTION_OUTPUT_KERNEL_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_CONTRACTION_OUTPUT_KERNEL_H_
 
+#include <cassert>
+
 #include "tfrt/common/compat/eigen/tensor_types.h"
 
 namespace tfrt {

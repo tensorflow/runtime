@@ -22,6 +22,8 @@
 
 #define EIGEN_USE_THREADS
 
+#include <cassert>
+
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
 namespace Eigen {

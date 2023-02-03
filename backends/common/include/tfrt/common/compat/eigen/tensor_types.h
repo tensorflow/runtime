@@ -22,6 +22,8 @@
 
 #define EIGEN_USE_THREADS
 
+#include <cassert>
+
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/dense_view.h"
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive

@@ -1,6 +1,7 @@
 load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library")
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
+# copybara:uncomment load("//devtools/copybara/rules:copybara.bzl", "copybara_config_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
@@ -149,6 +150,48 @@ alias(
 #         "//devtools/blueprint/ncl:sanitizer",
 #     ],
 #     deps = ["//devtools/bazel/subteams/configurability/android_platforms_migration:flags_ncl"],
+# )
+#
+# filegroup(
+#     name = "copybara_library",
+#     srcs = glob(
+#         [
+#             "*.bara.sky",
+#             "*.dic",
+#         ],
+#         exclude = [
+#             "copy.bara.sky",
+#         ],
+#     ),
+#     visibility = ["//visibility:public"],
+# )
+#
+# filegroup(
+#     name = "copybara_config",
+#     srcs = [
+#         "copy.bara.sky",
+#         "scrub.patch",
+#     ],
+#     data = [
+#         ":copybara_library",
+#         "//learning/brain/testing/copybara:all_bara_sky",
+#     ],
+# )
+#
+# copybara_config_test(
+#     name = "copybara_config_test",
+#     config = "copy.bara.sky",
+#     tags = [
+#         "noasan",
+#         "nodfsan",
+#         "nogotsan",
+#         "nogpu",
+#         "nomsan",
+#         "nosan",
+#         "notsan",
+#         "noubsan",
+#     ],
+#     deps = [":copybara_config"],
 # )
 # copybara:uncomment_end
 

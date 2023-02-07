@@ -18,6 +18,8 @@
 
 #include "tfrt/compiler/stream_analysis.h"
 
+#include <optional>
+
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/compiler/opdefs/tfrt_op_interfaces.h"
@@ -67,20 +69,49 @@ bool GetMergeInterDependentStreams(mlir::Block& block) {
   return false;
 }
 
+class DefaultCostModel : public StreamAnalysis::CostModelInterface {
+ public:
+  std::optional<int64_t> GetOperationCost(mlir::Operation* op) const override {
+    // Check if operations defines a cost function.
+    if (auto cost_function = mlir::dyn_cast<CostFunctionInterface>(op)) {
+      int64_t cost = cost_function.cost();
+      assert(cost > 0 && "cost must be a positive value");
+      return cost;
+    }
+
+    return std::nullopt;
+  }
+};
+
+const DefaultCostModel* GetDefaultCostModel() {
+  static const auto* const default_cost_model = new DefaultCostModel();
+  return default_cost_model;
+}
+
 }  // namespace
+
+StreamAnalysis::CostModelInterface::~CostModelInterface() = default;
+
+StreamAnalysis::StreamAnalysis(mlir::func::FuncOp op,
+                               const CostModelInterface* cost_model)
+    : StreamAnalysis(op.front(), cost_model) {}
+StreamAnalysis::StreamAnalysis(mlir::Block& block,
+                               const CostModelInterface* cost_model)
+    : cost_model_(cost_model) {
+  if (cost_model_ == nullptr) cost_model_ = GetDefaultCostModel();
+  AnalyzeBlock(block);
+}
 
 int64_t StreamAnalysis::GetOperationCost(mlir::Operation* op) const {
   // Root has the lowest cost.
   if (op == kRootOperation) return 1;
 
   // A few TFRT kernels are guaranteed to be cheap.
-  if (llvm::isa<ReturnOp, MergeChainsOp>(op)) return 1;
+  if (llvm::isa<mlir::func::ReturnOp, ReturnOp, MergeChainsOp>(op)) return 1;
 
-  // Check if operations defines a cost function.
-  if (auto cost_function = mlir::dyn_cast<CostFunctionInterface>(op)) {
-    int64_t cost = cost_function.cost();
-    assert(cost > 0 && "cost must be a positive value");
-    return cost;
+  assert(cost_model_);
+  if (auto cost = cost_model_->GetOperationCost(op)) {
+    return *cost;
   }
 
   // If there is no cost specified for this operation, We conservatively return

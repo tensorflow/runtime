@@ -49,6 +49,8 @@
 #ifndef TFRT_COMPILER_STREAM_ANALYSIS_H_
 #define TFRT_COMPILER_STREAM_ANALYSIS_H_
 
+#include <optional>
+
 #include "llvm/ADT/SetVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Block.h"
@@ -119,8 +121,21 @@ class Stream {
 // function.
 class StreamAnalysis {
  public:
-  explicit StreamAnalysis(mlir::func::FuncOp op) : StreamAnalysis(op.front()) {}
-  explicit StreamAnalysis(mlir::Block& block) { AnalyzeBlock(block); }
+  class CostModelInterface {
+   public:
+    virtual ~CostModelInterface();
+
+    // The implementation is expected to return a positive value or
+    // std::nullopt if a cost cannot be computed. If std::nullopt is returned,
+    // stream analysis will use cost threshold as the cost for this op.
+    virtual std::optional<int64_t> GetOperationCost(
+        mlir::Operation* op) const = 0;
+  };
+
+  explicit StreamAnalysis(mlir::func::FuncOp op,
+                          const CostModelInterface* cost_model = nullptr);
+  explicit StreamAnalysis(mlir::Block& block,
+                          const CostModelInterface* cost_model = nullptr);
 
   // Return the stream that contains `op`. An operation can only belong to one
   // stream.
@@ -228,6 +243,8 @@ class StreamAnalysis {
 
   // `stream_map_` contains the finalized op-to-stream mapping.
   llvm::DenseMap<mlir::Operation*, Stream*> stream_map_;
+
+  const CostModelInterface* cost_model_ = nullptr;
 };
 
 }  // namespace compiler

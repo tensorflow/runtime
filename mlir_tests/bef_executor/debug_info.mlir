@@ -28,7 +28,7 @@ func.func @debug_info() -> !tfrt.chain {
   %ch3 = "tfrt_test.print_debug_info"(%ch2) : (!tfrt.chain) -> (!tfrt.chain)
                                    loc("myNameScope1/MySimpleKernel1")
 
-  // CHECK: {{^foo$}}
+  // CHECK: {{^foobar$}}
   %ch4 = "tfrt_test.print_debug_info"(%ch3) : (!tfrt.chain) -> (!tfrt.chain) loc(fused["foo", "bar"])
 
   // CHECK: {{^bar$}}

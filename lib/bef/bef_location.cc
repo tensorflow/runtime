@@ -161,12 +161,14 @@ std::optional<DebugInfo> GetDebugInfoFromBefLocation(
 
   // Search a BefNameLocation.
   if (auto fused = loc.dyn_cast<BefFusedLocation>()) {
+    std::string fused_name;
     for (int idx = 0; idx < fused.size(); ++idx) {
       auto child = fused.GetLocation(idx);
       if (auto name = child.dyn_cast<BefNameLocation>()) {
-        return DebugInfo{name.name(location_strings_section).str()};
+        fused_name += name.name(location_strings_section).str();
       }
     }
+    return DebugInfo{fused_name};
   }
 
   // Check if callee is a BefNameLocation.

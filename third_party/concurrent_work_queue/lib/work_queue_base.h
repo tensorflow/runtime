@@ -51,6 +51,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -219,7 +220,7 @@ class WorkQueueBase {
   void Quiesce();
 
   // Steal() tries to steal task from any worker managed by this queue. Returns
-  // llvm::None if it was not able to find task to steal.
+  // std::nullopt if it was not able to find task to steal.
   [[nodiscard]] llvm::Optional<TaskFunction> Steal();
 
   // Returns `true` if all worker threads are parked. This is a weak signal of
@@ -526,7 +527,7 @@ template <typename Derived>
       victim -= num_threads_;
     }
   }
-  return llvm::None;
+  return std::nullopt;
 }
 
 template <typename Derived>

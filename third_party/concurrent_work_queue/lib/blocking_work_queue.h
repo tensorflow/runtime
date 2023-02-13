@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <limits>
 #include <list>
+#include <optional>
 #include <queue>
 #include <ratio>
 
@@ -174,7 +175,7 @@ BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
     // potential context switch won't negatively impact system performance.
     if (is_quiescing) {
       (*inline_task)();
-      return llvm::None;
+      return std::nullopt;
     } else {
       return inline_task;
     }
@@ -190,7 +191,7 @@ BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
   // in Schedule.
   if (IsNotifyParkedThreadRequired()) event_count_.Notify(false);
 
-  return llvm::None;
+  return std::nullopt;
 }
 
 template <typename ThreadingEnvironment>
@@ -213,7 +214,7 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
     idle_task_queue_.emplace(wrap(std::move(task)));
     wake_do_work_cv_.notify_one();
 
-    return llvm::None;
+    return std::nullopt;
   }
 
   // Cleanup dynamic threads that are already terminated.
@@ -264,7 +265,7 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
         kDynamicThreadNamePrefix, std::move(do_work));
     ++num_dynamic_threads_;
 
-    return llvm::None;
+    return std::nullopt;
   }
 
   // There are no idle threads and we are at the thread limit. Return task
@@ -291,7 +292,7 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::WaitNextTask(
   }
 
   // Shutdown occurred. Return empty optional.
-  return llvm::None;
+  return std::nullopt;
 }
 
 template <typename ThreadingEnvironment>

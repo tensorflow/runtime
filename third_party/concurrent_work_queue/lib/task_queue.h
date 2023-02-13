@@ -27,6 +27,7 @@
 #include <array>
 #include <atomic>
 #include <limits>
+#include <optional>
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/None.h"
@@ -86,7 +87,7 @@ class TaskQueue {
     e->task = std::move(task);
     e->state.store(front + 1, std::memory_order_release);
 
-    return llvm::None;
+    return std::nullopt;
   }
 
   // PopBack() removes and returns the last elements in the queue.
@@ -113,7 +114,7 @@ class TaskQueue {
         back = back_.load(std::memory_order_relaxed);
       } else {
         // We've reached an empty element.
-        return llvm::None;
+        return std::nullopt;
       }
     }
 

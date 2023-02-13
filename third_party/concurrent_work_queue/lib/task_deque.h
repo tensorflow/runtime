@@ -39,6 +39,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "llvm/ADT/FunctionExtras.h"
@@ -85,7 +86,7 @@ class TaskDeque {
     front_.store(front + kIncrement, std::memory_order_relaxed);
     e->task = std::move(task);
     e->state.store(kReady, std::memory_order_release);
-    return llvm::None;
+    return std::nullopt;
   }
 
   // PopFront() removes and returns the first element in the queue.
@@ -97,7 +98,7 @@ class TaskDeque {
     uint8_t s = e->state.load(std::memory_order_relaxed);
     if (s != kReady || !e->state.compare_exchange_strong(
                            s, kBusy, std::memory_order_acquire)) {
-      return llvm::None;
+      return std::nullopt;
     }
     TaskFunction task = std::move(e->task);
     e->state.store(kEmpty, std::memory_order_release);
@@ -123,14 +124,14 @@ class TaskDeque {
     back_.store(back, std::memory_order_relaxed);
     e->task = std::move(task);
     e->state.store(kReady, std::memory_order_release);
-    return llvm::None;
+    return std::nullopt;
   }
 
   // PopBack() removes and returns the last elements in the queue.
   //
   // If the queue is empty returns empty optional.
   [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
-    if (Empty()) return llvm::None;
+    if (Empty()) return std::nullopt;
 
     mutex_lock lock(mutex_);
     unsigned back = back_.load(std::memory_order_relaxed);
@@ -138,7 +139,7 @@ class TaskDeque {
     uint8_t s = e->state.load(std::memory_order_relaxed);
     if (s != kReady || !e->state.compare_exchange_strong(
                            s, kBusy, std::memory_order_acquire)) {
-      return llvm::None;
+      return std::nullopt;
     }
     TaskFunction task = std::move(e->task);
     e->state.store(kEmpty, std::memory_order_release);

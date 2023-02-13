@@ -13,7 +13,7 @@
 // Priority deque has three logically independent task deques for each priority
 // level. PopBack() and PopFront() checks these deques in the priority order,
 // and returns the task with a highest priority. If all deques are empty Pop
-// will return llvm::None.
+// will return std::nullopt.
 //
 // The state of all three deques is stored inside the single pair of atomic
 // variables (`front` and `back`) for efficiency, for this reason this deque
@@ -29,6 +29,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <optional>
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/None.h"
@@ -112,7 +113,7 @@ class TaskPriorityDeque {
     front_.store(front.Inc(priority), std::memory_order_relaxed);
     e->task = std::move(task);
     e->state.store(kReady, std::memory_order_release);
-    return llvm::None;
+    return std::nullopt;
   }
 
   [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
@@ -135,7 +136,7 @@ class TaskPriorityDeque {
       if (s != kReady) continue;
       if (!e->state.compare_exchange_strong(s, kBusy,
                                             std::memory_order_acquire)) {
-        return llvm::None;
+        return std::nullopt;
       }
 
       TaskFunction task = std::move(e->task);
@@ -147,7 +148,7 @@ class TaskPriorityDeque {
     }
 
     // No tasks found at any priority level.
-    return llvm::None;
+    return std::nullopt;
   }
 
   // PushBack() inserts task `w` at the end of the queue for the specified
@@ -174,7 +175,7 @@ class TaskPriorityDeque {
                 std::memory_order_relaxed);
     e->task = std::move(task);
     e->state.store(kReady, std::memory_order_release);
-    return llvm::None;
+    return std::nullopt;
   }
 
   [[nodiscard]] llvm::Optional<TaskFunction> PushBack(TaskFunction task) {
@@ -186,7 +187,7 @@ class TaskPriorityDeque {
   //
   // If all queues are empty returns empty optional.
   [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
-    if (Empty()) return llvm::None;
+    if (Empty()) return std::nullopt;
 
     mutex_lock lock(mutex_);
     PointerState back(back_.load(std::memory_order_relaxed));
@@ -198,7 +199,7 @@ class TaskPriorityDeque {
       if (s != kReady) continue;
       if (!e->state.compare_exchange_strong(s, kBusy,
                                             std::memory_order_acquire)) {
-        return llvm::None;
+        return std::nullopt;
       }
 
       TaskFunction task = std::move(e->task);
@@ -209,7 +210,7 @@ class TaskPriorityDeque {
     }
 
     // No tasks found at any priority level.
-    return llvm::None;
+    return std::nullopt;
   }
 
   // Size returns current queue size (sum of sizes for all priority levels).

@@ -26,13 +26,7 @@
 
 namespace tfrt {
 
-RequestContext::~RequestContext() {
-  if (auto cancel_value = GetCancelAsyncValue()) {
-    cancel_value->DropRef();
-  }
-}
-
-void RequestContext::Cancel() {
+void CancellationContext::Cancel() {
   // Create an AsyncValue in error state for cancel.
   auto* error_value =
       MakeErrorAsyncValueRef(absl::CancelledError("Cancelled")).release();
@@ -48,6 +42,14 @@ void RequestContext::Cancel() {
     error_value->DropRef();
   }
 }
+
+RequestContext::~RequestContext() {
+  if (auto cancel_value = GetCancelAsyncValue()) {
+    cancel_value->DropRef();
+  }
+}
+
+void RequestContext::Cancel() { cancellation_->Cancel(); }
 
 Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
   return TakeRef(new RequestContext(host_, resource_context_,

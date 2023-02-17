@@ -33,6 +33,18 @@ namespace tfrt {
 class HostContext;
 class ConcurrentWorkQueue;
 
+class CancellationContext : public ReferenceCounted<CancellationContext> {
+ public:
+  ErrorAsyncValue* GetCancelAsyncValue() const {
+    return cancel_value_.load(std::memory_order_acquire);
+  }
+
+  void Cancel();
+
+ private:
+  std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
+};
+
 // A request refers to either a BEFFunction execution or an op execution.
 // RequestContext holds per request information, such as the cancellation status
 // and request priority. A RequestContext object is reference counted and is
@@ -53,10 +65,14 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   HostContext* host() const { return host_; }
   ResourceContext* resource_context() const { return resource_context_; }
 
+  const RCReference<CancellationContext>& cancellation_context() const {
+    return cancellation_;
+  }
+
   // If the request has been canceled, return an ErrorAsyncValue for
   // the cancellation. Otherwise, return nullptr.
   ErrorAsyncValue* GetCancelAsyncValue() const {
-    return cancel_value_.load(std::memory_order_acquire);
+    return cancellation_->GetCancelAsyncValue();
   }
 
   // Get context data by type. The returned reference T& is stable. The client
@@ -83,7 +99,8 @@ class RequestContext : public ReferenceCounted<RequestContext> {
       : id_{id},
         host_{host},
         resource_context_{resource_context},
-        context_data_{std::move(ctx_data)} {}
+        context_data_{std::move(ctx_data)},
+        cancellation_{TakeRef(new CancellationContext)} {}
 
   int64_t id_;
   HostContext* const host_ = nullptr;
@@ -98,7 +115,7 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   ResourceContext* const resource_context_ = nullptr;
   ContextData context_data_;
 
-  std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
+  RCReference<CancellationContext> cancellation_;
 };
 
 struct RequestOptions {

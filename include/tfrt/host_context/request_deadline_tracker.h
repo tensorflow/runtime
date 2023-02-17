@@ -33,11 +33,9 @@ class RequestDeadlineTracker {
 
   // Enqueue a timer that tracks the dealine of the request to the TimerQueue.
   void CancelRequestOnDeadline(std::chrono::system_clock::time_point deadline,
-                               const RCReference<RequestContext>& req_ctx) {
+                               RCReference<RequestContext> req_ctx) {
     timer_queue_->ScheduleTimerAt(
-        deadline, [cancellation_context = req_ctx->cancellation_context()] {
-          cancellation_context->Cancel();
-        });
+        deadline, [req_ctx = std::move(req_ctx)] { req_ctx->Cancel(); });
   }
 
  private:

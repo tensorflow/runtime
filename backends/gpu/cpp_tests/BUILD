@@ -39,9 +39,7 @@ tfrt_cc_library(
     )
     for name in [
         "blas",
-        # Temporarily disable ccl_wrapper_test, until memory leak is
-        # fixed. b/270264692.
-        #        "ccl",
+        "ccl",
         "driver",
         "fft",
         "runtime",

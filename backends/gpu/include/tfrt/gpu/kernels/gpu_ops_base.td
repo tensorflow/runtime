@@ -39,7 +39,6 @@ def TFRTGPU_Dialect : Dialect {
 
   let useDefaultTypePrinterParser = 0;
   let useDefaultAttributePrinterParser = 0;
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 // Base class for GPU dialect ops.

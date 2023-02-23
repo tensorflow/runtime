@@ -35,7 +35,6 @@ def TFRT_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::compiler";
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 def TFRT_ChainType :

@@ -37,7 +37,6 @@ def DHT_Dialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::dht";
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 // Base class for the operation in this dialect

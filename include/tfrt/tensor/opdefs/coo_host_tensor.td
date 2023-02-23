@@ -35,7 +35,6 @@ def COO_Dialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::coo";
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 // Base class for the operation in this dialect.

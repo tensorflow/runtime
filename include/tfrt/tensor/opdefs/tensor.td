@@ -36,7 +36,6 @@ def Tensor_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::t";
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 //===----------------------------------------------------------------------===//

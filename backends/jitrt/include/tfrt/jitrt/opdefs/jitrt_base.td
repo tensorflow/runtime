@@ -36,7 +36,6 @@ def JitRuntimeDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::jitrt";
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 def JitExecutableType : OpaqueType<"jitrt", "jit_executable",

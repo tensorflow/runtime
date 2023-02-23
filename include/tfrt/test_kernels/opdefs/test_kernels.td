@@ -35,7 +35,6 @@ def Test_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::test";
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 def ProtoExampleType : OpaqueType<"proto", "example", "!proto.example type">;

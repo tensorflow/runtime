@@ -16,7 +16,6 @@ limitations under the License.
 #include <optional>
 #include <utility>
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -43,7 +42,6 @@ namespace arith = mlir::arith;
 namespace scf = mlir::scf;
 namespace memref = mlir::memref;
 
-using llvm::Optional;
 using mlir::dyn_cast;
 using mlir::ImplicitLocOpBuilder;
 using mlir::isa;
@@ -117,8 +115,8 @@ class CostModel {
   ImplicitLocOpBuilder &builder();
   bool IsBeforeRoot(Operation &op);
   bool IsBeforeRoot(Value &value);
-  Optional<Value> GetIterations(Operation &op, Value lower_bound,
-                                Value upper_bound, Value step);
+  std::optional<Value> GetIterations(Operation &op, Value lower_bound,
+                                     Value upper_bound, Value step);
   Cost NewCost(size_t ram_cost, size_t cpu_cost);
   Cost NewCost(InverseThroughput ram_cost, InverseThroughput cpu_cost);
   Cost ZeroCost();
@@ -286,8 +284,8 @@ bool CostModel::IsBeforeRoot(Value &value) {
   return IsBeforeRoot(*value.getDefiningOp());
 }
 
-Optional<Value> CostModel::GetIterations(Operation &op, Value lower_bound,
-                                         Value upper_bound, Value step) {
+std::optional<Value> CostModel::GetIterations(Operation &op, Value lower_bound,
+                                              Value upper_bound, Value step) {
   if (IsBeforeRoot(lower_bound) && IsBeforeRoot(upper_bound) &&
       IsBeforeRoot(step)) {
     Value val = builder_.create<arith::CeilDivSIOp>(

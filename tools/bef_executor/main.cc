@@ -17,6 +17,7 @@
 // This file parses command-line options and runs a given mlir file using test
 // driver library.
 
+#include <optional>
 #include <string>
 
 #include "llvm/Support/CommandLine.h"
@@ -99,7 +100,7 @@ int main(int argc, char** argv) {
   run_config.host_allocator_type = cl_host_allocator_type;
   run_config.print_error_code = cl_print_error_code;
 
-  llvm::Optional<tfrt::tracing::TracingRequester> tracing;
+  std::optional<tfrt::tracing::TracingRequester> tracing;
   if (cl_enable_tracing) tracing.emplace();
   tfrt::tracing::SetTracingLevel(cl_tracing_level);
 

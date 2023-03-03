@@ -26,7 +26,6 @@
 #include <iostream>
 #include <optional>
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/host_buffer.h"
@@ -136,7 +135,7 @@ class BtfFile {
   //   - The returned tensor should not outlive this BtfFile.
   //
   // Returns std::nullopt if the payload is malformed.
-  llvm::Optional<DenseHostTensor> ReadDenseHostTensorPayload(
+  std::optional<DenseHostTensor> ReadDenseHostTensorPayload(
       size_t* pos, DType type, uint64_t rank) const {
     // Technically, the BTF spec defines dims as unsigned, but the difference
     // should not matter because each tensor dimension should be significantly
@@ -161,19 +160,18 @@ class BtfFile {
   // apply to the returned CooHostTensor object.
   //
   // Returns std::nullopt if the payload is malformed.
-  llvm::Optional<CooHostTensor> ReadCooHostTensorPayload(size_t* pos,
-                                                         DType type,
-                                                         uint64_t rank) const {
+  std::optional<CooHostTensor> ReadCooHostTensorPayload(size_t* pos, DType type,
+                                                        uint64_t rank) const {
     const int64_t* dims = Read<int64_t>(pos, rank);
     if (!dims) return std::nullopt;
 
     TensorShape shape(llvm::ArrayRef<tfrt::Index>(dims, rank));
 
-    llvm::Optional<DenseHostTensor> indices =
+    std::optional<DenseHostTensor> indices =
         ReadDenseHostTensorPayload(pos, DType(DType::I64), 2);
     if (!indices) return std::nullopt;
 
-    llvm::Optional<DenseHostTensor> values =
+    std::optional<DenseHostTensor> values =
         ReadDenseHostTensorPayload(pos, type, 1);
     if (!values) return std::nullopt;
 
@@ -217,7 +215,7 @@ int main(int argc, char* argv[]) {
 
     switch (header->layout) {
       case TensorLayout::kRMD: {
-        llvm::Optional<DenseHostTensor> tensor =
+        std::optional<DenseHostTensor> tensor =
             file.ReadDenseHostTensorPayload(&payload_pos, type, header->rank);
         if (!tensor) {
           llvm::errs() << "Could not parse dense payload for tensor " << i
@@ -231,7 +229,7 @@ int main(int argc, char* argv[]) {
       } break;
 
       case TensorLayout::kCOO_EXPERIMENTAL: {
-        llvm::Optional<CooHostTensor> tensor =
+        std::optional<CooHostTensor> tensor =
             file.ReadCooHostTensorPayload(&payload_pos, type, header->rank);
         if (!tensor) {
           llvm::errs() << "Could not parse COO payload for tensor " << i

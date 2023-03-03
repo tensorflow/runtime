@@ -15,6 +15,8 @@
 // Helpers for DNN ops.
 #include "tfrt/common/ops/tf/dnn_ops_util.h"
 
+#include <optional>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "tfrt/common/compat/eigen/kernels/shape_functions.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -44,7 +46,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-ChannelOrder GetTfChannelOrder(Optional<string_view> data_format) {
+ChannelOrder GetTfChannelOrder(std::optional<string_view> data_format) {
   if (!data_format.has_value() || !data_format->startswith_insensitive("nc"))
     return ChannelOrder::ChannelLast;
   return ChannelOrder::ChannelFirst;
@@ -82,7 +84,7 @@ llvm::Expected<WindowedOutputData> GetTfWindowedOutputData(
   result.dilations.assign(dilations_expanded.begin() + 2,
                           dilations_expanded.end());
 
-  llvm::Optional<compat::Padding> paddings;
+  std::optional<compat::Padding> paddings;
   for (int i = 2; i < filter_dims.size(); ++i) {
     if (padding_type == compat::PaddingType::kExplicit) {
       paddings = compat::Padding{explicit_paddings[0], explicit_paddings[1]};
@@ -118,7 +120,7 @@ llvm::SmallVector<Index, 4> MaybeExpandFilterSizes(llvm::ArrayRef<Index> sizes,
   return result;
 }
 
-llvm::Optional<ChannelOrder> GuessChannelOrder(const TensorShape& shape) {
+std::optional<ChannelOrder> GuessChannelOrder(const TensorShape& shape) {
   auto dims = GetDimensions(shape);
   if (dims.size() != 4) return {};
   if (dims[2] == dims[3]) return ChannelOrder::ChannelFirst;

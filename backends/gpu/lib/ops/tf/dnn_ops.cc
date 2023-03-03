@@ -187,9 +187,9 @@ ParseFusedBatchNormActivationMode(string_view mode) {
 
 // A helper function to read the default algorithm for cudnnConvolutionForward.
 // Returns None if default is not specified.
-static llvm::Optional<cudnnConvolutionFwdAlgo_t>
+static std::optional<cudnnConvolutionFwdAlgo_t>
 DefaultCudnnCovolutionForwardAlgorithm() {
-  static auto default_algo = []() -> llvm::Optional<cudnnConvolutionFwdAlgo_t> {
+  static auto default_algo = []() -> std::optional<cudnnConvolutionFwdAlgo_t> {
     string_view var = std::getenv("TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO");
     if (var.empty()) return std::nullopt;
 
@@ -304,7 +304,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
                               padding, explicit_paddings, strides, dilations));
 
   auto input_ptr = input.buffer().pointer();
-  llvm::Optional<DenseGpuTensor> padded_input;
+  std::optional<DenseGpuTensor> padded_input;
   auto paddings = windowed_output_data.paddings_before;
   // Pad input manually if before and after padding is not the same.
   if (paddings != windowed_output_data.paddings_after) {

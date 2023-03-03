@@ -17,6 +17,7 @@
 #include "tfrt/common/compat/eigen/kernels/shape_functions.h"
 
 #include <cassert>
+#include <optional>
 
 #include "tfrt/support/string_util.h"
 
@@ -40,7 +41,7 @@ llvm::Expected<PaddingType> ParsePaddingType(string_view padding_type) {
 
 llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
     Index input_size, Index filter_size, Index stride, Index dilation,
-    PaddingType padding_type, llvm::Optional<Padding> explicit_padding) {
+    PaddingType padding_type, std::optional<Padding> explicit_padding) {
   if (stride <= 0) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Stride must be > 0, but got %d", stride);

@@ -17,6 +17,8 @@
 
 #include "tfrt/gpu/device/conversion_function.h"
 
+#include <optional>
+
 #include "tfrt/gpu/device/device.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
@@ -43,7 +45,7 @@ using wrapper::Pointer;
 AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
     wrapper::CurrentContext current_context, wrapper::Stream stream,
     const DenseGpuTensor& gpu_tensor, HostContext* host) {
-  llvm::Optional<DenseHostTensor> result_or_error =
+  std::optional<DenseHostTensor> result_or_error =
       DenseHostTensor::CreateUninitialized(gpu_tensor.metadata(), host);
   if (!result_or_error) {
     return MakeErrorAsyncValueRef("cannot allocate result tensor");

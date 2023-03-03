@@ -20,7 +20,8 @@
 #ifndef TFRT_GPU_TENSOR_DENSE_GPU_TENSOR_H_
 #define TFRT_GPU_TENSOR_DENSE_GPU_TENSOR_H_
 
-#include "llvm/ADT/Optional.h"
+#include <optional>
+
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/tensor.h"
@@ -57,7 +58,7 @@ class DenseGpuTensor final : public Tensor,
   // returns a new DenseGpuTensor that shares the same underlying GpuBuffer and
   // data type as this tensor.
   // Otherwise, returns an empty optional.
-  llvm::Optional<DenseGpuTensor> WithShape(const TensorShape& new_shape) const {
+  std::optional<DenseGpuTensor> WithShape(const TensorShape& new_shape) const {
     if (new_shape.GetNumElements() != NumElements()) {
       return std::nullopt;
     }

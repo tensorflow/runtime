@@ -138,7 +138,7 @@ llvm::Error CudnnDestroyTensorDescriptor(cudnnTensorDescriptor_t descriptor) {
 
 // Returns the dimensions of a CUDNN_TENSOR_NCHW_VECT_C tensor if the arguments
 // describe such a tensor, std::nullopt otherwise.
-llvm::Optional<llvm::SmallVector<int, 4>> GetNchwVectDimensions(
+std::optional<llvm::SmallVector<int, 4>> GetNchwVectDimensions(
     cudnnDataType_t data_type, llvm::ArrayRef<int> dimensions,
     llvm::ArrayRef<int> strides) {
   switch (data_type) {

@@ -19,7 +19,8 @@
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNELS_SHAPE_FUNCTIONS_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNELS_SHAPE_FUNCTIONS_H_
 
-#include "llvm/ADT/Optional.h"
+#include <optional>
+
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
@@ -50,7 +51,7 @@ llvm::Expected<PaddingType> ParsePaddingType(string_view padding_type);
 // it must be empty.
 llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
     Index input_size, Index filter_size, Index stride, Index dilation,
-    PaddingType padding_type, llvm::Optional<Padding> explicit_padding);
+    PaddingType padding_type, std::optional<Padding> explicit_padding);
 
 // Returns Error::success() if `lhs_shape` matches `rhs_shape` and error
 // otherwise.

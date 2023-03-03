@@ -19,6 +19,8 @@
 #ifndef TFRT_BACKENDS_COMMON_OPS_TF_DNN_OPS_UTIL_H_
 #define TFRT_BACKENDS_COMMON_OPS_TF_DNN_OPS_UTIL_H_
 
+#include <optional>
+
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/support/error_util.h"
@@ -43,7 +45,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               ChannelOrder channel_order);
 
 // Extracts channel order from 'data_format' attribute. Defaults to ChannelLast.
-ChannelOrder GetTfChannelOrder(Optional<string_view> data_format);
+ChannelOrder GetTfChannelOrder(std::optional<string_view> data_format);
 
 struct WindowedOutputData {
   llvm::SmallVector<Index, 4> output_dims;  // NCHW
@@ -91,7 +93,7 @@ Expected<TensorMetadata> TfPadOutputShape(
 
 // Guess channel order from two dimensions being the same.
 // TODO(tfrt-devs): Fix call sites and remove.
-llvm::Optional<ChannelOrder> GuessChannelOrder(const TensorShape& shape);
+std::optional<ChannelOrder> GuessChannelOrder(const TensorShape& shape);
 
 }  // namespace tfrt
 

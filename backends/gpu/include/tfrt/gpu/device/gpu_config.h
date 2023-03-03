@@ -18,6 +18,8 @@
 #ifndef TFRT_GPU_DEVICE_GPU_CONFIG_H_
 #define TFRT_GPU_DEVICE_GPU_CONFIG_H_
 
+#include <optional>
+
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 
@@ -39,7 +41,7 @@ struct GpuResources {
 
 void SetTfrtGpuResources(wrapper::Device device, GpuResources resources);
 
-llvm::Optional<GpuResources> GetTfrtGpuResources(wrapper::Device device);
+std::optional<GpuResources> GetTfrtGpuResources(wrapper::Device device);
 
 }  // namespace gpu
 }  // namespace tfrt

@@ -17,7 +17,6 @@
 #include "tfrt/gpu/core_runtime/gpu_op_handler.h"
 
 #include "gpu_op_registry_impl.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/core_runtime/core_runtime.h"

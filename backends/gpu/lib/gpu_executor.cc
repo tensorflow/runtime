@@ -153,7 +153,7 @@ llvm::Expected<UniqueMemoryBuffer> OpenBefBuffer(llvm::StringRef path) {
   return std::make_unique<BefMemoryBuffer>(file.get());
 }
 
-static mlir::Location GetLocation(llvm::Optional<DecodedLocation> loc,
+static mlir::Location GetLocation(std::optional<DecodedLocation> loc,
                                   mlir::MLIRContext* context) {
   if (!loc) return mlir::UnknownLoc::get(context);
   if (loc->is<FileLineColLocation>()) {
@@ -284,8 +284,8 @@ class GpuWorkQueue : public ConcurrentWorkQueue {
 
   void AddTask(TaskFunction work) override { work(); };
 
-  Optional<TaskFunction> AddBlockingTask(TaskFunction work,
-                                         bool allow_queuing) override {
+  std::optional<TaskFunction> AddBlockingTask(TaskFunction work,
+                                              bool allow_queuing) override {
     AddBlockingTaskImpl(std::move(work), allow_queuing);
     return std::nullopt;
   }

@@ -18,6 +18,7 @@
 
 #include "tfrt/common/ops/tf/metadata_functions.h"
 
+#include <optional>
 #include <tuple>
 
 #include "tfrt/common/ops/tf/bcast.h"
@@ -45,9 +46,9 @@ static DType OpAttrTypeToDType(OpAttrType type) {
 
 namespace {
 
-static Expected<TensorMetadata> CwiseBinaryOpMd(const TensorMetadata& lhs,
-                                                const TensorMetadata& rhs,
-                                                Optional<DType> kind = {}) {
+static Expected<TensorMetadata> CwiseBinaryOpMd(
+    const TensorMetadata& lhs, const TensorMetadata& rhs,
+    std::optional<DType> kind = {}) {
   if (lhs.dtype != rhs.dtype)
     return MakeStringError("incompatible dtypes for binary operation");
 

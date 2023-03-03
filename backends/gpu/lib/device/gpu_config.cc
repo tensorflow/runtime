@@ -20,7 +20,6 @@
 #include <optional>
 #include <unordered_map>
 
-#include "llvm/ADT/Optional.h"
 #include "tfrt/gpu/memory/bfc_gpu_allocator.h"
 #include "tfrt/support/mutex.h"
 
@@ -38,7 +37,7 @@ class GpuResourcesMap {
     assert(it.second && "Only one set of resources per gpu ordinal is allowed");
   }
 
-  llvm::Optional<GpuResources> GetResources(wrapper::Device device) {
+  std::optional<GpuResources> GetResources(wrapper::Device device) {
     mutex_lock lock(mu_);
     auto it = map_.find(device);
     if (it != map_.end()) {
@@ -78,7 +77,7 @@ void SetTfrtGpuResources(wrapper::Device device, GpuResources resources) {
   GetGpuResourcesMap()->SetResources(device, resources);
 }
 
-llvm::Optional<GpuResources> GetTfrtGpuResources(wrapper::Device device) {
+std::optional<GpuResources> GetTfrtGpuResources(wrapper::Device device) {
   return GetGpuResourcesMap()->GetResources(device);
 }
 

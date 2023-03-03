@@ -15,6 +15,7 @@
 // This file implements the tfrt_gpu.dnn kernels.
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -696,8 +697,8 @@ Expected<cudnn_frontend::ExecutionPlan> DnnBuildFusedConvolution(
   llvm::SmallVector<cudnn_frontend::Operation const*, 4> ops = {
       &conv_op, &add_op, &bias_add_op};
 
-  llvm::Optional<cudnn_frontend::PointWiseDesc_v8> act_desc;
-  llvm::Optional<cudnn_frontend::Operation_v8> act_op;
+  std::optional<cudnn_frontend::PointWiseDesc_v8> act_desc;
+  std::optional<cudnn_frontend::Operation_v8> act_op;
   switch (activation_mode) {
     case CUDNN_ACTIVATION_IDENTITY:
       break;

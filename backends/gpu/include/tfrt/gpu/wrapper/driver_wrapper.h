@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 #include "tfrt/gpu/wrapper/wrapper.h"
@@ -249,10 +250,10 @@ struct ModuleLoadOptions {
   // If set, the string will be resized automatically.
   std::string* error_log_buffer;
 
-  llvm::Optional<int> log_verbose;
+  std::optional<int> log_verbose;
 
   enum class FallbackStrategy { kPreferPtx, kPreferBinary };
-  llvm::Optional<FallbackStrategy> fallback_strategy;
+  std::optional<FallbackStrategy> fallback_strategy;
 };
 llvm::Expected<OwningModule> ModuleLoadDataEx(CurrentContext current,
                                               const void* image,

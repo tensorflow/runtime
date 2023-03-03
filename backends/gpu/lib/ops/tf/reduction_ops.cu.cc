@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <optional>
 
 #include "cub/device/device_reduce.cuh"               // from @cub_archive
 #include "cub/device/device_segmented_reduce.cuh"     // from @cub_archive
@@ -328,7 +329,7 @@ using ReductionDims3 = struct {
   Index inner_dim_size;
 };
 
-static llvm::Optional<ReductionDims2> IsOuterReduction(
+static std::optional<ReductionDims2> IsOuterReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   // View input tensor as a 2d tensor: [outer_dims_size, inner_dims_size].
   Index outer_dims_size = 1;
@@ -350,7 +351,7 @@ static llvm::Optional<ReductionDims2> IsOuterReduction(
   return {{outer_dims_size, inner_dims_size}};
 }
 
-static llvm::Optional<ReductionDims2> IsInnerReduction(
+static std::optional<ReductionDims2> IsInnerReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   // View input tensor as a 2d tensor: [outer_dims_size, inner_dims_size].
   Index outer_dims_size = 1;
@@ -373,7 +374,7 @@ static llvm::Optional<ReductionDims2> IsInnerReduction(
   return {{outer_dims_size, inner_dims_size}};
 }
 
-static llvm::Optional<ReductionDims3> IsMiddleReduction(
+static std::optional<ReductionDims3> IsMiddleReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   Index outer_dim_size = 1;
   for (int i = 0; i < reduction_indices.front(); ++i)

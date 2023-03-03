@@ -17,6 +17,8 @@
 // This file implements GPU device.
 #include "tfrt/gpu/device/device.h"
 
+#include <optional>
+
 #include "eigen_support.h"
 #include "tfrt/gpu/device/gpu_config.h"
 #include "tfrt/gpu/gpu_types.h"
@@ -101,7 +103,7 @@ llvm::Error GpuDevice::Impl::Initialize() {
   // TODO(zhangqiaorjc): Generalize to multi-GPU.
   TFRT_ASSIGN_OR_RETURN(device_,
                         DeviceGet(wrapper::Platform::CUDA, gpu_ordinal_));
-  llvm::Optional<wrapper::CurrentContext> current_context;
+  std::optional<wrapper::CurrentContext> current_context;
 
   // Use external GPU resources if they are available.
   if (auto gpu_resources = gpu::GetTfrtGpuResources(device_)) {

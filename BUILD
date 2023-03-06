@@ -199,7 +199,7 @@ tfrt_cc_library(
     name = "profiled_allocator",
     srcs = ["lib/host_context/profiled_allocator.cc"],
     hdrs = ["include/tfrt/host_context/profiled_allocator.h"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [":hostcontext"],
 )
 
@@ -331,7 +331,7 @@ tfrt_cc_library(
         "include/tfrt/support/fp16.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         "@llvm-project//llvm:Support",
@@ -349,7 +349,7 @@ tfrt_cc_library(
         "include/tfrt/bef/span.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":dtype",
         ":support",
@@ -428,7 +428,7 @@ tfrt_cc_library(
         "include/tfrt/support/variant.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":concurrent_vector",
         ":ref_count",
@@ -455,7 +455,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/utils/kernel_runner.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_attr_encoder",
@@ -490,7 +490,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     defines = ["TFRT_MAX_TRACING_LEVEL=$(TFRT_MAX_TRACING_LEVEL)"],
     toolchains = [":TFRT_MAX_TRACING_LEVEL"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         "@llvm-project//llvm:Support",
@@ -500,7 +500,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "simple_tracing_sink",
     srcs = ["lib/tracing/simple_tracing_sink.cc"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         ":tracing",
@@ -512,7 +512,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "debug_tracing_sink",
     srcs = ["lib/tracing/debug_tracing_sink.cc"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         ":tracing",
@@ -524,7 +524,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "chrome_tracing_sink",
     srcs = ["lib/tracing/chrome_tracing_sink.cc"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         ":tracing",
@@ -537,7 +537,7 @@ tfrt_cc_library(
     name = "nvtx_tracing_sink",
     srcs = ["lib/tracing/nvtx_tracing_sink.cc"],
     hdrs = ["include/tfrt/tracing/nvtx_tracing_sink.h"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         ":tracing",
@@ -564,7 +564,7 @@ tfrt_cc_library(
         "include/tfrt/bef_executor/function_util.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_location",
@@ -589,7 +589,7 @@ tfrt_cc_library(
         "include/tfrt/metrics/metrics.h",
         "include/tfrt/metrics/metrics_registry.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         "@llvm-project//llvm:Support",
@@ -639,7 +639,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/tensor/static_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_attr_encoder",
@@ -668,7 +668,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/basic_kernels/static_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":hostcontext",
         ":support",
@@ -686,7 +686,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/bef_emitter.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":dtype",
@@ -708,7 +708,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/mlir_to_bef.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_attr_emitter",
@@ -735,7 +735,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:gce"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":init_tfrt_dialects",
@@ -758,7 +758,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/bef_to_mlir.h",
         "include/tfrt/host_context/attribute_utils.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_attr_reader",
@@ -780,7 +780,7 @@ tfrt_cc_library(
     srcs = ["lib/bef_converter/bef_to_mlir/bef_to_mlir_translate.cc"],
     hdrs = ["include/tfrt/bef_converter/bef_to_mlir_translate.h"],
     alwayslink_static_registration_src = "lib/bef_converter/bef_to_mlir/static_registration.cc",
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":beftomlir",
@@ -803,7 +803,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/bef_attr_encoder.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_emitter",
@@ -825,7 +825,7 @@ td_library(
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = ["include"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         "@llvm-project//mlir:OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectInterfacesTdFiles",
@@ -840,7 +840,7 @@ td_library(
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = ["include"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
 )
 
 gentbl_cc_library(
@@ -879,7 +879,7 @@ tfrt_cc_library(
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs_inc_gen",
         "@llvm-project//llvm:Support",
@@ -1081,7 +1081,7 @@ tfrt_cc_library(
         "include/tfrt/tensor/opdefs/tensor_shape_sync.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":coo_host_tensor_opdefs_inc_gen",
@@ -1133,7 +1133,7 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/opdefs/types.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs_inc_gen",
@@ -1178,7 +1178,7 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/opdefs/sync/core_runtime.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs",
@@ -1198,7 +1198,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/bef_executor_driver/bef_executor_driver.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":befexecutor",
@@ -1247,7 +1247,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":dtype",
@@ -1265,7 +1265,7 @@ tfrt_cc_library(
 #     name = "btf_writer",
 #     srcs = ["utils/btf_writer.py"],
 #     srcs_version = "PY3",
-#     visibility = [":friends"],
+#     visibility = ["//visibility:public"],
 #     deps = ["//third_party/py/numpy"],
 # )
 # copybara:uncomment_end
@@ -1286,7 +1286,7 @@ tfrt_cc_library(
         "include/tfrt/test_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/test_kernels/static_registration.cc",
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":befexecutor",
         ":hostcontext",
@@ -1330,7 +1330,7 @@ tfrt_cc_library(
         "include/tfrt/test_kernels/opdefs/test_kernels.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":compiler_tfrt_op_interfaces",
@@ -1375,7 +1375,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/test_kernels/opdefs/test_kernels_sync.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":tensor_opdefs",
@@ -1409,7 +1409,7 @@ tfrt_cc_library(
         "include/tfrt/io/input_stream.h",
     ],
     alwayslink_static_registration_src = "lib/io/static_registration.cc",
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":hostcontext",
         ":support",
@@ -1425,7 +1425,7 @@ td_library(
         "include/tfrt/compiler/opdefs/tfrt_traits.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         "@llvm-project//mlir:OpBaseTdFiles",
     ],
@@ -1458,7 +1458,7 @@ tfrt_cc_library(
     ],
     hdrs = ["include/tfrt/compiler/opdefs/tfrt_op_interfaces.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":compiler_tfrt_op_interfaces_inc_gen",
         "@llvm-project//mlir:IR",
@@ -1484,7 +1484,7 @@ tfrt_cc_library(
     srcs = ["lib/compiler/opdefs/tfrt_traits.cc"],
     hdrs = ["include/tfrt/compiler/opdefs/tfrt_traits.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":compiler_tfrt_traits_inc_gen",
         "@llvm-project//mlir:IR",
@@ -1499,7 +1499,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/compiler/compiler_pass.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":support",
         "@llvm-project//llvm:Support",
@@ -1512,7 +1512,7 @@ tfrt_cc_library(
     srcs = ["lib/compiler/stream_analysis.cc"],
     hdrs = ["include/tfrt/compiler/stream_analysis.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":compiler_tfrt_op_interfaces",
@@ -1525,7 +1525,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "print_stream_pass",
     srcs = ["lib/compiler/print_stream_pass.cc"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":stream_analysis",
         "@llvm-project//llvm:Support",
@@ -1550,7 +1550,7 @@ tfrt_cc_library(
         "include/tfrt/init_tfrt_dialects.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:gce"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs",
@@ -1581,7 +1581,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/bef_converter/mlir_src_to_bef.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":init_tfrt_dialects",
@@ -1606,7 +1606,7 @@ tfrt_cc_library(
         "lib/bef_converter/mlir_to_bef/bef_compilation_units.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_attr_encoder",
@@ -1624,7 +1624,7 @@ tfrt_cc_library(
         "lib/bef_converter/bef_to_mlir/bef_attr_reader.cc",
         "lib/bef_converter/bef_to_mlir/bef_attr_reader.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":core_runtime_opdefs",
@@ -1645,7 +1645,7 @@ tfrt_cc_library(
         "lib/bef_converter/mlir_to_bef/bef_string_emitter.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_emitter",
@@ -1663,7 +1663,7 @@ tfrt_cc_library(
         "lib/bef_converter/mlir_to_bef/bef_string_emitter.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_emitter",
@@ -1682,7 +1682,7 @@ tfrt_cc_library(
         "include/tfrt/bef/bef_location.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":hostcontext",
@@ -1697,7 +1697,7 @@ tfrt_cc_library(
         "lib/bef_converter/bef_to_mlir/bef_location_reader.cc",
         "lib/bef_converter/bef_to_mlir/bef_location_reader.h",
     ],
-    visibility = [":friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":bef",
         ":bef_location",

@@ -490,7 +490,7 @@ void WorkQueueBase<Derived>::Quiesce() {
 
   // Keep stealing tasks until we reach a point when we have nothing to steal
   // and all worker threads are in blocked state.
-  Optional<TaskFunction> task = Steal();
+  std::optional<TaskFunction> task = Steal();
 
   while (task.has_value()) {
     // Execute stolen task in the caller thread.
@@ -547,7 +547,7 @@ void WorkQueueBase<Derived>::WorkerLoop(int thread_id) {
   const int spin_count = num_threads_ > 0 ? kSpinCount / num_threads_ : 0;
 
   while (!cancelled_) {
-    Optional<TaskFunction> t = derived_.NextTask(q);
+    std::optional<TaskFunction> t = derived_.NextTask(q);
     if (!t.has_value()) {
       t = Steal();
       if (!t.has_value()) {

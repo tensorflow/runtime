@@ -18,7 +18,6 @@
 #include <queue>
 #include <ratio>
 
-#include "llvm/ADT/None.h"
 #include "llvm/Support/Compiler.h"
 #include "task_queue.h"
 #include "tfrt/host_context/task_function.h"
@@ -56,11 +55,11 @@ class BlockingWorkQueue
 
   // Enqueues `task` for execution by one of the statically allocated thread.
   // Return task wrapped in optional if all per-thread queues are full.
-  Optional<TaskFunction> EnqueueBlockingTask(TaskFunction task);
+  std::optional<TaskFunction> EnqueueBlockingTask(TaskFunction task);
 
   // Runs `task` in one of the dynamically started threads. Returns task
   // wrapped in optional if can't assign it to a worker thread.
-  Optional<TaskFunction> RunBlockingTask(TaskFunction task);
+  std::optional<TaskFunction> RunBlockingTask(TaskFunction task);
 
   void Quiesce();
 
@@ -81,8 +80,8 @@ class BlockingWorkQueue
   using Base::num_threads_;
   using Base::thread_data_;
 
-  [[nodiscard]] Optional<TaskFunction> NextTask(Queue* queue);
-  [[nodiscard]] Optional<TaskFunction> Steal(Queue* queue);
+  [[nodiscard]] std::optional<TaskFunction> NextTask(Queue* queue);
+  [[nodiscard]] std::optional<TaskFunction> Steal(Queue* queue);
   [[nodiscard]] bool Empty(Queue* queue);
 
   // If the blocking task does not allow queuing, it is executed in one of the
@@ -92,7 +91,8 @@ class BlockingWorkQueue
 
   // Waits for the next available task. Returns empty optional if the task was
   // not found.
-  Optional<TaskFunction> WaitNextTask(mutex_lock* lock) TFRT_REQUIRES(mutex_);
+  std::optional<TaskFunction> WaitNextTask(mutex_lock* lock)
+      TFRT_REQUIRES(mutex_);
 
   // Maximum number of dynamically started threads.
   const int max_num_dynamic_threads_;
@@ -138,7 +138,7 @@ BlockingWorkQueue<ThreadingEnvironment>::BlockingWorkQueue(
       idle_wait_time_(idle_wait_time) {}
 
 template <typename ThreadingEnvironment>
-Optional<TaskFunction>
+std::optional<TaskFunction>
 BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
     TaskFunction task) {
   // In quiescing mode we count the number of pending tasks, and are allowed to
@@ -195,8 +195,8 @@ BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
 }
 
 template <typename ThreadingEnvironment>
-Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
-    TaskFunction task) {
+std::optional<TaskFunction>
+BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(TaskFunction task) {
   mutex_lock lock(mutex_);
 
   // Attach a PendingTask counter only if we were able to submit the task
@@ -274,8 +274,8 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
 }
 
 template <typename ThreadingEnvironment>
-Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::WaitNextTask(
-    mutex_lock* lock) {
+std::optional<TaskFunction>
+BlockingWorkQueue<ThreadingEnvironment>::WaitNextTask(mutex_lock* lock) {
   ++num_idle_dynamic_threads_;
 
   const auto timeout = std::chrono::system_clock::now() + idle_wait_time_;
@@ -323,13 +323,13 @@ void BlockingWorkQueue<ThreadingEnvironment>::Quiesce() {
 }
 
 template <typename ThreadingEnvironment>
-[[nodiscard]] Optional<TaskFunction>
+[[nodiscard]] std::optional<TaskFunction>
 BlockingWorkQueue<ThreadingEnvironment>::NextTask(Queue* queue) {
   return queue->PopBack();
 }
 
 template <typename ThreadingEnvironment>
-[[nodiscard]] Optional<TaskFunction>
+[[nodiscard]] std::optional<TaskFunction>
 BlockingWorkQueue<ThreadingEnvironment>::Steal(Queue* queue) {
   return queue->PopBack();
 }

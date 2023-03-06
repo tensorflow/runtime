@@ -24,6 +24,8 @@
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_NON_BLOCKING_WORK_QUEUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_NON_BLOCKING_WORK_QUEUE_H_
 
+#include <optional>
+
 #include "llvm/Support/Compiler.h"
 #include "task_deque.h"
 #include "tfrt/host_context/task_function.h"
@@ -77,8 +79,8 @@ class NonBlockingWorkQueue
   using Base::num_threads_;
   using Base::thread_data_;
 
-  [[nodiscard]] Optional<TaskFunction> NextTask(Queue* queue);
-  [[nodiscard]] Optional<TaskFunction> Steal(Queue* queue);
+  [[nodiscard]] std::optional<TaskFunction> NextTask(Queue* queue);
+  [[nodiscard]] std::optional<TaskFunction> Steal(Queue* queue);
   [[nodiscard]] bool Empty(Queue* queue);
 };
 
@@ -133,13 +135,13 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
 }
 
 template <typename ThreadingEnvironment>
-[[nodiscard]] Optional<TaskFunction>
+[[nodiscard]] std::optional<TaskFunction>
 NonBlockingWorkQueue<ThreadingEnvironment>::NextTask(Queue* queue) {
   return queue->PopFront();
 }
 
 template <typename ThreadingEnvironment>
-[[nodiscard]] Optional<TaskFunction>
+[[nodiscard]] std::optional<TaskFunction>
 NonBlockingWorkQueue<ThreadingEnvironment>::Steal(Queue* queue) {
   return queue->PopBack();
 }

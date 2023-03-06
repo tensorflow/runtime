@@ -6,6 +6,7 @@
 // non-blocking work queues.
 
 #include <memory>
+#include <optional>
 #include <thread>
 
 #include "blocking_work_queue.h"
@@ -34,8 +35,8 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
   int GetParallelismLevel() const final { return num_threads_; }
 
   void AddTask(TaskFunction task) final;
-  Optional<TaskFunction> AddBlockingTask(TaskFunction task,
-                                         bool allow_queuing) final;
+  std::optional<TaskFunction> AddBlockingTask(TaskFunction task,
+                                              bool allow_queuing) final;
   void Quiesce() final;
   void Await(ArrayRef<RCReference<AsyncValue>> values) final;
 
@@ -68,7 +69,7 @@ void MultiThreadedWorkQueue::AddTask(TaskFunction task) {
   non_blocking_work_queue_.AddTask(std::move(task));
 }
 
-Optional<TaskFunction> MultiThreadedWorkQueue::AddBlockingTask(
+std::optional<TaskFunction> MultiThreadedWorkQueue::AddBlockingTask(
     TaskFunction task, bool allow_queuing) {
   if (allow_queuing) {
     return blocking_work_queue_.EnqueueBlockingTask(std::move(task));

@@ -71,7 +71,7 @@ ConvertScalarHostTensorToScalarHostTensor(const AnyScalarHostTensor& tensor,
   }
 }
 
-llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
+std::optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
     const AnyScalarHostTensor& tensor, const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
   auto result_alloc =

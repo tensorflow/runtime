@@ -19,6 +19,7 @@
 #ifndef TFRT_TENSOR_STRING_HOST_TENSOR_H_
 #define TFRT_TENSOR_STRING_HOST_TENSOR_H_
 
+#include <optional>
 #include <string>
 
 #include "tfrt/dtype/dtype.h"
@@ -37,10 +38,10 @@ class StringHostTensor final : public HostTensor,
  public:
   // Allocate a StringHostTensor with uninitialized data. Return None on
   // failure.
-  static llvm::Optional<StringHostTensor> CreateUninitialized(
+  static std::optional<StringHostTensor> CreateUninitialized(
       const TensorMetadata& metadata, HostContext* host);
 
-  static llvm::Optional<StringHostTensor> CreateUninitialized(
+  static std::optional<StringHostTensor> CreateUninitialized(
       const TensorShape& shape, HostContext* host);
 
   // Make an AsyncValueRef<StringHostTensor> with kConstructed state.

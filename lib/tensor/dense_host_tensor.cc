@@ -40,7 +40,7 @@ namespace tfrt {
 // larger than or equals to EIGEN_DEFAULT_ALIGN_BYTES (16).
 static constexpr size_t kTensorBufferAlignment = 16;
 
-llvm::Optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
+std::optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
     const TensorMetadata& metadata, HostAllocator* allocator) {
   size_t alignment =
       std::max(GetHostAlignment(metadata.dtype), kTensorBufferAlignment);
@@ -52,7 +52,7 @@ llvm::Optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
   return DenseHostTensor(metadata, std::move(data));
 }
 
-llvm::Optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
+std::optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
     const TensorMetadata& metadata, HostContext* host) {
   return CreateUninitialized(metadata, host->allocator());
 }

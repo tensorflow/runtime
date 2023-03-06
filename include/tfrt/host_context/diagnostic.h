@@ -21,6 +21,7 @@
 #ifndef TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 #define TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 
+#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -52,7 +53,7 @@ struct DecodedDiagnostic {
 
   absl::StatusCode code() const { return status.code(); }
 
-  llvm::Optional<DecodedLocation> location;
+  std::optional<DecodedLocation> location;
   absl::Status status;
 };
 

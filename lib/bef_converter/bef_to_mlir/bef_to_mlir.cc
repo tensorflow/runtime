@@ -113,7 +113,7 @@ struct BEFFile {
   std::vector<BEFFunction> function_index;
 
   // Returns the string at `offset` into Strings section.
-  llvm::Optional<string_view> GetString(size_t offset) const {
+  std::optional<string_view> GetString(size_t offset) const {
     auto str_iter = strings.find(offset);
     if (str_iter != strings.end()) return str_iter->second;
     return std::nullopt;
@@ -259,7 +259,7 @@ class BEFFunctionReader {
 
   // Reads a function and returns the location and region body. Returns None on
   // errors. Nested regions are not resolved yet.
-  llvm::Optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>
+  std::optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>
   ReadFunction(BefLocationReader* location_reader, BEFReader* attribute_names,
                BEFReader* register_types);
 
@@ -636,7 +636,7 @@ mlir::LogicalResult BEFToMLIRConverter::AddCompilationUnits(
   return mlir::success();
 }
 
-llvm::Optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>
+std::optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>
 BEFFunctionReader::ReadFunction(BefLocationReader* location_reader,
                                 BEFReader* attribute_names,
                                 BEFReader* register_types) {

@@ -207,7 +207,7 @@ raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value) {
   return os << ']';
 }
 
-PartialTensorShape::PartialTensorShape(Optional<ArrayRef<Index>> dims) {
+PartialTensorShape::PartialTensorShape(std::optional<ArrayRef<Index>> dims) {
   if (dims.has_value()) {
     llvm::SmallVector<Index, 4> dims_vec{dims.value().begin(),
                                          dims.value().end()};
@@ -222,7 +222,7 @@ bool PartialTensorShape::IsUnranked() const {
   return true;
 }
 
-Optional<ArrayRef<Index>> PartialTensorShape::GetShape() const {
+std::optional<ArrayRef<Index>> PartialTensorShape::GetShape() const {
   if (IsUnranked()) {
     return std::nullopt;
   }

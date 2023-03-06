@@ -19,6 +19,8 @@
 #ifndef TFRT_TENSOR_DENSE_HOST_TENSOR_H_
 #define TFRT_TENSOR_DENSE_HOST_TENSOR_H_
 
+#include <optional>
+
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/host_context/value.h"
 #include "tfrt/tensor/conversion_registry.h"
@@ -46,21 +48,21 @@ class DenseHostTensor final : public HostTensor,
 
   // Allocate a DenseHostTensor with an uninitialized body.  This returns None
   // on allocation failure.
-  static llvm::Optional<DenseHostTensor> CreateUninitialized(
+  static std::optional<DenseHostTensor> CreateUninitialized(
       const TensorMetadata& metadata, HostContext* host);
 
-  static llvm::Optional<DenseHostTensor> CreateUninitialized(
+  static std::optional<DenseHostTensor> CreateUninitialized(
       const TensorMetadata& metadata, HostAllocator* allocator);
 
   template <typename T>
-  static llvm::Optional<DenseHostTensor> CreateUninitialized(
+  static std::optional<DenseHostTensor> CreateUninitialized(
       const TensorShape& shape, HostContext* host) {
     return CreateUninitialized(TensorMetadata(GetDType<T>(), shape), host);
   }
 
   template <typename T>
-  static llvm::Optional<DenseHostTensor> CreateScalar(T value,
-                                                      HostContext* host) {
+  static std::optional<DenseHostTensor> CreateScalar(T value,
+                                                     HostContext* host) {
     auto dht_or = CreateUninitialized(TensorMetadata(GetDType<T>(), {}), host);
     if (!dht_or.has_value()) return dht_or;
     *dht_or.value().data<T>() = value;

@@ -20,6 +20,8 @@
 #ifndef TFRT_TENSOR_SCALAR_HOST_TENSOR_H_
 #define TFRT_TENSOR_SCALAR_HOST_TENSOR_H_
 
+#include <optional>
+
 #include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/host_tensor.h"
 
@@ -95,7 +97,7 @@ class ScalarHostTensor final : public AnyScalarHostTensor {
   ElementType value_;
 };
 
-llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
+std::optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
     const AnyScalarHostTensor& tensor, const ExecutionContext& exec_ctx);
 
 }  // namespace tfrt

@@ -16,6 +16,7 @@
 
 #include "tfrt/tensor/string_host_tensor.h"
 
+#include <optional>
 #include <utility>
 
 #include "llvm/Support/MD5.h"
@@ -27,7 +28,7 @@
 
 namespace tfrt {
 
-llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
+std::optional<StringHostTensor> StringHostTensor::CreateUninitialized(
     const TensorShape& shape, HostContext* host) {
   auto num_elements = shape.GetNumElements();
   if (num_elements == 0) {
@@ -42,7 +43,7 @@ llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
   return StringHostTensor(shape, std::move(strings));
 }
 
-llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
+std::optional<StringHostTensor> StringHostTensor::CreateUninitialized(
     const TensorMetadata& metadata, HostContext* host) {
   assert(metadata.dtype == DType(DType::String));
   return CreateUninitialized(metadata.shape, host);

@@ -1283,8 +1283,8 @@ LogicalResult InlineStreamifyOpPattern::matchAndRewrite(
   Operation *terminator = streamify_op.SingleBlock::getBody()->getTerminator();
   rewriter.splitBlock(streamify_op.SingleBlock::getBody(),
                       terminator->getIterator());
-  rewriter.mergeBlockBefore(streamify_op.SingleBlock::getBody(), streamify_op,
-                            cast_op.getOperands());
+  rewriter.inlineBlockBefore(streamify_op.SingleBlock::getBody(), streamify_op,
+                             cast_op.getOperands());
   SmallVector<Value, 4> results(terminator->getOperands().drop_front());
   auto chain_and_stream = {terminator->getOperand(0), cast_op.getOperand(1)};
   Value token = CastToToken(rewriter, streamify_op->getLoc(), chain_and_stream);

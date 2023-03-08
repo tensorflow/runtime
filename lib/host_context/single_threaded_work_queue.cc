@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/None.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/support/mutex.h"
@@ -39,8 +38,8 @@ class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
   std::string name() const override { return "single-threaded"; }
 
   void AddTask(TaskFunction work) override;
-  Optional<TaskFunction> AddBlockingTask(TaskFunction work,
-                                         bool allow_queuing) override;
+  std::optional<TaskFunction> AddBlockingTask(TaskFunction work,
+                                              bool allow_queuing) override;
   void Quiesce() override;
   void Await(ArrayRef<RCReference<AsyncValue>> values) override;
   int GetParallelismLevel() const override { return 1; }
@@ -87,7 +86,7 @@ void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
 //
 // Because this work queue implementation does not spawn new threads, it
 // can't accept tasks that do not allow queuing.
-Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
+std::optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
     TaskFunction work, bool allow_queuing) {
   if (!allow_queuing) return {std::move(work)};
   mutex_lock l(mu_);

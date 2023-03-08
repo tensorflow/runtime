@@ -27,7 +27,6 @@
 #include <optional>
 
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/None.h"
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/bef/bef_encoding.h"
@@ -232,7 +231,7 @@ class OpAttrs final {
   }
 
   template <typename T>
-  Optional<T> GetOptional(string_view attr_name) const {
+  std::optional<T> GetOptional(string_view attr_name) const {
     T value;
     bool success = Get(attr_name, &value);
     if (success) {
@@ -308,7 +307,7 @@ class OpAttrs final {
     return value;
   }
 
-  Optional<string_view> GetStringOptional(string_view attr_name) const {
+  std::optional<string_view> GetStringOptional(string_view attr_name) const {
     string_view value;
     bool success = GetString(attr_name, &value);
     if (success) {
@@ -351,7 +350,7 @@ class OpAttrs final {
     return value;
   }
 
-  Optional<string_view> GetFuncNameOptional(string_view attr_name) const {
+  std::optional<string_view> GetFuncNameOptional(string_view attr_name) const {
     string_view value;
     bool success = GetFuncName(attr_name, &value);
     if (success) {
@@ -514,7 +513,7 @@ class OpAttrsRef {
   }
 
   template <typename T>
-  Optional<T> GetOptional(string_view attr_name) const {
+  std::optional<T> GetOptional(string_view attr_name) const {
     T value;
     bool success = Get(attr_name, &value);
     if (success) {
@@ -567,7 +566,7 @@ class OpAttrsRef {
     return value;
   }
 
-  Optional<string_view> GetStringOptional(string_view attr_name) const {
+  std::optional<string_view> GetStringOptional(string_view attr_name) const {
     string_view value;
     bool success = GetString(attr_name, &value);
     if (success) {
@@ -599,7 +598,7 @@ class OpAttrsRef {
     return value;
   }
 
-  Optional<string_view> GetFuncNameOptional(string_view attr_name) const {
+  std::optional<string_view> GetFuncNameOptional(string_view attr_name) const {
     string_view value;
     bool success = GetFuncName(attr_name, &value);
     if (success) {

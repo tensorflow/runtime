@@ -40,11 +40,10 @@
 #include <atomic>
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "llvm/ADT/FunctionExtras.h"
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/support/mutex.h"
@@ -75,13 +74,13 @@ class TaskDeque {
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
+  [[nodiscard]] std::optional<TaskFunction> PushFront(TaskFunction task) {
     unsigned front = front_.load(std::memory_order_relaxed);
     Elem* e = &array_[front & kMask];
     uint8_t s = e->state.load(std::memory_order_relaxed);
     if (s != kEmpty || !e->state.compare_exchange_strong(
                            s, kBusy, std::memory_order_acquire)) {
-      return llvm::Optional<TaskFunction>(std::move(task));
+      return std::optional<TaskFunction>(std::move(task));
     }
     front_.store(front + kIncrement, std::memory_order_relaxed);
     e->task = std::move(task);
@@ -92,7 +91,7 @@ class TaskDeque {
   // PopFront() removes and returns the first element in the queue.
   //
   // If the queue is empty returns empty optional.
-  [[nodiscard]] llvm::Optional<TaskFunction> PopFront() {
+  [[nodiscard]] std::optional<TaskFunction> PopFront() {
     unsigned front = front_.load(std::memory_order_relaxed);
     Elem* e = &array_[(front - 1) & kMask];
     uint8_t s = e->state.load(std::memory_order_relaxed);
@@ -104,21 +103,21 @@ class TaskDeque {
     e->state.store(kEmpty, std::memory_order_release);
     front = ((front - 1) & kMask2) | (front & ~kMask2);
     front_.store(front, std::memory_order_relaxed);
-    return llvm::Optional<TaskFunction>(std::move(task));
+    return std::optional<TaskFunction>(std::move(task));
   }
 
   // PushBack() inserts task `w` at the end of the queue.
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  [[nodiscard]] llvm::Optional<TaskFunction> PushBack(TaskFunction task) {
+  [[nodiscard]] std::optional<TaskFunction> PushBack(TaskFunction task) {
     mutex_lock lock(mutex_);
     unsigned back = back_.load(std::memory_order_relaxed);
     Elem* e = &array_[(back - 1) & kMask];
     uint8_t s = e->state.load(std::memory_order_relaxed);
     if (s != kEmpty || !e->state.compare_exchange_strong(
                            s, kBusy, std::memory_order_acquire)) {
-      return llvm::Optional<TaskFunction>(std::move(task));
+      return std::optional<TaskFunction>(std::move(task));
     }
     back = ((back - 1) & kMask2) | (back & ~kMask2);
     back_.store(back, std::memory_order_relaxed);
@@ -130,7 +129,7 @@ class TaskDeque {
   // PopBack() removes and returns the last elements in the queue.
   //
   // If the queue is empty returns empty optional.
-  [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
+  [[nodiscard]] std::optional<TaskFunction> PopBack() {
     if (Empty()) return std::nullopt;
 
     mutex_lock lock(mutex_);
@@ -144,7 +143,7 @@ class TaskDeque {
     TaskFunction task = std::move(e->task);
     e->state.store(kEmpty, std::memory_order_release);
     back_.store(back + kIncrement, std::memory_order_relaxed);
-    return llvm::Optional<TaskFunction>(std::move(task));
+    return std::optional<TaskFunction>(std::move(task));
   }
 
   // PopBackHalf removes and returns half last elements in the queue.
@@ -191,7 +190,7 @@ class TaskDeque {
   // Delete all the elements from the queue.
   void Flush() {
     while (!Empty()) {
-      llvm::Optional<TaskFunction> task = PopFront();
+      std::optional<TaskFunction> task = PopFront();
       assert(task.has_value());
     }
   }

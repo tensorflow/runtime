@@ -147,7 +147,7 @@ BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
   if (is_quiescing) task = WithPendingTaskCounter(std::move(task));
 
   // If the worker queue is full, we will return `task` to the caller.
-  llvm::Optional<TaskFunction> inline_task = {std::move(task)};
+  std::optional<TaskFunction> inline_task = {std::move(task)};
 
   PerThread* pt = GetPerThread();
   if (pt->parent == this) {
@@ -245,7 +245,7 @@ BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(TaskFunction task) {
       // Try to get the next task. If one is found, run it. If there is no
       // task to execute, GetNextTask will return None that converts to
       // false.
-      while (llvm::Optional<TaskFunction> task = WaitNextTask(&lock)) {
+      while (std::optional<TaskFunction> task = WaitNextTask(&lock)) {
         mutex_.unlock();
         // Do not hold the lock while executing and destructing the task.
         (*task)();

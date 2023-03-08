@@ -96,7 +96,7 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
   if (IsQuiescing()) task = WithPendingTaskCounter(std::move(task));
 
   // If the worker queue is full, we will execute `task` in the current thread.
-  llvm::Optional<TaskFunction> inline_task;
+  std::optional<TaskFunction> inline_task;
 
   // If a caller thread is managed by `this` we push the new task into the front
   // of thread own queue (LIFO execution order). PushFront is completely lock

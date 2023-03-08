@@ -30,8 +30,6 @@
 #include <optional>
 
 #include "llvm/ADT/FunctionExtras.h"
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "tfrt/host_context/task_function.h"
 
 namespace tfrt {
@@ -59,7 +57,7 @@ class TaskQueue {
   //
   // If the queue is full, returns passed in task wrapped in optional, otherwise
   // returns empty optional.
-  [[nodiscard]] llvm::Optional<TaskFunction> PushFront(TaskFunction task) {
+  [[nodiscard]] std::optional<TaskFunction> PushFront(TaskFunction task) {
     unsigned front = front_.load(std::memory_order_relaxed);
     Elem* e;
 
@@ -93,7 +91,7 @@ class TaskQueue {
   // PopBack() removes and returns the last elements in the queue.
   //
   // If the queue is empty returns empty optional.
-  [[nodiscard]] llvm::Optional<TaskFunction> PopBack() {
+  [[nodiscard]] std::optional<TaskFunction> PopBack() {
     unsigned back = back_.load(std::memory_order_relaxed);
     Elem* e;
 
@@ -149,7 +147,7 @@ class TaskQueue {
   // Delete all the elements from the queue.
   void Flush() {
     while (!Empty()) {
-      llvm::Optional<TaskFunction> task = PopBack();
+      std::optional<TaskFunction> task = PopBack();
       assert(task.has_value());
     }
   }

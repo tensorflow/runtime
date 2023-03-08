@@ -193,13 +193,13 @@ class WorkQueueBase {
   // Returns None if per thread queue of pending tasks is empty. This method
   // should be called only from a thread that owns `queue`.
   //
-  // Optional<TaskFunction> Derived::NextTask(Queue* queue);
+  // std::optional<TaskFunction> Derived::NextTask(Queue* queue);
 
   // Steal() tries to steal task from a specified queue of pending tasks from
   // another thread managed by `this`. Return None if was not able to steal a
   // task (queue is empty, or steal spuriosly failed under contention).
   //
-  // Optional<TaskFunction> Derived::Steal(Queue* queue);
+  // std::optional<TaskFunction> Derived::Steal(Queue* queue);
 
   // Empty() returns true if the queue is empty. It must reliably detect if
   // the queue is not empty, because it's critical for keeping worker threads
@@ -221,7 +221,7 @@ class WorkQueueBase {
 
   // Steal() tries to steal task from any worker managed by this queue. Returns
   // std::nullopt if it was not able to find task to steal.
-  [[nodiscard]] llvm::Optional<TaskFunction> Steal();
+  [[nodiscard]] std::optional<TaskFunction> Steal();
 
   // Returns `true` if all worker threads are parked. This is a weak signal of
   // work queue emptyness, because worker thread might be notified, but not
@@ -300,7 +300,7 @@ class WorkQueueBase {
   // is time to exit (returns false). Can optionally return a task to execute in
   // `task` (in such case `task.has_value() == true` on return).
   [[nodiscard]] bool WaitForWork(EventCount::Waiter* waiter,
-                                 llvm::Optional<TaskFunction>* task);
+                                 std::optional<TaskFunction>* task);
 
   // StartSpinning() checks if the number of threads in the spin loop is less
   // than the allowed maximum, if so increments the number of spinning threads
@@ -511,14 +511,14 @@ void WorkQueueBase<Derived>::Quiesce() {
 }
 
 template <typename Derived>
-[[nodiscard]] llvm::Optional<TaskFunction> WorkQueueBase<Derived>::Steal() {
+[[nodiscard]] std::optional<TaskFunction> WorkQueueBase<Derived>::Steal() {
   PerThread* pt = GetPerThread();
   unsigned r = pt->rng();
   unsigned victim = FastReduce(r, num_threads_);
   unsigned inc = coprimes_[FastReduce(r, coprimes_.size())];
 
   for (unsigned i = 0; i < num_threads_; i++) {
-    llvm::Optional<TaskFunction> t =
+    std::optional<TaskFunction> t =
         derived_.Steal(&(thread_data_[victim].queue));
     if (t.has_value()) return t;
 
@@ -591,7 +591,7 @@ void WorkQueueBase<Derived>::WorkerLoop(int thread_id) {
 
 template <typename Derived>
 bool WorkQueueBase<Derived>::WaitForWork(EventCount::Waiter* waiter,
-                                         llvm::Optional<TaskFunction>* task) {
+                                         std::optional<TaskFunction>* task) {
   assert(!task->has_value());
   // We already did best-effort emptiness check in Steal, so prepare for
   // blocking.

@@ -6,13 +6,12 @@
 
 #include "task_deque.h"
 
+#include <optional>
 #include <random>
 #include <thread>
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "tfrt/host_context/task_function.h"
 
 namespace tfrt {
@@ -26,7 +25,7 @@ struct TaskFunctions {
     return TaskFunction([this, value]() { this->value = value; });
   }
 
-  int Run(llvm::Optional<TaskFunction> task) {
+  int Run(std::optional<TaskFunction> task) {
     if (!task.has_value()) return -1;
     (*task)();
     return value;
@@ -41,8 +40,8 @@ TEST(TaskDequeTest, QueueCreatedEmpty) {
   ASSERT_TRUE(queue.Empty());
   ASSERT_EQ(queue.Size(), 0);
 
-  ASSERT_EQ(queue.PopFront(), llvm::None);
-  ASSERT_EQ(queue.PopBack(), llvm::None);
+  ASSERT_EQ(queue.PopFront(), std::nullopt);
+  ASSERT_EQ(queue.PopBack(), std::nullopt);
 
   std::vector<TaskFunction> tasks;
   ASSERT_EQ(queue.PopBackHalf(&tasks), 0u);
@@ -53,7 +52,7 @@ TEST(TaskDequeTest, PushAndPopFront) {
   TaskFunctions fn;
   TaskDeque queue;
 
-  ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(1)), std::nullopt);
   ASSERT_EQ(queue.Size(), 1);
   ASSERT_EQ(fn.Run(queue.PopFront()), 1);
   ASSERT_EQ(queue.Size(), 0);
@@ -63,7 +62,7 @@ TEST(TaskDequeTest, PushAndPopBack) {
   TaskFunctions fn;
   TaskDeque queue;
 
-  ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(1)), std::nullopt);
   ASSERT_EQ(queue.Size(), 1);
   ASSERT_EQ(fn.Run(queue.PopBack()), 1);
   ASSERT_EQ(queue.Size(), 0);
@@ -73,7 +72,7 @@ TEST(TaskDequeTest, PushFrontAndPopBack) {
   TaskFunctions fn;
   TaskDeque queue;
 
-  ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(1)), std::nullopt);
   ASSERT_EQ(queue.Size(), 1);
   ASSERT_EQ(fn.Run(queue.PopBack()), 1);
   ASSERT_EQ(queue.Size(), 0);
@@ -84,7 +83,7 @@ TEST(TaskDequeTest, PushFrontToOverflow) {
   TaskDeque queue;
 
   for (int i = 0; i < TaskDeque::kCapacity; ++i) {
-    ASSERT_EQ(queue.PushFront(fn.Next(i)), llvm::None);
+    ASSERT_EQ(queue.PushFront(fn.Next(i)), std::nullopt);
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
@@ -101,7 +100,7 @@ TEST(TaskDequeTest, PushBackToOverflow) {
   TaskDeque queue;
 
   for (int i = 0; i < TaskDeque::kCapacity; ++i) {
-    ASSERT_EQ(queue.PushBack(fn.Next(i)), llvm::None);
+    ASSERT_EQ(queue.PushBack(fn.Next(i)), std::nullopt);
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
@@ -118,7 +117,7 @@ TEST(TaskDequeTest, PopBackHalf) {
   TaskDeque queue;
 
   for (int i = 0; i < TaskDeque::kCapacity; ++i) {
-    ASSERT_EQ(queue.PushBack(fn.Next(i)), llvm::None);
+    ASSERT_EQ(queue.PushBack(fn.Next(i)), std::nullopt);
   }
 
   std::vector<TaskFunction> half0;
@@ -154,7 +153,7 @@ TEST(TaskDequeTest, EmptynessCheckSingleWorker) {
 
   std::atomic<bool> done = false;
 
-  ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(1)), std::nullopt);
   ASSERT_FALSE(queue.Empty());
 
   auto worker = [&]() {
@@ -166,9 +165,9 @@ TEST(TaskDequeTest, EmptynessCheckSingleWorker) {
       ASSERT_FALSE(queue.Empty());
 
       if (rng() % 2) {
-        ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+        ASSERT_EQ(queue.PushFront(fn.Next(1)), std::nullopt);
       } else {
-        ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+        ASSERT_EQ(queue.PushBack(fn.Next(1)), std::nullopt);
       }
 
       std::this_thread::yield();
@@ -219,7 +218,7 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
   constexpr int kNumIterations = 1 << 14;
   constexpr int kNumWorkers = 10;
 
-  ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(1)), std::nullopt);
   ASSERT_FALSE(queue.Empty());
 
   struct ScopedLiveWorker {
@@ -244,9 +243,9 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
       ASSERT_FALSE(queue.Empty());
 
       if (id == 0 && rng() % 2 == 0) {
-        ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+        ASSERT_EQ(queue.PushFront(fn.Next(1)), std::nullopt);
       } else {
-        ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+        ASSERT_EQ(queue.PushBack(fn.Next(1)), std::nullopt);
       }
 
       std::this_thread::yield();
@@ -254,7 +253,7 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
       // PopFront and PopBack can return empty optional if atomic exchange
       // operation failed under contention, but they should be successfull
       // after a reasonable number of iterations.
-      llvm::Optional<TaskFunction> popped = llvm::None;
+      std::optional<TaskFunction> popped = std::nullopt;
       if (id == 0 && rng() % 2 == 0) {
         for (int i = 0; i < 100 && !popped.has_value(); ++i)
           popped = queue.PopFront();

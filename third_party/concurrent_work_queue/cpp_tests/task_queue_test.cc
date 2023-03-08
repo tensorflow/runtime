@@ -6,13 +6,12 @@
 
 #include "task_queue.h"
 
+#include <optional>
 #include <random>
 #include <thread>
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "tfrt/host_context/task_function.h"
 
 namespace tfrt {
@@ -26,7 +25,7 @@ struct TaskFunctions {
     return TaskFunction([this, value]() { this->value = value; });
   }
 
-  int Run(llvm::Optional<TaskFunction> task) {
+  int Run(std::optional<TaskFunction> task) {
     if (!task.has_value()) return -1;
     (*task)();
     return value;
@@ -40,17 +39,17 @@ TEST(TaskQueueTest, QueueCreatedEmpty) {
 
   ASSERT_TRUE(queue.Empty());
   ASSERT_EQ(queue.Size(), 0);
-  ASSERT_EQ(queue.PopBack(), llvm::None);
+  ASSERT_EQ(queue.PopBack(), std::nullopt);
 }
 
 TEST(TaskQueueTest, PushAndPop) {
   TaskFunctions fn;
   TaskQueue queue;
 
-  ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(1)), std::nullopt);
   ASSERT_EQ(queue.Size(), 1);
   ASSERT_EQ(fn.Run(queue.PopBack()), 1);
-  ASSERT_EQ(queue.PopBack(), llvm::None);
+  ASSERT_EQ(queue.PopBack(), std::nullopt);
   ASSERT_EQ(queue.Size(), 0);
 }
 
@@ -59,7 +58,7 @@ TEST(TaskQueueTest, PushFrontToOverflow) {
   TaskQueue queue;
 
   for (int i = 0; i < TaskQueue::kCapacity; ++i) {
-    ASSERT_EQ(queue.PushFront(fn.Next(i)), llvm::None);
+    ASSERT_EQ(queue.PushFront(fn.Next(i)), std::nullopt);
   }
 
   auto overflow = queue.PushFront(fn.Next(12345));
@@ -70,7 +69,7 @@ TEST(TaskQueueTest, PushFrontToOverflow) {
     ASSERT_EQ(fn.Run(queue.PopBack()), i);
   }
 
-  ASSERT_EQ(queue.PopBack(), llvm::None);
+  ASSERT_EQ(queue.PopBack(), std::nullopt);
   ASSERT_EQ(queue.Size(), 0);
 }
 
@@ -84,7 +83,7 @@ TEST(TaskQueueTest, EmptynessCheckMultipleWorkers) {
 
   std::atomic<int> live_workers = kNumWorkers;
 
-  ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(1)), std::nullopt);
   ASSERT_FALSE(queue.Empty());
 
   // Failed asserts inside a worker thread leads to test deadlock.
@@ -104,7 +103,7 @@ TEST(TaskQueueTest, EmptynessCheckMultipleWorkers) {
 
       // Pop back might be empty if concurrent PushFront updated front
       // index and ackquired a storage element, but did not update the state.
-      llvm::Optional<TaskFunction> task = queue.PopBack();
+      std::optional<TaskFunction> task = queue.PopBack();
       while (!task.has_value()) task = queue.PopBack();
 
       // And it's never empty after we pop a task.

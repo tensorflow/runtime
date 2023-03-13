@@ -40,7 +40,7 @@ glob_tfrt_lit_tests(
 #       --mlir_file=dummy.mlir --weights_btf_file=$(OUTS) --data_dir=$(SRCS) \
 #       --batch_size=1 --mode=correctness
 #     """,
-#     exec_tools = ["@tf_runtime//utils/resnet:resnet50_graph_inference_main.par"],
+#     tools = ["@tf_runtime//utils/resnet:resnet50_graph_inference_main.par"],
 # )
 #
 # genrule(
@@ -52,7 +52,7 @@ glob_tfrt_lit_tests(
 #       --mlir_file=dummy.mlir --weights_btf_file=$(OUTS) --data_dir=$(SRCS) \
 #       --batch_size=1 --mode=correctness
 #     """,
-#     exec_tools = ["@tf_runtime//utils/resnet:resnet50_eager_inference_main.par"],
+#     tools = ["@tf_runtime//utils/resnet:resnet50_eager_inference_main.par"],
 # )
 # copybara:uncomment_end
 

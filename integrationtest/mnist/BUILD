@@ -22,7 +22,7 @@ glob_tfrt_lit_tests(
 #     cmd = """
 #     $(location //third_party/tf_runtime/utils/mnist:convert_from_pickle_to_btf.par) \
 #     --output_file $@ --input_files $(SRCS)""",
-#     exec_tools = ["@tf_runtime//utils/mnist:convert_from_pickle_to_btf.par"],
+#     tools = ["@tf_runtime//utils/mnist:convert_from_pickle_to_btf.par"],
 # )
 # copybara:uncomment_end
 

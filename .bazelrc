@@ -84,8 +84,8 @@ build:rbe --google_default_credentials
 build:disable_rtti_and_exceptions --no//:rtti_and_exceptions
 
 # Filter build/test targets by tag.
-test:cuda --build_tag_filters=-no_oss
-test:cuda --test_tag_filters=-no_oss,-requires-gpu-amd
+test:cuda --build_tag_filters=-no_oss,-oss_excluded
+test:cuda --test_tag_filters=-no_oss,-oss_excluded,-requires-gpu-amd
 
 # Minimize code size for //tools:code_size_test_driver target.
 build:code_size_test --compilation_mode=opt --copt=-Os

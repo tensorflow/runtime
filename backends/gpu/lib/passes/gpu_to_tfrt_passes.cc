@@ -1144,8 +1144,9 @@ LogicalResult ConvertMemrefGlobalPattern::matchAndRewrite(
   // Otherwise, allocate memory and initialize it.
   Value allocator = rewriter.create<AllocatorCreateOp>(loc, context);
   Value stream = rewriter.create<StreamCreateOp>(loc, context);
+  auto s_type = global_op.getType().cast<ShapedType>();
   uint64_t size_bytes =
-      (global_op.getType().cast<ShapedType>().getSizeInBits() + 7) / 8;
+      (s_type.getNumElements() * s_type.getElementTypeBitWidth() + 7) / 8;
   Value size = rewriter.create<compiler::ConstantI64Op>(loc, size_bytes);
   Value chain = rewriter.create<compiler::NewChainOp>(loc);
   Value buffer =

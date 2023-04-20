@@ -570,8 +570,11 @@ tfrt_cc_library(
         ":bef_location",
         ":dtype",
         ":hostcontext",
+        ":metrics",
         ":support",
         ":tracing",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -589,9 +592,15 @@ tfrt_cc_library(
         "include/tfrt/metrics/metrics.h",
         "include/tfrt/metrics/metrics_registry.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
         ":support",
+        # copybara:uncomment_begin
+        # "//monitoring/streamz/public",
+        # "//monitoring/streamz/public:bucketer",
+        # "//monitoring/streamz/public:concurrent",
+        # copybara:uncomment_end
         "@llvm-project//llvm:Support",
     ],
 )

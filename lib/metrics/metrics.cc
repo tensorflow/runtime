@@ -16,6 +16,8 @@
 
 #include "tfrt/metrics/metrics.h"
 
+#include <string>
+
 #include "tfrt/metrics/metrics_registry.h"
 
 namespace tfrt {

@@ -41,6 +41,8 @@ class CancellationContext : public ReferenceCounted<CancellationContext> {
 
   ~CancellationContext();
 
+  bool IsCancelled() const { return GetCancelAsyncValue(); }
+
   ErrorAsyncValue* GetCancelAsyncValue() const {
     return cancel_value_.load(std::memory_order_acquire);
   }
@@ -64,7 +66,7 @@ class RequestContext : public ReferenceCounted<RequestContext> {
  public:
   using ContextData = MapByType<RequestContext>;
 
-  bool IsCancelled() const { return GetCancelAsyncValue(); }
+  bool IsCancelled() const { return cancellation_->IsCancelled(); }
   void Cancel();
   HostContext* host() const { return host_; }
   ResourceContext* resource_context() const { return resource_context_; }

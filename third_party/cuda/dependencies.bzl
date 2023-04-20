@@ -24,7 +24,7 @@ def _cuda_headers_impl(repository_ctx):
 
     tag = "cuda-11.4.3"
     for name, sha256 in [
-        ("cccl", "27aeb3f58ff9f549879dbf812715ac56f9cf706546bed80ba76848467cb34810"),
+        ("cccl", "d6d4625b0aea5ae04d8fe2a210bbcb1dd31c9d3eb3e647f091c20d0c628c3796"),
         ("cublas", "dba442b4532b42dd355eec4a3e9c1c8dfe54825a92782e98ee5ced4c1700f0e0"),
         ("cudart", "ba56549b23ebd887f75d4523a5e33f4d0e96bc93f199ca2ed3d6ec2c83a2cef2"),
         ("cufft", "66a6591e20e3fe61a77bf84a8286d2de0c98a831f3c95bf2725961d7ca7d53a8"),
@@ -43,6 +43,10 @@ def _cuda_headers_impl(repository_ctx):
             tag = tag,
         )
         strip_prefix = "{name}-{tag}".format(name = name, tag = tag)
+
+        # changed strip_prefix to the following for b/275853916
+        if name == "cccl" and sha256 == "d6d4625b0aea5ae04d8fe2a210bbcb1dd31c9d3eb3e647f091c20d0c628c3796":
+            strip_prefix = "cccl-ac0eb2254a635ec5b330fb930790fa8ad378e308"
         _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")
@@ -57,8 +61,10 @@ def _cudnn_headers_impl(repository_ctx):
         repo = "gitlab.com/nvidia/headers/cudnn",
         tag = tag,
     )
-    strip_prefix = "cudnn-{tag}".format(tag = tag)
-    sha256 = "a5a2749cee42dd0a175d6dfcfbab7e64acee55210febe2f32d4605eef32591af"
+
+    # changed strip_prefix to the following for b/275853916
+    strip_prefix = "cudnn-ee9f896ca41480fa9bcbaa210cd9b94338441f17"
+    sha256 = "42815fa478f470a8647445003757a87c372691491c07dd40fea5ae90a73f79ad"
     _download_and_extract(repository_ctx, url, sha256, strip_prefix)
 
     repository_ctx.symlink(build_file, "BUILD")

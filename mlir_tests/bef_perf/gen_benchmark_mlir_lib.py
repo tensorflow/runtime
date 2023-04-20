@@ -53,9 +53,7 @@ func.func @{func_name}() {{
   }}
   tfrt.return
 }}
-""".format(
-      func_name=func_name, body=body
-  )
+""".format(func_name=func_name, body=body)
 
 
 def gen_benchmark_mlir_main(generator_map):

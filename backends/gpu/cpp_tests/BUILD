@@ -33,8 +33,8 @@ tfrt_cc_library(
         ],
         deps = [
             ":common",
-            "@tf_runtime//backends/gpu:gpu_wrapper",
             "@com_google_googletest//:gtest_main",
+            "@tf_runtime//backends/gpu:gpu_wrapper",
         ] + if_google(["@com_google_absl//absl/debugging:leak_check"]),
     )
     for name in [
@@ -63,8 +63,8 @@ tfrt_cc_test(
     ],
     deps = [
         ":common",
-        "@tf_runtime//backends/gpu:gpu_wrapper",
         "@com_google_googletest//:gtest_main",
+        "@tf_runtime//backends/gpu:gpu_wrapper",
     ] + if_google(["@com_google_absl//absl/debugging:leak_check"]),
 )
 

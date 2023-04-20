@@ -254,7 +254,7 @@ Cost EstimateCostSCF(CostModel &helper, Operation &op) {
 
   if (auto parallel_op = dyn_cast<scf::ParallelOp>(op)) {
     Cost cost = helper.EstimateCost(parallel_op.getLoopBody());
-    for (auto &inductionVariableDomain : llvm::enumerate(
+    for (const auto &inductionVariableDomain : llvm::enumerate(
              llvm::zip(parallel_op.getLowerBound(), parallel_op.getUpperBound(),
                        parallel_op.getStep()))) {
       Value lb, ub, step;

@@ -18,7 +18,11 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
+#include <string>
 
+#include "absl/strings/match.h"        // from @com_google_absl
+#include "absl/strings/str_format.h"   // from @com_google_absl
+#include "absl/strings/string_view.h"  // from @com_google_absl
 #include "bef_file_impl.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
@@ -31,7 +35,9 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/metrics/metrics.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/logging.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tracing/tracing.h"
 
@@ -505,6 +511,7 @@ void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
     kernel_fn(kernel_frame);
+
   } else {
     // Otherwise, automatically propagate errors to the result values.
     for (size_t i = 0, e = kernel_frame->GetNumResults(); i != e; ++i) {

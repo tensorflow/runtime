@@ -160,12 +160,12 @@ tfrt_cc_library(
     }),
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        "@eigen_archive//:eigen3",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
-        "@eigen_archive//:eigen3",
-        "@llvm-project//llvm:Support",
     ] + if_google([
         # TODO(b/161569340): Short-term fix. Remove.
         "//third_party/tensorflow/core/platform:types",

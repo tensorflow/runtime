@@ -25,6 +25,7 @@
 #include <memory>
 #include <optional>
 
+#include "absl/status/statusor.h"  // from @com_google_absl
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
@@ -97,6 +98,21 @@ class ResourceContext {
     auto res = resources_.try_emplace(resource_name, tfrt::in_place_type<T>,
                                       std::forward<Args>(args)...);
     if (res.second) resource_vector_.push_back(&res.first->second);
+    return tfrt::any_cast<T>(&res.first->second);
+  }
+
+  template <typename T>
+  absl::StatusOr<T*> GetOrCreateResource(
+      tfrt::string_view resource_name,
+      std::function<absl::StatusOr<T>()> creator) TFRT_EXCLUDES(mu_) {
+    tfrt::mutex_lock lock(mu_);
+    if (auto it = resources_.find(resource_name); it != resources_.end()) {
+      return tfrt::any_cast<T>(&it->second);
+    }
+    auto resource = creator();
+    if (!resource.ok()) return resource.status();
+    auto res = resources_.try_emplace(resource_name, std::move(*resource));
+    resource_vector_.push_back(&res.first->second);
     return tfrt::any_cast<T>(&res.first->second);
   }
 

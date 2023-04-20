@@ -109,6 +109,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:AsyncDialect",
 #         "@llvm-project//mlir:AsyncToLLVM",
 #         "@llvm-project//mlir:AsyncTransforms",
+#         "@llvm-project//mlir:BuiltinToLLVMIRTranslation",
 #         "@llvm-project//mlir:ComplexToLLVM",
 #         "@llvm-project//mlir:ControlFlowDialect",
 #         "@llvm-project//mlir:FuncDialect",

@@ -33,7 +33,6 @@ using ::tsl::AsyncValue;  // NOLINT
 
 namespace internal {
 using ::tsl::internal::ConcreteAsyncValue;            // NOLINT
-using ::tsl::internal::IsStatus;                      // NOLINT
 using ::tsl::internal::KeepAsyncValuePayloadOnError;  // NOLINT
 }  // namespace internal
 

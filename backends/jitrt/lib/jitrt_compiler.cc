@@ -69,7 +69,7 @@ using xla::runtime::CreateExportRuntimeFunctionsPass;
 
 void RegisterDefaultJitRtDialects(xla::runtime::DialectRegistry& dialects) {
   // Register MLIR dialects supported by the compiled kernels.
-  dialects->insert<mlir::AffineDialect, mlir::arith::ArithDialect,
+  dialects->insert<mlir::affine::AffineDialect, mlir::arith::ArithDialect,
                    mlir::async::AsyncDialect, mlir::cf::ControlFlowDialect,
                    mlir::linalg::LinalgDialect, mlir::math::MathDialect,
                    mlir::memref::MemRefDialect, mlir::scf::SCFDialect,

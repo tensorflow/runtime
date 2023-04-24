@@ -4,7 +4,10 @@ licenses(["notice"])
 
 glob_tfrt_lit_tests(
     data = [":test_utilities"],
-    no_bef_translation = ["opt_err.mlir"],
+    no_bef_translation = [
+        "opt_err.mlir",
+        "merge_chains.mlir",
+    ],
 )
 
 # Bundle together all of the test utilities that are used by tests.

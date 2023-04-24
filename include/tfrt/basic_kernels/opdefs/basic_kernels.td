@@ -331,6 +331,7 @@ def MergeChainsOp : TFRT_Op<"merge.chains", [Pure]> {
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "$inputs attr-dict `:` type($inputs)";
   let hasVerifier = 0;
+  let hasCanonicalizer = 1;
 }
 
 def RepeatI32Op : TFRT_Op<"repeat.i32"> {

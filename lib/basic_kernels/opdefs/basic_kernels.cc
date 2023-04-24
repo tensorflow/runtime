@@ -24,6 +24,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
@@ -644,6 +645,43 @@ LogicalResult ReturnOp::verify() {
              << ") doesn't match function result type (" << results[i] << ")";
 
   return success();
+}
+
+namespace {
+
+// Removes unnecessary MergeChainsOp.
+struct RemoveUnnecessaryMergeChainsOp : public OpRewritePattern<MergeChainsOp> {
+  using OpRewritePattern<MergeChainsOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(MergeChainsOp op,
+                                PatternRewriter &rewriter) const override {
+    llvm::SmallVector<mlir::Value> one_use;
+    for (auto operand : op.getOperands()) {
+      if (operand.hasOneUse()) {
+        one_use.push_back(operand);
+      }
+    }
+
+    if (one_use.empty()) {
+      rewriter.replaceOp(op, op.getOperand(0));
+      return success();
+    }
+
+    if (one_use.size() == op.getNumOperands()) {
+      return failure();
+    }
+
+    rewriter.replaceOpWithNewOp<MergeChainsOp>(op, op.getResult().getType(),
+                                               one_use);
+    return success();
+  }
+};
+
+}  // namespace
+
+void MergeChainsOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                                MLIRContext *context) {
+  results.add<RemoveUnnecessaryMergeChainsOp>(context);
 }
 
 }  // namespace compiler

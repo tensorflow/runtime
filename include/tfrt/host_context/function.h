@@ -19,12 +19,15 @@
 #ifndef TFRT_HOST_CONTEXT_FUNCTION_H_
 #define TFRT_HOST_CONTEXT_FUNCTION_H_
 
+#include <vector>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/host_context/type_name.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 
@@ -57,12 +60,26 @@ class Function {
       const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
       MutableArrayRef<RCReference<AsyncValue>> results) const = 0;
 
+  // Similar to Execute() but passes the arguments by moving the references.
+  virtual void ExecuteByValue(
+      const ExecutionContext& exec_ctx,
+      std::vector<RCReference<AsyncValue>> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const {
+    std::vector<AsyncValue*> args;
+    args.reserve(arguments.size());
+    for (auto& arg : arguments) {
+      args.push_back(arg.get());
+    }
+    Execute(exec_ctx, args, results);
+  }
+
   // Similar to the above method, but return immediately after setting up the
   // arguments and results. `results` will be populated with unavailable
   // AsyncValues that serve as futures to the clients (i.e. emplace() or
   // SetError must not be called on these async values by the client).
   virtual void ExecuteAsync(
-      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      const ExecutionContext& exec_ctx,
+      std::vector<RCReference<AsyncValue>> arguments,
       MutableArrayRef<RCReference<AsyncValue>> results) const = 0;
 
   // Reference counting operations, used by async kernels to keep the underlying

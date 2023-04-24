@@ -19,6 +19,8 @@
 #ifndef TFRT_HOST_CONTEXT_NATIVE_FUNCTION_H_
 #define TFRT_HOST_CONTEXT_NATIVE_FUNCTION_H_
 
+#include <vector>
+
 #include "llvm/ADT/StringMap.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/support/mutex.h"
@@ -76,7 +78,8 @@ class NativeFunction : public Function {
                MutableArrayRef<RCReference<AsyncValue>> results) const final;
 
   void ExecuteAsync(
-      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      const ExecutionContext& exec_ctx,
+      std::vector<RCReference<AsyncValue>> arguments,
       MutableArrayRef<RCReference<AsyncValue>> results) const override {
     assert(false && "not implemented");
   }

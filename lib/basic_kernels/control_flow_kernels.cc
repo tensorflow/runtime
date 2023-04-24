@@ -236,17 +236,11 @@ static void TFRTWhileInlineImpl(
   assert(condition->IsAvailable());
   assert(body_args.size() == while_results.size());
 
-  llvm::SmallVector<AsyncValue*, 4> body_arg_views;
-  body_arg_views.reserve(body_args.size());
-  for (auto& arg : body_args) {
-    body_arg_views.push_back(arg.get());
-  }
-
   std::vector<RCReference<AsyncValue>> body_results;
   body_results.resize(while_results.size() + 1);
 
   while (!condition->IsError() && condition->get<bool>()) {
-    body_fn->Execute(exec_ctx, body_arg_views, body_results);
+    body_fn->ExecuteByValue(exec_ctx, std::move(body_args), body_results);
 
     // The last result from the body is the condition for the next iteration.
     condition = std::move(body_results.back());
@@ -256,10 +250,6 @@ static void TFRTWhileInlineImpl(
     // condition for the next iteration, to the arguments for the next
     // iteration.
     body_args = std::move(body_results);
-    body_arg_views.clear();
-    for (auto& arg : body_args) {
-      body_arg_views.push_back(arg.get());
-    }
 
     // Reallocate the `body_results` vector for the next iteration.
     body_results.clear();  // NOLINT: supressing use-after-move as clear()
@@ -344,15 +334,10 @@ static void TFRTWhileAsyncImpl(
     return;
   }
 
-  llvm::SmallVector<AsyncValue*, 4> body_arg_views;
-  body_arg_views.reserve(body_args.size());
-  for (auto& arg : body_args) {
-    body_arg_views.push_back(arg.get());
-  }
   std::vector<RCReference<AsyncValue>> body_results;
   body_results.resize(body_args.size() + 1);
 
-  body_fn->ExecuteAsync(exec_ctx, body_arg_views, body_results);
+  body_fn->ExecuteAsync(exec_ctx, std::move(body_args), body_results);
 
   // The last result from the body is the condition for the next iteration.
   RCReference<AsyncValue> next_condition = std::move(body_results.back());

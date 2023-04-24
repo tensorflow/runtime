@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <utility>
 
 #include "absl/strings/match.h"        // from @com_google_absl
 #include "absl/strings/str_format.h"   // from @com_google_absl
@@ -67,13 +68,27 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void SetRegisterValue(
     // If the register already has a value, it must be a return result that is
     // an indirect async value.
     auto* indirect_value = cast<IndirectAsyncValue>(reg->value);
+
     // Move one reference to the indirect value. Though a register might be used
     // as multiple return results, `reg->user_count` will only include one
     // reference for all return results.
-    indirect_value->ForwardTo(std::move(result));
-    // Drop the reference of this indirect async value as it is no longer needed
-    // in this function.
-    indirect_value->DropRef();
+
+    if (indirect_value->NumRef() == 1) {
+      // If the indirect value has only one reference left, then some user
+      // operation in the current function execution must be the only owner. So
+      // we need to forward the value first before dropping the reference.
+      indirect_value->ForwardTo(std::move(result));
+      // Drop the reference of this indirect async value as it is no longer
+      // needed in this function.
+      indirect_value->DropRef();
+    } else {
+      // If the indrect value has more than one references, then we can drop the
+      // reference owned by the current function first before forwarding the
+      // value, in order to trigger optimizations (e.g. the consumer can move
+      // the value out if they are the last owner).
+      indirect_value->DropRef();
+      indirect_value->ForwardTo(std::move(result));
+    }
   } else {
     auto* raw = result.release();
     // Note that `result` already has +1 reference. So add (user_count - 1) more
@@ -191,11 +206,11 @@ class ReadyKernelQueue {
 class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
  public:
   static void Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
-                      ArrayRef<AsyncValue*> arguments,
+                      std::vector<RCReference<AsyncValue>> arguments,
                       MutableArrayRef<RCReference<AsyncValue>> results);
 
   static void ExecuteAsync(ExecutionContext exec_ctx, const BEFFunction& fn,
-                           ArrayRef<AsyncValue*> arguments,
+                           std::vector<RCReference<AsyncValue>> arguments,
                            MutableArrayRef<RCReference<AsyncValue>> results);
 
   /// When the last reference to the BEFExecutor is dropped, we deallocate
@@ -211,7 +226,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file);
   ~BEFExecutor();
 
-  void Execute(ArrayRef<AsyncValue*> arguments);
+  void Execute(std::vector<RCReference<AsyncValue>> arguments);
 
  private:
   // Create BEFExecutor by setting up arguments and results in the register.
@@ -221,7 +236,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   // If this fails, the results are set to errors and null is returned.
   static RCReference<BEFExecutor> Create(
       ExecutionContext exec_ctx, const BEFFunction& fn,
-      ArrayRef<AsyncValue*> arguments,
+      ArrayRef<RCReference<AsyncValue>> arguments,
       MutableArrayRef<RCReference<AsyncValue>> results);
 
   // Iteratively process ready kernels in `ready_kernel_queue` and inserts ready
@@ -231,8 +246,9 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 
   // Process the first pseudo kernel and populate its ready users in
   // `ready_kernel_queue`.
-  void ProcessArgumentsPseudoKernel(ArrayRef<AsyncValue*> arguments,
-                                    ReadyKernelQueue& ready_kernel_queue);
+  void ProcessArgumentsPseudoKernel(
+      std::vector<RCReference<AsyncValue>> arguments,
+      ReadyKernelQueue& ready_kernel_queue);
 
   // Process a single kernel specified by `kernel_id`, and populate the ready
   // users in `ready_kernel_queue`.
@@ -383,7 +399,8 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
 // argument is unavailable), it sets up AndThen() callback to call
 // ProcessReadyKernels() when the result is ready.
 void BEFExecutor::ProcessArgumentsPseudoKernel(
-    ArrayRef<AsyncValue*> arguments, ReadyKernelQueue& ready_kernel_queue) {
+    std::vector<RCReference<AsyncValue>> arguments,
+    ReadyKernelQueue& ready_kernel_queue) {
   assert(ready_kernel_queue.inline_kernel_ids().empty());
   assert(ready_kernel_queue.outline_kernel_ids().empty());
 
@@ -424,7 +441,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
 
     // Process users of this result.
     ProcessUsedBysAndSetRegister(used_bys, ready_kernel_queue,
-                                 FormRef(arguments[argument_number]),
+                                 std::move(arguments[argument_number]),
                                  &result_register);
   }
 }
@@ -647,7 +664,7 @@ BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file)
 
 BEFExecutor::~BEFExecutor() {}
 
-void BEFExecutor::Execute(ArrayRef<AsyncValue*> arguments) {
+void BEFExecutor::Execute(std::vector<RCReference<AsyncValue>> arguments) {
   // Each KernelInfo::arguments_not_ready to the number of arguments (or one for
   // kernels with no arguments). This means that as we walk the list to drop the
   // argument count, if we hit zero then it is time for us to trigger the
@@ -663,7 +680,7 @@ void BEFExecutor::Execute(ArrayRef<AsyncValue*> arguments) {
 
   // The first kernel (kernel_id == 0) is a pseudo kernel that provides the
   // arguments, which gets special handling.
-  ProcessArgumentsPseudoKernel(arguments, ready_kernel_queue);
+  ProcessArgumentsPseudoKernel(std::move(arguments), ready_kernel_queue);
 
   // After ProcessArgumentsPseudoKernel() returns, `ready_kernel_queue` is
   // populated with available kernels. Then we start processing by calling
@@ -673,7 +690,7 @@ void BEFExecutor::Execute(ArrayRef<AsyncValue*> arguments) {
 
 RCReference<BEFExecutor> BEFExecutor::Create(
     ExecutionContext exec_ctx, const BEFFunction& fn,
-    ArrayRef<AsyncValue*> arguments,
+    ArrayRef<RCReference<AsyncValue>> arguments,
     MutableArrayRef<RCReference<AsyncValue>> results) {
   BEFFileImpl* bef_file = fn.bef_file();
   assert(arguments.size() == fn.argument_types().size() &&
@@ -737,7 +754,7 @@ RCReference<BEFExecutor> BEFExecutor::Create(
 }
 
 void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
-                          ArrayRef<AsyncValue*> arguments,
+                          std::vector<RCReference<AsyncValue>> arguments,
                           MutableArrayRef<RCReference<AsyncValue>> results) {
   RCReference<BEFExecutor> exec =
       BEFExecutor::Create(std::move(exec_ctx), fn, arguments, results);
@@ -747,7 +764,7 @@ void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
               fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
 
   // Kick off BEF execution starting from ready kernels.
-  exec->Execute(arguments);
+  exec->Execute(std::move(arguments));
 
   DEBUG_PRINT("Execute function %s end\n",
               fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
@@ -755,36 +772,25 @@ void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
 
 void BEFExecutor::ExecuteAsync(
     ExecutionContext exec_ctx, const BEFFunction& fn,
-    ArrayRef<AsyncValue*> arguments,
+    std::vector<RCReference<AsyncValue>> arguments,
     MutableArrayRef<RCReference<AsyncValue>> results) {
   RCReference<BEFExecutor> exec =
       BEFExecutor::Create(std::move(exec_ctx), fn, arguments, results);
   if (!exec) return;
 
-  std::vector<AsyncValue*> arg_copies;
-  arg_copies.reserve(arguments.size());
-  for (auto* arg : arguments) {
-    arg->AddRef();
-    arg_copies.push_back(arg);
-  }
-
   auto& work_queue = exec->exec_ctx_.work_queue();
-  work_queue.AddTask(
-      [&fn, exec = std::move(exec), arg_copies = std::move(arg_copies)]() {
-        DEBUG_PRINT("Execute function %s start\n",
-                    fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
+  work_queue.AddTask([&fn, exec = std::move(exec),
+                      arg_copies = std::move(arguments)]() mutable {
+    DEBUG_PRINT("Execute function %s start\n",
+                fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
 
-        // Kick off BEF execution starting from ready kernels.
-        exec->Execute(arg_copies);
+    // Kick off BEF execution starting from ready kernels.
+    exec->Execute(std::move(arg_copies));
 
-        for (auto* arg : arg_copies) {
-          arg->DropRef();
-        }
-
-        DEBUG_PRINT("Execute function %s end\n",
-                    fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
-        (void)fn;
-      });
+    DEBUG_PRINT("Execute function %s end\n",
+                fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
+    (void)fn;
+  });
 }
 
 //===----------------------------------------------------------------------===//
@@ -795,13 +801,27 @@ void BEFExecutor::ExecuteAsync(
 void BEFFunction::Execute(
     const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
     MutableArrayRef<RCReference<AsyncValue>> results) const {
-  BEFExecutor::Execute(exec_ctx, *this, arguments, results);
+  std::vector<RCReference<AsyncValue>> args;
+  args.reserve(arguments.size());
+  for (auto* av : arguments) {
+    args.push_back(FormRef(av));
+  }
+
+  BEFExecutor::Execute(exec_ctx, *this, std::move(args), results);
+}
+
+void BEFFunction::ExecuteByValue(
+    const ExecutionContext& exec_ctx,
+    std::vector<RCReference<AsyncValue>> arguments,
+    MutableArrayRef<RCReference<AsyncValue>> results) const {
+  BEFExecutor::Execute(exec_ctx, *this, std::move(arguments), results);
 }
 
 void BEFFunction::ExecuteAsync(
-    const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+    const ExecutionContext& exec_ctx,
+    std::vector<RCReference<AsyncValue>> arguments,
     MutableArrayRef<RCReference<AsyncValue>> results) const {
-  BEFExecutor::ExecuteAsync(exec_ctx, *this, arguments, results);
+  BEFExecutor::ExecuteAsync(exec_ctx, *this, std::move(arguments), results);
 }
 
 // To keep this function alive, we have to keep the underlying BEF file alive.

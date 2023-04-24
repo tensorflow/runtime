@@ -21,6 +21,7 @@
 
 #include <optional>
 #include <type_traits>
+#include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
@@ -119,8 +120,13 @@ class BEFFunction : public Function {
   void Execute(const ExecutionContext& exec_ctx,
                ArrayRef<AsyncValue*> arguments,
                MutableArrayRef<RCReference<AsyncValue>> results) const override;
+  void ExecuteByValue(
+      const ExecutionContext& exec_ctx,
+      std::vector<RCReference<AsyncValue>> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const override;
   void ExecuteAsync(
-      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      const ExecutionContext& exec_ctx,
+      std::vector<RCReference<AsyncValue>> arguments,
       MutableArrayRef<RCReference<AsyncValue>> results) const override;
   void AddRef() const override;
   void DropRef() const override;

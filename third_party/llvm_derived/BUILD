@@ -40,6 +40,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "tfrt_translate_main",
     srcs = ["tools/mlir-translate/mlir-translate.cpp"],
+    visibility = ["//visibility:public"],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",

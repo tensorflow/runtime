@@ -343,12 +343,11 @@ struct BinaryKernelImpl {
 
 template <typename BinaryFunctor, typename EigenEvaluator, typename OnDone>
 void BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
-                  HostTensor* output, const ExecutionContext& exec_ctx,
-                  OnDone on_done) {
+                  HostTensor* output, HostContext& host_ctx, OnDone on_done) {
   using T = typename BinaryFunctor::Input;
 
   internal::BinaryKernelImpl<BinaryFunctor, EigenEvaluator> impl(
-      EigenEvaluator{exec_ctx.host()});
+      EigenEvaluator{&host_ctx});
 
   if (isa<ScalarHostTensor<T>>(lhs) && isa<ScalarHostTensor<T>>(rhs)) {
     impl.ScalarScalar(lhs, rhs, output, std::move(on_done));
@@ -379,7 +378,7 @@ AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
   };
 
   BinaryKernel<BinaryFunctor, compat::AsyncEigenEvaluator>(
-      lhs, rhs, output, exec_ctx, std::move(on_done));
+      lhs, rhs, output, *exec_ctx.host(), std::move(on_done));
 
   return chain;
 }
@@ -389,8 +388,8 @@ Error SyncBinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
                        HostTensor* output, const ExecutionContext& exec_ctx) {
   Error error = Error::success();
   auto on_done = [&](Error err) { error = std::move(err); };
-  BinaryKernel<BinaryFunctor, compat::SyncEigenEvaluator>(lhs, rhs, output,
-                                                          exec_ctx, on_done);
+  BinaryKernel<BinaryFunctor, compat::SyncEigenEvaluator>(
+      lhs, rhs, output, *exec_ctx.host(), on_done);
   return error;
 }
 

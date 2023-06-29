@@ -13,12 +13,12 @@
 # limitations under the License.
 """Tests the btf_info tool"""
 
-import tempfile
 import os.path
 import subprocess
+import tempfile
 import unittest
-import numpy as np
 
+import numpy as np
 from utils import btf_writer  # from @tf_runtime
 
 EXPECTED = (

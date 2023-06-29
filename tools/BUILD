@@ -30,6 +30,7 @@ tfrt_cc_binary(
     srcs = ["tfrt_opt/tfrt_opt.cc"],
     visibility = [":friends"],
     deps = [
+        "@llvm-project//mlir:AllExtensions",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:Transforms",
         "@tf_runtime//:init_tfrt_dialects",

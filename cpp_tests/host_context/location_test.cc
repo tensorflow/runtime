@@ -38,7 +38,7 @@ class MockLocationHandler : public LocationHandler {
     return decoded_location;
   }
 
-  virtual ~MockLocationHandler() {}
+  ~MockLocationHandler() override {}
 };
 
 TEST(LocationTest, EmptyLocation) {

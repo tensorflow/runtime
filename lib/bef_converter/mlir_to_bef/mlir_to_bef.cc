@@ -53,6 +53,7 @@
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
+#include "tfrt/metrics/metrics.h"
 #include "tfrt/support/aligned_buffer.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"

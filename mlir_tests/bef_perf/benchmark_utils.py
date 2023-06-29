@@ -18,10 +18,11 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-from cpuinfo import cpuinfo
 from datetime import datetime
 import re
 import subprocess
+
+from cpuinfo import cpuinfo
 
 STR_ENCODING = 'utf-8'
 

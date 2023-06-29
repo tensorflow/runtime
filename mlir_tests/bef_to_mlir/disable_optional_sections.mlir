@@ -17,6 +17,7 @@
 // CHECK: warning: Missing AttributeTypes, AttributeNames or RegisterTypes sections.
 
 // CHECK-LABEL: "func.func"
+// CHECK: sym_name = "basic.constant"
 func.func @basic.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"() {{{.*}} = {{.*}}}
   // CHECK-NEXT: "tfrt.return"([[REG]]) : ({{.*}}) -> ()
@@ -24,4 +25,3 @@ func.func @basic.constant() -> i32 {
   %x = "simple.op"() {value = 42 : i32} : () -> i32
   tfrt.return %x : i32
 }
-// CHECK: sym_name = "basic.constant"

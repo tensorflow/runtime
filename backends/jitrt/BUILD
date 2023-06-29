@@ -18,7 +18,7 @@ licenses(["notice"])
 #         "include/tfrt/jitrt/opdefs/jitrt_base.td",
 #         "include/tfrt/jitrt/opdefs/jitrt_ops.td",
 #     ],
-#     compatible_with = ["//buildenv/target:gce"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     includes = ["include"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
@@ -29,7 +29,7 @@ licenses(["notice"])
 #
 # gentbl_cc_library(
 #     name = "jitrt_opdefs_inc_gen",
-#     compatible_with = ["//buildenv/target:gce"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     tbl_outs = [
 #         (
 #             [
@@ -63,7 +63,7 @@ licenses(["notice"])
 #     name = "jitrt_opdefs",
 #     srcs = ["lib/opdefs/jitrt_ops.cc"],
 #     hdrs = ["include/tfrt/jitrt/opdefs/jitrt_ops.h"],
-#     compatible_with = ["//buildenv/target:gce"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":jitrt_opdefs_inc_gen",
@@ -95,7 +95,7 @@ licenses(["notice"])
 #     name = "jitrt_compiler",
 #     srcs = ["lib/jitrt_compiler.cc"],
 #     hdrs = ["include/tfrt/jitrt/jitrt_compiler.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     visibility = ["@tf_runtime//:friends"],
 #     deps = [
 #         ":codegen_transforms",
@@ -113,6 +113,7 @@ licenses(["notice"])
 #         "@llvm-project//mlir:ComplexToLLVM",
 #         "@llvm-project//mlir:ControlFlowDialect",
 #         "@llvm-project//mlir:FuncDialect",
+#         "@llvm-project//mlir:FuncExtensions",
 #         "@llvm-project//mlir:FuncToLLVM",
 #         "@llvm-project//mlir:FuncTransforms",
 #         "@llvm-project//mlir:LLVMCommonConversion",
@@ -254,7 +255,7 @@ licenses(["notice"])
 #
 # gentbl_cc_library(
 #     name = "codegen_transforms_passes_inc_gen",
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     tbl_outs = [
 #         (
 #             [
@@ -273,7 +274,7 @@ licenses(["notice"])
 #     name = "codegen_transforms",
 #     srcs = ["lib/transforms/cost_driven_async_parallel_for.cc"],
 #     hdrs = ["include/tfrt/jitrt/transforms/codegen_passes.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
+#     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 #     deps = [
 #         ":codegen_transforms_passes_inc_gen",
 #         "@llvm-project//llvm:Support",

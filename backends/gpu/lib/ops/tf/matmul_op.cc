@@ -15,7 +15,9 @@
 //===- matmul_op.cc - Implements tf.matmul on GPU --------------*- C++
 //-*--===#include "matmul_op.h"
 
+#if defined(__x86_64__)
 #include <immintrin.h>
+#endif
 
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -50,6 +52,7 @@ class ConstValue {
   T value_;
 };
 
+#if defined(__x86_64__)
 // Specialization for incomplete type __half with storage type fp16.
 template <>
 class ConstValue<__half> {
@@ -65,6 +68,7 @@ class ConstValue<__half> {
  private:
   fp16 value_;
 };
+#endif
 }  // namespace
 
 template <typename T>

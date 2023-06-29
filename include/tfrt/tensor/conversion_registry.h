@@ -64,6 +64,11 @@ class TensorConversionFnRegistry {
   struct ConversionKey {
     TensorType src_tensor_type;
     TensorType dst_tensor_type;
+
+    bool operator==(const ConversionKey& other) const {
+      return src_tensor_type == other.src_tensor_type &&
+             dst_tensor_type == other.dst_tensor_type;
+    }
   };
 
   void AddTensorConversionFn(ConversionKey key, TensorConversionFn fn);

@@ -16,6 +16,7 @@
 //
 // Load MLIR and apply required passes on it.
 
+#include "mlir/InitAllExtensions.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/init_tfrt_dialects.h"
@@ -25,5 +26,6 @@ int main(int argc, char **argv) {
   tfrt::RegisterTFRTDialects(registry);
   mlir::registerInlinerPass();
   mlir::registerCanonicalizerPass();
+  mlir::registerAllExtensions(registry);
   return failed(mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
 }

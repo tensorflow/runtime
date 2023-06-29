@@ -14,6 +14,8 @@
 
 // RUN: bef_executor_lite %s.bef | FileCheck %s --dump-input-filter=all
 
+module attributes {tfrt.cost_threshold = 1 : i64} {
+
 // CHECK-LABEL: --- Running 'test_linear'
 func.func @test_linear() {
   %ch0 = tfrt.new.chain
@@ -213,4 +215,6 @@ func.func @repeat_2_inc() {
   // CHECK-NEXT: destroyed vt.value(3)
   tfrt.call @repeat_n_inc(%count) : (i32) -> ()
   tfrt.return
+}
+
 }

@@ -23,6 +23,7 @@ limitations under the License.
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_MEM_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_MEM_H_
 
+#include <cstdio>
 #include <functional>
 
 extern "C" {

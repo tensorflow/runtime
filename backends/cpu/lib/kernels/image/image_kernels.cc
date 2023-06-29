@@ -39,7 +39,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
   EnqueueWork(exec_ctx, [data = data.ValueRef(), output = output.CopyRef(),
                          exec_ctx] {
     TFRT_TRACE_SCOPE(Default, "DecodeJpeg");
-    if (!llvm::StringRef(data.get()).startswith("\xff\xd8\xff")) {
+    if (!llvm::StringRef(data.get()).starts_with("\xff\xd8\xff")) {
       auto diag = EmitError(exec_ctx, "image does not have jpeg format");
       output.SetError(diag.status);
       return;

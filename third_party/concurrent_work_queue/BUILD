@@ -26,6 +26,7 @@ filegroup(
         "lib/work_queue_base.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
 )
 
 filegroup(

@@ -26,14 +26,12 @@ load("@bazel_skylib//lib:versions.bzl", "versions")
 versions.check(minimum_bazel_version = "5.1.0")
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
-load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
+load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure")
 
 maybe(
     llvm_configure,
     name = "llvm-project",
 )
-
-llvm_disable_optional_support_deps()
 
 load("@rules_cuda//cuda:dependencies.bzl", "rules_cuda_dependencies")
 

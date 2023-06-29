@@ -20,6 +20,7 @@
 def glob_lit_tests(
         cfgs,
         test_file_exts,
+        name = None,
         exclude = [],
         data = [],
         per_test_extra_data = {},
@@ -34,6 +35,7 @@ def glob_lit_tests(
     Args:
       cfgs: label, lit config files.
       test_file_exts: [str], extensions for files that are tests.
+      name: str, name of the test_suite rule to generate for running all tests.
       exclude: [str], paths to exclude (for tests and inputs).
       data: [str], additional input data to the test.
       per_test_extra_data: {str: [str]}, extra data to attach to a given file.
@@ -54,6 +56,7 @@ def glob_lit_tests(
     features = features + ["--verbose", "--show-all"]
 
     include = ["**/*." + ext for ext in test_file_exts]
+    all_tests = []
     for test in native.glob(include, exclude):
         input = test + ".input"
 
@@ -62,6 +65,8 @@ def glob_lit_tests(
             srcs = [test],
             cfgs = cfgs,
         )
+
+        all_tests.append(test + ".test")
 
         native.py_test(
             name = test + ".test",
@@ -72,6 +77,14 @@ def glob_lit_tests(
             size = size_override.get(test, default_size),
             main = "lit.py",
             **kwargs
+        )
+
+    # TODO: remove this check after making it a required param.
+    if name:
+        native.test_suite(
+            name = name,
+            tests = all_tests,
+            tags = ["manual"],
         )
 
 def _lit_input_impl(ctx):

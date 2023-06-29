@@ -40,6 +40,7 @@
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/Extensions/AllExtensions.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Math/IR/Math.h"
@@ -86,6 +87,7 @@ void RegisterDefaultJitRtDialects(xla::runtime::DialectRegistry& dialects) {
 
   // Register other information needed for JitRt passes.
   mlir::tensor::registerInferTypeOpInterfaceExternalModels(*dialects);
+  mlir::func::registerAllExtensions(*dialects);
 }
 
 void CreateDefaultJitRtCompilationPipeline(

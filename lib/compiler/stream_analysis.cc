@@ -19,7 +19,9 @@
 #include "tfrt/compiler/stream_analysis.h"
 
 #include <optional>
+#include <string>
 
+#include "absl/log/log.h"  // from @com_google_absl
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/compiler/opdefs/tfrt_op_interfaces.h"
@@ -47,17 +49,12 @@ mlir::Attribute GetOptionAttribute(mlir::Block& block,
 }
 
 int64_t GetCostThresholdForBlock(mlir::Block& block) {
-  // default cost threshold is set to a lowest possible value, to disable any
-  // merging of streams.
-  static constexpr int64_t kDefaultCostThreshold = 1;
-
   if (auto attr = GetOptionAttribute(block, "tfrt.cost_threshold")
                       .dyn_cast_or_null<mlir::IntegerAttr>()) {
-    return std::max(kDefaultCostThreshold, attr.getInt());
+    return attr.getInt();
   }
 
-  // Otherwise, use default cost threshold.
-  return kDefaultCostThreshold;
+  return -1;
 }
 
 bool GetMergeInterDependentStreams(mlir::Block& block) {
@@ -125,13 +122,12 @@ int64_t StreamAnalysis::GetOperationCost(mlir::Operation* op) const {
 // to an operation, it chooses the path with the largest cost from root. This
 // creates a directed tree that is a subgraph of the original DAG.
 void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
-  // `cost_from_root_map` is to keep the total cost for each operation from
-  // root.
-  llvm::DenseMap<mlir::Operation*, int64_t> cost_from_root_map;
+  int64_t max_cost = 1;
 
   // Set up the root operation.
   build_info_.op_map[kRootOperation].cost = GetOperationCost(kRootOperation);
-  cost_from_root_map[kRootOperation] = build_info_.op_map[kRootOperation].cost;
+  build_info_.op_map[kRootOperation].cost_from_root =
+      build_info_.op_map[kRootOperation].cost;
 
   // For each operation, we try to decide its parent op.
   for (auto& op : block) {
@@ -157,8 +153,7 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
         auto* def = operand.getDefiningOp();
         assert(build_info_.op_map.count(def) > 0);
 
-        assert(cost_from_root_map.count(def) > 0);
-        int64_t operand_cost_from_root = cost_from_root_map[def];
+        int64_t operand_cost_from_root = build_info_.op_map[def].cost_from_root;
         assert(operand_cost_from_root > 0);
 
         // Record the data dependencies even if they are not on the path that
@@ -181,8 +176,25 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
       cost_from_root += parent_cost_from_root;
     }
 
-    cost_from_root_map[&op] = cost_from_root;
+    build_info_.op_map[&op].cost_from_root = cost_from_root;
+
+    if (cost_from_root > max_cost) {
+      max_cost = cost_from_root;
+    }
   }
+
+  if (options_.cost_threshold <= 0) {
+    merge_using_cost_from_root_ = true;
+    options_.cost_threshold = max_cost;
+  }
+
+  std::string func_name = "unknown";
+  if (auto func =
+          llvm::dyn_cast_or_null<mlir::func::FuncOp>(block.getParentOp())) {
+    func_name = func.getSymName().str();
+  }
+  LOG(INFO) << "StreamAnalysis: max_cost for function " << func_name << " is "
+            << max_cost;
 }
 
 void StreamAnalysis::MergeStreams(int from_id, int to_id) {
@@ -210,7 +222,7 @@ void StreamAnalysis::MergeStreams(int from_id, int to_id) {
 }
 
 void StreamAnalysis::MergeInterDependentStreams(
-    llvm::SmallVector<int, 4>& child_stream_ids) {
+    int64_t cost_from_root, llvm::SmallVector<int, 4>& child_stream_ids) {
   llvm::SmallDenseSet<int, 4> child_stream_id_set(child_stream_ids.begin(),
                                                   child_stream_ids.end());
 
@@ -245,7 +257,7 @@ void StreamAnalysis::MergeInterDependentStreams(
       MergeStreams(/*from_id=*/stream_id,
                    /*to_id=*/child_stream_id);
       stale_child_stream_ids.insert(stream_id);
-      if (child_stream_info.cost >= GetCostThreshold()) break;
+      if (cost_from_root + child_stream_info.cost >= GetCostThreshold()) break;
     }
   }
 
@@ -325,7 +337,10 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
 
   // First, we try merging child streams that have inter-dependencies.
   if (options_.merge_inter_dependent_streams && child_stream_ids.size() > 1) {
-    MergeInterDependentStreams(child_stream_ids);
+    MergeInterDependentStreams(
+        /*cost_from_root=*/merge_using_cost_from_root_ ? op_info.cost_from_root
+                                                       : 0,
+        child_stream_ids);
   }
 
   // After we merge streams with inter-dependencies, there might be still small
@@ -345,13 +360,23 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
     }
   };
 
+  auto is_cost_above_threshold = [&](int a_id, int b_id) {
+    if (merge_using_cost_from_root_) {
+      int64_t a_cost = a_id >= 0 ? build_info_.stream_infos[a_id].cost : 0;
+      int64_t b_cost = b_id >= 0 ? build_info_.stream_infos[b_id].cost : 0;
+      return op_info.cost_from_root + a_cost + b_cost >= GetCostThreshold();
+    }
+
+    return build_info_.stream_infos[a_id].cost >= GetCostThreshold();
+  };
+
   // `merged_child_stream_ids` collects the stream ids for merged child streams.
   llvm::SmallVector<int, 4> merged_child_stream_ids;
   for (int child_stream_id : child_stream_ids) {
     auto& child_stream_info = build_info_.stream_infos[child_stream_id];
     assert(child_stream_info.merge_to_stream_id == -1);
 
-    if (child_stream_info.cost >= GetCostThreshold()) {
+    if (is_cost_above_threshold(child_stream_id, -1)) {
       update_max_cost_stream(child_stream_info.cost, child_stream_id);
       if (child_stream_info.contains_return_op) {
         return_op_stream_id = child_stream_id;
@@ -366,8 +391,8 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
     // don't want too expensive streams due to merging as it increases the
     // latency.
     if (merged_child_stream_ids.empty() ||
-        build_info_.stream_infos[merged_child_stream_ids.back()].cost >=
-            GetCostThreshold()) {
+        is_cost_above_threshold(merged_child_stream_ids.back(),
+                                child_stream_id)) {
       merged_child_stream_ids.push_back(child_stream_id);
     } else {
       MergeStreams(child_stream_id, merged_child_stream_ids.back());
@@ -400,19 +425,20 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
   current_op_stream.parent_op = nullptr;
   AssignOpToStream(op, op_info, stream_id, current_op_stream);
 
-  // There is at most one single cheap stream (ie. the stream whose cost is
-  // below cost_threshold) left, and it must be the last one in
-  // `merged_child_stream_ids`. If there is, merge it into the current stream.
-  //
-  // TODO(chky): This effectively merges this cheap stream with the highest cost
-  // child stream for the simplicity in implementation. Consider if it should be
-  // merged to the next lowest cost child stream if there are use cases that
-  // shows the latter approach is better..
-  if (!merged_child_stream_ids.empty() &&
-      build_info_.stream_infos[merged_child_stream_ids.back()].cost <
-          GetCostThreshold() &&
-      stream_id != merged_child_stream_ids.back()) {
-    MergeStreams(merged_child_stream_ids.back(), op_info.stream_id);
+  if (!merge_using_cost_from_root_) {
+    // There is at most one single cheap stream (ie. the stream whose cost is
+    // below cost_threshold) left, and it must be the last one in
+    // `merged_child_stream_ids`. If there is, merge it into the current stream.
+    //
+    // TODO(chky): This effectively merges this cheap stream with the highest
+    // cost child stream for the simplicity in implementation. Consider if it
+    // should be merged to the next lowest cost child stream if there are use
+    // cases that shows the latter approach is better..
+    if (!merged_child_stream_ids.empty() &&
+        !is_cost_above_threshold(merged_child_stream_ids.back(), -1) &&
+        stream_id != merged_child_stream_ids.back()) {
+      MergeStreams(merged_child_stream_ids.back(), op_info.stream_id);
+    }
   }
 }
 

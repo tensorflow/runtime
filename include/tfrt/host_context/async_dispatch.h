@@ -19,6 +19,8 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 #define TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 
+#include <utility>
+
 #include "tfrt/concurrency/async_value.h"  // See note on RunWhenReady below.
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
@@ -159,6 +161,30 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
     Emplace(result, work());
   });
   return result;
+}
+
+// AndThenEnqueue functions which waits for an async value and enqueue the task
+// on non-block task queue.
+template <typename F>
+void AndThenEnqueue(HostContext* host, AsyncValue* value, F&& f) {
+  value->AndThen([host, f = std::forward<F>(f)]() mutable {
+    EnqueueWork(host, std::forward<F>(f));
+  });
+}
+
+template <typename F>
+void AndThenEnqueue(HostContext* host, const RCReference<AsyncValue>& value,
+                    F&& f) {
+  value->AndThen([host, f = std::forward<F>(f)]() mutable {
+    EnqueueWork(host, std::forward<F>(f));
+  });
+}
+
+template <typename T, typename F>
+void AndThenEnqueue(HostContext* host, const AsyncValueRef<T>& value, F&& f) {
+  value.AndThen([host, f = std::forward<F>(f)]() mutable {
+    EnqueueWork(host, std::forward<F>(f));
+  });
 }
 
 [[nodiscard]] bool EnqueueBlockingWork(HostContext* host,

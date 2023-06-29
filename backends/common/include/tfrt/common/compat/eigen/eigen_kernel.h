@@ -85,8 +85,7 @@ template <typename Tin, typename Tout, typename Fn>
 llvm::Error UnaryEigenKernel(
     const DenseHostTensor& input,
     // `output` supplies the buffer in which to write the output.
-    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
+    DenseHostTensor* output, Fn fn, HostContext& host_ctx) {
   auto input_view = DHTArrayView<Tin>(&input);
   auto output_view = MutableDHTArrayView<Tout>(output);
   const TensorShape& shape_input = input.shape();
@@ -98,7 +97,7 @@ llvm::Error UnaryEigenKernel(
   auto in = AsEigenConstTensor(input_view);
   auto out = AsEigenTensor(output_view);
   auto expr = fn(in, out);
-  out.device(host->GetOrCreateSharedContext<EigenHostContext>().Device()) =
+  out.device(host_ctx.GetOrCreateSharedContext<EigenHostContext>().Device()) =
       expr;
   return llvm::Error::success();
 }
@@ -141,8 +140,7 @@ template <typename Tin, typename Tout, typename Fn>
 llvm::Error BinaryEigenKernel(
     const DenseHostTensor& left, const DenseHostTensor& right,
     // `output` supplies the buffer in which to write the output.
-    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
+    DenseHostTensor* output, Fn fn, HostContext& host_ctx) {
   auto left_view = DHTArrayView<Tin>(&left);
   auto right_view = DHTArrayView<Tin>(&right);
   auto output_view = MutableDHTArrayView<Tout>(output);
@@ -157,7 +155,7 @@ llvm::Error BinaryEigenKernel(
   auto out_tensor = AsEigenTensor(output_view);
   auto expr = fn(left_tensor, right_tensor, out_tensor);
   out_tensor.device(
-      host->GetOrCreateSharedContext<EigenHostContext>().Device()) = expr;
+      host_ctx.GetOrCreateSharedContext<EigenHostContext>().Device()) = expr;
   return llvm::Error::success();
 }
 
@@ -165,15 +163,14 @@ template <typename Tin, typename Tout, typename Fn>
 llvm::Error BinaryEigenKernelBroadcast(
     const DenseHostTensor& left, Tin s,
     // `output` supplies the buffer in which to write the output.
-    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
+    DenseHostTensor* output, Fn fn, HostContext& host_ctx) {
   auto left_view = DHTArrayView<Tin>(&left);
   auto output_view = MutableDHTArrayView<Tout>(output);
   auto left_tensor = AsEigenConstTensor(left_view);
   auto out_tensor = AsEigenTensor(output_view);
   auto expr = fn(left_tensor, s, out_tensor);
   out_tensor.device(
-      host->GetOrCreateSharedContext<EigenHostContext>().Device()) = expr;
+      host_ctx.GetOrCreateSharedContext<EigenHostContext>().Device()) = expr;
   return llvm::Error::success();
 }
 

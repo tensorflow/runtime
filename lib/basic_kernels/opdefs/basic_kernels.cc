@@ -26,6 +26,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
@@ -131,6 +132,16 @@ static LogicalResult checkTFRTReturn(Operation *op, Region *region,
            << "operand types don't match '" << op->getName() << "' result";
 
   return success();
+}
+
+void CallOp::setCalleeFromCallable(CallInterfaceCallable callee) {
+  // Direct call.
+  if (FlatSymbolRefAttr calleeAttr = getCalleeAttr()) {
+    auto symRef = callee.get<SymbolRefAttr>();
+    return setCalleeAttr(cast<FlatSymbolRefAttr>(symRef));
+  }
+  // Indirect call, callee Value is the first operand.
+  return setOperand(0, callee.get<Value>());
 }
 
 //===----------------------------------------------------------------------===//

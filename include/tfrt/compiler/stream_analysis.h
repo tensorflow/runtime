@@ -157,7 +157,10 @@ class StreamAnalysis {
   // the cost is larger or equal to the threshold, then it is not worth doing
   // so. Note that dependent streams can still be merged regardless of the cost.
   // It is set through the module attribute `tfrt.cost_threshold`.
-  int64_t GetCostThreshold() const { return options_.cost_threshold; }
+  int64_t GetCostThreshold(int default_cost = 1) const {
+    return (options_.cost_threshold <= 0) ? default_cost
+                                          : options_.cost_threshold;
+  }
 
  private:
   void GetOptionsForBlock(mlir::Block& block);
@@ -165,7 +168,8 @@ class StreamAnalysis {
   void ScheduleOpForwardPass(mlir::Block& block);
   void BuildStreamBackwardPass(mlir::Block& block);
   void BuildStreamForOp(mlir::Operation* op);
-  void MergeInterDependentStreams(llvm::SmallVector<int, 4>& child_stream_ids);
+  void MergeInterDependentStreams(int64_t cost_from_root,
+                                  llvm::SmallVector<int, 4>& child_stream_ids);
   void MergeStreams(int from_id, int to_id);
   void FinalizeStreams(mlir::Block& block);
   int64_t GetOperationCost(mlir::Operation* op) const;
@@ -191,6 +195,7 @@ class StreamAnalysis {
     struct OpInfo {
       int stream_id = -1;
       int64_t cost = 0;
+      int64_t cost_from_root = 0;
 
       // `scheduled_users` are a subset of users of the current operation. Some
       // of the users of the current operation might be ready for execution
@@ -236,6 +241,7 @@ class StreamAnalysis {
 
   BuildInfo build_info_;
   Options options_;
+  bool merge_using_cost_from_root_ = false;
 
   // `streams_` contains the finalized Stream objects that contain information
   // for users to query.

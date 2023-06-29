@@ -17,6 +17,9 @@ package_group(
     name = "friends",
     packages = [
         "//...",
+        "//third_party/tensorflow/compiler/mlir/tfrt/...",
+        "//third_party/tensorflow/core/runtime_fallback/...",
+        "//third_party/tensorflow/core/tfrt/...",
     ],
 )
 
@@ -128,7 +131,6 @@ bool_flag(
 config_setting(
     name = "gpu_enabled_oss",
     flag_values = {":enable_gpu": "True"},
-    visibility = ["//visibility:private"],
 )
 
 # Config setting to conditionally link GPU targets.
@@ -149,7 +151,6 @@ alias(
 #         "//devtools/blueprint/bluze/public:bluze_ncl",
 #         "//devtools/blueprint/ncl:sanitizer",
 #     ],
-#     deps = ["//devtools/bazel/subteams/configurability/android_platforms_migration:flags_ncl"],
 # )
 #
 # filegroup(
@@ -726,6 +727,7 @@ tfrt_cc_library(
         ":bef_location_emitter",
         ":core_runtime_opdefs",
         ":dtype",
+        ":metrics",
         ":stream_analysis",
         ":support",
         "@llvm-project//llvm:Support",
@@ -1525,6 +1527,7 @@ tfrt_cc_library(
     deps = [
         ":basic_kernels_opdefs",
         ":compiler_tfrt_op_interfaces",
+        "@com_google_absl//absl/log",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",

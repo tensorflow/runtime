@@ -63,7 +63,8 @@ void BinaryKernel(benchmark::State& state, int num_threads,
     tfrt::latch done(1);
 
     ::tfrt::cpu::BinaryKernel<Functor, compat::AsyncEigenEvaluator>(
-        *lhs, *rhs, &*res, exec_ctx, [&](Error err) { done.count_down(); });
+        *lhs, *rhs, &*res, *exec_ctx.host(),
+        [&](Error err) { done.count_down(); });
 
     done.wait();
   }

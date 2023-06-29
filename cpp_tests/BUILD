@@ -17,6 +17,7 @@ tfrt_cc_library(
         # copybara:uncomment_begin
         # ":__subpackages__",
         # "//learning/brain/tfrt:__subpackages__",
+        # "//learning/brain/experimental/tfrt:__subpackages__",
         # "//third_party/tensorflow/core/tfrt:__subpackages__",
         # "@tf_runtime//backends/gpu/cpp_tests:__subpackages__",
         # "//third_party/tf_runtime_google/cpp_tests:__subpackages__",

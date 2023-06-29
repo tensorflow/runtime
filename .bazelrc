@@ -22,6 +22,13 @@ build --@rules_cuda//cuda:compiler="Please specify a compiler (--config=clang/gc
 build --incompatible_enforce_config_setting_visibility
 build --incompatible_config_setting_private_default_visibility
 
+# Disable clang extention that rejects type definitions within offsetof. 
+# This was added in clang-16 by https://reviews.llvm.org/D133574.
+# Can be removed once upb is updated, since a type definition is used within
+# offset of in the current version of ubp.
+# See https://github.com/protocolbuffers/upb/blob/9effcbcb27f0a665f9f345030188c0b291e32482/upb/upb.c#L183.
+build --copt=-Wno-gnu-offsetof-extensions
+
 # LLVM's LIT test runner needs %PATHEXT% on Windows
 test:windows --test_env=PATHEXT
 

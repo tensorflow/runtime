@@ -695,8 +695,6 @@ template <typename T>
 static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                                               const std::string& suffix) {
   registry->AddKernel("tfrt_test.relu." + suffix, TFRT_KERNEL(cpu::Relu<T>));
-  registry->AddSyncKernel("tfrt_test_sync.relu." + suffix,
-                          TFRT_SYNC_KERNEL(cpu::SyncRelu<T>));
   registry->AddKernel("tfrt_test.relu_inplace." + suffix,
                       TFRT_KERNEL(ReluInPlace<T>));
   registry->AddKernel("tfrt_test.add." + suffix,

@@ -826,7 +826,7 @@ tfrt_cc_library(
         "lib/passes/set_entry_point.cc",
     ],
     hdrs = ["include/tfrt/gpu/passes/passes.h"],
-    visibility = ["@tf_runtime//:friends"],
+    visibility = ["//visibility:public"],
     deps = [
         ":gpu_entry_point",
         ":gpu_opdefs",

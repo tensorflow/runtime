@@ -6,6 +6,7 @@ licenses(["notice"])
 
 package(
     default_visibility = [
+        # copybara:uncomment "//learning/brain/tfrt/fallback/test:__subpackages__",
         # copybara:uncomment "//third_party/tensorflow/core/runtime_fallback:__subpackages__",
         "@tf_runtime//:__subpackages__",
         # copybara:uncomment "//third_party/tf_runtime_google:__subpackages__",

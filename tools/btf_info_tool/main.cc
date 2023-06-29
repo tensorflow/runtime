@@ -42,7 +42,6 @@ using tfrt::HostBuffer;
 using tfrt::RCReference;
 using tfrt::TensorMetadata;
 using tfrt::TensorShape;
-using tfrt::btf::TensorDType;
 using tfrt::btf::TensorHeader;
 using tfrt::btf::TensorLayout;
 

@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 
 import os
+
 import lit.formats
 from lit.llvm import llvm_config
 from lit.llvm.subst import ToolSubst

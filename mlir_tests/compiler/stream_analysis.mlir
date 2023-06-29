@@ -128,4 +128,32 @@ func.func @merge_inter_dependent_streams(%c0: i32) -> i32 attributes {tfrt.merge
   tfrt.return %c11 : i32
 }
 
+// expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1, child streams: [4]}}
+func.func @auto_threshold(%ch0: i32) -> i32 attributes {tfrt.cost_threshold = 0} {
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  %ch2 = tfrt_test.test_cost %ch1 {id = 1 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  %ch3 = tfrt_test.test_cost %ch2 {id = 2 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  %ch4 = tfrt_test.test_cost %ch3 {id = 3 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  %ch5 = tfrt_test.test_cost %ch4 {id = 4 : i64, _tfrt_cost = 4 : i64} : i32
+
+  // expected-remark@+1 {{stream id: 4, stream cost: 16, parent stream: 0}}
+  %ch10 = tfrt_test.test_cost %ch0 {id = 10 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 4, stream cost: 16, parent stream: 0}}
+  %ch11 = tfrt_test.test_cost %ch0 {id = 11 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 4, stream cost: 16, parent stream: 0}}
+  %ch12 = tfrt_test.test_cost %ch0 {id = 12 : i64, _tfrt_cost = 4 : i64} : i32
+  // expected-remark@+1 {{stream id: 4, stream cost: 16, parent stream: 0}}
+  %ch13 = tfrt_test.test_cost %ch0 {id = 13 : i64, _tfrt_cost = 4 : i64} : i32
+
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  %ch6 = tfrt_test.test_cost %ch10, %ch12, %ch13, %ch5 {id = 100 : i64, _tfrt_cost = 100 : i64} : i32, i32, i32, i32
+  // expected-remark@+1 {{stream id: 0, stream cost: 122, parent stream: -1}}
+  tfrt.return %ch6 : i32
+}
+
 }

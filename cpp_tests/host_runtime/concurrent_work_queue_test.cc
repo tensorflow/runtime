@@ -121,5 +121,32 @@ TEST(SingleThreadeWorkQueueTest, AwaitAndDestroy) {
   }
 }
 
+TEST(SingleThreadeWorkQueueTest, MultiThreaded) {
+  std::unique_ptr<ConcurrentWorkQueue> work_queue =
+      CreateSingleThreadedWorkQueue();
+
+  int num_threads = 8;
+
+  std::vector<RCReference<AsyncValue>> avs;
+  for (int i = 0; i < num_threads; ++i) {
+    avs.push_back(MakeUnconstructedAsyncValueRef<int>());
+  }
+
+  std::vector<std::thread> threads;
+
+  for (int i = 0; i < num_threads; ++i) {
+    threads.emplace_back([&, i] {
+      work_queue->AddTask([&, i] { avs[i]->emplace<int>(i); });
+      work_queue->Await(avs[i]);
+    });
+  }
+
+  for (int i = 0; i < num_threads; ++i) {
+    threads[i].join();
+    EXPECT_TRUE(avs[i]->IsAvailable());
+  }
+  work_queue.reset();
+}
+
 }  // namespace
 }  // namespace tfrt

@@ -207,7 +207,7 @@ mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser &parser,
   auto spec = parser.getFullSymbolSpec();
   auto loc = parser.getEncodedSourceLoc(parser.getNameLoc());
 
-  if (spec.startswith("shape")) return ParseShapeAttr(getContext(), spec, loc);
+  if (spec.starts_with("shape")) return ParseShapeAttr(getContext(), spec, loc);
 
   return (mlir::emitError(loc, "unknown corert attribute: ") << spec, nullptr);
 }

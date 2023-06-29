@@ -20,6 +20,6 @@ def gen_benchmark(benchmark_name = "", num_kernels = 100):
         name = "gen_" + benchmark_name,
         outs = [benchmark_name + ".mlir"],
         cmd = "$(location gen_benchmark_mlir) --num_kernels=" + str(num_kernels) + " " + benchmark_name + " > $@",
-        exec_tools = ["gen_benchmark_mlir"],
+        tools = ["gen_benchmark_mlir"],
         output_to_bindir = True,  # Match OSS
     )

@@ -34,7 +34,7 @@ def mlir_to_bef(name, tfrt_translate):
         srcs = [name],
         outs = [bef_file],
         cmd = "$(location " + tfrt_translate + ") -mlir-to-bef $(location " + name + ") > $@",
-        exec_tools = [tfrt_translate],
+        tools = [tfrt_translate],
     )
     return bef_file
 
@@ -48,6 +48,7 @@ def glob_tfrt_lit_tests(
         no_bef_translation = [],
         tfrt_translate = "@tf_runtime//tools:tfrt_translate",
         per_test_extra_data = {},
+        tags_override = {},
         **kwargs):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
 
@@ -76,5 +77,6 @@ def glob_tfrt_lit_tests(
         cfgs = "@tf_runtime//mlir_tests:litcfgs",  # copybara:comment
         test_file_exts = ["mlir"],
         exclude = exclude,
+        tags_override = tags_override,
         **kwargs
     )

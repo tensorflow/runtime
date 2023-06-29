@@ -4,6 +4,7 @@ load("@tf_runtime//mlir_tests:lit.bzl", "glob_lit_tests")
 licenses(["notice"])
 
 glob_lit_tests(
+    name = "all_tests",
     cfgs = "@tf_runtime//mlir_tests:litcfgs",  # copybara:comment
     data = [":test_utilities"],
     # copybara:uncomment driver = "@tf_runtime//backends/gpu/mlir_tests:run_lit.sh",

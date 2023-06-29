@@ -185,6 +185,7 @@ void SingleThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
                        std::make_move_iterator(local_work_items.begin() +
                                                next_work_item_index),
                        std::make_move_iterator(local_work_items.end()));
+    cv_.notify_all();
   }
 }
 

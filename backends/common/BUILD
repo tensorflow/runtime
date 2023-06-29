@@ -158,7 +158,7 @@ tfrt_cc_library(
         ],
         "//conditions:default": [],
     }),
-    visibility = ["@tf_runtime//:friends"],
+    visibility = ["//visibility:public"],
     deps = [
         "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",

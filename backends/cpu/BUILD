@@ -1,4 +1,4 @@
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
@@ -48,7 +48,10 @@ tfrt_cc_library(
         "include/tfrt/cpu/ops/test/cpu_ops_and_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/ops/test/static_registration.cc",
-    visibility = ["@tf_runtime//:friends"],
+    visibility = if_google(
+        ["@tf_runtime//:friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         ":core_runtime",
         ":cpu_kernels",
@@ -116,7 +119,10 @@ tfrt_cc_library(
         "include/tfrt/cpu/ops/tf/cpu_ops.h",
     ],
     alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
-    visibility = ["@tf_runtime//:friends"],
+    visibility = if_google(
+        ["@tf_runtime//:friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         ":buffer_forwarding",
         ":core_runtime",

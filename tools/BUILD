@@ -1,5 +1,5 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_binary", "tfrt_cc_library")
 
 package(
     # copybara:uncomment_begin
@@ -86,7 +86,10 @@ tfrt_cc_library(
     srcs = [
         "bef_executor/main.cc",
     ],
-    visibility = [":friends"],
+    visibility = if_google(
+        [":friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:bef_executor_driver",
@@ -102,7 +105,10 @@ tfrt_cc_library(
 # This build target contains kernels that are lightweight to build.
 tfrt_cc_library(
     name = "bef_executor_lightweight_kernels",
-    visibility = [":friends"],
+    visibility = if_google(
+        [":friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         "@tf_runtime//:basic_kernels_alwayslink",
         "@tf_runtime//:core_runtime_alwayslink",
@@ -124,7 +130,10 @@ tfrt_cc_library(
 # This build target contains kernels that are expensive to build.
 tfrt_cc_library(
     name = "bef_executor_expensive_kernels",
-    visibility = [":friends"],
+    visibility = if_google(
+        [":friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         "@tf_runtime//backends/common:eigen_kernels_alwayslink",
         "@tf_runtime//backends/common:eigen_ops_alwayslink",
@@ -144,7 +153,10 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "bef_executor_jit_kernels",
-    visibility = [":friends"],
+    visibility = if_google(
+        [":friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_corert_kernels_alwayslink",
         # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_kernels_alwayslink",

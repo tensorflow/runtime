@@ -320,10 +320,13 @@ tfrt_cc_library(
         "lib/core_runtime/op_handler_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
-    visibility = [
-        ":tests_and_tools",
-        "@tf_runtime//:friends",
-    ],
+    visibility = if_google(
+        [
+            ":tests_and_tools",
+            "@tf_runtime//:friends",
+        ],
+        ["//visibility:public"],
+    ),
     deps = [
         ":gpu_config",
         ":gpu_device_alwayslink",
@@ -353,10 +356,13 @@ tfrt_cc_library(
         "include/tfrt/gpu/device/device_util.h",
     ],
     alwayslink_static_registration_src = "lib/device/static_registration.cc",
-    visibility = [
-        ":tests_and_tools",
-        "@tf_runtime//:friends",
-    ],
+    visibility = if_google(
+        [
+            ":tests_and_tools",
+            "@tf_runtime//:friends",
+        ],
+        ["//visibility:public"],
+    ),
     deps = [
         ":gpu_config",
         ":gpu_device_eigen_support",

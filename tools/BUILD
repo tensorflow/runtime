@@ -51,7 +51,10 @@ tfrt_cc_library(
 
 tfrt_cc_binary(
     name = "tfrt_translate",
-    visibility = [":friends"],
+    visibility = if_google(
+        [":friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         ":translate_lib",
     ],

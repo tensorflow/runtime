@@ -1436,6 +1436,7 @@ td_library(
         "include/tfrt/compiler/opdefs/tfrt_traits.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     visibility = ["//visibility:public"],
     deps = [
         "@llvm-project//mlir:OpBaseTdFiles",

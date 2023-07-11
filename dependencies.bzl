@@ -85,15 +85,15 @@ def tfrt_dependencies():
 
     tfrt_http_archive(
         name = "com_google_protobuf",
-        sha256 = "bf0e5070b4b99240183b29df78155eee335885e53a8af8683964579c214ad301",
-        strip_prefix = "protobuf-3.14.0",
+        sha256 = "f66073dee0bc159157b0bd7f502d7d1ee0bc76b3c1eac9836927511bdc4b3fc1",
+        strip_prefix = "protobuf-3.21.9",
         system_build_file = "@tf_runtime//third_party/systemlibs:protobuf.BUILD",
         system_link_files = {
             "@tf_runtime//third_party/systemlibs:protobuf.bzl": "protobuf.bzl",
         },
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/protobuf/archive/v3.14.0.zip",
-            "https://github.com/protocolbuffers/protobuf/archive/v3.14.0.zip",
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/protobuf/archive/v3.21.9.zip",
+            "https://github.com/protocolbuffers/protobuf/archive/v3.21.9.zip",
         ],
     )
 

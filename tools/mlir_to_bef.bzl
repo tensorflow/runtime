@@ -71,6 +71,7 @@ def glob_tfrt_lit_tests(
         # copybara:uncomment mlir_to_mpm(mlir_file, bef_file, data)
 
     glob_lit_tests(
+        name = name,
         data = data,
         per_test_extra_data = per_test_extra_data,
         # copybara:uncomment driver = driver,

@@ -35,7 +35,7 @@ namespace tfrt {
 
 class TimerQueue {
   using Clock = std::chrono::system_clock;
-  using TimeDuration = std::chrono::nanoseconds;
+  using TimeDuration = Clock::duration;
   using TimerCallback = llvm::unique_function<void()>;
   using TimePoint =
       std::chrono::time_point<std::chrono::system_clock, TimeDuration>;

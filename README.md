@@ -98,8 +98,8 @@ Follow [the clang installation instructions](https://apt.llvm.org/) to install
 clang. The automatic installation script that installs clang, lldb, and lld, is
 recommended. TFRT is built and verified with clang 11.1.
 
-If you have multiple versions of clang installed, ensure that the correct
-version of clang is the default. On Ubuntu based systems, you can use
+If you have multiple versions of clang installed, ensure that the right version
+of clang is the default. On Ubuntu based systems, you can use
 `update-alternatives` to select the default version. The following example
 commands assume you installed clang-11:
 

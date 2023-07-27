@@ -154,24 +154,11 @@ tfrt_cc_library(
 # tools:bef_executor. This ensures other bef_executor binaries can easily use
 # the same kernels as tools:bef_executor
 
-tfrt_cc_library(
-    name = "bef_executor_jit_kernels",
-    visibility = if_google(
-        [":friends"],
-        ["//visibility:public"],
-    ),
-    deps = [
-        # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_corert_kernels_alwayslink",
-        # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_kernels_alwayslink",
-    ],
-)
-
 tfrt_cc_binary(
     name = "bef_executor_lite",
     testonly = True,
     visibility = [":friends"],
     deps = [
-        ":bef_executor_jit_kernels",
         ":bef_executor_lib",
         ":bef_executor_lightweight_kernels",
         "@tf_runtime//:dtype",
@@ -186,7 +173,6 @@ tfrt_cc_binary(
     visibility = [":friends"],
     deps = [
         ":bef_executor_expensive_kernels",
-        ":bef_executor_jit_kernels",
         ":bef_executor_lib",
         ":bef_executor_lightweight_kernels",
         "@tf_runtime//:dtype",
@@ -222,7 +208,6 @@ tfrt_cc_binary(
     name = "bef_executor_debug_tracing",
     testonly = True,
     deps = [
-        ":bef_executor_jit_kernels",
         ":bef_executor_lib",
         ":bef_executor_lightweight_kernels",
         ":bef_executor_lite",

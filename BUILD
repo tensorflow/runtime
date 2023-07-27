@@ -1582,7 +1582,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:VectorDialect",
         # copybara:uncomment "//third_party/tensorflow/compiler/xla/mlir/runtime/ir:rt",
-        # copybara:uncomment "@tf_runtime//backends/jitrt:jitrt_opdefs",
     ],
 )
 

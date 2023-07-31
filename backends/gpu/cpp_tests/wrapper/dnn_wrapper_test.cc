@@ -23,6 +23,9 @@
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 
+using testing::AnyOf;
+using testing::HasSubstr;
+
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
@@ -201,10 +204,15 @@ TEST_F(Test, CudnnLogCUDA) {
   std::string log_string;
   llvm::raw_string_ostream(log_string)
       << DnnSetConvolutionGroupCount(descriptor.get(), -1);
-  for (const char* substr : {"function cudnnSetConvolutionGroupCount() called",
-                             "groupCount: type=int; val=-1"}) {
-    EXPECT_TRUE(llvm::StringRef(log_string).contains(substr)) << log_string;
-  }
+  EXPECT_THAT(log_string,
+              HasSubstr("function cudnnSetConvolutionGroupCount() called"));
+  EXPECT_THAT(
+      log_string,
+      AnyOf(
+          // CUDA 8.9.0 and below:
+          HasSubstr("groupCount: type=int; val=-1"),
+          // CUDA 8.9.1 and above:
+          HasSubstr("Error: CUDNN_STATUS_BAD_PARAM; Reason: groupCount < 1")));
 }
 
 }  // namespace wrapper

@@ -69,12 +69,9 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
     int branch_index = branch_index_av->get<int>();
     // Check if index is valid.
     if (branch_index < 0 || branch_index >= branches.size()) {
-      auto error = EmitErrorAsync(
-          exec_ctx, absl::InvalidArgumentError(tfrt::StrCat(
-                        "branch_index invalid. branch index: ", branch_index,
-                        " # branches: ", branches.size())));
-      for (auto& result : results) result = error;
-      return;
+      // Use the last branch as the default branch if the index is invalid. This
+      // is to be consistent with tensorflow's case op.
+      branch_index = branches.size() - 1;
     }
     branches[branch_index]->Execute(exec_ctx, args.drop_front(), results);
   };

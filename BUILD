@@ -1,3 +1,4 @@
+# Placeholder: load py_library
 load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library")
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")

@@ -1,3 +1,4 @@
+# Placeholder: load py_test
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_binary", "tfrt_cc_library")
 

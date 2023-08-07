@@ -1,3 +1,4 @@
+# Placeholder: load py_library
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_py_binary")
 load("@tf_runtime//mlir_tests/bef_perf:gen_benchmark.bzl", "gen_benchmark")

@@ -14,6 +14,8 @@
 
 """BUILD rules for tfrt."""
 
+# Placeholder: load aliased py_binary
+
 # Sanitize a dependency so that it works correctly from code that includes
 # TensorFlow as a submodule.
 def clean_dep(dep):
@@ -203,6 +205,7 @@ def tfrt_py_binary(
         tags = [],
         **kwargs):
     """A py_binary with tfrt-specific options."""
+
     native.py_binary(
         tags = tags + ["do_not_disable_rtti"],
         **kwargs

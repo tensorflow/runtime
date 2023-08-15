@@ -60,7 +60,7 @@ namespace {
 // Creates CastOps from illegal source types to legal target types and back.
 class OneToAnyConversion {
  public:
-  static FailureOr<OneToAnyConversion> Get(TypeConverter *converter,
+  static FailureOr<OneToAnyConversion> Get(const TypeConverter *converter,
                                            TypeRange source_types);
 
   ArrayRef<Type> GetTargetTypes() const {
@@ -654,8 +654,8 @@ auto MergeRanges(R1 first, R2 second) {
   return result;
 }
 
-FailureOr<OneToAnyConversion> OneToAnyConversion::Get(TypeConverter *converter,
-                                                      TypeRange source_types) {
+FailureOr<OneToAnyConversion> OneToAnyConversion::Get(
+    const TypeConverter *converter, TypeRange source_types) {
   TypeConverter::SignatureConversion conversion(source_types.size());
   if (failed(converter->convertSignatureArgs(source_types, conversion)))
     return failure();

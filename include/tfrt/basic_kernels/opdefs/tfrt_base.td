@@ -35,6 +35,7 @@ def TFRT_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::compiler";
+  let usePropertiesForAttributes = 0;
 }
 
 def TFRT_ChainType :

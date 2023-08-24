@@ -22,6 +22,7 @@
 #ifndef TFRT_CORE_RUNTIME_OPDEFS_SYNC_CORE_RUNTIME_H_
 #define TFRT_CORE_RUNTIME_OPDEFS_SYNC_CORE_RUNTIME_H_
 
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"

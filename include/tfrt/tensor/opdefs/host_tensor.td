@@ -36,6 +36,7 @@ def HostTensor_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::ht";
+  let usePropertiesForAttributes = 0;
 }
 
 //===----------------------------------------------------------------------===//

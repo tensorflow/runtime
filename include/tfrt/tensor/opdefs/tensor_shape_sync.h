@@ -21,6 +21,7 @@
 #ifndef TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_
 #define TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_
 
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"

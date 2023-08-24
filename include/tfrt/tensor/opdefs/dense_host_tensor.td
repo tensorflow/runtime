@@ -37,6 +37,7 @@ def DHT_Dialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::dht";
+  let usePropertiesForAttributes = 0;
 }
 
 // Base class for the operation in this dialect

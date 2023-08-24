@@ -37,6 +37,7 @@ def TensorShapeSyncDialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::ts_sync";
+  let usePropertiesForAttributes = 0;
 }
 
 // Base class for the operation in this dialect

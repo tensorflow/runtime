@@ -20,6 +20,7 @@
 #ifndef TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_
 #define TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_
 
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 

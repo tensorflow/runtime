@@ -30,7 +30,6 @@ def CoreRT_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::corert";
-  let usePropertiesForAttributes = 0;
 }
 
 // Deivce is an aggregate of Core Runtime ops. It is passed to corert.executeop

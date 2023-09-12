@@ -36,7 +36,6 @@ def Test_Sync_Dialect : Dialect {
   }];
 
   let cppNamespace = "::tfrt::test_sync";
-  let usePropertiesForAttributes = 0;
 }
 
 #endif  // TEST_SYNC_OPS

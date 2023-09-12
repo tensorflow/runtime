@@ -35,7 +35,6 @@ def COO_Dialect : Dialect {
   }];
 
   let cppNamespace = "tfrt::coo";
-  let usePropertiesForAttributes = 0;
 }
 
 // Base class for the operation in this dialect.

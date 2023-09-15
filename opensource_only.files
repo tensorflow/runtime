@@ -5,7 +5,6 @@ tf_runtime/.clang-format:
 tf_runtime/.gitignore:
 tf_runtime/CODEOWNERS:
 tf_runtime/WORKSPACE:
-tf_runtime/backends/gpu/tools/stub_codegen/BUILD:
 tf_runtime/dependencies.bzl:
 tf_runtime/mlir_tests/lit.bzl:
 tf_runtime/third_party/BUILD:

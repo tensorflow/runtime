@@ -226,8 +226,6 @@ different behavior.
 This doc only focuses on **Device `OpHandler`** which allows us to execute an op
 eagerly on a specific CPU/accelerator device. For example,
 [`CpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.cc)
-and
-[`GpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/gpu/lib/core_runtime/gpu_op_handler.cc).
 
 There are also many other pseudo `op_handler`s for different purposes:
 
@@ -365,9 +363,8 @@ To calculate metadata and tensor in `TensorHandle` respectively, a TFRT native
 
 Ops are registered on a **Device `OpHandler`**. We have different device
 `op_handler`s for different physical devices: CPU
-([`CpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.cc))
-and GPU
-([`GpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/gpu/lib/core_runtime/gpu_op_handler.cc)).
+([`CpuOpHandler`.](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.cc))
+
 Using `CpuOpHandler` as example, the registration API it provide is like:
 
 ```c++
@@ -583,13 +580,7 @@ dispatch function of CPU Add op can support all following combinations:
 `ScalarHostTensor` + `DenseHostTensor`, `ScalarHostTensor` + `ScalarHostTensor`.
 
 There are multiple ops to allow users to convert tensor from one type to another
-**explicitly**. For example,
-[`gpu_tensor_to_host_tensor`](https://github.com/tensorflow/runtime/blob/master/backends/gpu/lib/ops/test/test_ops.cc)
-op can convert an tensor from `GpuTensor` to `DenseHostTensor` by transferring
-the data from GPU to CPU. These tensor conversion ops are registered on the
-device `op_handler` that supports input type. For example, the input type
-`gpu_tensor_to_host_tensor` is `GpuTensor`, so it will be registered on
-`GpuOpHandler`.
+**explicitly**.
 
 Beforing calling an op, the input tensors must be explicitly converted to the
 type that is supported by the op.

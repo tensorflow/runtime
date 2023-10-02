@@ -259,13 +259,8 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
                      CpuOpFlags::NoSideEffects);
 
   RegisterTfConstantCpuOps(op_registry);
-  RegisterTfUnaryCpuOps(op_registry);
-  RegisterTfBinaryCpuOps(op_registry);
   RegisterTfShapeCpuOps(op_registry);
-  RegisterTfSofmaxCpuOps(op_registry);
-  RegisterTfMatmulFusionCpuOps(op_registry);
   RegisterTfMatmulCpuOps(op_registry);
-  RegisterTfTileCpuOp(op_registry);
 }
 
 }  // namespace tfrt

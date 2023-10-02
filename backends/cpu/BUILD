@@ -140,11 +140,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cpu_kernels",
     srcs = [
-        "lib/kernels/tf/cwise_binary_kernels.cc",
-        "lib/kernels/tf/cwise_unary_kernels.cc",
-        "lib/kernels/tf/fused_matmul_kernels.cc",
-        "lib/kernels/tf/softmax_kernels.cc",
-        "lib/kernels/tf/tile_kernels.cc",
         "lib/kernels/tile_kernel.cc",
     ],
     hdrs = [
@@ -156,7 +151,6 @@ tfrt_cc_library(
         "lib/kernels/softmax_kernel.h",
         "lib/kernels/tile_kernel.h",
     ],
-    alwayslink_static_registration_src = "lib/kernels/tf/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         "@tf_runtime//:dtype",

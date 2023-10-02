@@ -95,8 +95,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "tf_ops",
     srcs = [
-        "lib/ops/tf/concat_op.cc",
-        "lib/ops/tf/concat_op.h",
         "lib/ops/tf/constant_ops.cc",
         "lib/ops/tf/constant_ops.h",
         "lib/ops/tf/cpu_ops.cc",
@@ -142,8 +140,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cpu_kernels",
     srcs = [
-        "lib/kernels/tf/concat_kernels.cc",
-        "lib/kernels/tf/const_kernels.cc",
         "lib/kernels/tf/cwise_binary_kernels.cc",
         "lib/kernels/tf/cwise_unary_kernels.cc",
         "lib/kernels/tf/fused_matmul_kernels.cc",
@@ -152,7 +148,6 @@ tfrt_cc_library(
         "lib/kernels/tile_kernel.cc",
     ],
     hdrs = [
-        "lib/kernels/concat_kernel.h",
         "lib/kernels/cpu_kernels.h",
         "lib/kernels/cwise_binary_kernels.h",
         "lib/kernels/cwise_unary_kernels.h",

@@ -24,17 +24,13 @@ namespace tf {
 void RegisterUnaryCpuKernels(KernelRegistry* registry);
 void RegisterBinaryCpuKernels(KernelRegistry* registry);
 void RegisterSoftmaxCpuKernels(KernelRegistry* registry);
-void RegisterConstCpuKernels(KernelRegistry* registry);
 void RegisterFusedMatmulKernels(KernelRegistry* registry);
-void RegisterConcatCpuKernels(KernelRegistry* registry);
 void RegisterTileCpuKernels(KernelRegistry* registry);
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterUnaryCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterBinaryCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterSoftmaxCpuKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterConstCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterFusedMatmulKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterConcatCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterTileCpuKernels);
 
 }  // namespace tf

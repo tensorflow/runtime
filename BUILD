@@ -207,10 +207,6 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "async_value",
-    srcs = [
-        "lib/concurrency/async_value.cc",
-        "lib/concurrency/async_value_ref.cc",
-    ],
     hdrs = [
         "include/tfrt/concurrency/async_value.h",
         "include/tfrt/concurrency/async_value_ref.h",
@@ -219,15 +215,8 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
-        ":concurrent_vector",
-        ":ref_count",
         ":support",
-        "@com_google_absl//absl/container:inlined_vector",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/types:span",
+        "@tsl//:concurrency/async_value",
     ],
 )
 
@@ -236,11 +225,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/concurrency/concurrent_vector.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
-    deps = [
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/types:span",
-    ],
+    deps = ["@tsl//:concurrency/concurrent_vector"],
 )
 
 tfrt_cc_library(
@@ -248,6 +233,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/concurrency/ref_count.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
+    deps = ["@tsl//:concurrency/ref_count"],
 )
 
 tfrt_cc_library(

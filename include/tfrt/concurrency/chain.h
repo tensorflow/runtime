@@ -13,13 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TSL_CONCURRENCY_CHAIN_H_
-#define TSL_CONCURRENCY_CHAIN_H_
+#ifndef TFRT_CONCURRENCY_CHAIN_H_
+#define TFRT_CONCURRENCY_CHAIN_H_
 
-namespace tsl {
+#include "tsl/concurrency/chain.h"  // from @tsl  // IWYU pragma: export
 
-class Chain {};
-
-}  // namespace tsl
-
-#endif  // TSL_CONCURRENCY_CHAIN_H_
+#endif  // TFRT_CONCURRENCY_CHAIN_H_

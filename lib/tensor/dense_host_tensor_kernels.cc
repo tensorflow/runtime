@@ -285,32 +285,20 @@ static void RegisterDhtCreationKernelsForTypeAndRank(
   std::string suffix = t_name + "." + std::to_string(Rank);
   registry->AddKernel("tfrt_dht.create_uninitialized_tensor." + suffix,
                       TFRT_KERNEL(CreateUninitializedDenseTensor<T, Rank>));
-  registry->AddSyncKernel(
-      "tfrt_dht_sync.create_uninitialized_tensor." + suffix,
-      TFRT_SYNC_KERNEL(CreateUninitializedDenseTensor<T, Rank>));
 }
 
 template <typename T>
 static void RegisterDhtCreationKernelsForType(KernelRegistry* registry,
                                               const std::string& t_name) {
   std::string suffix = t_name;
-  registry->AddSyncKernel("tfrt_dht_sync.create_dense_tensor." + suffix,
-                          TFRT_SYNC_KERNEL(CreateDenseTensor<T>));
-  registry->AddSyncKernel("tfrt_dht_sync.create_from_scalar." + suffix,
-                          TFRT_SYNC_KERNEL(CreateFromScalar<T>));
   // Constant is in the name because we will presumably want a version that
   // uses a variable.
   registry->AddKernel("tfrt_dht.fill_tensor_with_constant." + suffix,
                       TFRT_KERNEL(FillDenseTensorWithConstantValue<T>));
   registry->AddKernel("tfrt_dht.make_tensor." + suffix,
                       TFRT_KERNEL(MakeTensor<T>));
-  registry->AddSyncKernel("tfrt_dht_sync.make_tensor." + suffix,
-                          TFRT_SYNC_KERNEL(SyncMakeTensor<T>));
   registry->AddKernel("tfrt_dht.set_tensor_with_constant_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithConstantValues<T>));
-  registry->AddSyncKernel(
-      "tfrt_dht_sync.set_tensor_with_constant_values." + suffix,
-      TFRT_SYNC_KERNEL(SyncSetDenseTensorWithConstantValues<T>));
   registry->AddKernel("tfrt_dht.set_tensor_with_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithValues<T>));
   RegisterDhtCreationKernelsForTypeAndRank<T, 0>(registry, t_name);
@@ -367,22 +355,14 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDhtCreationKernelsForType<bf16>(registry, "bf16");
 
   registry->AddKernel("tfrt_dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
-  registry->AddSyncKernel("tfrt_dht_sync.allocate_buffer",
-                          TFRT_SYNC_KERNEL(SyncAllocateBuffer));
   registry->AddKernel("tfrt_dht.print_tensor", TFRT_KERNEL(PrintTensor));
-  registry->AddSyncKernel("tfrt_dht_sync.print_tensor",
-                          TFRT_SYNC_KERNEL(SyncPrintTensor));
   registry->AddKernel("tfrt_dht.print_tensor_shape",
                       TFRT_KERNEL(PrintDenseTensorShape));
   registry->AddKernel("tfrt_dht.get_tensor_shape",
                       TFRT_KERNEL(GetDenseTensorShape));
-  registry->AddSyncKernel("tfrt_dht_sync.get_tensor_shape",
-                          TFRT_SYNC_KERNEL(GetDenseTensorShape));
   registry->AddKernel("tfrt_dht.no_op_ht", TFRT_KERNEL(NoOpHostTensor));
   registry->AddKernel("tfrt_dht.get_buffer", TFRT_KERNEL(GetBuffer));
   registry->AddKernel("tfrt_dht.get_buffer_slice", TFRT_KERNEL(GetBufferSlice));
-  registry->AddSyncKernel("tfrt_dht_sync.get_buffer_slice",
-                          TFRT_SYNC_KERNEL(GetBufferSlice));
   registry->AddKernel("tfrt_dht.print_buffer", TFRT_KERNEL(PrintBuffer));
 }
 

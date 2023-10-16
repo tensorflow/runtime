@@ -102,8 +102,6 @@ template <typename T>
 void RegisterFloatKernelsForType(KernelRegistry* registry,
                                  const std::string& suffix) {
   registry->AddKernel("tfrt.constant." + suffix, TFRT_KERNEL(TFRTConstant<T>));
-  registry->AddSyncKernel("tfrt.constant_s." + suffix,
-                          TFRT_SYNC_KERNEL(TFRTConstant<T>));
   registry->AddKernel("tfrt.add." + suffix, TFRT_KERNEL(TFRTAdd<T>));
   registry->AddKernel("tfrt.minimum." + suffix, TFRT_KERNEL(TFRTMinimum<T>));
   registry->AddKernel("tfrt.div." + suffix, TFRT_KERNEL(TFRTDiv<T>));
@@ -119,11 +117,7 @@ void RegisterFloatKernels(KernelRegistry* registry) {
 
   // Partial support for fp16 and bf16
   registry->AddKernel("tfrt.constant.f16", TFRT_KERNEL(TFRTConstant<fp16>));
-  registry->AddSyncKernel("tfrt.constant_s.f16",
-                          TFRT_SYNC_KERNEL(TFRTConstant<fp16>));
   registry->AddKernel("tfrt.constant.bf16", TFRT_KERNEL(TFRTConstant<bf16>));
-  registry->AddSyncKernel("tfrt.constant_s.bf16",
-                          TFRT_SYNC_KERNEL(TFRTConstant<bf16>));
 
   // Partial support for complex types
   registry->AddKernel("tfrt.constant.complex64",

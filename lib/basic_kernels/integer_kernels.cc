@@ -160,18 +160,6 @@ void RegisterIntegerKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TFRTCast<int64_t, double>));
   registry->AddKernel("tfrt.cast.f64_to_i64",
                       TFRT_KERNEL(TFRTCast<double, int64_t>));
-
-  // Register synchronous kernels.
-  registry->AddSyncKernel("tfrt.constant_s.i32",
-                          TFRT_SYNC_KERNEL(TFRTConstant<int32_t>));
-  registry->AddSyncKernel("tfrt.constant_s.i64",
-                          TFRT_SYNC_KERNEL(TFRTConstant<int64_t>));
-
-  registry->AddSyncKernel("tfrt.add_s.i32", TFRT_SYNC_KERNEL(TFRTAdd<int32_t>));
-  registry->AddSyncKernel("tfrt.add_s.i64", TFRT_SYNC_KERNEL(TFRTAdd<int64_t>));
-
-  registry->AddSyncKernel("tfrt.mul_s.i32", TFRT_SYNC_KERNEL(TFRTMul<int32_t>));
-  registry->AddSyncKernel("tfrt.mul_s.i64", TFRT_SYNC_KERNEL(TFRTMul<int64_t>));
 }
 
 }  // namespace tfrt

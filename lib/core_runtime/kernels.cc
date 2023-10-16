@@ -88,14 +88,11 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
 
 // Convert a HostTensor (or subclass) into a TensorHandle for use by
 // Core Runtime.
-static void PrintTensorHandleSync(const TensorHandle &arg) {
+static Chain PrintTensorHandle(const TensorHandle &arg) {
   llvm::SmallString<256> message;
   llvm::raw_svector_ostream(message) << arg << "\n";
   printf("%s", message.c_str());
   fflush(stdout);
-}
-static Chain PrintTensorHandle(const TensorHandle &arg) {
-  PrintTensorHandleSync(arg);
   return Chain();
 }
 
@@ -264,21 +261,6 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
   out_op_chain.Set(std::move(op_chain));
 }
 
-// Synchronous version of ExecuteOp.
-static Error ExecuteOpSync(SyncArgument<OpHandler *> op_handler,
-                           RepeatedSyncArguments<TensorHandle> args,
-                           SyncKernelFrame *frame, AggregateAttr op_attr_array,
-                           StringAttr op_name,
-                           const ExecutionContext &exec_ctx) {
-  auto expected_op =
-      GetCoreRuntimeOp(op_name.GetValue(), op_handler.get(), exec_ctx);
-
-  if (!expected_op) return MakeStringError(expected_op.takeError());
-  ExecuteOpImplSync(expected_op.get(), args,
-                    /*op_chain=*/nullptr, frame, op_attr_array, exec_ctx);
-  return Error::success();
-}
-
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
                                  RemainingArguments args,
@@ -311,8 +293,9 @@ static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
 
 // GetOpHandler accepts chains because the op_handlers now can be registered
 // dynamically as well.
-static tfrt::Expected<OpHandler *> GetOpHandlerSync(
-    StringAttribute op_handler_name, const ExecutionContext &exec_ctx) {
+static tfrt::Expected<OpHandler *> GetOpHandler(
+    Argument<Chain> in_op_chain, StringAttribute op_handler_name,
+    const ExecutionContext &exec_ctx) {
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
@@ -322,26 +305,14 @@ static tfrt::Expected<OpHandler *> GetOpHandlerSync(
   return tfrt::MakeStringError("op_handler not found: ", op_handler_name.get());
 }
 
-static tfrt::Expected<OpHandler *> GetOpHandler(
-    Argument<Chain> in_op_chain, StringAttribute op_handler_name,
-    const ExecutionContext &exec_ctx) {
-  return GetOpHandlerSync(op_handler_name, exec_ctx);
-}
-
-static void RegisterOpHandlerSync(Argument<OpHandler *> root,
-                                  StringAttribute chain_name,
-                                  const ExecutionContext &exec_ctx) {
+static Chain RegisterOpHandler(Argument<OpHandler *> root,
+                               StringAttribute chain_name,
+                               const ExecutionContext &exec_ctx) {
   assert(root.get());
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
   runtime->RegisterOpHandler(chain_name, root.get());
-}
-
-static Chain RegisterOpHandler(Argument<OpHandler *> root,
-                               StringAttribute chain_name,
-                               const ExecutionContext &exec_ctx) {
-  RegisterOpHandlerSync(root, chain_name, exec_ctx);
   return Chain();
 }
 
@@ -962,15 +933,6 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(CoreRtGetDstTensorType));
   registry->AddKernel("corert.tensorhandle_to_int32",
                       TFRT_KERNEL(CoreRtTensorHandleToInt32));
-
-  registry->AddSyncKernel("corert_sync.print_tensorhandle",
-                          TFRT_SYNC_KERNEL(PrintTensorHandleSync));
-  registry->AddSyncKernel("corert_sync.get_op_handler",
-                          TFRT_SYNC_KERNEL(GetOpHandlerSync));
-  registry->AddSyncKernel("corert_sync.register_op_handler",
-                          TFRT_SYNC_KERNEL(RegisterOpHandlerSync));
-  registry->AddSyncKernel("corert_sync.executeop",
-                          TFRT_SYNC_KERNEL(ExecuteOpSync));
 
   RegisterCreateDenseTensor(registry);
 }

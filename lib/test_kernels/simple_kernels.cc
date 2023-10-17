@@ -80,8 +80,6 @@ static std::string FormatString(const std::string& path_format,
 
 static void SetupStringRegistry(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.get_string", TFRT_KERNEL(TestGetString));
-  registry->AddSyncKernel("tfrt_test.get_string_sync",
-                          TFRT_SYNC_KERNEL(TestGetString));
   registry->AddKernel("tfrt_test.print_string", TFRT_KERNEL(TestPrintString));
   registry->AddKernel("tfrt_test.append_string", TFRT_KERNEL(TestAppendString));
   registry->AddKernel("tfrt_test.string_equal", TFRT_KERNEL(TestStringEqual));

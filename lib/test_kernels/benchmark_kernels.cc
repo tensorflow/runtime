@@ -314,7 +314,5 @@ static Error TestSyncBenchmark(RemainingSyncArguments args,
 
 void RegisterBenchmarkKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.benchmark", TFRT_KERNEL(TestAsyncBenchmark));
-  registry->AddSyncKernel("tfrt_test.sync_benchmark",
-                          TFRT_SYNC_KERNEL(TestSyncBenchmark));
 }
 }  // namespace tfrt

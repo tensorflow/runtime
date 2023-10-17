@@ -480,15 +480,6 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestSyncFunctionRunner));
   registry->AddKernel("tfrt_test.sync_function_runner.i32_i32.i32_i32",
                       TFRT_KERNEL(TestSyncFunctionRunnerTwoReturnValues));
-
-  registry->AddSyncKernel("tfrt_test.sync.const_dense_attr",
-                          TFRT_SYNC_KERNEL(TestConstDenseAttr));
-
-  registry->AddSyncKernel("tfrt_test.fail_s", TFRT_SYNC_KERNEL(TestFail));
-  registry->AddSyncKernel("tfrt_test.error_s", TFRT_SYNC_KERNEL(TestError));
-  registry->AddSyncKernel("tfrt_test.sync_sum", TFRT_SYNC_KERNEL(TestSyncSum));
-  registry->AddSyncKernel("tfrt_test.sync_sum2",
-                          TFRT_SYNC_KERNEL(TestSyncSum2));
   registry->AddSyncKernel("tfrt_test.sync_sum_attributes",
                           TestSyncSumAttributes);
 }

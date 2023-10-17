@@ -100,15 +100,5 @@ TEST(KernelRunnerTest, RequestContext) {
   EXPECT_EQ(value, 3);
 }
 
-TEST(KernelRunnerTest, BefInterpreterTest) {
-  auto host_ctx = CreateHostContext();
-  host_ctx->GetMutableRegistry()->AddSyncKernel("kernel_runner_test.sum",
-                                                TFRT_SYNC_KERNEL(sum));
-  KernelRunner kernel_runner("kernel_runner_test.sum", host_ctx.get());
-  kernel_runner.SetArgs(1, 2).AddAttribute(1);
-
-  EXPECT_EQ(kernel_runner.RunAndGetResult<int>(), 4);
-}
-
 }  // namespace
 }  // namespace tfrt

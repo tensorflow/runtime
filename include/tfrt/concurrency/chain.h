@@ -16,6 +16,6 @@ limitations under the License.
 #ifndef TFRT_CONCURRENCY_CHAIN_H_
 #define TFRT_CONCURRENCY_CHAIN_H_
 
-#include "tsl/tsl/concurrency/chain.h"  // from @local_tsl  // IWYU pragma: export
+#include "tsl/concurrency/chain.h"  // from @local_tsl  // IWYU pragma: export
 
 #endif  // TFRT_CONCURRENCY_CHAIN_H_

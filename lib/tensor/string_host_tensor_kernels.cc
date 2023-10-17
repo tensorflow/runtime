@@ -59,10 +59,6 @@ static Expected<StringHostTensor> CreateUninitializedStringTensor(
 void RegisterStringHostTensorKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_sht.create_tensor",
                       TFRT_KERNEL(CreateStringTensor));
-  registry->AddSyncKernel("tfrt_sht_sync.create_tensor",
-                          TFRT_SYNC_KERNEL(CreateStringTensor));
-  registry->AddSyncKernel("tfrt_sht_sync.create_uninitialized_tensor",
-                          TFRT_SYNC_KERNEL(CreateUninitializedStringTensor));
 }
 
 }  // namespace tfrt

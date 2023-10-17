@@ -126,14 +126,6 @@ void RegisterTensorShapeKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TsPrintPartialShape));
   registry->AddKernel("ts.to_shape", TFRT_KERNEL(TsToShape));
   registry->AddKernel("ts.to_partial_shape", TFRT_KERNEL(TsToPartialShape));
-
-  // Register sync kernels.
-  registry->AddSyncKernel("ts_sync.build_shape",
-                          TFRT_SYNC_KERNEL(TsSyncBuildShape));
-  registry->AddSyncKernel("ts_sync.build_partial_shape",
-                          TFRT_SYNC_KERNEL(TsBuildPartialShape));
-  registry->AddSyncKernel("ts_sync.to_partial_shape",
-                          TFRT_SYNC_KERNEL(TsToPartialShape));
 }
 
 }  // namespace tfrt

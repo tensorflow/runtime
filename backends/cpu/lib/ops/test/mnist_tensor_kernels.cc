@@ -707,8 +707,6 @@ static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(ElementwiseEqualInPlace<T>));
   registry->AddKernel("tfrt_test.matmul." + suffix + ".2",
                       TFRT_KERNEL(cpu::MatMul2D<T>));
-  registry->AddSyncKernel("tfrt_test_sync.matmul." + suffix + ".2",
-                          TFRT_SYNC_KERNEL(cpu::SyncMatMul2D<T>));
   registry->AddKernel("tfrt_test.broadcast." + suffix + ".2",
                       TFRT_KERNEL(Broadcast1D<T, 2>));
   registry->AddKernel("tfrt_test.broadcast." + suffix + ".3",

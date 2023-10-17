@@ -291,12 +291,13 @@ static void TFRTWhileInlineImpl(
     // If the condition is an error, we wait for the arguments to be ready
     // first before setting them to errors, so that there won't be outstanding
     // ops when the downstream receives these ready async values.
-    RunWhenReady(body_args, [while_results = std::move(while_results),
-                             error = std::move(condition)]() {
-      for (auto& result : while_results) {
-        result->ForwardTo(error);
-      }
-    });
+    RunWhenReady(body_args,
+                 [body_args, while_results = std::move(while_results),
+                  error = std::move(condition)]() mutable {
+                   for (auto& result : while_results) {
+                     result->ForwardTo(error);
+                   }
+                 });
   }
 }
 
@@ -314,12 +315,13 @@ static void TFRTWhileAsyncImpl(
     // If the condition is an error, we wait for the arguments to be ready
     // first before setting them to errors, so that there won't be outstanding
     // ops when the downstream receives these ready async values.
-    RunWhenReady(body_args, [while_results = std::move(while_results),
-                             error = std::move(condition)]() {
-      for (auto& result : while_results) {
-        result->ForwardTo(error);
-      }
-    });
+    RunWhenReady(body_args,
+                 [body_args, while_results = std::move(while_results),
+                  error = std::move(condition)]() mutable {
+                   for (auto& result : while_results) {
+                     result->ForwardTo(error);
+                   }
+                 });
     return;
   } else if (!condition->get<bool>()) {
     // If the condition is not an error, we simply forward the body results to
@@ -475,13 +477,17 @@ static void TFRTRepeatI32Block(
 
   for (int i = start; i < end; ++i) {
     if (auto cancel_av = exec_ctx.GetCancelAsyncValue()) {
-      // Cancellation detected. DropRef on args if needed, set results to
-      // the cancel async value, and break out.
-      for (int arg = 0; arg != num_fn_args; ++arg) {
-        // If this is not the first iteration, destroy the loop-carried
-        // args. The first iteration uses TFRTRepeatI32's args, which we
-        // can't destroy.
-        if (i > 0) passed_args[arg]->DropRef();
+      // If this is not the first iteration, destroy the loop-carried
+      // args. The first iteration uses TFRTRepeatI32's args, which we
+      // can't destroy.
+      if (i > 0) {
+        RunWhenReady(passed_args, [num_fn_args, passed_args]() mutable {
+          // Cancellation detected. DropRef on args if needed, set results to
+          // the cancel async value, and break out.
+          for (int arg = 0; arg != num_fn_args; ++arg) {
+            passed_args[arg]->DropRef();
+          }
+        });
       }
 
       for (auto& result : result_refs) {

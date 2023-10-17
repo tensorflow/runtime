@@ -16,6 +16,6 @@ limitations under the License.
 #ifndef TFRT_CONCURRENCY_CONCURRENT_VECTOR_H_
 #define TFRT_CONCURRENCY_CONCURRENT_VECTOR_H_
 
-#include "tsl/concurrency/concurrent_vector.h"  // from @tsl  // IWYU pragma: export
+#include "tsl/tsl/concurrency/concurrent_vector.h"  // from @local_tsl  // IWYU pragma: export
 
 #endif  // TFRT_CONCURRENCY_CONCURRENT_VECTOR_H_

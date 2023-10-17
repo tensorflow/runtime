@@ -16,6 +16,6 @@ limitations under the License.
 #ifndef TFRT_CONCURRENCY_ASYNC_VALUE_REF_H_
 #define TFRT_CONCURRENCY_ASYNC_VALUE_REF_H_
 
-#include "tsl/concurrency/async_value_ref.h"  // from @tsl  // IWYU pragma: export
+#include "tsl/tsl/concurrency/async_value_ref.h"  // from @local_tsl  // IWYU pragma: export
 
 #endif  // TFRT_CONCURRENCY_ASYNC_VALUE_REF_H_

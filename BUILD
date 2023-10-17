@@ -216,7 +216,7 @@ tfrt_cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":support",
-        "@tsl//:concurrency/async_value",
+        "@local_tsl//tsl/concurrency:async_value",
     ],
 )
 
@@ -225,7 +225,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/concurrency/concurrent_vector.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
-    deps = ["@tsl//:concurrency/concurrent_vector"],
+    deps = ["@local_tsl//tsl/concurrency:concurrent_vector"],
 )
 
 tfrt_cc_library(
@@ -233,7 +233,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/concurrency/ref_count.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
-    deps = ["@tsl//:concurrency/ref_count"],
+    deps = ["@local_tsl//tsl/concurrency:ref_count"],
 )
 
 tfrt_cc_library(

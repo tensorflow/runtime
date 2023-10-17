@@ -52,7 +52,7 @@ def tfrt_dependencies():
 
     eigen(name = "eigen_archive")
 
-    tsl(name = "tsl")
+    tsl(name = "local_tsl")
 
     tfrt_http_archive(
         name = "dnnl",

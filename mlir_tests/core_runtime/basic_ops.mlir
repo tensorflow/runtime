@@ -21,114 +21,6 @@ func.func @register_op_handlers_cpu() {
   tfrt.return
 }
 
-// CHECK-LABEL: --- Running 'basic_test_matmul_f32'
-func.func @basic_test_matmul_f32() -> !tfrt.chain {
-  %ch0 = tfrt.new.chain
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  // Create tensor whose shape is represented using RepKind::kRep32.
-  %a_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [1, 65536], values = [1.0 : f32] } : 1
-
-  %b_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [65536, 1], values = [1.0 : f32] } : 1
-
-  // Create tensor whose shape is represented using RepKind::kRep16.
-  %c_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
-
-  // This test.matmul involves two tensors whose shapes are represented using
-  // RepKind::kRep32.
-  %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = false, transpose_b = false}: 1
-
-  // CHECK: shape = [1, 1], values = [6.553600e+04]
-  %ch5 = "corert.print_tensorhandle"(%result1, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  // This test.matmul involves two tensors whose shapes are represented using
-  // RepKind::kRep16.
-  %result2 = corert.executeop(%cpu) "tfrt_test.matmul"(%result1, %c_handle)
-    {transpose_a = false, transpose_b = false}: 1
-
-  // CHECK: shape = [1, 1], values = [1.310720e+05]
-  %ch7 = "corert.print_tensorhandle"(%result2, %ch5) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  tfrt.return %ch7 : !tfrt.chain
-}
-
-// CHECK-LABEL: --- Running 'basic_test_matmul_transpose_f32'
-func.func @basic_test_matmul_transpose_f32() -> !tfrt.chain {
-  %ch0 = tfrt.new.chain
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  %a_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32] } : 1
-
-  %b_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32] } : 1
-
-  %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = false, transpose_b = false}: 1
-
-  %result2 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = false, transpose_b = true}: 1
-
-  %result3 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = true, transpose_b = false}: 1
-
-  %result4 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = true, transpose_b = true}: 1
-
-  // CHECK: shape = [2, 2], values = [7.000000e+00, 1.000000e+01, 1.500000e+01, 2.200000e+01]
-  %ch1 = "corert.print_tensorhandle"(%result1, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  // CHECK: shape = [2, 2], values = [5.000000e+00, 1.100000e+01, 1.100000e+01, 2.500000e+01]
-  %ch2 = "corert.print_tensorhandle"(%result2, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  // CHECK: shape = [2, 2], values = [1.000000e+01, 1.400000e+01, 1.400000e+01, 2.000000e+01]
-  %ch3 = "corert.print_tensorhandle"(%result3, %ch2) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  // CHECK: shape = [2, 2], values = [7.000000e+00, 1.500000e+01, 1.000000e+01, 2.200000e+01]
-  %ch4 = "corert.print_tensorhandle"(%result4, %ch3) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  tfrt.return %ch4 : !tfrt.chain
-}
-
-// CHECK-LABEL: --- Running 'basic_test_matmul_i32'
-func.func @basic_test_matmul_i32() -> !tfrt.chain {
-  %ch0 = tfrt.new.chain
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  // Create tensor whose shape is represented using RepKind::kRep32.
-  %a_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [1, 65536], values = [1 : i32] } : 1
-
-  %b_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [65536, 1], values = [1 : i32] } : 1
-
-  // Create tensor whose shape is represented using RepKind::kRep16.
-  %c_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2 : i32] } : 1
-
-  // This test.matmul involves two tensors whose shapes are represented using
-  // RepKind::kRep32.
-  %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = false, transpose_b = false}: 1
-
-  // CHECK: shape = [1, 1], values = [65536]
-  %ch5 = "corert.print_tensorhandle"(%result1, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  // This test.matmul involves two tensors whose shapes are represented using
-  // RepKind::kRep16.
-  %result2 = corert.executeop(%cpu) "tfrt_test.matmul"(%result1, %c_handle)
-    {transpose_a = false, transpose_b = false}: 1
-
-  // CHECK: shape = [1, 1], values = [131072]
-  %ch7 = "corert.print_tensorhandle"(%result2, %ch5) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  tfrt.return %ch7 : !tfrt.chain
-}
-
 // CHECK-LABEL: --- Running 'basic_test_ops'
 func.func @basic_test_ops() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
@@ -212,24 +104,6 @@ func.func @badop_error() {
 
   // expected-error @+1 {{tf.invalidop was not supported by NullOpHandler}}
   %op_ch = corert.executeop.seq(%cpu, %ch0) "tf.invalidop"()
-
-  tfrt.return
-}
-
-// CHECK-LABEL: --- Running 'shape_error'
-func.func @shape_error() {
-  %ch0 = tfrt.new.chain
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  %a_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
-
-  %b_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [2, 1], values = [2.0 : f32] } : 1
-
-  // expected-error @+1 {{matmul arguments have incompatible shapes}}
-  %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = false, transpose_b = false}: 1
 
   tfrt.return
 }

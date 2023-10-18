@@ -45,44 +45,6 @@ using ::tfrt::compat::UnaryEigenKernelAsync;
 namespace tfrt {
 
 //===----------------------------------------------------------------------===//
-// mnist.matmul op and kernels
-//===----------------------------------------------------------------------===//
-
-static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
-                     const OpAttrsRef& attrs, const TensorMetadata& dest_md,
-                     RCReference<AsyncValue>* dest,
-                     const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-
-  auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
-  if (!dest_alloc) {
-    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
-    return;
-  }
-
-  auto& dest_tensor = dest_alloc.value();
-
-  // Handle attributes.
-  bool transpose_a = attrs.GetAsserting<bool>("transpose_a");
-  bool transpose_b = attrs.GetAsserting<bool>("transpose_b");
-
-  // Computes C = A @ B.
-  switch (lhs.dtype()) {
-    default:
-      *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for matmul");
-      return;
-#define DTYPE_TRIVIAL(ENUM)                                \
-  case DType::ENUM:                                        \
-    cpu::CallMatMulKernel<TypeForDTypeKind<DType::ENUM>>(  \
-        lhs, rhs, &dest_tensor, transpose_a, transpose_b); \
-    break;
-#include "tfrt/dtype/dtype.def"
-  }
-
-  *dest = MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
-}
-
-//===----------------------------------------------------------------------===//
 // mnist.relu op and kernels
 //===----------------------------------------------------------------------===//
 
@@ -705,8 +667,6 @@ static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(ElementwiseEqual<T>));
   registry->AddKernel("tfrt_test.equal_inplace." + suffix,
                       TFRT_KERNEL(ElementwiseEqualInPlace<T>));
-  registry->AddKernel("tfrt_test.matmul." + suffix + ".2",
-                      TFRT_KERNEL(cpu::MatMul2D<T>));
   registry->AddKernel("tfrt_test.broadcast." + suffix + ".2",
                       TFRT_KERNEL(Broadcast1D<T, 2>));
   registry->AddKernel("tfrt_test.broadcast." + suffix + ".3",
@@ -730,8 +690,6 @@ void RegisterMNISTTensorKernels(KernelRegistry* registry) {
 }
 
 void RegisterTestMnistCpuOps(CpuOpRegistry* op_registry) {
-  op_registry->AddOp("tfrt_test.matmul", TFRT_CPU_OP(MatMulOp),
-                     CpuOpFlags::NoSideEffects, {"transpose_a", "transpose_b"});
   op_registry->AddOp("tfrt_test.relu", TFRT_CPU_OP(ReluOp),
                      CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tfrt_test.equal", TFRT_CPU_OP(ElementwiseEqualOp),

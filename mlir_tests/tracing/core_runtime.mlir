@@ -21,31 +21,3 @@ func.func @register_op_handlers_cpu() {
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
-
-// CHECK: Scope:Function: basic_test_matmul_f32
-func.func @basic_test_matmul_f32() -> !tfrt.chain {
-
-  %ch0 = tfrt.new.chain
-
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  // CHECK: Scope:tfrt_test.create_dense_tensor#op_handler=cpu#
-  // CHECK: Scope:RunMetadataFunction
-  // CHECK: Scope:RunDispatch: tfrt_test.create_dense_tensor
-  %a_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [1, 65536], values = [1.0 : f32] } : 1
-
-  // CHECK: Scope:tfrt_test.create_dense_tensor#op_handler=cpu#
-  // CHECK: Scope:RunMetadataFunction
-  // CHECK: Scope:RunDispatch: tfrt_test.create_dense_tensor
-  %b_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [65536, 1], values = [1.0 : f32] } : 1
-
-  // CHECK: Scope:tfrt_test.matmul#op_handler=cpu#
-  // CHECK: Scope:RunMetadataFunction
-  // CHECK: Scope:RunDispatch: tfrt_test.matmul
-  %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
-    {transpose_a = false, transpose_b = false}: 1 loc("MyCustomNameScope/MyCustomName")
-
-  tfrt.return %ch0 : !tfrt.chain
-}

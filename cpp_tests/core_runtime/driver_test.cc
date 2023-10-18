@@ -42,44 +42,6 @@ class CpuDriverTest : public testing::Test {
   example::CoreRuntimeCpuDriver driver_;
 };
 
-TEST_F(CpuDriverTest, MatmulTest) {
-  tfrt::OpAttrs attrs;
-  attrs.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
-  attrs.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  tfrt::TensorHandle a1;
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.create_dense_tensor", {}, attrs.freeze(), a1);
-
-  tfrt::OpAttrs matmul_attrs;
-  matmul_attrs.Set<bool>("transpose_a", false);
-  matmul_attrs.Set<bool>("transpose_b", false);
-  tfrt::OpAttrsRef matmul_attrs_ref = matmul_attrs.freeze();
-  tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
-  tfrt::TensorHandle a2;
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.matmul", matmul_args, matmul_attrs_ref, a2);
-
-  tfrt::OpAttrs empty_attrs;
-  tfrt::OpAttrsRef empty_attrs_ref = empty_attrs.freeze();
-  // This op will print the shape and the value of the result.
-  tfrt::TensorHandle a2_ref = a2.CopyRef();
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.print", a2_ref, empty_attrs_ref, {});
-
-  // Check the output tensor.
-  auto a2_metadata = a2.GetAvailableMetadata();
-  ASSERT_EQ(a2_metadata.shape.GetRank(), 2);
-  ASSERT_EQ(a2_metadata.shape.GetDimensionSize(0), 2);
-  ASSERT_EQ(a2_metadata.shape.GetDimensionSize(1), 2);
-
-  auto a2_view =
-      DHTArrayView<float>(&a2.GetAsyncTensor()->get<DenseHostTensor>());
-  ASSERT_EQ(a2_view.Elements()[0], 8.0);
-  ASSERT_EQ(a2_view.Elements()[1], 8.0);
-  ASSERT_EQ(a2_view.Elements()[2], 8.0);
-  ASSERT_EQ(a2_view.Elements()[3], 8.0);
-}
-
 TEST_F(CpuDriverTest, ReluTest_InputForward) {
   tfrt::OpAttrs attrs;
   attrs.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
@@ -97,92 +59,6 @@ TEST_F(CpuDriverTest, ReluTest_InputForward) {
 
   ASSERT_EQ(a2.GetAsyncTensor()->get<DenseHostTensor>().buffer().get(),
             buffer_pointer);
-}
-
-TEST_F(CpuDriverTest, MatmulWithError) {
-  tfrt::OpAttrs attrs1;
-  tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{1, 1});
-  attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
-
-  tfrt::OpAttrs attrs2;
-  tfrt::TensorHandle a2;
-  attrs2.SetArray("shape", tfrt::ArrayRef<Index>{2, 1});
-  attrs2.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.create_dense_tensor", {}, attrs2.freeze(), a2);
-
-  tfrt::OpAttrs matmul_attrs;
-  matmul_attrs.Set<bool>("transpose_a", false);
-  matmul_attrs.Set<bool>("transpose_b", false);
-  tfrt::OpAttrsRef matmul_attrs_ref = matmul_attrs.freeze();
-  // Since the two arguments do not have compatible shapes, this op will fail.
-  tfrt::TensorHandle matmul_args1[2] = {a1.CopyRef(), a2.CopyRef()};
-  tfrt::TensorHandle a3;
-  // Point to the CreateLocation() call below.
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.matmul", matmul_args1, matmul_attrs_ref, a3);
-
-  // This op will finish successfully.
-  tfrt::TensorHandle matmul_args2[2] = {a1.CopyRef(), a1.CopyRef()};
-  tfrt::TensorHandle a4;
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.matmul", matmul_args2, matmul_attrs_ref, a4);
-
-  tfrt::OpAttrs empty_attrs;
-  tfrt::OpAttrsRef empty_attrs_ref = empty_attrs.freeze();
-  tfrt::TensorHandle a4_ref = a4.CopyRef();
-  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
-                  "tfrt_test.print", a4_ref, empty_attrs_ref, {});
-
-  auto a4_view =
-      DHTArrayView<float>(&a4.GetAsyncTensor()->get<DenseHostTensor>());
-  ASSERT_EQ(a4_view.NumElements(), 1);
-  ASSERT_EQ(a4_view.Elements()[0], 4.0);
-
-  ASSERT_TRUE(a3.GetAsyncTensor()->IsError());
-}
-
-TEST_F(CpuDriverTest, NoLocation) {
-  tfrt::OpAttrs attrs1;
-  tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{1, 1});
-  attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute("tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
-
-  tfrt::OpAttrs attrs2;
-  tfrt::TensorHandle a2;
-  attrs2.SetArray("shape", tfrt::ArrayRef<Index>{2, 1});
-  attrs2.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute("tfrt_test.create_dense_tensor", {}, attrs2.freeze(), a2);
-
-  tfrt::OpAttrs matmul_attrs;
-  matmul_attrs.Set<bool>("transpose_a", false);
-  matmul_attrs.Set<bool>("transpose_b", false);
-  tfrt::OpAttrsRef matmul_attrs_ref = matmul_attrs.freeze();
-  // Since the two arguments do not have compatible shapes, this op will fail.
-  tfrt::TensorHandle matmul_args1[2] = {a1.CopyRef(), a2.CopyRef()};
-  tfrt::TensorHandle a3;
-  driver_.Execute("tfrt_test.matmul", matmul_args1, matmul_attrs_ref, a3);
-
-  // This op will finish successfully.
-  tfrt::TensorHandle matmul_args2[2] = {a1.CopyRef(), a1.CopyRef()};
-  tfrt::TensorHandle a4;
-  driver_.Execute("tfrt_test.matmul", matmul_args2, matmul_attrs_ref, a4);
-
-  tfrt::OpAttrs empty_attrs;
-  tfrt::OpAttrsRef empty_attrs_ref = empty_attrs.freeze();
-  tfrt::TensorHandle a4_ref = a4.CopyRef();
-  driver_.Execute("tfrt_test.print", a4_ref, empty_attrs_ref, {});
-
-  auto a4_view =
-      DHTArrayView<float>(&a4.GetAsyncTensor()->get<DenseHostTensor>());
-  ASSERT_EQ(a4_view.NumElements(), 1);
-  ASSERT_EQ(a4_view.Elements()[0], 4.0);
-
-  ASSERT_TRUE(a3.GetAsyncTensor()->IsError());
 }
 
 TEST_F(CpuDriverTest, CompositeOpTest) {
@@ -288,57 +164,6 @@ TEST_F(CpuDriverTest, NativeCompositeOpTest) {
 
   ASSERT_EQ(a2->get<int32_t>(), 2);
 }
-
-void BM_CpuDriverTest(benchmark::State& state) {
-  example::CoreRuntimeCpuDriver driver;
-
-  tfrt::OpAttrs attrs1;
-  tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
-  attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0, 2.0, 2.0, 2.0});
-  driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
-                 "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
-
-  for (auto _ : state) {
-    tfrt::OpAttrs matmul_attrs;
-    matmul_attrs.Set<bool>("transpose_a", false);
-    matmul_attrs.Set<bool>("transpose_b", false);
-    tfrt::OpAttrsRef matmul_attrs_ref = matmul_attrs.freeze();
-
-    tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
-    tfrt::TensorHandle a4;
-    driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
-                   "tfrt_test.matmul", matmul_args, matmul_attrs_ref, a4);
-  }
-}
-BENCHMARK(BM_CpuDriverTest);
-
-void BM_CpuMakeOpDriverTest(benchmark::State& state) {
-  example::CoreRuntimeCpuDriver driver;
-
-  tfrt::OpAttrs attrs1;
-  tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
-  attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0, 2.0, 2.0, 2.0});
-  driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
-                 "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
-
-  auto matmul_op = driver.MakeOp("tfrt_test.matmul");
-
-  for (auto _ : state) {
-    tfrt::OpAttrs matmul_attrs;
-    matmul_attrs.Set<bool>("transpose_a", false);
-    matmul_attrs.Set<bool>("transpose_b", false);
-    tfrt::OpAttrsRef matmul_attrs_ref = matmul_attrs.freeze();
-
-    tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
-    tfrt::TensorHandle a4;
-
-    matmul_op(driver.CreateExecutionContext(__FILE__, __LINE__), matmul_args,
-              matmul_attrs_ref, a4, /*chain=*/nullptr);
-  }
-}
-BENCHMARK(BM_CpuMakeOpDriverTest);
 
 }  // namespace
 }  // namespace tfrt

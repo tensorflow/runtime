@@ -3,19 +3,19 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "concurrency_async_value",
+    name = "async_value",
     srcs = [
-        "tsl/concurrency/async_value.cc",
-        "tsl/concurrency/async_value_ref.cc",
+        "async_value.cc",
+        "async_value_ref.cc",
     ],
     hdrs = [
-        "tsl/concurrency/async_value.h",
-        "tsl/concurrency/async_value_ref.h",
-        "tsl/concurrency/chain.h",
+        "async_value.h",
+        "async_value_ref.h",
+        "chain.h",
     ],
     deps = [
-        ":concurrency_concurrent_vector",
-        ":concurrency_ref_count",
+        ":concurrent_vector",
+        ":ref_count",
         "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
@@ -26,8 +26,8 @@ cc_library(
 )
 
 cc_library(
-    name = "concurrency_concurrent_vector",
-    hdrs = ["tsl/concurrency/concurrent_vector.h"],
+    name = "concurrent_vector",
+    hdrs = ["concurrent_vector.h"],
     deps = [
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
@@ -35,6 +35,6 @@ cc_library(
 )
 
 cc_library(
-    name = "concurrency_ref_count",
-    hdrs = ["tsl/concurrency/ref_count.h"],
+    name = "ref_count",
+    hdrs = ["ref_count.h"],
 )

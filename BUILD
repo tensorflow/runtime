@@ -4,7 +4,6 @@ load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 # copybara:uncomment load("//devtools/copybara/rules:copybara.bzl", "copybara_config_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 
@@ -31,9 +30,9 @@ exports_files([
 config_setting(
     name = "windows",
     # Internal builds query the target OS.
-    flag_values = if_google(
-        {"//tools/cpp:cc_target_os": "windows"},
-        {},
+    constraint_values = if_google(
+        ["//third_party/bazel_platforms/os:windows"],
+        [],
     ),
     # OSS builds query the CPU type.
     values = if_oss(
@@ -44,33 +43,31 @@ config_setting(
 )
 
 config_setting(
-    name = "linux_k8",
-    values = {"cpu": "k8"},
-    visibility = ["//visibility:public"],
-)
-
-config_setting(
-    name = "linux_haswell",
-    values = {"cpu": "haswell"},
-    visibility = ["//visibility:public"],
-)
-
-selects.config_setting_group(
     name = "linux_x86_64",
-    match_any = [
-        ":linux_k8",
-        ":linux_haswell",
-    ],
+    # Internal builds use constraints.
+    constraint_values = if_google(
+        [
+            "//third_party/bazel_platforms/cpu:x86_64",
+            "//third_party/bazel_platforms/os:linux",
+        ],
+        [],
+    ),
+    # OSS builds query the CPU type.
+    values = if_oss(
+        {"cpu": "k8"},
+        {},
+    ),
     visibility = ["//visibility:public"],
 )
 
 # copybara:uncomment_begin
-# selects.config_setting_group(
+# config_setting(
 #     name = "linux_x86_64-google",
-#     match_all = [
+#     constraint_values = [
 #         # keep sorted
-#         ":linux_x86_64",
-#         "//tools/cc_target_os:linux-google",
+#         "//buildenv/platforms/constraints/environment:google_internal",
+#         "//third_party/bazel_platforms/cpu:x86_64",
+#         "//third_party/bazel_platforms/os:linux",
 #     ],
 # )
 # copybara:uncomment_end

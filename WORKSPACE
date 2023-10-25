@@ -33,10 +33,6 @@ maybe(
     name = "llvm-project",
 )
 
-load("@rules_cuda//cuda:dependencies.bzl", "rules_cuda_dependencies")
-
-rules_cuda_dependencies()
-
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()

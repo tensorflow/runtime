@@ -519,22 +519,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "nvtx_tracing_sink",
-    srcs = ["lib/tracing/nvtx_tracing_sink.cc"],
-    hdrs = ["include/tfrt/tracing/nvtx_tracing_sink.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":support",
-        ":tracing",
-        "@llvm-project//llvm:Support",
-    ] + if_google(
-        ["@cuda_headers"],
-        ["@nvtx_headers"],
-    ),
-    alwayslink = True,
-)
-
-tfrt_cc_library(
     name = "befexecutor",
     srcs = [
         "lib/bef_executor/bef_executor.cc",

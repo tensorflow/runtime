@@ -17,25 +17,10 @@ load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
 load("@tf_runtime//third_party/absl:workspace.bzl", absl = "repo")
 load("@tf_runtime//third_party/eigen:workspace.bzl", eigen = "repo")
 load("@tf_runtime//third_party/llvm:workspace.bzl", llvm = "repo")
-load("@tf_runtime//third_party/cuda:dependencies.bzl", "cuda_dependencies")
 load("@tf_runtime//third_party/tsl:workspace.bzl", tsl = "repo")
-
-def _rules_cuda_impl(repository_ctx):
-    workspace = Label("@tf_runtime//third_party:rules_cuda/WORKSPACE")
-    path = repository_ctx.path(workspace).dirname
-    repository_ctx.symlink(path, "")
-
-_rules_cuda = repository_rule(
-    implementation = _rules_cuda_impl,
-    local = True,
-)
 
 def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
-
-    _rules_cuda(name = "rules_cuda")
-
-    cuda_dependencies()
 
     llvm(name = "llvm-raw")
 

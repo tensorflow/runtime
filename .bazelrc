@@ -14,8 +14,7 @@
 
 # Note: we do not use --enable_platform_specific_config because evaluation order
 # becomes unexpected (see https://github.com/bazelbuild/bazel/issues/13603).
-# Instead, users are required to pick a compiler with `--config=clang/gcc/msvc`.
-build --@rules_cuda//cuda:compiler="Please specify a compiler (--config=clang/gcc/msvc)."
+# Instead, users are expected to pick a compiler with `--config=clang/gcc/msvc`.
 
 # Prevent regressions on those two incompatible changes
 # TODO: remove those flags when they are flipped in the default Bazel version used.
@@ -32,46 +31,24 @@ build --copt=-Wno-gnu-offsetof-extensions
 # LLVM's LIT test runner needs %PATHEXT% on Windows
 test:windows --test_env=PATHEXT
 
-# Build with MSVC (and nvcc if --config=cuda)
-build:msvc --config=nvcc
+# Build with MSVC
 build:msvc --cxxopt=/std:c++17 --host_cxxopt=/std:c++17
 # Workaround for https://github.com/tensorflow/runtime/issues/65
 build:msvc --cxxopt=/d2ReducedOptimizeHugeFunctions
 
 # Build with clang.
 build:clang --repo_env=CC=clang
-build:clang --@rules_cuda//cuda:compiler=clang
-build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
 build:clang --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 
-# Build with gcc (and nvcc if --config=cuda).
+# Build with gcc
 build:gcc --repo_env=CC=gcc
-build:gcc --config=nvcc
 build:gcc --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
 build:gcc --cxxopt=-Wno-maybe-uninitialized
 build:gcc --cxxopt=-Wno-sign-compare
 
-# Build with CUDA device code with nvcc.
-build:nvcc --@rules_cuda//cuda:compiler=nvcc
-build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
-build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
-build:nvcc --@rules_cuda//cuda:copts=-std=c++17
-
 # Default to an optimized build.
 # Override via: "-c dbg" or --compilation_mode=dbg
 build --compilation_mode=opt
-
-# Build settings for //backends/gpu/...
-build --@rules_cuda//cuda:cuda_targets=sm_60
-build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs
-build --copt=-U_FORTIFY_SOURCE  # TODO(csigg): fix and remove
-
-# CUDA support
-# TODO(ezhulenev): NVCC fails to compiled some of the kernels with C++17.
-# build:cuda --//:enable_gpu  # Link //backends/gpu to //tools targets.
-build:cuda --@rules_cuda//cuda:enable_cuda  # Build CUDA device code.
-test:cuda  --test_env=CUDA_CACHE_DISABLE=1  # Do not cache CUDA JIT
-test:cuda  --test_strategy=exclusive  # Run tests serially to avoid GPU OOM.
 
 # Build Event Service
 build:bes --bes_backend=buildeventservice.googleapis.com
@@ -91,13 +68,16 @@ build:rbe --google_default_credentials
 build:disable_rtti_and_exceptions --no//:rtti_and_exceptions
 
 # Filter build/test targets by tag.
-test:cuda --build_tag_filters=-no_oss,-oss_excluded
-test:cuda --test_tag_filters=-no_oss,-oss_excluded,-requires-gpu-amd
+test --build_tag_filters=-no_oss,-oss_excluded
+test --test_tag_filters=-no_oss,-oss_excluded
 
 # Minimize code size for //tools:code_size_test_driver target.
 build:code_size_test --compilation_mode=opt --copt=-Os
 build:code_size_test --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe
 build:code_size_test --config=disable_rtti_and_exceptions
+
+# No longer supported. Will be removed when the build scripts have been fixed.
+build:cuda --repo_env=PLACEHOLDER_ENV=ignore
 
 # Put user-specific options in .bazelrc.user
 try-import %workspace%/.bazelrc.user

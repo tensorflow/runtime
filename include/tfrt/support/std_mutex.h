@@ -50,7 +50,7 @@ class TFRT_CAPABILITY("mutex") mutex {
 
  private:
   friend class mutex_lock;
-  std::mutex mu_;
+  std::mutex mu_{};
 };
 
 // Wrap std::unique_lock<std::mutex> with support for thread annotations.

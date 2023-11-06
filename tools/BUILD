@@ -80,6 +80,7 @@ tfrt_cc_binary(
 #     python_version = "PY3",
 #     deps = [
 #         ":btf_info",
+#         # Placeholder: proto upb dep
 #         "@tf_runtime//:btf_writer",
 #     ],
 # )

@@ -40,9 +40,8 @@ struct TFRTInlinerInterface : public mlir::DialectInlinerInterface {
     return true;
   }
 
-  void handleTerminator(
-      mlir::Operation *op,
-      llvm::ArrayRef<mlir::Value> values_to_replace) const final {
+  void handleTerminator(mlir::Operation *op,
+                        mlir::ValueRange values_to_replace) const final {
     // Handle the given inlined terminator by replacing it with a new operation
     // as necessary. Required when the region has only one block.
     auto return_op = llvm::dyn_cast<ReturnOp>(op);

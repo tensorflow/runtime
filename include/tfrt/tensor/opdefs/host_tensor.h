@@ -42,6 +42,7 @@ class HostBufferType
     : public Type::TypeBase<HostBufferType, Type, TypeStorage> {
  public:
   using Base::Base;
+  static constexpr StringLiteral name = "tfrt.ht.host_buffer";
 };
 
 }  // namespace ht

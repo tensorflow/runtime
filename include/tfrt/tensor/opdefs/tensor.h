@@ -42,6 +42,7 @@ class TensorDialect : public Dialect {
 class TensorType : public Type::TypeBase<TensorType, Type, TypeStorage> {
  public:
   using Base::Base;
+  static constexpr StringLiteral name = "tfrt.t.tensor";
 };
 
 }  // namespace t

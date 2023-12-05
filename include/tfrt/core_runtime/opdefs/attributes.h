@@ -55,6 +55,8 @@ class ShapeAttr : public mlir::Attribute::AttrBase<ShapeAttr, mlir::Attribute,
  public:
   using Base::Base;
 
+  static constexpr mlir::StringLiteral name = "tfrt.corert.shape";
+
   // Get or create an unranked shape attribute.
   static ShapeAttr get(mlir::MLIRContext* context) {
     return Base::get(context, llvm::ArrayRef<int64_t>(), /*unranked=*/1);

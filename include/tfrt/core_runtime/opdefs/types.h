@@ -29,6 +29,7 @@ class StringType
     : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.string";
 };
 
 class TensorHandleType
@@ -36,54 +37,63 @@ class TensorHandleType
                                   mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.tensor_handle";
 };
 
 class OpHandlerType : public mlir::Type::TypeBase<OpHandlerType, mlir::Type,
                                                   mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.op_handler";
 };
 
 class ResourceType
     : public mlir::Type::TypeBase<ResourceType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.resource";
 };
 
 class VariantType
     : public mlir::Type::TypeBase<VariantType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.variant";
 };
 
 class Quint8Type
     : public mlir::Type::TypeBase<Quint8Type, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.quint8";
 };
 
 class Quint16Type
     : public mlir::Type::TypeBase<Quint16Type, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.quint16";
 };
 
 class Qint8Type
     : public mlir::Type::TypeBase<Qint8Type, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.qint8";
 };
 
 class Qint16Type
     : public mlir::Type::TypeBase<Qint16Type, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.qint16";
 };
 
 class Qint32Type
     : public mlir::Type::TypeBase<Qint32Type, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.corert.qint32";
 };
 
 }  // namespace corert

@@ -28,24 +28,28 @@ class ChainType
     : public mlir::Type::TypeBase<ChainType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.compiler.chain";
 };
 
 class StringType
     : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.compiler.string";
 };
 
 class TensorTypeType : public mlir::Type::TypeBase<TensorTypeType, mlir::Type,
                                                    mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.compiler.tensor_type";
 };
 
 class DeviceType
     : public mlir::Type::TypeBase<DeviceType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
+  static constexpr mlir::StringLiteral name = "tfrt.compiler.device";
 };
 
 }  // namespace compiler

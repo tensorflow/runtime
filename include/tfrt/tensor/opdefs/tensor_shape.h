@@ -36,6 +36,7 @@ namespace ts {
 class ShapeType : public Type::TypeBase<ShapeType, Type, TypeStorage> {
  public:
   using Base::Base;
+  static constexpr StringLiteral name = "tfrt.ts.shape";
 };
 
 /// The partial shape descriptor type represents a static or a dynamic (unknown
@@ -44,6 +45,7 @@ class PartialShapeType
     : public Type::TypeBase<PartialShapeType, Type, TypeStorage> {
  public:
   using Base::Base;
+  static constexpr StringLiteral name = "tfrt.ts.partial_shape";
 };
 
 }  // namespace ts

@@ -50,8 +50,7 @@ TEST(ConcurrentVectorTest, OneWriterOneReader) {
 
   std::thread reader([&] {
     for (int i = 0; i < kCount; ++i) {
-      while (i >= vec.size())
-        ;
+      while (i >= vec.size());
       EXPECT_EQ(i, vec[i]);
     }
   });
@@ -79,8 +78,7 @@ TEST(ConcurrentVectorTest, TwoWritersTwoReaders) {
   auto reader = [&] {
     std::vector<int> stored;
     for (int i = 0; i < kCount; ++i) {
-      while (i >= vec.size())
-        ;
+      while (i >= vec.size());
       stored.emplace_back(vec[i]);
     }
     std::sort(stored.begin(), stored.end());

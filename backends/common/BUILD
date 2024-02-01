@@ -75,7 +75,9 @@ tfrt_cc_library(
     name = "tf_dnn_ops_util",
     srcs = ["lib/ops/tf/dnn_ops_util.cc"],
     hdrs = ["include/tfrt/common/ops/tf/dnn_ops_util.h"],
-    visibility = ["@tf_runtime//:friends"],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
@@ -167,7 +169,9 @@ tfrt_cc_library(
     name = "shape_functions",
     srcs = ["lib/compat/eigen/kernels/shape_functions.cc"],
     hdrs = ["include/tfrt/common/compat/eigen/kernels/shape_functions.h"],
-    visibility = ["@tf_runtime//:friends"],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",

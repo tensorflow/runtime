@@ -24,8 +24,6 @@ expand_template = rule(
             doc = "The destination of the expanded file",
         ),
     },
-    # output_to_genfiles is required for header files.
-    output_to_genfiles = True,
     implementation = _expand_template_impl,
     doc = """Performs a search over the template file for the keys in
 substitutions, and replaces them with the corresponding values.

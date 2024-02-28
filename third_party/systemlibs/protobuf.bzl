@@ -148,7 +148,6 @@ proto_gen = rule(
         "gen_py": attr.bool(),
         "outs": attr.output_list(),
     },
-    output_to_genfiles = True,
     implementation = _proto_gen_impl,
 )
 """Generates codes from Protocol Buffers definitions.

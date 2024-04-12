@@ -14,9 +14,10 @@
 
 """BUILD rules for translating .mlir to .bef and running TFRT .mlir tests."""
 
-load("@tf_runtime//mlir_tests:lit.bzl", "glob_lit_tests")
 load("@tf_runtime//:build_defs.bzl", "if_google")
 # Placeholder: load pkg_library
+
+load("@tf_runtime//mlir_tests:lit.bzl", "glob_lit_tests")
 
 def mlir_to_bef(name, tfrt_translate):
     """Runs "tfrt_translate -mlir-to-bef $test.mlir" to create $test.mlir.bef.

@@ -1,10 +1,10 @@
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load(
     "@tf_runtime//:build_defs.bzl",
     "if_google",
     "if_oss",
     "tfrt_cc_library",
 )
-load("@bazel_skylib//lib:selects.bzl", "selects")
 
 package(
     # copybara:uncomment default_compatible_with = ["//buildenv/target:non_prod"],
@@ -75,9 +75,7 @@ tfrt_cc_library(
     name = "tf_dnn_ops_util",
     srcs = ["lib/ops/tf/dnn_ops_util.cc"],
     hdrs = ["include/tfrt/common/ops/tf/dnn_ops_util.h"],
-    visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
@@ -169,9 +167,7 @@ tfrt_cc_library(
     name = "shape_functions",
     srcs = ["lib/compat/eigen/kernels/shape_functions.cc"],
     hdrs = ["include/tfrt/common/compat/eigen/kernels/shape_functions.h"],
-    visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",

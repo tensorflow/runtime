@@ -41,9 +41,7 @@ tfrt_cc_binary(
 
 tfrt_cc_library(
     name = "translate_lib",
-    visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:beftomlir_translate_alwayslink",

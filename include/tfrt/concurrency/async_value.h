@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TFRT_CONCURRENCY_ASYNC_VALUE_H_
 #define TFRT_CONCURRENCY_ASYNC_VALUE_H_
 
-#include "compiler/xla/tsl/concurrency/async_value.h"  // from @local_tsl  // IWYU pragma: export
+#include "tsl/concurrency/async_value.h"  // from @local_tsl  // IWYU pragma: export
 
 // TODO(ezhulenev): We have targets that depend on transitive includes. This
 // should be removed once we finally move to TSL concurrency package.

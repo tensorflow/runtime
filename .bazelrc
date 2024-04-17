@@ -21,6 +21,9 @@
 build --incompatible_enforce_config_setting_visibility
 build --incompatible_config_setting_private_default_visibility
 
+# Needed for XLA dependency
+build --experimental_repo_remote_exec
+
 # Disable clang extention that rejects type definitions within offsetof.
 # This was added in clang-16 by https://reviews.llvm.org/D133574.
 # Can be removed once upb is updated, since a type definition is used within

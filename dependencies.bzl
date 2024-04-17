@@ -14,30 +14,9 @@
 """Provides a workspace macro to load dependent repositories."""
 
 load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
-load("@tf_runtime//third_party/absl:workspace.bzl", absl = "repo")
-load("@tf_runtime//third_party/eigen:workspace.bzl", eigen = "repo")
-load("@tf_runtime//third_party/llvm:workspace.bzl", llvm = "repo")
-load("@tf_runtime//third_party/tsl:workspace.bzl", tsl = "repo")
 
 def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
-
-    llvm(name = "llvm-raw")
-
-    tfrt_http_archive(
-        name = "bazel_skylib",
-        sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
-            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz",
-        ],
-    )
-
-    absl(name = "com_google_absl")
-
-    eigen(name = "eigen_archive")
-
-    tsl(name = "tsl")
 
     tfrt_http_archive(
         name = "dnnl",
@@ -48,64 +27,6 @@ def tfrt_dependencies():
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/oneapi-src/oneDNN/archive/v1.6.4.tar.gz",
             "https://github.com/oneapi-src/oneDNN/archive/v1.6.4.tar.gz",
-        ],
-    )
-
-    tfrt_http_archive(
-        name = "com_google_googletest",
-        sha256 = "81964fe578e9bd7c94dfdb09c8e4d6e6759e19967e397dbea48d1c10e45d0df2",
-        strip_prefix = "googletest-release-1.12.1",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz",
-            "https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz",
-        ],
-    )
-
-    tfrt_http_archive(
-        name = "com_github_google_benchmark",
-        strip_prefix = "benchmark-16703ff83c1ae6d53e5155df3bb3ab0bc96083be",
-        sha256 = "59f918c8ccd4d74b6ac43484467b500f1d64b40cc1010daa055375b322a43ba3",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/google/benchmark/archive/16703ff83c1ae6d53e5155df3bb3ab0bc96083be.zip",
-            "https://github.com/google/benchmark/archive/16703ff83c1ae6d53e5155df3bb3ab0bc96083be.zip",
-        ],
-    )
-
-    tfrt_http_archive(
-        name = "com_google_protobuf",
-        sha256 = "f66073dee0bc159157b0bd7f502d7d1ee0bc76b3c1eac9836927511bdc4b3fc1",
-        strip_prefix = "protobuf-3.21.9",
-        system_build_file = "@tf_runtime//third_party/systemlibs:protobuf.BUILD",
-        system_link_files = {
-            "@tf_runtime//third_party/systemlibs:protobuf.bzl": "protobuf.bzl",
-        },
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/protobuf/archive/v3.21.9.zip",
-            "https://github.com/protocolbuffers/protobuf/archive/v3.21.9.zip",
-        ],
-    )
-
-    tfrt_http_archive(
-        name = "cub_archive",
-        build_file = "@tf_runtime//third_party:cub/BUILD",
-        patch_file = "@tf_runtime//third_party:cub/pr170.patch",
-        sha256 = "6bfa06ab52a650ae7ee6963143a0bbc667d6504822cbd9670369b598f18c58c3",
-        strip_prefix = "cub-1.8.0",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/NVlabs/cub/archive/1.8.0.zip",
-            "https://github.com/NVlabs/cub/archive/1.8.0.zip",
-        ],
-    )
-
-    tfrt_http_archive(
-        name = "zlib",
-        build_file = "@tf_runtime//third_party:zlib.BUILD",
-        sha256 = "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1",
-        strip_prefix = "zlib-1.2.11",
-        system_build_file = "@tf_runtime//third_party/systemlibs:zlib.BUILD",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/zlib.net/zlib-1.2.11.tar.gz",
-            "https://zlib.net/zlib-1.2.11.tar.gz",
         ],
     )
 

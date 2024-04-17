@@ -21,26 +21,22 @@ load(":dependencies.bzl", "tfrt_dependencies")
 
 tfrt_dependencies()
 
-load("@bazel_skylib//lib:versions.bzl", "versions")
+# The XLA commit is determined by third_party/xla/workspace.bzl.
+load("//third_party/xla:workspace.bzl", tfrt_xla_workspace = "repo")
+tfrt_xla_workspace("xla")
 
-versions.check(minimum_bazel_version = "5.1.0")
+load("@xla//:workspace4.bzl", "xla_workspace4")
+xla_workspace4()
 
-load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
-load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure")
+load("@xla//:workspace3.bzl", "xla_workspace3")
+xla_workspace3()
 
-maybe(
-    llvm_configure,
-    name = "llvm-project",
-)
+load("@xla//:workspace2.bzl", "xla_workspace2")
+xla_workspace2()
 
-load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+load("@xla//:workspace1.bzl", "xla_workspace1")
+xla_workspace1()
 
-protobuf_deps()
+load("@xla//:workspace0.bzl", "xla_workspace0")
+xla_workspace0()
 
-load("@rules_cc//cc:repositories.bzl", "rules_cc_toolchains")
-
-rules_cc_toolchains()
-
-load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "use_cpp_toolchain")
-
-use_cpp_toolchain()

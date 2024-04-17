@@ -31,12 +31,9 @@ tf_runtime/third_party/absl/system.absl.utility.BUILD:
 tf_runtime/third_party/clang_toolchain/BUILD:
 tf_runtime/third_party/clang_toolchain/download_clang.bzl:
 tf_runtime/third_party/dnnl/BUILD:
-tf_runtime/third_party/eigen/BUILD:
 tf_runtime/third_party/llvm/BUILD:
 tf_runtime/third_party/py-cpuinfo.BUILD:
 tf_runtime/third_party/systemlibs/protobuf.BUILD:
 tf_runtime/third_party/systemlibs/protobuf.bzl:
 tf_runtime/third_party/systemlibs/zlib.BUILD:
-tf_runtime/third_party/tsl/BUILD:
-tf_runtime/third_party/tsl/concurrency.BUILD:
-tf_runtime/third_party/zlib.BUILD:
+tf_runtime/third_party/xla/BUILD:

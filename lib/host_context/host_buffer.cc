@@ -100,9 +100,11 @@ HostBuffer::~HostBuffer() {
 void HostBuffer::Destroy() {
   switch (mode_) {
     case Mode::kInlined: {
+      HostAllocator *allocator = inlined_.allocator;
+      void *data = static_cast<void *>(this);
+      size_t allocated_size = sizeof(HostBuffer) + inlined_.allocated_size;
       this->~HostBuffer();
-      inlined_.allocator->DeallocateBytes(
-          this, sizeof(HostBuffer) + inlined_.allocated_size);
+      allocator->DeallocateBytes(data, allocated_size);
       break;
     }
     case Mode::kOutOfLine:

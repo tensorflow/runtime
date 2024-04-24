@@ -1,9 +1,17 @@
 load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
+# copybara:uncomment load("//tools/build_defs/license:license.bzl", "license")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
     default_visibility = [":__subpackages__"],
 )
+
+# copybara:uncomment_begin(Internal license rules)
+# license(
+#     name = "license",
+#     package_name = "cpu",
+# )
+# copybara:uncomment_end
 
 licenses(["notice"])
 
@@ -159,10 +167,7 @@ tfrt_cc_library(
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:tf_bcast",
-    ] + select({
-        "@tf_runtime//:linux_x86_64": ["@dnnl//:dnnl_single_threaded"],
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 # copybara:uncomment_begin

@@ -19,18 +19,6 @@ def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
 
     tfrt_http_archive(
-        name = "dnnl",
-        build_file = "//third_party/dnnl:BUILD",
-        link_files = {"//third_party/dnnl:expand_template.bzl": "expand_template.bzl"},
-        sha256 = "5369f7b2f0b52b40890da50c0632c3a5d1082d98325d0f2bff125d19d0dcaa1d",
-        strip_prefix = "oneDNN-1.6.4",
-        urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/oneapi-src/oneDNN/archive/v1.6.4.tar.gz",
-            "https://github.com/oneapi-src/oneDNN/archive/v1.6.4.tar.gz",
-        ],
-    )
-
-    tfrt_http_archive(
         name = "py-cpuinfo",
         strip_prefix = "py-cpuinfo-0.2.3",
         sha256 = "f6a016fdbc4e7fadf2d519090fcb4fa9d0831bad4e85245d938e5c2fe7623ca6",

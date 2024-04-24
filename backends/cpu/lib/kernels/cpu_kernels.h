@@ -37,10 +37,6 @@
 #include "tfrt/tensor/scalar_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
 
-#ifdef __x86_64__
-#include "dnnl.h"  // from @dnnl
-#endif
-
 namespace tfrt {
 namespace cpu {
 

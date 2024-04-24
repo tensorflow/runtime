@@ -1,4 +1,3 @@
-load("@bazel_skylib//lib:selects.bzl", "selects")
 load(
     "@tf_runtime//:build_defs.bzl",
     "if_google",
@@ -12,24 +11,6 @@ package(
 )
 
 licenses(["notice"])
-
-config_setting(
-    name = "disable_mkldnn",
-    flag_values = {"@tf_runtime//:eigen_mkldnn_contraction_kernel": "False"},
-)
-
-config_setting(
-    name = "enable_mkldnn",
-    flag_values = {"@tf_runtime//:eigen_mkldnn_contraction_kernel": "True"},
-)
-
-selects.config_setting_group(
-    name = "use_mkldnn",
-    match_all = [
-        ":enable_mkldnn",
-        "@tf_runtime//:linux_x86_64",
-    ],
-)
 
 tfrt_cc_library(
     name = "tf_metadata_functions",
@@ -135,14 +116,7 @@ tfrt_cc_library(
         "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
         "EIGEN_CONDVAR=std::condition_variable",
         "EIGEN_AVOID_STL_ARRAY",
-    ]) + select({
-        ":use_mkldnn": [
-            # Custom contraction kernel defines.
-            "TFRT_EIGEN_USE_CUSTOM_CONTRACTION_KERNEL",
-            "TFRT_EIGEN_USE_MKLDNN_CONTRACTION_KERNEL",
-        ],
-        "//conditions:default": [],
-    }),
+    ]),
     visibility = ["//visibility:public"],
     deps = [
         "@eigen_archive//:eigen3",
@@ -155,12 +129,7 @@ tfrt_cc_library(
         # TODO(b/161569340): Short-term fix. Remove.
         "//third_party/tensorflow/core/platform:types",
         "//third_party/tensorflow/core/platform:mutex",
-    ]) + select({
-        ":use_mkldnn": [
-            "@dnnl//:dnnl_single_threaded",
-        ],
-        "//conditions:default": [],
-    }),
+    ]),
 )
 
 tfrt_cc_library(

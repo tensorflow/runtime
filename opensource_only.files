@@ -7,6 +7,5 @@ tf_runtime/WORKSPACE:
 tf_runtime/dependencies.bzl:
 tf_runtime/mlir_tests/lit.bzl:
 tf_runtime/third_party/BUILD:
-tf_runtime/third_party/dnnl/BUILD:
 tf_runtime/third_party/py-cpuinfo.BUILD:
 tf_runtime/third_party/xla/BUILD:

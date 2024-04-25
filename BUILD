@@ -212,7 +212,7 @@ tfrt_cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":support",
-        "@tsl//tsl/concurrency:async_value",
+        "@xla//xla/tsl/concurrency:async_value",
     ],
 )
 
@@ -221,7 +221,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/concurrency/concurrent_vector.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
-    deps = ["@tsl//tsl/concurrency:concurrent_vector"],
+    deps = ["@xla//xla/tsl/concurrency:concurrent_vector"],
 )
 
 tfrt_cc_library(
@@ -229,7 +229,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/concurrency/ref_count.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
-    deps = ["@tsl//tsl/concurrency:ref_count"],
+    deps = ["@xla//xla/tsl/concurrency:ref_count"],
 )
 
 tfrt_cc_library(
@@ -1550,7 +1550,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:VectorDialect",
-        # copybara:uncomment "//third_party/tensorflow/compiler/xla/mlir/runtime/ir:rt",
+        # copybara:uncomment "@xla//mlir/runtime/ir:rt",
     ],
 )
 

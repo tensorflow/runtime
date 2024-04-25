@@ -6,8 +6,8 @@ def repo(name):
     """Imports XLA."""
 
     # Attention: tools parse and update these lines.
-    XLA_COMMIT = "441aad6966f40917da1116fd25ec6c7839be0ef6"
-    XLA_SHA256 = "178637d895096b073efcbee8b2d36cc663bcdd55d63f273c6be86609b2916572"
+    XLA_COMMIT = "9e05244b329b56ced2bec02e3d86a6315b46faf6"
+    XLA_SHA256 = "ad44f6d1c754a2e926c89c9ac9f8a072071f9629b0188a7f275f31007e821df4"
 
     tfrt_http_archive(
         name = name,

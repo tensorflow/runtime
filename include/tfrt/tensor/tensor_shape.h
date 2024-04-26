@@ -300,13 +300,13 @@ inline TensorShape::TensorShape(ArrayRef<T> dims) {
       switch (rank) {
         case 4:
           representation_.rep32.dim3 = uint16_t(dims[3]);
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 3:
           representation_.rep32.dims[2] = dims[2];
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 2:
           representation_.rep32.dims[1] = dims[1];
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 1:
           representation_.rep32.dims[0] = dims[0];
           break;

@@ -85,10 +85,10 @@ uint32_t Hash32(const char* data, size_t n, uint32_t seed) {
   switch (n) {
     case 3:
       h ^= ByteAs32(data[2]) << 16;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 2:
       h ^= ByteAs32(data[1]) << 8;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 1:
       h ^= ByteAs32(data[0]);
       h *= m;
@@ -126,22 +126,22 @@ uint64_t Hash64(const char* data, size_t n, uint64_t seed) {
   switch (n) {
     case 7:
       h ^= ByteAs64(data[6]) << 48;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 6:
       h ^= ByteAs64(data[5]) << 40;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 5:
       h ^= ByteAs64(data[4]) << 32;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 4:
       h ^= ByteAs64(data[3]) << 24;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 3:
       h ^= ByteAs64(data[2]) << 16;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 2:
       h ^= ByteAs64(data[1]) << 8;
-      LLVM_FALLTHROUGH;
+      [[fallthrough]];
     case 1:
       h ^= ByteAs64(data[0]);
       h *= m;

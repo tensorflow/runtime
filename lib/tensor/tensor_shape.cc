@@ -89,13 +89,13 @@ Index TensorShape::GetNumElements() const {
       switch (GetRank()) {
         case 4:
           result = representation_.rep32.dim3;
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 3:
           result *= representation_.rep32.dims[2];
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 2:
           result *= representation_.rep32.dims[1];
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 1:
           result *= representation_.rep32.dims[0];
           return result;
@@ -124,13 +124,13 @@ void TensorShape::GetDimensions(MutableArrayRef<Index> result) const {
       switch (rank) {
         case 4:
           result[3] = representation_.rep32.dim3;
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 3:
           result[2] = representation_.rep32.dims[2];
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 2:
           result[1] = representation_.rep32.dims[1];
-          LLVM_FALLTHROUGH;
+          [[fallthrough]];
         case 1:
           result[0] = representation_.rep32.dims[0];
           return;

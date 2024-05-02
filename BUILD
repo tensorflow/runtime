@@ -1550,7 +1550,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:VectorDialect",
-        # copybara:uncomment "@xla//mlir/runtime/ir:rt",
     ],
 )
 

@@ -38,7 +38,7 @@ class TensorDialect : public Dialect {
 };
 
 /// The tensor descriptor type represents a generic tensor that's
-/// exchangable throughout the system.
+/// exchangeable throughout the system.
 class TensorType : public Type::TypeBase<TensorType, Type, TypeStorage> {
  public:
   using Base::Base;
@@ -46,6 +46,10 @@ class TensorType : public Type::TypeBase<TensorType, Type, TypeStorage> {
 };
 
 }  // namespace t
+namespace tfrt_tensor {
+using TensorType = tfrt::t::TensorType;
+using TensorDialect = tfrt::t::TensorDialect;
+}  // namespace tfrt_tensor
 }  // namespace tfrt
 
 #define GET_OP_CLASSES

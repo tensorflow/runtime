@@ -61,6 +61,10 @@ void TensorDialect::printType(Type type, DialectAsmPrinter &os) const {
 }
 
 }  // namespace t
+namespace tfrt_tensor {
+using TensorType = tfrt::t::TensorType;
+using TensorDialect = tfrt::t::TensorDialect;
+}  // namespace tfrt_tensor
 }  // namespace tfrt
 
 //===----------------------------------------------------------------------===//

@@ -25,8 +25,8 @@
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_NON_BLOCKING_WORK_QUEUE_H_
 
 #include <optional>
+#include <string_view>
 
-#include "llvm/Support/Compiler.h"
 #include "task_deque.h"
 #include "tfrt/host_context/task_function.h"
 #include "work_queue_base.h"
@@ -56,7 +56,8 @@ class NonBlockingWorkQueue
 
  public:
   explicit NonBlockingWorkQueue(QuiescingState* quiescing_state,
-                                int num_threads);
+                                int num_threads,
+                                std::string_view thread_name_prefix = "");
   ~NonBlockingWorkQueue() = default;
 
   void AddTask(TaskFunction task);
@@ -86,9 +87,12 @@ class NonBlockingWorkQueue
 
 template <typename ThreadingEnvironment>
 NonBlockingWorkQueue<ThreadingEnvironment>::NonBlockingWorkQueue(
-    QuiescingState* quiescing_state, int num_threads)
-    : WorkQueueBase<NonBlockingWorkQueue>(quiescing_state, kThreadNamePrefix,
-                                          num_threads) {}
+    QuiescingState* quiescing_state, int num_threads,
+    std::string_view thread_name_prefix)
+    : WorkQueueBase<NonBlockingWorkQueue>(
+          quiescing_state,
+          thread_name_prefix.empty() ? kThreadNamePrefix : thread_name_prefix,
+          num_threads) {}
 
 template <typename ThreadingEnvironment>
 void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {

@@ -25,6 +25,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Compiler.h"
@@ -125,6 +126,14 @@ class ConcurrentWorkQueue {
 // synchronization.
 std::unique_ptr<ConcurrentWorkQueue> CreateSingleThreadedWorkQueue();
 
+// Thread names prefixes for various thread pools that together form a
+// multi-threaded work queue.
+struct MultiThreadedWorkQueueOptions {
+  std::string thread_name_prefix;
+  std::string blocking_thread_name_prefix;
+  std::string dynamic_thread_name_prefix;
+};
+
 // Create a multi-threaded non-blocking thread pool that supports both blocking
 // and non-blocking workloads.
 //
@@ -138,7 +147,8 @@ std::unique_ptr<ConcurrentWorkQueue> CreateSingleThreadedWorkQueue();
 //
 // Requires `num_threads` > 0 and `num_blocking_threads` > 0.
 std::unique_ptr<ConcurrentWorkQueue> CreateMultiThreadedWorkQueue(
-    int num_threads, int num_blocking_threads);
+    int num_threads, int num_blocking_threads,
+    const MultiThreadedWorkQueueOptions& options = {});
 
 // A factory function for creating ConcurrentWorkQueue objects. The factory
 // function defines the semantics of the argument string.

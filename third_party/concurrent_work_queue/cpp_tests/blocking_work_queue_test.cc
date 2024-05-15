@@ -20,14 +20,14 @@ using WorkQueue = ::tfrt::internal::BlockingWorkQueue<ThreadingEnvironment>;
 
 TEST(BlockingWorkQueueTest, RejectRunBlockingTask) {
   auto quiescing_state = std::make_unique<internal::QuiescingState>();
-  WorkQueue work_queue(quiescing_state.get(), 2, 0);
+  WorkQueue work_queue(quiescing_state.get(), 2, "", "", 0);
   auto rejected = work_queue.RunBlockingTask({});
   ASSERT_TRUE(rejected.has_value());
 }
 
 TEST(BlockingWorkQueueTest, RunBlockingTask) {
   auto quiescing_state = std::make_unique<internal::QuiescingState>();
-  WorkQueue work_queue(quiescing_state.get(), 2, 2);
+  WorkQueue work_queue(quiescing_state.get(), 2, "", "", 2);
 
   latch barrier(1);
   latch executed(2);
@@ -54,7 +54,7 @@ TEST(BlockingWorkQueueTest, RunBlockingTask) {
 
 TEST(BlockingWorkQueueTest, Quiescing) {
   auto quiescing_state = std::make_unique<internal::QuiescingState>();
-  WorkQueue work_queue(quiescing_state.get(), 2, 2);
+  WorkQueue work_queue(quiescing_state.get(), 2, "", "", 2);
 
   auto quiescing = internal::Quiescing::Start(quiescing_state.get());
 

@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <thread>
 
 #include "blocking_work_queue.h"
@@ -24,7 +25,8 @@ namespace tfrt {
 
 class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
  public:
-  MultiThreadedWorkQueue(int num_threads, int num_blocking_threads);
+  MultiThreadedWorkQueue(int num_threads, int num_blocking_threads,
+                         const MultiThreadedWorkQueueOptions& options = {});
   ~MultiThreadedWorkQueue() override;
 
   std::string name() const override {
@@ -51,13 +53,17 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
   internal::BlockingWorkQueue<ThreadingEnvironment> blocking_work_queue_;
 };
 
-MultiThreadedWorkQueue::MultiThreadedWorkQueue(int num_threads,
-                                               int num_blocking_threads)
+MultiThreadedWorkQueue::MultiThreadedWorkQueue(
+    int num_threads, int num_blocking_threads,
+    const MultiThreadedWorkQueueOptions& options)
     : num_threads_(num_threads),
       num_blocking_threads_(num_blocking_threads),
       quiescing_state_(std::make_unique<internal::QuiescingState>()),
-      non_blocking_work_queue_(quiescing_state_.get(), num_threads),
-      blocking_work_queue_(quiescing_state_.get(), num_blocking_threads) {}
+      non_blocking_work_queue_(quiescing_state_.get(), num_threads,
+                               options.thread_name_prefix),
+      blocking_work_queue_(quiescing_state_.get(), num_blocking_threads,
+                           options.blocking_thread_name_prefix,
+                           options.dynamic_thread_name_prefix) {}
 
 MultiThreadedWorkQueue::~MultiThreadedWorkQueue() {
   // Pending tasks in the underlying queues might submit new tasks to each other
@@ -121,10 +127,11 @@ bool MultiThreadedWorkQueue::IsInWorkerThread() const {
 }
 
 std::unique_ptr<ConcurrentWorkQueue> CreateMultiThreadedWorkQueue(
-    int num_threads, int num_blocking_threads) {
+    int num_threads, int num_blocking_threads,
+    const MultiThreadedWorkQueueOptions& options) {
   assert(num_threads > 0 && num_blocking_threads > 0);
-  return std::make_unique<MultiThreadedWorkQueue>(num_threads,
-                                                  num_blocking_threads);
+  return std::make_unique<MultiThreadedWorkQueue>(
+      num_threads, num_blocking_threads, options);
 }
 
 }  // namespace tfrt

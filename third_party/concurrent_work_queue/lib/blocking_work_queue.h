@@ -17,6 +17,9 @@
 #include <optional>
 #include <queue>
 #include <ratio>
+#include <string>
+#include <string_view>
+#include <utility>
 
 #include "llvm/Support/Compiler.h"
 #include "task_queue.h"
@@ -49,6 +52,8 @@ class BlockingWorkQueue
  public:
   explicit BlockingWorkQueue(
       QuiescingState* quiescing_state, int num_threads,
+      std::string_view thread_name_prefix = "",
+      std::string_view dynamic_thread_name_prefix = "",
       int max_num_dynamic_threads = std::numeric_limits<int>::max(),
       std::chrono::nanoseconds idle_wait_time = std::chrono::seconds(1));
   ~BlockingWorkQueue() { Quiesce(); }
@@ -94,6 +99,8 @@ class BlockingWorkQueue
   std::optional<TaskFunction> WaitNextTask(mutex_lock* lock)
       TFRT_REQUIRES(mutex_);
 
+  std::string dynamic_thread_name_prefix_;
+
   // Maximum number of dynamically started threads.
   const int max_num_dynamic_threads_;
 
@@ -131,9 +138,14 @@ class BlockingWorkQueue
 template <typename ThreadingEnvironment>
 BlockingWorkQueue<ThreadingEnvironment>::BlockingWorkQueue(
     QuiescingState* quiescing_state, int num_threads,
-    int max_num_dynamic_threads, std::chrono::nanoseconds idle_wait_time)
-    : WorkQueueBase<BlockingWorkQueue>(quiescing_state, kThreadNamePrefix,
-                                       num_threads),
+    std::string_view thread_name_prefix,
+    std::string_view dynamic_thread_name_prefix, int max_num_dynamic_threads,
+    std::chrono::nanoseconds idle_wait_time)
+    : WorkQueueBase<BlockingWorkQueue>(
+          quiescing_state,
+          thread_name_prefix.empty() ? kThreadNamePrefix : thread_name_prefix,
+          num_threads),
+      dynamic_thread_name_prefix_(dynamic_thread_name_prefix),
       max_num_dynamic_threads_(max_num_dynamic_threads),
       idle_wait_time_(idle_wait_time) {}
 
@@ -262,7 +274,9 @@ BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(TaskFunction task) {
     // Start a new dynamic thread.
     dynamic_thread.second = true;  // is active
     dynamic_thread.first = ThreadingEnvironment::StartThread(
-        kDynamicThreadNamePrefix, std::move(do_work));
+        dynamic_thread_name_prefix_.empty() ? kDynamicThreadNamePrefix
+                                            : dynamic_thread_name_prefix_,
+        std::move(do_work));
     ++num_dynamic_threads_;
 
     return std::nullopt;

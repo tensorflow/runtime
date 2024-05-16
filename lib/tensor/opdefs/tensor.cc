@@ -17,18 +17,23 @@
 #include "tfrt/tensor/opdefs/tensor.h"
 
 #include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/TypeID.h"
 
 namespace tfrt {
-namespace t {
+namespace tfrt_tensor {
 
 //===----------------------------------------------------------------------===//
 // TensorShape Dialect
 //===----------------------------------------------------------------------===//
 
+// TODO (b/341154040): Pass in "tfrt_tensor" into the Dialect constructor
+// instead of "t".
 TensorDialect::TensorDialect(MLIRContext *context)
     : Dialect(/*name=*/"t", context, TypeID::get<TensorDialect>()) {
   allowUnknownTypes();
@@ -60,10 +65,6 @@ void TensorDialect::printType(Type type, DialectAsmPrinter &os) const {
   llvm_unreachable("unexpected 'tensor' type kind");
 }
 
-}  // namespace t
-namespace tfrt_tensor {
-using TensorType = tfrt::t::TensorType;
-using TensorDialect = tfrt::t::TensorDialect;
 }  // namespace tfrt_tensor
 }  // namespace tfrt
 

@@ -1072,6 +1072,7 @@ tfrt_cc_library(
         ":tensor_shape_sync_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffectInterfaces",
+        "@llvm-project//mlir:Support",
     ],
 )
 

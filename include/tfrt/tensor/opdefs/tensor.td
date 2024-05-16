@@ -27,7 +27,7 @@ include "mlir/IR/OpBase.td"
 // TFRT tensor dialect.
 // TODO(b/170246041): Move `TensorType` under the TFRT dialect.
 def Tensor_Dialect : Dialect {
-  let name = "t";
+  let name = "tfrt_tensor";
 
   let description = [{
     The TFRT tensor dialect.
@@ -42,10 +42,10 @@ def Tensor_Dialect : Dialect {
 // Type definitions
 //===----------------------------------------------------------------------===//
 def TensorType : DialectType<Tensor_Dialect,
-    CPred<"$_self.isa<::tfrt::tfrt_tensor::TensorType>()">, "!t.tensor type">,
+    CPred<"$_self.isa<::tfrt::tfrt_tensor::TensorType>()">, "!tfrt_tensor.tensor type">,
     BuildableType<"$_builder.getType<::tfrt::tfrt_tensor::TensorType>()"> {
   let description = [{
-    `!t.tensor type` represents a generic tfrt tensor.
+    `!trft_tensor.tensor type` represents a generic tfrt tensor.
   }];
 }
 

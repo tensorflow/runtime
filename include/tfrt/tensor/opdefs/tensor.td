@@ -35,15 +35,15 @@ def Tensor_Dialect : Dialect {
     This dialect defines operations to work with tensor in tfrt.
   }];
 
-  let cppNamespace = "::tfrt::t";
+  let cppNamespace = "::tfrt::tfrt_tensor";
 }
 
 //===----------------------------------------------------------------------===//
 // Type definitions
 //===----------------------------------------------------------------------===//
 def TensorType : DialectType<Tensor_Dialect,
-    CPred<"$_self.isa<::tfrt::t::TensorType>()">, "!t.tensor type">,
-    BuildableType<"$_builder.getType<::tfrt::t::TensorType>()"> {
+    CPred<"$_self.isa<::tfrt::tfrt_tensor::TensorType>()">, "!t.tensor type">,
+    BuildableType<"$_builder.getType<::tfrt::tfrt_tensor::TensorType>()"> {
   let description = [{
     `!t.tensor type` represents a generic tfrt tensor.
   }];

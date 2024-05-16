@@ -50,7 +50,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<dht::DenseHostTensorSyncDialect>();
   registry.insert<coo::CooHostTensorDialect>();
   registry.insert<test::TestDialect>();
-  registry.insert<t::TensorDialect>();
+  registry.insert<tfrt_tensor::TensorDialect>();
   registry.insert<ht::HostTensorDialect>();
   registry.insert<mlir::func::FuncDialect>();
 }

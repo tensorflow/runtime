@@ -19,7 +19,7 @@ func.func @basic() {
   %c0 = tfrt.new.chain
 
   %a = "tfrt_sht.create_tensor"()
-    {shape = [2], values = ["string", "tensor"]} : () -> !t.tensor
+    {shape = [2], values = ["string", "tensor"]} : () -> !tfrt_tensor.tensor
 
   // CHECK: shape = [2], values = ["string", "tensor"]
   %c1 = tfrt_dht.print_tensor %a, %c0

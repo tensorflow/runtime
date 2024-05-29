@@ -28,10 +28,9 @@ using namespace mlir;
 namespace tfrt {
 namespace tfrt_tensor {
 
-// TODO (b/341154040): Pass in "tfrt_tensor" instead of "t".
 class TensorDialect : public Dialect {
  public:
-  static StringRef getDialectNamespace() { return "t"; }
+  static StringRef getDialectNamespace() { return "tfrt_tensor"; }
   explicit TensorDialect(MLIRContext *context);
 
   Type parseType(DialectAsmParser &parser) const override;
@@ -43,7 +42,7 @@ class TensorDialect : public Dialect {
 class TensorType : public Type::TypeBase<TensorType, Type, TypeStorage> {
  public:
   using Base::Base;
-  static constexpr StringLiteral name = "tfrt.t.tensor";
+  static constexpr StringLiteral name = "tfrt.tfrt_tensor.tensor";
 };
 
 }  // namespace tfrt_tensor

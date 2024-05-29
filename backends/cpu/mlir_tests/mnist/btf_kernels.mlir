@@ -28,15 +28,15 @@ func.func @tensor_io() {
   %one = tfrt.constant.i32 1
   %two = tfrt.constant.i32 2
 
-  %t0 = "btf.read_dense_tensor.i32.2"(%path, %zero) : (!tfrt.string, i32) -> (!t.tensor)
+  %t0 = "btf.read_dense_tensor.i32.2"(%path, %zero) : (!tfrt.string, i32) -> (!tfrt_tensor.tensor)
   // CHECK-NEXT: shape = [2, 2], values = [1, 2, 3, 4]
   %c1 = tfrt_dht.print_tensor %t0, %c0
 
-  %t1 = "btf.read_dense_tensor.i32.1"(%path, %one) : (!tfrt.string, i32) -> (!t.tensor)
+  %t1 = "btf.read_dense_tensor.i32.1"(%path, %one) : (!tfrt.string, i32) -> (!tfrt_tensor.tensor)
   // CHECK-NEXT: shape = [5], values = [0, 1, 2, 3, 4]
   %c2 = tfrt_dht.print_tensor %t1, %c1
 
-  %t2 = "btf.read_dense_tensor.i32.1"(%path, %two) : (!tfrt.string, i32) -> (!t.tensor)
+  %t2 = "btf.read_dense_tensor.i32.1"(%path, %two) : (!tfrt.string, i32) -> (!tfrt_tensor.tensor)
   // CHECK-NEXT: shape = [0], values = []
   %c3 = tfrt_dht.print_tensor %t2, %c2
 
@@ -49,7 +49,7 @@ func.func @tensor_io_invalid_path() {
   %path = "tfrt_test.get_string"() { value = "/tmp/invalid_path" } : () -> !tfrt.string
   %zero = tfrt.constant.i32 0
   // expected-error @+1 {{failed to open file /tmp/invalid_path for reading}}
-  %t0 = "btf.read_dense_tensor.i32.2"(%path, %zero) : (!tfrt.string, i32) -> (!t.tensor)
+  %t0 = "btf.read_dense_tensor.i32.2"(%path, %zero) : (!tfrt.string, i32) -> (!tfrt_tensor.tensor)
 
   tfrt.return
 }

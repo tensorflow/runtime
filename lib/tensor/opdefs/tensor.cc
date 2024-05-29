@@ -32,10 +32,8 @@ namespace tfrt_tensor {
 // TensorShape Dialect
 //===----------------------------------------------------------------------===//
 
-// TODO (b/341154040): Pass in "tfrt_tensor" into the Dialect constructor
-// instead of "t".
 TensorDialect::TensorDialect(MLIRContext *context)
-    : Dialect(/*name=*/"t", context, TypeID::get<TensorDialect>()) {
+    : Dialect(/*name=*/"tfrt_tensor", context, TypeID::get<TensorDialect>()) {
   allowUnknownTypes();
   addTypes<TensorType>();
   addOperations<

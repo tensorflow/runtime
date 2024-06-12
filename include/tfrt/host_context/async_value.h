@@ -32,8 +32,7 @@ namespace tfrt {
 using ::tsl::AsyncValue;  // NOLINT
 
 namespace internal {
-using ::tsl::internal::ConcreteAsyncValue;            // NOLINT
-using ::tsl::internal::KeepAsyncValuePayloadOnError;  // NOLINT
+using ::tsl::internal::ConcreteAsyncValue;  // NOLINT
 }  // namespace internal
 
 using ::tsl::DummyValueForErrorAsyncValue;  // NOLINT

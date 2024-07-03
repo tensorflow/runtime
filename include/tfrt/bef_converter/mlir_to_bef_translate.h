@@ -23,12 +23,11 @@
 
 namespace mlir {
 class ModuleOp;
-struct LogicalResult;
 }  // namespace mlir
 
 namespace tfrt {
 
-mlir::LogicalResult MLIRToBEFTranslate(mlir::ModuleOp module,
+llvm::LogicalResult MLIRToBEFTranslate(mlir::ModuleOp module,
                                        llvm::raw_ostream& output);
 
 }

@@ -25,6 +25,7 @@
 
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/LogicalResult.h"
 
 // We don't forward declare:
 //   DenseMap, SmallVector, StringMap, StringSet
@@ -32,6 +33,7 @@
 namespace llvm {
 
 class raw_ostream;
+struct LogicalResult;
 
 template <typename T>
 class ArrayRef;

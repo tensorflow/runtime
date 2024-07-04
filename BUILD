@@ -721,6 +721,7 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TranslateLib",
     ],
 )

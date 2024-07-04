@@ -19,6 +19,7 @@
 #ifndef TFRT_BEF_CONVERTER_MLIR_TO_BEF_TRANSLATE_H_
 #define TFRT_BEF_CONVERTER_MLIR_TO_BEF_TRANSLATE_H_
 
+#include "mlir/Support/LogicalResult.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace mlir {
@@ -27,9 +28,8 @@ class ModuleOp;
 
 namespace tfrt {
 
-llvm::LogicalResult MLIRToBEFTranslate(mlir::ModuleOp module,
+mlir::LogicalResult MLIRToBEFTranslate(mlir::ModuleOp module,
                                        llvm::raw_ostream& output);
-
 }
 
 #endif  // TFRT_BEF_CONVERTER_MLIR_TO_BEF_TRANSLATE_H_

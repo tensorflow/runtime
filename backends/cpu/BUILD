@@ -197,7 +197,6 @@ tfrt_cc_library(
 # proto_library(
 #     name = "lib_proto",
 #     srcs = ["include/tfrt/cpu/kernels/proto/example.proto"],
-#     cc_api_version = 2,
 # )
 #
 # tfrt_cc_library(

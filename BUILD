@@ -712,7 +712,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/mlir_to_bef_translate.h",
     ],
     alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
-    # copybara:uncomment compatible_with = ["//buildenv/target:gce"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
         ":bef",
@@ -1533,7 +1533,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/init_tfrt_dialects.h",
     ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:gce"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
         ":basic_kernels_opdefs",

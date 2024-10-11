@@ -851,8 +851,8 @@ void OpAttrsRef::Print(raw_ostream &os) const {
   // Print out the attributes in stable order.
   for (auto *attr : sorted_attrs) {
     const OpAttrsRawEntry &entry = *attr;
-    os << "  '" << entry.name << "'" << " type=" << GetNameString(entry.type)
-       << " value=";
+    os << "  '" << entry.name << "'"
+       << " type=" << GetNameString(entry.type) << " value=";
 
     if (entry.IsArray()) {
       const char *data = static_cast<const char *>(entry.GetData());

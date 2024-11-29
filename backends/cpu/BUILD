@@ -1,3 +1,4 @@
+# copybara:uncomment load("//third_party/protobuf/bazel:proto_library.bzl", "proto_library")
 load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/license:license.bzl", "license")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")

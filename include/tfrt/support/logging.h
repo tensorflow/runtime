@@ -85,7 +85,7 @@ struct LogStreamVoidifier {
 // `TFRT_INTERNAL_LOG_CONDITION` prefixes another macro that expands to a
 // temporary `LogStream` instantiation.
 #define TFRT_INTERNAL_LOG_CONDITION(condition) \
-  !(condition) ? (void)0 : ::tfrt::internal::LogStreamVoidifier()&
+  !(condition) ? (void)0 : ::tfrt::internal::LogStreamVoidifier() &
 
 // `TFRT_DLOG` behaves like `TFRT_LOG` in debug mode (i.e. `#ifndef NDEBUG`).
 // Otherwise, it compiles away and does nothing. Note that `TFRT_DLOG(FATAL)`

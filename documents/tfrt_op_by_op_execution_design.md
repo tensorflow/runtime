@@ -24,7 +24,7 @@ in:
 
 The Core Runtime mainly contains two parts: an Op notion which is equivalent to
 the current TensorFlow op and an interface layer that higher level runtime (e.g.
-TF Python Runtime, [Jax](https://github.com/google/jax),
+TF Python Runtime, [Jax](https://github.com/jax-ml/jax),
 [Swift for TensorFlow](https://github.com/tensorflow/swift)) can call into. It
 can execute both native ops and composite ops on the local host, accelerator
 devices or remotely.

@@ -30,8 +30,8 @@
 namespace tfrt {
 namespace image {
 
-void resize_image(const DenseHostTensor& input, const float height_scale,
-                  const float width_scale, DenseHostTensor& output);
+void resize_image(const DenseHostTensor& input, float height_scale,
+                  float width_scale, DenseHostTensor& output);
 
 }  // namespace image
 }  // namespace tfrt

@@ -65,6 +65,13 @@ def CallOp : TFRT_Op<"call", [CallOpInterface]> {
     ::mlir::CallInterfaceCallable getCallableForCallee() { return getCalleeAttr(); }
     // Sets the callee from the callable
     void setCalleeFromCallable(::mlir::CallInterfaceCallable callee);
+
+    Attribute removeArgAttrsAttr() { return nullptr; }
+    Attribute removeResAttrsAttr() { return nullptr; }
+    ArrayAttr getArgAttrsAttr() { return nullptr; }
+    ArrayAttr getResAttrsAttr() { return nullptr; }
+    void setArgAttrsAttr(ArrayAttr) { return; }
+    void setResAttrsAttr(ArrayAttr) { return; }
   }];
 }
 

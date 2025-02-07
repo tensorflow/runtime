@@ -77,7 +77,6 @@ tfrt_cc_binary(
 # py_test(
 #     name = "btf_info_test",
 #     srcs = ["btf_info_tool/btf_info_test.py"],
-#     python_version = "PY3",
 #     deps = [
 #         ":btf_info",
 #         # Placeholder: proto upb dep

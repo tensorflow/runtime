@@ -1246,7 +1246,6 @@ tfrt_cc_library(
 # py_library(
 #     name = "btf_writer",
 #     srcs = ["utils/btf_writer.py"],
-#     srcs_version = "PY3",
 #     visibility = ["//visibility:public"],
 #     deps = ["//third_party/py/numpy"],
 # )

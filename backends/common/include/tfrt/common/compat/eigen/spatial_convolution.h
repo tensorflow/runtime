@@ -107,8 +107,10 @@ SpatialConvolution(const Input& input, const FixedRankShape<4>& input_shape,
 
   // Check input/kernel expressions dimensions. Constructing a TensorRef might
   // trigger expression evaluation, so we do it only in debug mode.
-  using InputRef = TensorRef<Tensor<InputScalar, kRank, RowMajor, IndexType>>;
-  using KernelRef = TensorRef<Tensor<KernelScalar, kRank, RowMajor, IndexType>>;
+  using InputRef =
+      TensorRef<const Tensor<InputScalar, kRank, RowMajor, IndexType>>;
+  using KernelRef =
+      TensorRef<const Tensor<KernelScalar, kRank, RowMajor, IndexType>>;
 
   auto ref_shape = [](auto ref) -> FixedRankShape<4> {
     return FixedRankShape<4>({ref.dimension(0), ref.dimension(1),

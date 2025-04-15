@@ -16,6 +16,7 @@
 
 #include "bef_location_emitter.h"
 
+#include "llvm/Support/Casting.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
@@ -24,9 +25,9 @@
 namespace tfrt {
 
 bool BefLocationEmitter::IsSupportedLocation(const mlir::Location& loc) {
-  if (loc.isa<mlir::UnknownLoc>()) return true;
-  if (loc.isa<mlir::NameLoc>()) return true;
-  if (loc.isa<mlir::FileLineColLoc>()) return true;
+  if (llvm::isa<mlir::UnknownLoc>(loc)) return true;
+  if (llvm::isa<mlir::NameLoc>(loc)) return true;
+  if (llvm::isa<mlir::FileLineColLoc>(loc)) return true;
   if (auto callsite_loc = loc.dyn_cast<mlir::CallSiteLoc>()) {
     return IsSupportedLocation(callsite_loc.getCallee()) &&
            IsSupportedLocation(callsite_loc.getCaller());

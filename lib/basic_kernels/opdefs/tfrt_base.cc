@@ -16,6 +16,7 @@
 
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 
+#include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
@@ -95,13 +96,13 @@ mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 
 void TFRTDialect::printType(mlir::Type type,
                             mlir::DialectAsmPrinter &printer) const {
-  if (type.isa<compiler::ChainType>()) {
+  if (mlir::isa<compiler::ChainType>(type)) {
     printer << "chain";
-  } else if (type.isa<compiler::StringType>()) {
+  } else if (mlir::isa<compiler::StringType>(type)) {
     printer << "string";
-  } else if (type.isa<compiler::TensorTypeType>()) {
+  } else if (mlir::isa<compiler::TensorTypeType>(type)) {
     printer << "tensor_type";
-  } else if (type.isa<compiler::DeviceType>()) {
+  } else if (mlir::isa<compiler::DeviceType>(type)) {
     printer << "device";
   } else {
     llvm_unreachable("unknown tfrt type");

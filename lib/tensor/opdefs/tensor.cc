@@ -55,7 +55,7 @@ Type TensorDialect::parseType(DialectAsmParser &parser) const {
 
 /// Print a type registered to this dialect.
 void TensorDialect::printType(Type type, DialectAsmPrinter &os) const {
-  if (type.isa<TensorType>()) {
+  if (mlir::isa<TensorType>(type)) {
     os << "tensor";
     return;
   }

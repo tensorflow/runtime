@@ -44,6 +44,7 @@
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/bef/bef_reader.h"
@@ -931,7 +932,7 @@ mlir::LogicalResult BEFFunctionReader::AddDefinition(mlir::Value value,
     return mlir::failure();
   }
   assert(reg_info.type == value.getType() ||
-         reg_info.type.isa<mlir::NoneType>());
+         mlir::isa<mlir::NoneType>(reg_info.type));
   reg_info.value = value;
   return mlir::success();
 }

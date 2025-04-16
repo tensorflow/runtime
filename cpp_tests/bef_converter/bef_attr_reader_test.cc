@@ -27,6 +27,7 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/cpp_tests/test_util.h"
@@ -65,7 +66,7 @@ class BefAttrReaderTest : public ::testing::Test {
     auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
     EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-    EXPECT_EQ(static_cast<T>(mlir_attr.template cast<mlir::IntegerAttr>()
+    EXPECT_EQ(static_cast<T>(mlir::cast<mlir::IntegerAttr>(mlir_attr)
                                  .getValue()
                                  .getLimitedValue()),
               value);
@@ -109,9 +110,10 @@ TEST_F(BefAttrReaderTest, ReadF32Attribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  EXPECT_EQ(static_cast<float>(
-                mlir_attr.cast<mlir::FloatAttr>().getValue().convertToFloat()),
-            kTestFloat);
+  EXPECT_EQ(
+      static_cast<float>(
+          mlir::cast<mlir::FloatAttr>(mlir_attr).getValue().convertToFloat()),
+      kTestFloat);
 }
 
 constexpr double kTestDeouble = -3.141592;
@@ -126,9 +128,10 @@ TEST_F(BefAttrReaderTest, ReadF64Attribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  EXPECT_EQ(static_cast<double>(
-                mlir_attr.cast<mlir::FloatAttr>().getValue().convertToDouble()),
-            kTestDeouble);
+  EXPECT_EQ(
+      static_cast<double>(
+          mlir::cast<mlir::FloatAttr>(mlir_attr).getValue().convertToDouble()),
+      kTestDeouble);
 }
 
 constexpr char kTestString[] = "Hello, World";
@@ -143,7 +146,7 @@ TEST_F(BefAttrReaderTest, ReadStringAttribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  EXPECT_EQ(mlir_attr.cast<mlir::StringAttr>().getValue(), kTestString);
+  EXPECT_EQ(mlir::cast<mlir::StringAttr>(mlir_attr).getValue(), kTestString);
 }
 
 TEST_F(BefAttrReaderTest, ReadI32TypeAttribute) {
@@ -160,7 +163,8 @@ TEST_F(BefAttrReaderTest, ReadI32TypeAttribute) {
   auto read_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  EXPECT_EQ(read_attr.cast<mlir::TypeAttr>().getValue(), mlir_attr.getValue());
+  EXPECT_EQ(mlir::cast<mlir::TypeAttr>(read_attr).getValue(),
+            mlir_attr.getValue());
 }
 
 constexpr int64_t kTestShape[] = {1, 2, 3};
@@ -176,7 +180,7 @@ TEST_F(BefAttrReaderTest, ReadRankedShapeAttribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  auto shape_attr = mlir_attr.cast<tfrt::corert::ShapeAttr>();
+  auto shape_attr = mlir::cast<tfrt::corert::ShapeAttr>(mlir_attr);
   EXPECT_TRUE(shape_attr.hasRank());
   EXPECT_EQ(shape_attr.getRank(), kTestShapeRank);
   for (int i = 0; i < kTestShapeRank; ++i) {
@@ -195,7 +199,7 @@ TEST_F(BefAttrReaderTest, ReadUnrankedShapeAttribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  auto shape_attr = mlir_attr.cast<tfrt::corert::ShapeAttr>();
+  auto shape_attr = mlir::cast<tfrt::corert::ShapeAttr>(mlir_attr);
   EXPECT_FALSE(shape_attr.hasRank());
 }
 
@@ -211,13 +215,14 @@ TEST_F(BefAttrReaderTest, ReadI32ArrayAttribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  auto array_attr = mlir_attr.cast<mlir::ArrayAttr>().getValue();
+  auto array_attr = mlir::cast<mlir::ArrayAttr>(mlir_attr).getValue();
 
   EXPECT_EQ(array_attr.size(), kTestI32ArraySize);
   for (int idx = 0; idx < kTestI32ArraySize; ++idx) {
-    EXPECT_EQ(
-        array_attr[idx].cast<mlir::IntegerAttr>().getValue().getLimitedValue(),
-        kTestI32Array[idx]);
+    EXPECT_EQ(mlir::cast<mlir::IntegerAttr>(array_attr[idx])
+                  .getValue()
+                  .getLimitedValue(),
+              kTestI32Array[idx]);
   }
 }
 
@@ -233,13 +238,14 @@ TEST_F(BefAttrReaderTest, ReadF64ArrayAttribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  auto array_attr = mlir_attr.cast<mlir::ArrayAttr>().getValue();
+  auto array_attr = mlir::cast<mlir::ArrayAttr>(mlir_attr).getValue();
 
   EXPECT_EQ(array_attr.size(), kTestF64ArraySize);
   for (int idx = 0; idx < kTestF64ArraySize; ++idx) {
-    EXPECT_EQ(
-        array_attr[idx].cast<mlir::FloatAttr>().getValue().convertToDouble(),
-        kTestF64Array[idx]);
+    EXPECT_EQ(mlir::cast<mlir::FloatAttr>(array_attr[idx])
+                  .getValue()
+                  .convertToDouble(),
+              kTestF64Array[idx]);
   }
 }
 
@@ -272,7 +278,7 @@ TEST_F(BefAttrReaderTest, ReadDenseAttribute) {
   auto mlir_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(mlir_attr), attribute_type);
 
-  auto dense_attr = mlir_attr.cast<mlir::DenseElementsAttr>();
+  auto dense_attr = mlir::cast<mlir::DenseElementsAttr>(mlir_attr);
   const auto shaped_type = dense_attr.getType();
 
   EXPECT_EQ(
@@ -283,7 +289,7 @@ TEST_F(BefAttrReaderTest, ReadDenseAttribute) {
   EXPECT_EQ(shaped_type.getShape()[1], 2);
 
   for (auto element : dense_attr.getValues<mlir::Attribute>()) {
-    EXPECT_EQ(element.cast<mlir::FloatAttr>().getValue().convertToFloat(),
+    EXPECT_EQ(mlir::cast<mlir::FloatAttr>(element).getValue().convertToFloat(),
               1.5f);
   }
 }
@@ -316,26 +322,28 @@ TEST_F(BefAttrReaderTest, EmitAggregateAttribute) {
   auto read_attr = reader.ReadAttribute(attribute_type, offset);
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(read_attr), attribute_type);
 
-  auto aggregate_attr = read_attr.cast<mlir::ArrayAttr>();
+  auto aggregate_attr = mlir::cast<mlir::ArrayAttr>(read_attr);
   EXPECT_EQ(aggregate_attr.size(), 3);
 
   auto first = aggregate_attr[0];
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(first),
             static_cast<BEFAttributeType>(DType::I32));
-  EXPECT_EQ(static_cast<int32_t>(
-                first.cast<mlir::IntegerAttr>().getValue().getLimitedValue()),
-            kTestAggregateAttr1);
+  EXPECT_EQ(
+      static_cast<int32_t>(
+          mlir::cast<mlir::IntegerAttr>(first).getValue().getLimitedValue()),
+      kTestAggregateAttr1);
 
   auto second = aggregate_attr[1];
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(second),
             static_cast<BEFAttributeType>(DType::String));
-  EXPECT_EQ(second.cast<mlir::StringAttr>().getValue(), kTestAggregateAttr2);
+  EXPECT_EQ(mlir::cast<mlir::StringAttr>(second).getValue(),
+            kTestAggregateAttr2);
 
   auto third = aggregate_attr[2];
   EXPECT_EQ(BefAttrEmitter::GetBefAttributeType(third),
             static_cast<BEFAttributeType>(DType::F32));
   EXPECT_EQ(static_cast<float>(
-                third.cast<mlir::FloatAttr>().getValue().convertToFloat()),
+                mlir::cast<mlir::FloatAttr>(third).getValue().convertToFloat()),
             kTestAggregateAttr3);
 }
 

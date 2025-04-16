@@ -23,6 +23,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/Support/LLVM.h"
 #include "tfrt/bef/bef_encoding.h"
 #include "tfrt/bef_converter/bef_attr_encoder.h"
 #include "tfrt/bef_converter/bef_emitter.h"
@@ -83,47 +84,47 @@ DType BefAttrEmitter::EncodeComplexTypeAttribute(
 }
 
 DType BefAttrEmitter::ConvertMlirTypeToDType(mlir::Type type) {
-  if (auto integer_type = type.dyn_cast<mlir::IntegerType>()) {
+  if (auto integer_type = mlir::dyn_cast<mlir::IntegerType>(type)) {
     return EncodeIntegerTypeAttribute(integer_type);
   }
 
-  if (auto float_type = type.dyn_cast<mlir::FloatType>()) {
+  if (auto float_type = mlir::dyn_cast<mlir::FloatType>(type)) {
     return EncodeFloatTypeAttribute(float_type);
   }
 
-  if (auto string_type = type.dyn_cast<corert::StringType>()) {
+  if (auto string_type = mlir::dyn_cast<corert::StringType>(type)) {
     return DType::String;
   }
 
-  if (auto resource_type = type.dyn_cast<corert::ResourceType>()) {
+  if (auto resource_type = mlir::dyn_cast<corert::ResourceType>(type)) {
     return DType::Resource;
   }
 
-  if (auto variant_type = type.dyn_cast<corert::VariantType>()) {
+  if (auto variant_type = mlir::dyn_cast<corert::VariantType>(type)) {
     return DType::Variant;
   }
 
-  if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
+  if (auto complex_type = mlir::dyn_cast<mlir::ComplexType>(type)) {
     return EncodeComplexTypeAttribute(complex_type);
   }
 
-  if (auto quantized_type = type.dyn_cast<corert::Quint8Type>()) {
+  if (auto quantized_type = mlir::dyn_cast<corert::Quint8Type>(type)) {
     return DType::QUI8;
   }
 
-  if (auto quantized_type = type.dyn_cast<corert::Quint16Type>()) {
+  if (auto quantized_type = mlir::dyn_cast<corert::Quint16Type>(type)) {
     return DType::QUI16;
   }
 
-  if (auto quantized_type = type.dyn_cast<corert::Qint8Type>()) {
+  if (auto quantized_type = mlir::dyn_cast<corert::Qint8Type>(type)) {
     return DType::QI8;
   }
 
-  if (auto quantized_type = type.dyn_cast<corert::Qint16Type>()) {
+  if (auto quantized_type = mlir::dyn_cast<corert::Qint16Type>(type)) {
     return DType::QI16;
   }
 
-  if (auto quantized_type = type.dyn_cast<corert::Qint32Type>()) {
+  if (auto quantized_type = mlir::dyn_cast<corert::Qint32Type>(type)) {
     return DType::QI32;
   }
 
@@ -136,8 +137,8 @@ DType BefAttrEmitter::ConvertMlirTypeToDType(mlir::Type type) {
 BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   // We support 1-bit (stored as 1 byte in BEF), 32-bit, and 64-bit
   // integers.
-  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
-    auto int_type = int_attr.getType().cast<mlir::IntegerType>();
+  if (auto int_attr = mlir::dyn_cast<mlir::IntegerAttr>(attr)) {
+    auto int_type = mlir::cast<mlir::IntegerType>(int_attr.getType());
     if (int_type.isUnsigned()) {
       switch (int_type.getWidth()) {
         case 8:
@@ -166,7 +167,7 @@ BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   }
 
   // We support BF16, F16, F32 and F64 floats.
-  if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
+  if (auto float_attr = mlir::dyn_cast<mlir::FloatAttr>(attr)) {
     if (float_attr.getType().isBF16())
       return static_cast<BEFAttributeType>(DType::BF16);
     if (float_attr.getType().isF16())
@@ -178,24 +179,28 @@ BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   }
 
   // We support string attributes.
-  if (attr.isa<mlir::StringAttr>())
+  if (mlir::isa<mlir::StringAttr>(attr))
     return static_cast<BEFAttributeType>(DType::String);
 
   // We support i1, i8, i16, i32, i64, ui8, ui16, ui32, ui64, bf16, f16, f32,
   //  f64, quint8, quint16, qint8, qint16, qint32, complex64, complex128,
   //  string, resource and variant type attributes.
-  if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
+  if (auto type_attr = mlir::dyn_cast<mlir::TypeAttr>(attr)) {
     auto type = type_attr.getValue();
     if (type.isInteger(1) || type.isInteger(8) || type.isInteger(16) ||
         type.isInteger(32) || type.isInteger(64) || type.isBF16() ||
         type.isF16() || type.isF32() || type.isF64() ||
-        type.isa<corert::StringType>() || type.isa<corert::ResourceType>() ||
-        type.isa<corert::VariantType>() || type.isa<corert::Quint8Type>() ||
-        type.isa<corert::Quint16Type>() || type.isa<corert::Qint8Type>() ||
-        type.isa<corert::Qint16Type>() || type.isa<corert::Qint32Type>())
+        mlir::isa<corert::StringType>(type) ||
+        mlir::isa<corert::ResourceType>(type) ||
+        mlir::isa<corert::VariantType>(type) ||
+        mlir::isa<corert::Quint8Type>(type) ||
+        mlir::isa<corert::Quint16Type>(type) ||
+        mlir::isa<corert::Qint8Type>(type) ||
+        mlir::isa<corert::Qint16Type>(type) ||
+        mlir::isa<corert::Qint32Type>(type))
       return BEFAttributeType::kType;
 
-    if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
+    if (auto complex_type = mlir::dyn_cast<mlir::ComplexType>(type)) {
       auto element_type = complex_type.getElementType();
       if (element_type.isF32() || element_type.isF64())
         return BEFAttributeType::kType;
@@ -203,12 +208,13 @@ BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   }
 
   // We support corert.shape attributes
-  if (attr.isa<tfrt::corert::ShapeAttr>()) {
+  if (mlir::isa<tfrt::corert::ShapeAttr>(attr)) {
     return BEFAttributeType::kShape;
   }
 
   // We support dense attributes.
-  if (auto dense_elements_attr = attr.dyn_cast<mlir::DenseElementsAttr>()) {
+  if (auto dense_elements_attr =
+          mlir::dyn_cast<mlir::DenseElementsAttr>(attr)) {
     auto element_type =
         ConvertMlirTypeToDType(dense_elements_attr.getType().getElementType());
     // We only support dense attributes with dtype element type. The exception
@@ -231,7 +237,7 @@ BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   }
 
   // We support arrays of supported attribute values.
-  if (auto array_attr = attr.dyn_cast<mlir::ArrayAttr>()) {
+  if (auto array_attr = mlir::dyn_cast<mlir::ArrayAttr>(attr)) {
     if (array_attr.empty()) {
       return BEFAttributeType::kEmptyArray;
     }
@@ -259,7 +265,7 @@ BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   }
 
   // We support symbol references to compiled functions.
-  if (auto symbol_ref_attr = attr.dyn_cast<mlir::SymbolRefAttr>()) {
+  if (auto symbol_ref_attr = mlir::dyn_cast<mlir::SymbolRefAttr>(attr)) {
     return BEFAttributeType::kSymbolRef;
   }
 
@@ -272,7 +278,7 @@ static bool IsMatchedWithDType(BEFAttributeType attribute_type, DType dtype) {
 
 template <typename T>
 size_t BefAttrEmitter::EmitIntegerAttribute(mlir::Attribute mlir_attr) {
-  auto attr = mlir_attr.cast<mlir::IntegerAttr>();
+  auto attr = mlir::cast<mlir::IntegerAttr>(mlir_attr);
   return EncodeAttr<T>(static_cast<T>(attr.getValue().getLimitedValue()));
 }
 
@@ -280,7 +286,7 @@ size_t BefAttrEmitter::EmitIntegerAttribute(mlir::Attribute mlir_attr) {
 // attribute reference in a kernel, even in recursive positions.
 bool BefAttrEmitter::IsSupportedAttribute(mlir::Attribute attr) {
   // We support references to functions.
-  if (attr.isa<mlir::SymbolRefAttr>()) return true;
+  if (mlir::isa<mlir::SymbolRefAttr>(attr)) return true;
   return GetBefAttributeType(attr) != BEFAttributeType::kUnsupported;
 }
 
@@ -312,54 +318,54 @@ size_t BefAttrEmitter::EmitAttribute(BEFAttributeType attribute_type,
     return EmitIntegerAttribute<int64_t>(mlir_attr);
 
   if (IsMatchedWithDType(attribute_type, DType::F32)) {
-    auto attr = mlir_attr.cast<mlir::FloatAttr>();
+    auto attr = mlir::cast<mlir::FloatAttr>(mlir_attr);
     return EncodeAttr<float>(
         static_cast<float>(attr.getValue().convertToFloat()));
   }
 
   if (IsMatchedWithDType(attribute_type, DType::F64)) {
-    auto attr = mlir_attr.cast<mlir::FloatAttr>();
+    auto attr = mlir::cast<mlir::FloatAttr>(mlir_attr);
     return EncodeAttr<double>(
         static_cast<double>(attr.getValue().convertToDouble()));
   }
 
   if (IsMatchedWithDType(attribute_type, DType::F16) ||
       IsMatchedWithDType(attribute_type, DType::BF16)) {
-    auto attr = mlir_attr.cast<mlir::FloatAttr>();
+    auto attr = mlir::cast<mlir::FloatAttr>(mlir_attr);
     return EncodeAttr<uint16_t>(static_cast<uint16_t>(
         attr.getValue().bitcastToAPInt().getLimitedValue()));
   }
 
   if (IsMatchedWithDType(attribute_type, DType::String)) {
-    auto attr = mlir_attr.cast<mlir::StringAttr>();
+    auto attr = mlir::cast<mlir::StringAttr>(mlir_attr);
     return EncodeStringAttr(attr.getValue());
   }
 
   if (attribute_type == BEFAttributeType::kType) {
-    auto attr = mlir_attr.cast<mlir::TypeAttr>();
+    auto attr = mlir::cast<mlir::TypeAttr>(mlir_attr);
     const auto dtype = ConvertMlirTypeToDType(attr.getValue());
     return EncodeAttr<uint8_t>(static_cast<uint8_t>(dtype));
   }
 
   if (attribute_type == BEFAttributeType::kShape) {
     tfrt::corert::ShapeAttr shape_attr =
-        mlir_attr.cast<tfrt::corert::ShapeAttr>();
+        mlir::cast<tfrt::corert::ShapeAttr>(mlir_attr);
     return (shape_attr.hasRank()) ? EncodeRankedShapeAttr(shape_attr.getShape())
                                   : EncodeUnrankedShapeAttr();
   }
 
   if (IsArrayAttribute(attribute_type)) {
     return EmitArrayAttribute(attribute_type,
-                              mlir_attr.cast<mlir::ArrayAttr>());
+                              mlir::cast<mlir::ArrayAttr>(mlir_attr));
   }
 
   if (IsDenseAttribute(attribute_type)) {
     return EmitDenseAttribute(attribute_type,
-                              mlir_attr.cast<mlir::DenseElementsAttr>());
+                              mlir::cast<mlir::DenseElementsAttr>(mlir_attr));
   }
 
   if (attribute_type == BEFAttributeType::kAggregate) {
-    return EmitAggregatedAttribute(mlir_attr.cast<mlir::ArrayAttr>());
+    return EmitAggregatedAttribute(mlir::cast<mlir::ArrayAttr>(mlir_attr));
   }
 
   llvm_unreachable("Unknown attribute");
@@ -432,7 +438,7 @@ size_t BefAttrEmitter::EmitSymbolRefAttribute(
 
   // Emit size information in VBR form for the SymbolRef and
   // serialized compilation unit.
-  auto symbol = attr.cast<mlir::SymbolRefAttr>();
+  auto symbol = mlir::cast<mlir::SymbolRefAttr>(attr);
 
   // Emit the sequential id of the current symbol in the serialized module.
   size_t serialized_id = compilation_units.SerializedSymbolId(symbol);
@@ -461,25 +467,27 @@ size_t BefAttrEmitter::EmitSymbolRefAttribute(
 }
 
 size_t BefAttrEmitter::GetAlignment(mlir::Attribute attr) {
-  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>())
+  if (auto int_attr = mlir::dyn_cast<mlir::IntegerAttr>(attr))
     return int_attr.getType().getIntOrFloatBitWidth() / 8;
 
-  if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>())
+  if (auto float_attr = mlir::dyn_cast<mlir::FloatAttr>(attr))
     return float_attr.getType().getIntOrFloatBitWidth() / 8;
 
-  if (attr.isa<mlir::StringAttr>()) return alignof(AttrSizeT);
+  if (mlir::isa<mlir::StringAttr>(attr)) return alignof(AttrSizeT);
 
-  if (attr.isa<mlir::TypeAttr>() || attr.isa<mlir::SymbolRefAttr>()) return 1;
+  if (mlir::isa<mlir::TypeAttr>(attr) || mlir::isa<mlir::SymbolRefAttr>(attr))
+    return 1;
 
-  if (attr.isa<tfrt::corert::ShapeAttr>()) {
-    tfrt::corert::ShapeAttr shape_attr = attr.cast<tfrt::corert::ShapeAttr>();
+  if (mlir::isa<tfrt::corert::ShapeAttr>(attr)) {
+    tfrt::corert::ShapeAttr shape_attr =
+        mlir::cast<tfrt::corert::ShapeAttr>(attr);
     return (shape_attr.hasRank()) ? alignof(AttrShapeT) : 1;
   }
 
-  if (auto dense_elements_attr = attr.dyn_cast<mlir::DenseElementsAttr>())
+  if (auto dense_elements_attr = mlir::dyn_cast<mlir::DenseElementsAttr>(attr))
     return kAttributeTensorAlignment;
 
-  if (auto array_attr = attr.dyn_cast<mlir::ArrayAttr>())
+  if (auto array_attr = mlir::dyn_cast<mlir::ArrayAttr>(attr))
     return std::max(alignof(AttrShapeT), GetMaximumAlignment(array_attr));
 
   llvm_unreachable("Unknown attribute");

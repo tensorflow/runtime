@@ -24,6 +24,7 @@
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 // Generated dialect definitions.
+#include "mlir/Support/LLVM.h"
 #include "tfrt/tensor/opdefs/tensor_shape_dialect.cpp.inc"
 
 namespace tfrt {
@@ -56,12 +57,12 @@ Type TensorShapeDialect::parseType(DialectAsmParser &parser) const {
 
 /// Print a type registered to this dialect.
 void TensorShapeDialect::printType(Type type, DialectAsmPrinter &os) const {
-  if (type.isa<ShapeType>()) {
+  if (mlir::isa<ShapeType>(type)) {
     os << "shape";
     return;
   }
 
-  if (type.isa<PartialShapeType>()) {
+  if (mlir::isa<PartialShapeType>(type)) {
     os << "partial_shape";
     return;
   }

@@ -22,6 +22,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Support/LLVM.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
@@ -245,7 +246,7 @@ void BenchmarkOp::print(OpAsmPrinter &p) {
     auto attr = name_attr.getValue();
 
     p << id << " = ";
-    if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {
+    if (auto int_attr = mlir::dyn_cast<IntegerAttr>(attr)) {
       int_attr.getValue().print(p.getStream(), /*isSigned=*/false);
     } else {
       emitOpError("Unexpected attribute");
@@ -384,7 +385,7 @@ void SyncBenchmarkOp::print(OpAsmPrinter &p) {
     auto attr = name_attr.getValue();
 
     p << id << " = ";
-    if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {
+    if (auto int_attr = mlir::dyn_cast<IntegerAttr>(attr)) {
       int_attr.getValue().print(p.getStream(), /*isSigned=*/false);
     } else {
       emitOpError("Unexpected attribute");

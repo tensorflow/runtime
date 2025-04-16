@@ -19,6 +19,7 @@
 #include "gtest/gtest.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Support/LLVM.h"
 #include "tfrt/bef/bef_location.h"
 
 namespace tfrt {
@@ -40,7 +41,7 @@ TEST_F(BefLocationEmitterTest, IsSupportedLocationNamedLoc) {
   EXPECT_TRUE(BefLocationEmitter::IsSupportedLocation(loc));
 
   auto child = loc.getChildLoc();
-  EXPECT_TRUE(child.isa<mlir::UnknownLoc>());
+  EXPECT_TRUE(mlir::isa<mlir::UnknownLoc>(child));
 }
 
 TEST_F(BefLocationEmitterTest, IsSupportedLocationCallSiteLoc) {

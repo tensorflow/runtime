@@ -21,6 +21,7 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Support/LLVM.h"
 
 namespace tfrt {
 namespace ht {
@@ -52,7 +53,7 @@ Type HostTensorDialect::parseType(DialectAsmParser &parser) const {
 
 /// Print a type registered to this dialect.
 void HostTensorDialect::printType(Type type, DialectAsmPrinter &os) const {
-  if (type.isa<HostBufferType>()) {
+  if (mlir::isa<HostBufferType>(type)) {
     os << "host_buffer";
     return;
   }

@@ -22,6 +22,7 @@
 #include <string>
 
 #include "absl/log/log.h"  // from @com_google_absl
+#include "mlir/Support/LLVM.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/compiler/opdefs/tfrt_op_interfaces.h"
@@ -49,8 +50,8 @@ mlir::Attribute GetOptionAttribute(mlir::Block& block,
 }
 
 int64_t GetCostThresholdForBlock(mlir::Block& block) {
-  if (auto attr = GetOptionAttribute(block, "tfrt.cost_threshold")
-                      .dyn_cast_or_null<mlir::IntegerAttr>()) {
+  if (auto attr = mlir::dyn_cast_or_null<mlir::IntegerAttr>(
+          GetOptionAttribute(block, "tfrt.cost_threshold"))) {
     return attr.getInt();
   }
 
@@ -58,9 +59,8 @@ int64_t GetCostThresholdForBlock(mlir::Block& block) {
 }
 
 bool GetMergeInterDependentStreams(mlir::Block& block) {
-  if (auto attr =
-          GetOptionAttribute(block, "tfrt.merge_inter_dependent_streams")
-              .dyn_cast_or_null<mlir::BoolAttr>()) {
+  if (auto attr = mlir::dyn_cast_or_null<mlir::BoolAttr>(
+          GetOptionAttribute(block, "tfrt.merge_inter_dependent_streams"))) {
     return attr.getValue();
   }
   return false;
@@ -161,7 +161,7 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
         // merge parallel streams. Parallel streams with data dependencies will
         // be preferred to be merged. Note that control dependencies are skipped
         // as we prefer to merge for data dependencies.
-        if (!operand.getType().isa<ChainType>()) {
+        if (!mlir::isa<ChainType>(operand.getType())) {
           build_info_.op_map[def].side_uses.insert(&op);
         }
 

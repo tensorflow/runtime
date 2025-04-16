@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Support/LLVM.h"
 
 namespace tfrt {
 namespace {
@@ -43,7 +44,8 @@ TEST_F(BefLocationReaderTest, FileLineColLoc) {
 
   auto reader = BefLocationReader(emitter.GetStringsSectionEmitter().result(),
                                   emitter.result(), &context_);
-  auto read_loc = reader.ReadLocation(offset).dyn_cast<mlir::FileLineColLoc>();
+  auto read_loc =
+      mlir::dyn_cast<mlir::FileLineColLoc>(reader.ReadLocation(offset));
   EXPECT_EQ(read_loc, loc);
 }
 
@@ -57,7 +59,7 @@ TEST_F(BefLocationReaderTest, NameLoc) {
 
   auto reader = BefLocationReader(emitter.GetStringsSectionEmitter().result(),
                                   emitter.result(), &context_);
-  auto read_loc = reader.ReadLocation(offset).dyn_cast<mlir::NameLoc>();
+  auto read_loc = mlir::dyn_cast<mlir::NameLoc>(reader.ReadLocation(offset));
   EXPECT_EQ(read_loc, loc);
 }
 
@@ -71,7 +73,8 @@ TEST_F(BefLocationReaderTest, CallSiteLoc) {
 
   auto reader = BefLocationReader(emitter.GetStringsSectionEmitter().result(),
                                   emitter.result(), &context_);
-  auto read_loc = reader.ReadLocation(offset).dyn_cast<mlir::CallSiteLoc>();
+  auto read_loc =
+      mlir::dyn_cast<mlir::CallSiteLoc>(reader.ReadLocation(offset));
   EXPECT_EQ(read_loc, loc);
 }
 
@@ -87,7 +90,7 @@ TEST_F(BefLocationReaderTest, FusedLoc) {
 
   auto reader = BefLocationReader(emitter.GetStringsSectionEmitter().result(),
                                   emitter.result(), &context_);
-  auto read_loc = reader.ReadLocation(offset).dyn_cast<mlir::FusedLoc>();
+  auto read_loc = mlir::dyn_cast<mlir::FusedLoc>(reader.ReadLocation(offset));
   EXPECT_EQ(read_loc, loc);
 }
 

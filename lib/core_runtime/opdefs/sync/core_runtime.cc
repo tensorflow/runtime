@@ -17,6 +17,7 @@
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Support/LLVM.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/corert_utils.h"
 #include "tfrt/core_runtime/opdefs/types.h"
@@ -45,7 +46,7 @@ CoreRTSyncDialect::CoreRTSyncDialect(MLIRContext *context)
 Operation *CoreRTSyncDialect::materializeConstant(OpBuilder &builder,
                                                   Attribute value, Type type,
                                                   Location loc) {
-  if (auto dense_attr = value.dyn_cast<DenseElementsAttr>())
+  if (auto dense_attr = mlir::dyn_cast<DenseElementsAttr>(value))
     return builder.create<ConstDenseTensorOp>(loc, type, dense_attr);
 
   return nullptr;
@@ -91,8 +92,8 @@ void ExecuteOp::getOpAttrs(
 
   Builder builder(getContext());
   for (auto iter : op_attr_array) {
-    auto key_value = iter.cast<ArrayAttr>().getValue();
-    StringRef key = key_value[0].cast<StringAttr>().getValue();
+    auto key_value = mlir::cast<ArrayAttr>(iter).getValue();
+    StringRef key = mlir::cast<StringAttr>(key_value[0]).getValue();
     Attribute value = key_value[1];
     op_attrs->push_back({key, value});
   }
@@ -104,9 +105,9 @@ LogicalResult ExecuteOp::fold(FoldAdaptor,
     auto op_attr_array = getOpAttrs().getValue();
     assert(!op_attr_array.empty());
     for (auto attr : op_attr_array) {
-      auto key_value = attr.cast<ArrayAttr>().getValue();
+      auto key_value = mlir::cast<ArrayAttr>(attr).getValue();
       assert(key_value.size() == 2);
-      if (key_value[0].cast<StringAttr>().getValue() == "value") {
+      if (mlir::cast<StringAttr>(key_value[0]).getValue() == "value") {
         results.push_back(key_value[1]);
         return success();
       }

@@ -27,6 +27,7 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/TypeRange.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
@@ -149,52 +150,52 @@ mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 
 void CoreRTDialect::printType(mlir::Type type,
                               mlir::DialectAsmPrinter &os) const {
-  if (type.isa<StringType>()) {
+  if (mlir::isa<StringType>(type)) {
     os << "string";
     return;
   }
 
-  if (type.isa<OpHandlerType>()) {
+  if (mlir::isa<OpHandlerType>(type)) {
     os << "ophandler";
     return;
   }
 
-  if (type.isa<TensorHandleType>()) {
+  if (mlir::isa<TensorHandleType>(type)) {
     os << "tensorhandle";
     return;
   }
 
-  if (type.isa<ResourceType>()) {
+  if (mlir::isa<ResourceType>(type)) {
     os << "resource";
     return;
   }
 
-  if (type.isa<VariantType>()) {
+  if (mlir::isa<VariantType>(type)) {
     os << "variant";
     return;
   }
 
-  if (type.isa<Quint8Type>()) {
+  if (mlir::isa<Quint8Type>(type)) {
     os << "quint8";
     return;
   }
 
-  if (type.isa<Quint16Type>()) {
+  if (mlir::isa<Quint16Type>(type)) {
     os << "quint16";
     return;
   }
 
-  if (type.isa<Qint8Type>()) {
+  if (mlir::isa<Qint8Type>(type)) {
     os << "qint8";
     return;
   }
 
-  if (type.isa<Qint16Type>()) {
+  if (mlir::isa<Qint16Type>(type)) {
     os << "qint16";
     return;
   }
 
-  if (type.isa<Qint32Type>()) {
+  if (mlir::isa<Qint32Type>(type)) {
     os << "qint32";
     return;
   }
@@ -214,8 +215,8 @@ mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser &parser,
 
 void CoreRTDialect::printAttribute(mlir::Attribute attr,
                                    mlir::DialectAsmPrinter &os) const {
-  if (auto shape_attr = attr.dyn_cast<ShapeAttr>())
-    PrintShapeAttr(attr.cast<ShapeAttr>(), os);
+  if (auto shape_attr = mlir::dyn_cast<ShapeAttr>(attr))
+    PrintShapeAttr(mlir::cast<ShapeAttr>(attr), os);
   else
     llvm_unreachable("unexpected corert attribute kind");
 }
@@ -223,7 +224,7 @@ void CoreRTDialect::printAttribute(mlir::Attribute attr,
 Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,
                                               Attribute value, Type type,
                                               Location loc) {
-  if (auto dense_attr = value.dyn_cast<DenseElementsAttr>())
+  if (auto dense_attr = mlir::dyn_cast<DenseElementsAttr>(value))
     return builder.create<ConstDenseTensorOp>(loc, type, dense_attr);
 
   return nullptr;
@@ -296,8 +297,8 @@ void ExecuteOp::getOpAttrs(
 
   Builder builder(getContext());
   for (Attribute iter : op_attr_array) {
-    ArrayRef<Attribute> key_value = iter.cast<ArrayAttr>().getValue();
-    StringRef key = key_value[0].cast<StringAttr>().getValue();
+    ArrayRef<Attribute> key_value = mlir::cast<ArrayAttr>(iter).getValue();
+    StringRef key = mlir::cast<StringAttr>(key_value[0]).getValue();
     Attribute value = key_value[1];
     op_attrs->push_back({key, value});
   }
@@ -311,8 +312,8 @@ void ExecuteOp::getOpFuncAttrs(
 
   Builder builder(getContext());
   for (Attribute iter : op_func_attr_array) {
-    ArrayRef<Attribute> key_value = iter.cast<ArrayAttr>().getValue();
-    StringRef key = key_value[0].cast<StringAttr>().getValue();
+    ArrayRef<Attribute> key_value = mlir::cast<ArrayAttr>(iter).getValue();
+    StringRef key = mlir::cast<StringAttr>(key_value[0]).getValue();
     Attribute value = key_value[1];
     op_func_attrs->push_back({key, value});
   }
@@ -324,9 +325,9 @@ LogicalResult ExecuteOp::fold(FoldAdaptor,
     auto op_attr_array = getOpAttrs().getValue();
     assert(!op_attr_array.empty());
     for (auto attr : op_attr_array) {
-      auto key_value = attr.cast<ArrayAttr>().getValue();
+      auto key_value = mlir::cast<ArrayAttr>(attr).getValue();
       assert(key_value.size() == 2);
-      if (key_value[0].cast<StringAttr>().getValue() == "value") {
+      if (mlir::cast<StringAttr>(key_value[0]).getValue() == "value") {
         results.push_back(key_value[1]);
         return success();
       }

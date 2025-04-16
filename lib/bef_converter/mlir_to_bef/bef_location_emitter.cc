@@ -32,7 +32,7 @@ bool BefLocationEmitter::IsSupportedLocation(const mlir::Location& loc) {
     return IsSupportedLocation(callsite_loc.getCallee()) &&
            IsSupportedLocation(callsite_loc.getCaller());
   }
-  if (auto fused_loc = loc.dyn_cast<mlir::FusedLoc>()) {
+  if (auto fused_loc = llvm::dyn_cast<mlir::FusedLoc>(loc)) {
     for (auto& location : fused_loc.getLocations()) {
       if (IsSupportedLocation(location)) return true;
     }
@@ -61,13 +61,13 @@ size_t BefLocationEmitter::EmitLocation(const mlir::Location& loc) {
   assert(IsSupportedLocation(loc));
   const size_t offset = size();
 
-  if (auto filelinecol_loc = loc.dyn_cast<mlir::UnknownLoc>()) {
+  if (auto filelinecol_loc = llvm::dyn_cast<mlir::UnknownLoc>(loc)) {
     // Encoding format: `0x00`
     EmitByte(static_cast<uint8_t>(BefLocationType::kUnknown));
     return offset;
   }
 
-  if (auto filelinecol_loc = loc.dyn_cast<mlir::FileLineColLoc>()) {
+  if (auto filelinecol_loc = llvm::dyn_cast<mlir::FileLineColLoc>(loc)) {
     // Encoding format: `0x01` FILELINECOL_LOC ::= `0x00` INDEX<"Filename">
     //                   INTEGER<"LineNum"> INTEGER<"ColumnNum">
     EmitByte(static_cast<uint8_t>(BefLocationType::kFileLineCol));
@@ -77,7 +77,7 @@ size_t BefLocationEmitter::EmitLocation(const mlir::Location& loc) {
     return offset;
   }
 
-  if (auto name_loc = loc.dyn_cast<mlir::NameLoc>()) {
+  if (auto name_loc = llvm::dyn_cast<mlir::NameLoc>(loc)) {
     // Encoding format: `0x02` INDEX<"Name"> LOCATION<"Child">
     EmitByte(static_cast<uint8_t>(BefLocationType::kName));
     EmitLocationStringAsVbrOffset(name_loc.getName());
@@ -85,7 +85,7 @@ size_t BefLocationEmitter::EmitLocation(const mlir::Location& loc) {
     return offset;
   }
 
-  if (auto callsite_loc = loc.dyn_cast<mlir::CallSiteLoc>()) {
+  if (auto callsite_loc = llvm::dyn_cast<mlir::CallSiteLoc>(loc)) {
     // Encoding format: `x003` LOCATION<"Callee"> LOCATION<"Caller">
     EmitByte(static_cast<uint8_t>(BefLocationType::kCallSite));
     EmitLocation(callsite_loc.getCallee());
@@ -93,7 +93,7 @@ size_t BefLocationEmitter::EmitLocation(const mlir::Location& loc) {
     return offset;
   }
 
-  if (auto fused_loc = loc.dyn_cast<mlir::FusedLoc>()) {
+  if (auto fused_loc = llvm::dyn_cast<mlir::FusedLoc>(loc)) {
     const size_t location_count = CountSupportedLocations(fused_loc);
     if (location_count > 0) {
       // Encoding format: `0x04` INTEGER<”NumLocations”> LOCATION*

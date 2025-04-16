@@ -1320,6 +1320,7 @@ tfrt_cc_library(
         ":core_runtime_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs_inc_gen",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffectInterfaces",

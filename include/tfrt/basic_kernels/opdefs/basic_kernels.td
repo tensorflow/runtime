@@ -89,8 +89,8 @@ class ConstantOp<string suffix, Type baseType, Attr attr>
 def F16Attr : FloatAttrBase<F16, "16-bit float attribute">;
 def BF16Attr : TypedAttrBase<
   BF16, "FloatAttr",
-  And<[CPred<"$_self.isa<::mlir::FloatAttr>()">,
-       CPred<"$_self.cast<::mlir::FloatAttr>().getType().isBF16()">]>,
+  And<[CPred<"llvm::isa<::mlir::FloatAttr>($_self)">,
+       CPred<"llvm::cast<::mlir::FloatAttr>($_self).getType().isBF16()">]>,
   "bfloat16 attribute"> {
   let returnType = [{ ::llvm::APFloat }];
 }

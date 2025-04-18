@@ -42,7 +42,7 @@ def Tensor_Dialect : Dialect {
 // Type definitions
 //===----------------------------------------------------------------------===//
 def TensorType : DialectType<Tensor_Dialect,
-    CPred<"$_self.isa<::tfrt::tfrt_tensor::TensorType>()">, "!tfrt_tensor.tensor type">,
+    CPred<"llvm::isa<::tfrt::tfrt_tensor::TensorType>($_self)">, "!tfrt_tensor.tensor type">,
     BuildableType<"$_builder.getType<::tfrt::tfrt_tensor::TensorType>()"> {
   let description = [{
     `!trft_tensor.tensor type` represents a generic tfrt tensor.

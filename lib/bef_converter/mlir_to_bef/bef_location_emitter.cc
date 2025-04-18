@@ -28,7 +28,7 @@ bool BefLocationEmitter::IsSupportedLocation(const mlir::Location& loc) {
   if (llvm::isa<mlir::UnknownLoc>(loc)) return true;
   if (llvm::isa<mlir::NameLoc>(loc)) return true;
   if (llvm::isa<mlir::FileLineColLoc>(loc)) return true;
-  if (auto callsite_loc = loc.dyn_cast<mlir::CallSiteLoc>()) {
+  if (auto callsite_loc = llvm::dyn_cast<mlir::CallSiteLoc>(loc)) {
     return IsSupportedLocation(callsite_loc.getCallee()) &&
            IsSupportedLocation(callsite_loc.getCaller());
   }

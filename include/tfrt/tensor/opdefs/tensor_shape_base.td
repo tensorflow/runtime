@@ -39,7 +39,7 @@ def TensorShapeDialect : Dialect {
 
 // Type definition.
 def TS_Shape : DialectType<TensorShapeDialect,
-    CPred<"$_self.isa<::tfrt::ts::ShapeType>()">, "!ts.shape type">,
+    CPred<"llvm::isa<::tfrt::ts::ShapeType>($_self)">, "!ts.shape type">,
     BuildableType<"$_builder.getType<::tfrt::ts::ShapeType>()"> {
   let description = [{
     `!ts.shape type` represents a static tensor shape.
@@ -47,7 +47,7 @@ def TS_Shape : DialectType<TensorShapeDialect,
 }
 
 def TS_PartialShape : DialectType<TensorShapeDialect,
-    CPred<"$_self.isa<::tfrt::ts::PartialShapeType>()">, "!ts.partial_shape type">,
+    CPred<"llvm::isa<::tfrt::ts::PartialShapeType>($_self)">, "!ts.partial_shape type">,
     BuildableType<"$_builder.getType<::tfrt::ts::PartialShapeType>()"> {
   let description = [{
     `!ts.partial_shape type` represents either a static tensor shape, unranked

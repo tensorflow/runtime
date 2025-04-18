@@ -43,7 +43,7 @@ def HostTensor_Dialect : Dialect {
 // Type definitions
 //===----------------------------------------------------------------------===//
 def HostBufferType : DialectType<HostTensor_Dialect,
-    CPred<"$_self.isa<::tfrt::ht::HostBufferType>()">, "!ht.host_buffer type">,
+    CPred<"llvm::isa<::tfrt::ht::HostBufferType>($_self)">, "!ht.host_buffer type">,
     BuildableType<"$_builder.getType<::tfrt::ht::HostBufferType>()"> {
   let description = [{
     `!ht.host_buffer type` represents a host buffer.

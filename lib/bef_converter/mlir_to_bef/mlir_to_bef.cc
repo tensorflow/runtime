@@ -564,7 +564,7 @@ class BEFFileEmitter : public BefEmitter {
   static constexpr uint32_t kDummyPseudoKernelCode = 0xABABABAB;
   static constexpr uint32_t kDummyPseudoKernelLocation = 0xCDCDCDCD;
 
-  BEFFileEmitter() {}
+  BEFFileEmitter() = default;
   BEFFileEmitter(const BEFFileEmitter&) = delete;
   BEFFileEmitter& operator=(const BEFFileEmitter&) = delete;
 

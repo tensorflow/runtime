@@ -27,7 +27,7 @@ namespace io {
 // This class is used to manage files in a POSIX file system.
 class PosixFileSystem : public FileSystem {
  public:
-  explicit PosixFileSystem() {}
+  explicit PosixFileSystem() = default;
 
   // This class is not copyable or movable.
   PosixFileSystem(const PosixFileSystem&) = delete;

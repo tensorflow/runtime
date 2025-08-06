@@ -142,7 +142,7 @@ struct TestChild1 : TestBase1 {
 
 // Helper structs for testing AsyncValue::get for polymorphic types
 struct TestBase2 {
-  virtual ~TestBase2() {}
+  virtual ~TestBase2() = default;
   std::string base2 = "base2";
 };
 

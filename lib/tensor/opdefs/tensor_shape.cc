@@ -44,7 +44,7 @@ void TensorShapeDialect::initialize() {
 }
 
 /// Parse a type registered to this dialect.
-Type TensorShapeDialect::parseType(DialectAsmParser &parser) const {
+Type TensorShapeDialect::parseType(DialectAsmParser& parser) const {
   StringRef keyword;
   if (parser.parseKeyword(&keyword)) return Type();
 
@@ -56,7 +56,7 @@ Type TensorShapeDialect::parseType(DialectAsmParser &parser) const {
 }
 
 /// Print a type registered to this dialect.
-void TensorShapeDialect::printType(Type type, DialectAsmPrinter &os) const {
+void TensorShapeDialect::printType(Type type, DialectAsmPrinter& os) const {
   if (mlir::isa<ShapeType>(type)) {
     os << "shape";
     return;

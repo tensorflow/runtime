@@ -29,7 +29,7 @@ namespace corert_sync {
 // CoreRTSyncDialect Dialect
 //===----------------------------------------------------------------------===//
 
-CoreRTSyncDialect::CoreRTSyncDialect(MLIRContext *context)
+CoreRTSyncDialect::CoreRTSyncDialect(MLIRContext* context)
     : Dialect(/*name=*/"corert_sync", context,
               TypeID::get<CoreRTSyncDialect>()) {
   allowUnknownTypes();
@@ -43,7 +43,7 @@ CoreRTSyncDialect::CoreRTSyncDialect(MLIRContext *context)
       >();
 }
 
-Operation *CoreRTSyncDialect::materializeConstant(OpBuilder &builder,
+Operation* CoreRTSyncDialect::materializeConstant(OpBuilder& builder,
                                                   Attribute value, Type type,
                                                   Location loc) {
   if (auto dense_attr = mlir::dyn_cast<DenseElementsAttr>(value))
@@ -52,12 +52,12 @@ Operation *CoreRTSyncDialect::materializeConstant(OpBuilder &builder,
   return nullptr;
 }
 
-void ExecuteOp::build(OpBuilder &builder, OperationState &state,
+void ExecuteOp::build(OpBuilder& builder, OperationState& state,
                       TypeRange results, Value op_handler, ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;
-  for (const auto &named_attr : op_attrs) {
+  for (const auto& named_attr : op_attrs) {
     auto name = builder.getStringAttr(named_attr.first);
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
     attrs.push_back(ArrayAttr::get(builder.getContext(), key_value));
@@ -71,12 +71,12 @@ LogicalResult ExecuteOp::verify() {
   return corert::VerifyExecuteOpImpl(op);
 }
 
-ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult ExecuteOp::parse(OpAsmParser& parser, OperationState& result) {
   return corert::ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
                                     /*has_func_attr=*/false);
 }
 
-void ExecuteOp::print(OpAsmPrinter &p) {
+void ExecuteOp::print(OpAsmPrinter& p) {
   p << "corert_sync.executeop(" << getOpHandler() << ") "
     << (*this)->getAttr("op_name") << '(' << getArguments() << ')';
 
@@ -85,7 +85,7 @@ void ExecuteOp::print(OpAsmPrinter &p) {
 }
 
 void ExecuteOp::getOpAttrs(
-    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
+    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>>* op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
   auto op_attr_array = this->getOpAttrs().getValue();
@@ -100,7 +100,7 @@ void ExecuteOp::getOpAttrs(
 }
 
 LogicalResult ExecuteOp::fold(FoldAdaptor,
-                              llvm::SmallVectorImpl<OpFoldResult> &results) {
+                              llvm::SmallVectorImpl<OpFoldResult>& results) {
   if (getOpName() == "tf.Const") {
     auto op_attr_array = getOpAttrs().getValue();
     assert(!op_attr_array.empty());

@@ -37,7 +37,7 @@ namespace dht {
 class DenseHostTensorSyncDialect : public Dialect {
  public:
   static StringRef getDialectNamespace() { return "tfrt_dht_sync"; }
-  explicit DenseHostTensorSyncDialect(MLIRContext *context);
+  explicit DenseHostTensorSyncDialect(MLIRContext* context);
 };
 
 }  // namespace dht

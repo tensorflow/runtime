@@ -61,10 +61,10 @@ inline bool IsUnsupported(DType dtype) {
 bool IsTriviallyCopyable(DType dtype);
 
 // Support printing of dtype enums, e.g. i32, f32.
-raw_ostream &operator<<(raw_ostream &os, DType dtype);
+raw_ostream& operator<<(raw_ostream& os, DType dtype);
 // Add support for std::ostream to make DType friendly to std::ostream based
 // tools, e.g. Google test.
-std::ostream &operator<<(std::ostream &os, DType dtype);
+std::ostream& operator<<(std::ostream& os, DType dtype);
 
 // Provides interconversions between C++ type and DTypes at compile time.
 //
@@ -91,7 +91,7 @@ namespace detail {
 
 template <DType dtype>
 struct UnsupportedDataType {
-  friend raw_ostream &operator<<(raw_ostream &os, UnsupportedDataType data) {
+  friend raw_ostream& operator<<(raw_ostream& os, UnsupportedDataType data) {
     return os << "UnsupportedDataType<" << DType(dtype) << '>';
   }
 };
@@ -118,7 +118,7 @@ struct IsDTypeTriviallyCopyable<UnsupportedDataType<dtype>> : std::false_type {
   struct DTypeData<DType::ENUM> {                      \
     static constexpr DType kDType{DType::ENUM};        \
     using Type = CPP_TYPE;                             \
-    static constexpr const char *kName = NAME;         \
+    static constexpr const char* kName = NAME;         \
     static constexpr bool kIsTriviallyCopyable =       \
         detail::IsDTypeTriviallyCopyable<CPP_TYPE>();  \
     static constexpr size_t kByteSize =                \
@@ -174,7 +174,7 @@ TFRT_DEFINE_DTYPE(Variant, detail::UnsupportedDataType<DType::Variant>,
 //   });
 // }
 template <typename F>
-decltype(auto) DispatchByDType(DType dtype, F &&f) {
+decltype(auto) DispatchByDType(DType dtype, F&& f) {
   switch (dtype) {
 #define DTYPE(ENUM, VALUE) \
   case DType::ENUM:        \

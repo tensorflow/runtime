@@ -134,9 +134,9 @@ TEST(DenseHostTensorSharedTest, FillWithComplex64Type) {
   ASSERT_EQ(dht_a.DataSizeInBytes(), 8);
   ASSERT_EQ(dht_b.DataSizeInBytes(), 8);
 
-  auto parent_data = static_cast<std::complex<float> *>(parent_buffer->data());
-  auto dht_a_data = static_cast<std::complex<float> *>(dht_a.data());
-  auto dht_b_data = static_cast<std::complex<float> *>(dht_b.data());
+  auto parent_data = static_cast<std::complex<float>*>(parent_buffer->data());
+  auto dht_a_data = static_cast<std::complex<float>*>(dht_a.data());
+  auto dht_b_data = static_cast<std::complex<float>*>(dht_b.data());
   ASSERT_EQ(parent_data[0], dht_a_data[0]);
   ASSERT_EQ(parent_data[1], dht_b_data[0]);
 }
@@ -159,7 +159,7 @@ TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
   MutableDHTArrayView<int> tensor_view_a(&dht_a);
   tensor_view_a.Fill(1.0);
 
-  auto dht_a_data = static_cast<int *>(dht_a.data());
+  auto dht_a_data = static_cast<int*>(dht_a.data());
   ASSERT_EQ(dht_a_data[0], 1.0);
   ASSERT_EQ(dht_a_data[1], 1.0);
 
@@ -173,7 +173,7 @@ TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
   MutableDHTArrayView<int> tensor_view_b(&dht_b);
   tensor_view_b.Fill(3.0);
 
-  auto dht_b_data = static_cast<int *>(dht_b.data());
+  auto dht_b_data = static_cast<int*>(dht_b.data());
   ASSERT_EQ(dht_b_data[0], 3.0);
   ASSERT_EQ(dht_b_data[1], 3.0);
 
@@ -193,9 +193,9 @@ TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
   ASSERT_EQ(dht_b.DataSizeInBytes(), 8);
   ASSERT_EQ(dht_c.DataSizeInBytes(), 4);
 
-  dht_a_data = static_cast<int *>(dht_a.data());
-  dht_b_data = static_cast<int *>(dht_b.data());
-  auto dht_c_data = static_cast<int *>(dht_c.data());
+  dht_a_data = static_cast<int*>(dht_a.data());
+  dht_b_data = static_cast<int*>(dht_b.data());
+  auto dht_c_data = static_cast<int*>(dht_c.data());
   ASSERT_EQ(dht_a_data[0], 1.0);
   ASSERT_EQ(dht_a_data[1], 1.0);
   ASSERT_EQ(dht_c_data[0], -1.0);

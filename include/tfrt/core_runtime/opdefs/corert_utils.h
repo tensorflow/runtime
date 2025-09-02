@@ -40,7 +40,7 @@ LogicalResult VerifyExecuteOpImpl(OpTy op) {
 }
 
 template <typename OpTy>
-void PrintExecuteOpFuncAttribute(mlir::OpAsmPrinter &p, OpTy op) {
+void PrintExecuteOpFuncAttribute(mlir::OpAsmPrinter& p, OpTy op) {
   auto op_func_attrs = op.getOpFuncAttrs();
   if (!op_func_attrs.empty()) {
     auto print_key_value = [&](mlir::Attribute attr) {
@@ -62,7 +62,7 @@ void PrintExecuteOpFuncAttribute(mlir::OpAsmPrinter &p, OpTy op) {
 }
 
 template <typename OpTy>
-void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
+void PrintExecuteOpImpl(OpAsmPrinter& p, OpTy op) {
   auto op_attrs = op.getOpAttrs();
   if (!op_attrs.empty()) {
     auto print_key_value = [&](mlir::Attribute attr) {
@@ -83,7 +83,7 @@ void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
   }
 }
 
-ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
+ParseResult ParseExecuteOpImpl(OpAsmParser& parser, OperationState& result,
                                int num_chains, bool has_func_attr = false);
 
 }  // namespace corert

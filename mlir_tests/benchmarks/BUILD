@@ -1,5 +1,7 @@
 # MLIR benchmarks using the C++ benchmark framework
 
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 licenses(["notice"])
 
 cc_test(

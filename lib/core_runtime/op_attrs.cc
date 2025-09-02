@@ -116,16 +116,16 @@ class ImmutableOpAttrs : public ReferenceCounted<ImmutableOpAttrs> {
  public:
   // Note: users should not directly interface with this class, they should
   // generally use OpAttrsRef instead.
-  const OpAttrsRawEntry *GetRaw(string_view attr_name) const;
+  const OpAttrsRawEntry* GetRaw(string_view attr_name) const;
   size_t GetNumEntries() const { return num_entries_; }
   void IterateEntries(
-      const std::function<void(const OpAttrsRawEntry &entry)> &fn) const;
+      const std::function<void(const OpAttrsRawEntry& entry)>& fn) const;
 
  private:
   friend class ReferenceCounted<ImmutableOpAttrs>;
   friend class OpAttrs;
 
-  static RCReference<ImmutableOpAttrs> create(const OpAttrs &attrs);
+  static RCReference<ImmutableOpAttrs> create(const OpAttrs& attrs);
   explicit ImmutableOpAttrs(size_t num_entries) : num_entries_(num_entries) {}
 
   void Destroy();
@@ -139,7 +139,7 @@ class ImmutableOpAttrs : public ReferenceCounted<ImmutableOpAttrs> {
 };
 
 // Return the size and alignment of the specified attribute type.
-std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
+std::pair<size_t, size_t> GetHostSizeAndAlignment(const void* data,
                                                   OpAttrType type) {
   switch (type) {
     case OpAttrType::DTYPE:
@@ -184,7 +184,7 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
 }
 
 // Return the required alignment padding size to place an Op attribute.
-size_t GetAlignmentPaddingSize(const void *data, OpAttrType type,
+size_t GetAlignmentPaddingSize(const void* data, OpAttrType type,
                                unsigned offset) {
   size_t peak_alignment;
   size_t prefix_size = 0;
@@ -258,7 +258,7 @@ size_t GetAlignmentPaddingSize(const void *data, OpAttrType type,
 }
 
 // Return the name of the specified attribute type, e.g. "I32".
-const char *GetNameString(OpAttrType type) {
+const char* GetNameString(OpAttrType type) {
   switch (type) {
     default:
       llvm_unreachable("unsupported attribute type");
@@ -306,16 +306,16 @@ const char *GetNameString(OpAttrType type) {
 }
 
 static void GetSortedAttrs(
-    const OpAttrsRef &attrs,
-    llvm::SmallVectorImpl<const OpAttrsRawEntry *> *result) {
+    const OpAttrsRef& attrs,
+    llvm::SmallVectorImpl<const OpAttrsRawEntry*>* result) {
   // Collect the attributes in non-determinstic order.
   attrs.IterateEntries(
-      [&](const OpAttrsRawEntry &entry) { result->push_back(&entry); });
+      [&](const OpAttrsRawEntry& entry) { result->push_back(&entry); });
 
   // Sort the elements by attribute name.
   llvm::array_pod_sort(result->begin(), result->end(),
-                       [](const OpAttrsRawEntry *const *lhs,
-                          const OpAttrsRawEntry *const *rhs) -> int {
+                       [](const OpAttrsRawEntry* const* lhs,
+                          const OpAttrsRawEntry* const* rhs) -> int {
                          return strcmp((*lhs)->name, (*rhs)->name);
                        });
 }
@@ -326,19 +326,19 @@ static void GetSortedAttrs(
 
 class OpAttrs::OutOfLineRepresentation {
  public:
-  explicit OutOfLineRepresentation(OpAttrs *orig_attrs);
+  explicit OutOfLineRepresentation(OpAttrs* orig_attrs);
 
   void IterateEntries(
-      const std::function<void(const OpAttrsRawEntry &entry)> &fn) const {
-    for (auto &entry : entries_) fn(entry.second);
+      const std::function<void(const OpAttrsRawEntry& entry)>& fn) const {
+    for (auto& entry : entries_) fn(entry.second);
   }
 
-  const OpAttrsRawEntry *GetRaw(string_view attr_name) const {
+  const OpAttrsRawEntry* GetRaw(string_view attr_name) const {
     auto it = entries_.find(attr_name);
     return it == entries_.end() ? nullptr : &it->second;
   }
 
-  bool SetRaw(string_view attr_name, const void *data, OpAttrType type,
+  bool SetRaw(string_view attr_name, const void* data, OpAttrType type,
               uint32_t element_count, OpAttrsRawEntryType entry_type);
 
   size_t GetNumEntries() const { return entries_.size(); }
@@ -350,9 +350,9 @@ class OpAttrs::OutOfLineRepresentation {
 
 // The constructor for the out-of-line representation starts by moving the data
 // out of the in-line representation.
-OpAttrs::OutOfLineRepresentation::OutOfLineRepresentation(OpAttrs *orig_attrs) {
+OpAttrs::OutOfLineRepresentation::OutOfLineRepresentation(OpAttrs* orig_attrs) {
   // We move to an out-of-line representation by copying all the entries over.
-  orig_attrs->IterateEntries([&](const OpAttrsRawEntry &entry) {
+  orig_attrs->IterateEntries([&](const OpAttrsRawEntry& entry) {
     bool success = this->SetRaw(entry.name, entry.GetData(), entry.type,
                                 entry.element_count, entry.entry_type);
     assert(success && "input cannot have dupes, so collisions aren't possible");
@@ -361,7 +361,7 @@ OpAttrs::OutOfLineRepresentation::OutOfLineRepresentation(OpAttrs *orig_attrs) {
 }
 
 bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
-                                              const void *data, OpAttrType type,
+                                              const void* data, OpAttrType type,
                                               uint32_t element_count,
                                               OpAttrsRawEntryType entry_type) {
   // If element_count > 1, it must be an array.
@@ -376,7 +376,7 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
   if (entry_it_pair.second == false) return false;
 
   // TODO(clattner): consider unifying the logic here with OpAttrs::SetRaw.
-  auto &entry = entry_it_pair.first->second;
+  auto& entry = entry_it_pair.first->second;
   entry.name = entry_it_pair.first->first().data();
   entry.type = type;
   entry.element_count = element_count;
@@ -399,17 +399,17 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
   const auto payload_size = type_size * element_count;
 
   // If it is a small scalar, copy the data to the inlined buffer.
-  if (payload_size <= sizeof(void *) && alignment_padding_size == 0) {
-    assert(type_alignment <= alignof(void *));
+  if (payload_size <= sizeof(void*) && alignment_padding_size == 0) {
+    assert(type_alignment <= alignof(void*));
     if (payload_size > 0) memcpy(entry.buffer, data, payload_size);
     entry.is_inlined = true;
     return true;
   }
 
   // TODO(hyojun): Optimize memory allocator for DiamondPacking.
-  void *our_data = allocator_.Allocate(alignment_padding_size + payload_size,
+  void* our_data = allocator_.Allocate(alignment_padding_size + payload_size,
                                        type_alignment);
-  void *element_ptr = static_cast<char *>(our_data) + alignment_padding_size;
+  void* element_ptr = static_cast<char*>(our_data) + alignment_padding_size;
 
   // Copy the element(s) themselves.
   memcpy(element_ptr, data, payload_size);
@@ -427,16 +427,16 @@ OpAttrs::~OpAttrs() {}
 
 size_t OpAttrs::GetNumEntries() const {
   // If we are using an out of line representation, delegate to it.
-  if (auto *out_of_line = out_of_line_representation_.get())
+  if (auto* out_of_line = out_of_line_representation_.get())
     return out_of_line->GetNumEntries();
 
   return num_inline_entries_;
 }
 
 void OpAttrs::IterateEntries(
-    const std::function<void(const OpAttrsRawEntry &entry)> &fn) const {
+    const std::function<void(const OpAttrsRawEntry& entry)>& fn) const {
   // If we are using an out of line representation, delegate to it.
-  if (auto *out_of_line = out_of_line_representation_.get())
+  if (auto* out_of_line = out_of_line_representation_.get())
     return out_of_line->IterateEntries(fn);
 
   for (size_t i = 0, e = num_inline_entries_; i != e; ++i)
@@ -449,13 +449,13 @@ void OpAttrs::MoveOutOfLine() {
   out_of_line_representation_ = std::make_unique<OutOfLineRepresentation>(this);
 }
 
-const OpAttrsRawEntry *OpAttrs::GetRaw(string_view attr_name) const {
+const OpAttrsRawEntry* OpAttrs::GetRaw(string_view attr_name) const {
   // If we are using an out of line representation, delegate to it.
-  if (auto *out_of_line = out_of_line_representation_.get())
+  if (auto* out_of_line = out_of_line_representation_.get())
     return out_of_line->GetRaw(attr_name);
 
   for (size_t i = 0, e = num_inline_entries_; i != e; ++i) {
-    auto &entry = inline_entries_[i];
+    auto& entry = inline_entries_[i];
     if (strcmp(attr_name.data(), entry.name) == 0) return &entry;
   }
   return nullptr;
@@ -468,7 +468,7 @@ void OpAttrs::Reset() {
   frozen_representation_.reset();
 }
 
-bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
+bool OpAttrs::SetRaw(string_view attr_name, const void* data, OpAttrType type,
                      uint32_t element_count, OpAttrsRawEntryType entry_type) {
   // If element_count > 1, the entry must be an array.
   assert(element_count <= 1 || entry_type == OpAttrsRawEntryType::kArray ||
@@ -479,14 +479,14 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
   if (frozen_representation_) frozen_representation_.reset();
 
   // If we are using an out of line representation, delegate to it.
-  if (auto *out_of_line = out_of_line_representation_.get())
+  if (auto* out_of_line = out_of_line_representation_.get())
     return out_of_line->SetRaw(attr_name, data, type, element_count,
                                entry_type);
 
   // Otherwise, we need to find out if this entry has already been installed.
   // If so, we return failure.
   for (size_t i = 0, e = num_inline_entries_; i != e; ++i) {
-    auto &entry = inline_entries_[i];
+    auto& entry = inline_entries_[i];
     if (strcmp(attr_name.data(), entry.name) == 0) return false;
   }
 
@@ -499,7 +499,7 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
   }
 
   // We also need space in inline_buffer_.
-  auto *name_pointer = inline_buffer_ + inline_buffer_used_;
+  auto* name_pointer = inline_buffer_ + inline_buffer_used_;
   auto attr_name_size = attr_name.size();
   inline_buffer_used_ += attr_name_size + 1;
 
@@ -514,7 +514,7 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
   memcpy(name_pointer, attr_name.data(), attr_name_size);
   name_pointer[attr_name_size] = 0;  // Null terminate C string.
 
-  auto &entry = inline_entries_[num_inline_entries_++];
+  auto& entry = inline_entries_[num_inline_entries_++];
   entry.name = name_pointer;
   entry.type = type;
   entry.element_count = element_count;
@@ -537,8 +537,8 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
   const auto payload_size = type_size * element_count;
 
   // An attribute fits in the inlined buffer.
-  if (payload_size <= sizeof(void *) && alignment_padding_size == 0) {
-    assert(type_alignment <= alignof(void *));
+  if (payload_size <= sizeof(void*) && alignment_padding_size == 0) {
+    assert(type_alignment <= alignof(void*));
     if (payload_size > 0) memcpy(entry.buffer, data, payload_size);
     entry.is_inlined = true;
     return true;
@@ -547,7 +547,7 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
   // Otherwise, need to allocate buffer.
   inline_buffer_used_ +=
       GetAlignmentPaddingSize(data, type, inline_buffer_used_);
-  auto *dest_pointer = inline_buffer_ + inline_buffer_used_;
+  auto* dest_pointer = inline_buffer_ + inline_buffer_used_;
 
   inline_buffer_used_ += payload_size;
 
@@ -565,7 +565,7 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
 }
 
 // Print the state of this attribute set, this is only intended for debugging.
-void OpAttrs::Print(raw_ostream &os) const { OpAttrsRef(*this).Print(os); }
+void OpAttrs::Print(raw_ostream& os) const { OpAttrsRef(*this).Print(os); }
 
 void OpAttrs::Dump() const { Print(llvm::errs()); }
 
@@ -584,9 +584,9 @@ OpAttrsRef OpAttrs::freeze() const {
   return OpAttrsRef(frozen_representation_);
 }
 
-RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
+RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs& attrs) {
   // Sort the elements by attribute name.
-  llvm::SmallVector<const OpAttrsRawEntry *, 16> sorted_attrs;
+  llvm::SmallVector<const OpAttrsRawEntry*, 16> sorted_attrs;
   GetSortedAttrs(OpAttrsRef(attrs), &sorted_attrs);
 
   // Figure out how much space we need to hold these attributes.
@@ -601,7 +601,7 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
 
   // Figure out how much space we need for each entry, which is the space for
   // the name and the payload together:
-  for (auto *entry : sorted_attrs) {
+  for (auto* entry : sorted_attrs) {
     // Space for the name and null terminator.
     alloc_size += strlen(entry->name) + 1;
 
@@ -615,15 +615,15 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   }
 
   // Now that we know the size, create the result.
-  auto *raw_memory = AlignedAlloc(alignof(ImmutableOpAttrs), alloc_size);
-  auto *result = new (raw_memory) ImmutableOpAttrs(sorted_attrs.size());
+  auto* raw_memory = AlignedAlloc(alignof(ImmutableOpAttrs), alloc_size);
+  auto* result = new (raw_memory) ImmutableOpAttrs(sorted_attrs.size());
 
-  char *data_ptr = static_cast<char *>(raw_memory);
+  char* data_ptr = static_cast<char*>(raw_memory);
 
   // Copy all of the attributes over.
   for (size_t i = 0, e = sorted_attrs.size(); i != e; ++i) {
-    const auto &src_entry = *sorted_attrs[i];
-    auto &result_entry = result->entries_[i];
+    const auto& src_entry = *sorted_attrs[i];
+    auto& result_entry = result->entries_[i];
 
     // Copy simple properties.
     result_entry.element_count = src_entry.element_count;
@@ -640,7 +640,7 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     // For inlined buffer and externally allocated buffer,
     // copying buffer content is enough.
     if (src_entry.IsInlined() || src_entry.IsExternal()) {
-      memcpy(result_entry.buffer, src_entry.buffer, sizeof(void *));
+      memcpy(result_entry.buffer, src_entry.buffer, sizeof(void*));
       continue;
     }
 
@@ -653,7 +653,7 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
         GetHostSizeAndAlignment(src_entry.data, src_entry.type).first *
         src_entry.element_count;
 
-    memcpy(data_ptr + out_offset, static_cast<const char *>(src_entry.data),
+    memcpy(data_ptr + out_offset, static_cast<const char*>(src_entry.data),
            payload_size);
 
     // Remember that this is where the element is.
@@ -677,7 +677,7 @@ void ImmutableOpAttrs::Destroy() {
 
 // Look up an attribute by name, regardless of its underlying type.
 // On lookup failure, the result is null.
-const OpAttrsRawEntry *ImmutableOpAttrs::GetRaw(string_view attr_name) const {
+const OpAttrsRawEntry* ImmutableOpAttrs::GetRaw(string_view attr_name) const {
   // If we only have a few entries, do a linear search for the name.
   // TODO(tf_runtime_team): implement a binary search for more elements.
   for (size_t i = 0, e = num_entries_; i != e; ++i) {
@@ -690,7 +690,7 @@ const OpAttrsRawEntry *ImmutableOpAttrs::GetRaw(string_view attr_name) const {
 // reflection.  Note that this produces the attributes in a *deterministic*
 // order.
 void ImmutableOpAttrs::IterateEntries(
-    const std::function<void(const OpAttrsRawEntry &entry)> &fn) const {
+    const std::function<void(const OpAttrsRawEntry& entry)>& fn) const {
   for (size_t i = 0, e = num_entries_; i != e; ++i) fn(entries_[i]);
 }
 
@@ -698,25 +698,25 @@ void ImmutableOpAttrs::IterateEntries(
 // OpAttrsRef implementation
 //===----------------------------------------------------------------------===//
 
-OpAttrsRef::OpAttrsRef(const OpAttrs &attrs) { attrs_ = &attrs; }
+OpAttrsRef::OpAttrsRef(const OpAttrs& attrs) { attrs_ = &attrs; }
 
 OpAttrsRef::OpAttrsRef(RCReference<ImmutableOpAttrs> attrs) {
   attrs_ = attrs.release();
 }
 
-OpAttrsRef::OpAttrsRef(OpAttrsRef &&other) : attrs_(other.attrs_) {
+OpAttrsRef::OpAttrsRef(OpAttrsRef&& other) : attrs_(other.attrs_) {
   other.attrs_ = nullptr;
 }
 
 OpAttrsRef::~OpAttrsRef() {
-  if (auto *ptr = attrs_.dyn_cast<ImmutableOpAttrs *>()) ptr->DropRef();
+  if (auto* ptr = attrs_.dyn_cast<ImmutableOpAttrs*>()) ptr->DropRef();
 }
 
 // Return the number of entries in this set.
 size_t OpAttrsRef::GetNumEntries() const {
-  if (auto *ptr = attrs_.dyn_cast<const OpAttrs *>())
+  if (auto* ptr = attrs_.dyn_cast<const OpAttrs*>())
     return ptr->GetNumEntries();
-  if (auto *ptr = attrs_.dyn_cast<ImmutableOpAttrs *>())
+  if (auto* ptr = attrs_.dyn_cast<ImmutableOpAttrs*>())
     return ptr->GetNumEntries();
 
   return 0;
@@ -726,26 +726,26 @@ size_t OpAttrsRef::GetNumEntries() const {
 // reflection.  This returns the entries in a determinstic order if the
 // underlying representation is frozen, otherwise not.
 void OpAttrsRef::IterateEntries(
-    const std::function<void(const OpAttrsRawEntry &entry)> &fn) const {
-  if (auto *ptr = attrs_.dyn_cast<const OpAttrs *>())
+    const std::function<void(const OpAttrsRawEntry& entry)>& fn) const {
+  if (auto* ptr = attrs_.dyn_cast<const OpAttrs*>())
     return ptr->IterateEntries(fn);
-  if (auto *ptr = attrs_.dyn_cast<ImmutableOpAttrs *>())
+  if (auto* ptr = attrs_.dyn_cast<ImmutableOpAttrs*>())
     return ptr->IterateEntries(fn);
 }
 
-const OpAttrsRawEntry *OpAttrsRef::GetRaw(string_view attr_name) const {
-  if (auto *ptr = attrs_.dyn_cast<const OpAttrs *>())
+const OpAttrsRawEntry* OpAttrsRef::GetRaw(string_view attr_name) const {
+  if (auto* ptr = attrs_.dyn_cast<const OpAttrs*>())
     return ptr->GetRaw(attr_name);
-  if (auto *ptr = attrs_.dyn_cast<ImmutableOpAttrs *>())
+  if (auto* ptr = attrs_.dyn_cast<ImmutableOpAttrs*>())
     return ptr->GetRaw(attr_name);
   return nullptr;
 }
 
 // Print a single element of an attribute out.
-static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
+static void PrintElement(const void* ptr, OpAttrType type, raw_ostream& os) {
   switch (type) {
     case OpAttrType::DTYPE: {
-      auto dtype = *static_cast<const OpAttrType *>(ptr);
+      auto dtype = *static_cast<const OpAttrType*>(ptr);
       assert(dtype != OpAttrType::DTYPE);
       os << GetNameString(dtype);
       break;
@@ -792,7 +792,7 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
     }
     case OpAttrType::FUNC:
       os << GetNameString(OpAttrType::FUNC);
-      os << " function_name: " << *static_cast<const char *>(ptr);
+      os << " function_name: " << *static_cast<const char*>(ptr);
       break;
     case OpAttrType::BF16:
       assert(0 && "cannot print bf16 yet.");
@@ -801,15 +801,15 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       assert(0 && "cannot print fp16 yet.");
       break;
     case OpAttrType::I1:
-      os << *static_cast<const uint8_t *>(ptr);
+      os << *static_cast<const uint8_t*>(ptr);
       break;
     case OpAttrType::COMPLEX64:
-      os << "(" << static_cast<const std::complex<float> *>(ptr)->real() << ","
-         << static_cast<const std::complex<float> *>(ptr)->imag() << ")";
+      os << "(" << static_cast<const std::complex<float>*>(ptr)->real() << ","
+         << static_cast<const std::complex<float>*>(ptr)->imag() << ")";
       break;
     case OpAttrType::COMPLEX128:
-      os << "(" << static_cast<const std::complex<double> *>(ptr)->real() << ","
-         << static_cast<const std::complex<double> *>(ptr)->imag() << ")";
+      os << "(" << static_cast<const std::complex<double>*>(ptr)->real() << ","
+         << static_cast<const std::complex<double>*>(ptr)->imag() << ")";
       break;
     case OpAttrType::UNSUPPORTED_RESOURCE:
     case OpAttrType::UNSUPPORTED_VARIANT:
@@ -819,24 +819,24 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
     case OpAttrType::UNSUPPORTED_QI16:
     case OpAttrType::UNSUPPORTED_QI32:
       llvm_unreachable("unsupported attribute type");
-#define OP_ATTR_TYPE(ENUM, CPP_TYPE)           \
-  case OpAttrType::ENUM:                       \
-    os << *static_cast<const CPP_TYPE *>(ptr); \
+#define OP_ATTR_TYPE(ENUM, CPP_TYPE)          \
+  case OpAttrType::ENUM:                      \
+    os << *static_cast<const CPP_TYPE*>(ptr); \
     break;
 #include "tfrt/core_runtime/op_attr_type.def"
   }
 }
 
 OpAttrsRef OpAttrsRef::freeze() const {
-  if (auto *ptr = attrs_.dyn_cast<const OpAttrs *>()) return ptr->freeze();
-  if (auto *ptr = attrs_.dyn_cast<ImmutableOpAttrs *>())
+  if (auto* ptr = attrs_.dyn_cast<const OpAttrs*>()) return ptr->freeze();
+  if (auto* ptr = attrs_.dyn_cast<ImmutableOpAttrs*>())
     return OpAttrsRef(FormRef(ptr));
 
   return OpAttrsRef();
 }
 
 // Print the state of this attribute set, this is only intended for debugging.
-void OpAttrsRef::Print(raw_ostream &os) const {
+void OpAttrsRef::Print(raw_ostream& os) const {
   if (GetNumEntries() == 0) {
     os << "OpAttrs is empty\n";
     return;
@@ -845,17 +845,17 @@ void OpAttrsRef::Print(raw_ostream &os) const {
   os << "OpAttrs contains " << GetNumEntries() << " entries:\n";
 
   // Sort the elements by attribute name.
-  llvm::SmallVector<const OpAttrsRawEntry *, 16> sorted_attrs;
+  llvm::SmallVector<const OpAttrsRawEntry*, 16> sorted_attrs;
   GetSortedAttrs(*this, &sorted_attrs);
 
   // Print out the attributes in stable order.
-  for (auto *attr : sorted_attrs) {
-    const OpAttrsRawEntry &entry = *attr;
+  for (auto* attr : sorted_attrs) {
+    const OpAttrsRawEntry& entry = *attr;
     os << "  '" << entry.name << "'"
        << " type=" << GetNameString(entry.type) << " value=";
 
     if (entry.IsArray()) {
-      const char *data = static_cast<const char *>(entry.GetData());
+      const char* data = static_cast<const char*>(entry.GetData());
       os << '[';
       auto type_size = GetHostSizeAndAlignment(data, entry.type).first;
 

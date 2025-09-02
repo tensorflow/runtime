@@ -33,7 +33,7 @@ struct fp16 {
   uint16_t value;
 };
 
-inline raw_ostream &operator<<(raw_ostream &os, fp16 v) {
+inline raw_ostream& operator<<(raw_ostream& os, fp16 v) {
   return os << "fp16(" << v.value << ')';
 }
 }  // namespace tfrt

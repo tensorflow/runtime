@@ -38,9 +38,9 @@ namespace compiler {
 namespace {
 void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
                 ArrayRef<Type> types,
-                SmallVector<OpAsmParser::Argument> &args) {
+                SmallVector<OpAsmParser::Argument>& args) {
   for (auto argAndType : llvm::zip(operands, types)) {
-    auto &arg = args.emplace_back();
+    auto& arg = args.emplace_back();
     arg.ssaName = std::get<0>(argAndType);
     arg.type = std::get<1>(argAndType);
   }
@@ -51,7 +51,7 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 // CallOp
 //===----------------------------------------------------------------------===//
 
-ParseResult CallOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult CallOp::parse(OpAsmParser& parser, OperationState& result) {
   SymbolRefAttr calleeAttr;
   FunctionType calleeType;
   SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
@@ -68,7 +68,7 @@ ParseResult CallOp::parse(OpAsmParser &parser, OperationState &result) {
   return success();
 }
 
-void CallOp::print(OpAsmPrinter &p) {
+void CallOp::print(OpAsmPrinter& p) {
   p << " " << (*this)->getAttr("callee") << '(';
   p.printOperands(getOperands());
   p << ')';
@@ -115,11 +115,11 @@ mlir::FunctionType CallOp::getCalleeType() {
 // Verify that the specified region contains a tfrt.return operation with the
 // specified type list and emit an error if not.
 template <typename ResultTypeContainer>
-static LogicalResult checkTFRTReturn(Operation *op, Region *region,
+static LogicalResult checkTFRTReturn(Operation* op, Region* region,
                                      ResultTypeContainer result_types) {
   assert(std::distance(region->begin(), region->end()) == 1 &&
          "verifier should already check region size");
-  auto *block = &region->front();
+  auto* block = &region->front();
 
   if (block->empty() || !isa<ReturnOp>(block->back()))
     return op->emitOpError("expected tfrt.return in body");
@@ -152,10 +152,10 @@ LogicalResult IfOp::verify() {
   IfOp op = *this;
   // Verify that the operands match the bb arguments.  The ODS verifier already
   // checked the first argument to be present and i1.
-  auto *then_block = &op.getThenRegion().front();
+  auto* then_block = &op.getThenRegion().front();
   if (op.getNumOperands() - 1 != then_block->getNumArguments())
     return op.emitOpError("incorrect number of arguments to 'then' block");
-  auto *else_block = &op.getElseRegion().front();
+  auto* else_block = &op.getElseRegion().front();
   if (op.getNumOperands() - 1 != else_block->getNumArguments())
     return op.emitOpError("incorrect number of arguments to 'else' block");
 
@@ -171,7 +171,7 @@ LogicalResult IfOp::verify() {
   return checkTFRTReturn(op, &op.getElseRegion(), op.getResultTypes());
 }
 
-ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult IfOp::parse(OpAsmParser& parser, OperationState& result) {
   SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
@@ -199,12 +199,12 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::Argument> body_args;
   createArgs(body_operands, body_types, body_args);
   // Parse the body region.
-  Region *then_region = result.addRegion();
+  Region* then_region = result.addRegion();
   if (parser.parseRegion(*then_region, body_args,
                          /*enableNameShadowing=*/true))
     return failure();
 
-  Region *else_region = result.addRegion();
+  Region* else_region = result.addRegion();
   if (succeeded(parser.parseOptionalKeyword("else"))) {
     if (parser.parseRegion(*else_region, body_args,
                            /*enableNameShadowing=*/true))
@@ -219,7 +219,7 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
           "expected 'else' in 'tfrt.if' with result values");
 
     mlir::OpBuilder builder(result.getContext());
-    auto *block = builder.createBlock(else_region);
+    auto* block = builder.createBlock(else_region);
     block->addArguments(
         body_types, SmallVector<Location>(body_types.size(), result.location));
     builder.create<ReturnOp>(result.location);
@@ -228,7 +228,7 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result) {
   return success();
 }
 
-void IfOp::print(OpAsmPrinter &p) {
+void IfOp::print(OpAsmPrinter& p) {
   p << " ";
   p.printOperands(getOperands());
   if (!(*this)->getAttrs().empty()) {
@@ -317,7 +317,7 @@ LogicalResult CondOp::verify() {
 // RepeatI32Op
 //===----------------------------------------------------------------------===//
 
-ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult RepeatI32Op::parse(OpAsmParser& parser, OperationState& result) {
   SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
@@ -344,12 +344,12 @@ ParseResult RepeatI32Op::parse(OpAsmParser &parser, OperationState &result) {
   // Parse the body region.
   SmallVector<OpAsmParser::Argument> loop_args;
   createArgs(loop_operands, types, loop_args);
-  Region *body = result.addRegion();
+  Region* body = result.addRegion();
   return parser.parseRegion(*body, loop_args,
                             /*enableNameShadowing=*/true);
 }
 
-void RepeatI32Op::print(OpAsmPrinter &p) {
+void RepeatI32Op::print(OpAsmPrinter& p) {
   p << " ";
   p.printOperands(getOperands());
   if (!(*this)->getAttrs().empty()) {
@@ -394,8 +394,8 @@ LogicalResult RepeatI32Op::verify() {
 //     ... parallel block compute function ...
 //     tfrt.return ... : !tfrt.chain
 //   }
-ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
-                                    OperationState &result) {
+ParseResult ParallelForI32Op::parse(OpAsmParser& parser,
+                                    OperationState& result) {
   OpAsmParser::UnresolvedOperand start;
   OpAsmParser::UnresolvedOperand end;
   OpAsmParser::UnresolvedOperand block_size;
@@ -436,18 +436,18 @@ ParseResult ParallelForI32Op::parse(OpAsmParser &parser,
 
   // Parallel for body operands and types.
   SmallVector<OpAsmParser::UnresolvedOperand, 6> body_operands = {start, end};
-  for (auto &operand : operands) body_operands.push_back(operand);
+  for (auto& operand : operands) body_operands.push_back(operand);
   SmallVector<Type, 6> body_operands_types = {i32_type, i32_type};
-  for (auto &type : types) body_operands_types.push_back(type);
+  for (auto& type : types) body_operands_types.push_back(type);
 
   SmallVector<OpAsmParser::Argument> body_args;
   createArgs(body_operands, body_operands_types, body_args);
-  Region *body = result.addRegion();
+  Region* body = result.addRegion();
   return parser.parseRegion(*body, body_args,
                             /*enableNameShadowing=*/true);
 }
 
-void ParallelForI32Op::print(OpAsmPrinter &p) {
+void ParallelForI32Op::print(OpAsmPrinter& p) {
   p << " ";
 
   p.printOperand(getOperand(0));
@@ -475,7 +475,7 @@ void ParallelForI32Op::print(OpAsmPrinter &p) {
 
 LogicalResult ParallelForI32Op::verify() {
   ParallelForI32Op op = *this;
-  auto *block = &op.getRegion().front();
+  auto* block = &op.getRegion().front();
   if (block->empty() || !isa<ReturnOp>(block->back()))
     return op.emitOpError("expected tfrt.return in body");
 
@@ -498,8 +498,8 @@ LogicalResult ParallelForI32Op::verify() {
 //
 //   %ch = tfrt.parallel_call.i32 %start to %end fixed %block_size
 //         @callee(%loop_arg0) : !my.type
-ParseResult ParallelCallI32Op::parse(OpAsmParser &parser,
-                                     OperationState &result) {
+ParseResult ParallelCallI32Op::parse(OpAsmParser& parser,
+                                     OperationState& result) {
   OpAsmParser::UnresolvedOperand start;
   OpAsmParser::UnresolvedOperand end;
   OpAsmParser::UnresolvedOperand block_size;
@@ -545,7 +545,7 @@ ParseResult ParallelCallI32Op::parse(OpAsmParser &parser,
   return success();
 }
 
-void ParallelCallI32Op::print(OpAsmPrinter &p) {
+void ParallelCallI32Op::print(OpAsmPrinter& p) {
   p << " ";
 
   p.printOperand(getOperand(0));
@@ -615,7 +615,7 @@ LogicalResult ParallelCallI32Op::verify() {
 // ReturnOp
 //===----------------------------------------------------------------------===//
 
-ParseResult ReturnOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult ReturnOp::parse(OpAsmParser& parser, OperationState& result) {
   SmallVector<OpAsmParser::UnresolvedOperand, 2> opInfo;
   SmallVector<Type, 2> types;
   llvm::SMLoc loc = parser.getCurrentLocation();
@@ -624,7 +624,7 @@ ParseResult ReturnOp::parse(OpAsmParser &parser, OperationState &result) {
                  parser.resolveOperands(opInfo, types, loc, result.operands));
 }
 
-void ReturnOp::print(OpAsmPrinter &p) {
+void ReturnOp::print(OpAsmPrinter& p) {
   if (getNumOperands() > 0) {
     p << ' ';
     p.printOperands(getOperands());
@@ -665,7 +665,7 @@ struct RemoveUnnecessaryMergeChainsOp : public OpRewritePattern<MergeChainsOp> {
   using OpRewritePattern<MergeChainsOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(MergeChainsOp op,
-                                PatternRewriter &rewriter) const override {
+                                PatternRewriter& rewriter) const override {
     llvm::SmallVector<mlir::Value> one_use;
     for (auto operand : op.getOperands()) {
       if (operand.hasOneUse()) {
@@ -690,8 +690,8 @@ struct RemoveUnnecessaryMergeChainsOp : public OpRewritePattern<MergeChainsOp> {
 
 }  // namespace
 
-void MergeChainsOp::getCanonicalizationPatterns(RewritePatternSet &results,
-                                                MLIRContext *context) {
+void MergeChainsOp::getCanonicalizationPatterns(RewritePatternSet& results,
+                                                MLIRContext* context) {
   results.add<RemoveUnnecessaryMergeChainsOp>(context);
 }
 

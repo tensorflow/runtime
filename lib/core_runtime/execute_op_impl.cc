@@ -29,7 +29,7 @@
 
 namespace tfrt {
 
-void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
+void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs* op_attrs) {
   for (size_t i = 0, e = op_attr_array.GetNumElements(); i != e; ++i) {
     auto pair = op_attr_array.GetAttributeOfType<AggregateAttr>(i);
     assert(pair.GetNumElements() == 2);
@@ -97,7 +97,7 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
 
 // Set up `op_attrs` with binary attributes in `op_attr_func_array`.
 // `op_attr_func_array` is an array of string that denotes function attributes.
-void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs *op_attrs) {
+void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs* op_attrs) {
   for (size_t i = 0, e = op_func_attr_array.GetNumElements(); i != e; ++i) {
     auto pair = op_func_attr_array.GetAttributeOfType<AggregateAttr>(i);
     assert(pair.GetNumElements() == 2);
@@ -117,8 +117,8 @@ void AsyncWaitForResultsFromTensorHandles(
     MutableArrayRef<TensorHandle> result_ths) {
   // Return all of the TensorHandles in AsyncValue's.
   for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
-    auto &th_ref = result_ths[i];
-    auto *tensor_av = th_ref.GetAsyncTensor();
+    auto& th_ref = result_ths[i];
+    auto* tensor_av = th_ref.GetAsyncTensor();
 
     // Only set the AsyncValue of TensorHandle to be available when the
     // underlying tensor is available. This is to avoid unnecessary async
@@ -144,19 +144,19 @@ void AsyncWaitForResultsFromTensorHandles(
   }
 }
 
-void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
-                   AsyncValueRef<Chain> *op_chain,
+void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue*> args,
+                   AsyncValueRef<Chain>* op_chain,
                    MutableArrayRef<RCReference<AsyncValue>> results,
                    AggregateAttr op_attr_array,
                    AggregateAttr op_func_attr_array,
-                   const ExecutionContext &exec_ctx) {
+                   const ExecutionContext& exec_ctx) {
   llvm::SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
   // Move the TensorHandle if we know that we are the last user of the async
   // value. This enables buffer forwading in ops implementation, because we
   // do not add redundant references to the tensor async value.
-  for (auto *arg : args) {
+  for (auto* arg : args) {
     if (arg->IsUnique()) {
       th_args.push_back(std::move(arg->get<TensorHandle>()));
     } else {
@@ -179,15 +179,15 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
   AsyncWaitForResultsFromTensorHandles(results, result_ths);
 }
 
-void ExecuteOpImplSync(const CoreRuntimeOp &op,
+void ExecuteOpImplSync(const CoreRuntimeOp& op,
                        RepeatedSyncArguments<TensorHandle> args,
-                       AsyncValueRef<Chain> *op_chain, SyncKernelFrame *frame,
+                       AsyncValueRef<Chain>* op_chain, SyncKernelFrame* frame,
                        AggregateAttr op_attr_array,
-                       const ExecutionContext &exec_ctx) {
+                       const ExecutionContext& exec_ctx) {
   llvm::SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
-  for (auto &arg : args) {
+  for (auto& arg : args) {
     th_args.push_back(arg.CopyRef());
   }
 
@@ -202,7 +202,7 @@ void ExecuteOpImplSync(const CoreRuntimeOp &op,
 
   // Return all of the TensorHandles in AsyncValue's.
   for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
-    auto &th_ref = result_ths[i];
+    auto& th_ref = result_ths[i];
     frame->EmplaceResultAt<TensorHandle>(i, std::move(th_ref));
   }
 }

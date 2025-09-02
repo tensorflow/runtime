@@ -31,7 +31,7 @@ namespace test_sync {
 // TestSyncDialect Dialect
 //===----------------------------------------------------------------------===//
 
-TestSyncDialect::TestSyncDialect(MLIRContext *context)
+TestSyncDialect::TestSyncDialect(MLIRContext* context)
     : Dialect(/*name=*/"tfrt_test_sync", context,
               TypeID::get<TestSyncDialect>()) {
   context->getOrLoadDialect<compiler::TFRTDialect>();

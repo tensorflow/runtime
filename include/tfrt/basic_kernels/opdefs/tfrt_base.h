@@ -30,12 +30,12 @@ namespace compiler {
 // Dialect for basic operations.
 class TFRTDialect : public mlir::Dialect {
  public:
-  explicit TFRTDialect(mlir::MLIRContext *context);
+  explicit TFRTDialect(mlir::MLIRContext* context);
   static llvm::StringRef getDialectNamespace() { return "tfrt"; }
 
-  mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+  mlir::Type parseType(mlir::DialectAsmParser& parser) const override;
   void printType(mlir::Type type,
-                 mlir::DialectAsmPrinter &printer) const override;
+                 mlir::DialectAsmPrinter& printer) const override;
 };
 
 }  // namespace compiler

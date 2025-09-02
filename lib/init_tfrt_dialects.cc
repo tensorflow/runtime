@@ -41,7 +41,7 @@
 
 namespace tfrt {
 
-void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
+void RegisterTFRTDialects(mlir::DialectRegistry& registry) {
   registry.insert<compiler::TFRTDialect>();
   registry.insert<corert::CoreRTDialect>();
   registry.insert<corert_sync::CoreRTSyncDialect>();
@@ -55,7 +55,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<mlir::func::FuncDialect>();
 }
 
-void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
+void RegisterTFRTCompiledDialects(mlir::DialectRegistry& registry) {
   registry.insert<mlir::func::FuncDialect, mlir::arith::ArithDialect,
                   mlir::cf::ControlFlowDialect>();
   registry.insert<mlir::async::AsyncDialect>();

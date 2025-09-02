@@ -30,7 +30,7 @@ namespace coo {
 // Sparse Host tensor dialect.
 //===----------------------------------------------------------------------===//
 
-CooHostTensorDialect::CooHostTensorDialect(MLIRContext *context)
+CooHostTensorDialect::CooHostTensorDialect(MLIRContext* context)
     : Dialect(/*name=*/"coo", context, TypeID::get<CooHostTensorDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();

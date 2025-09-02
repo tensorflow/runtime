@@ -31,10 +31,10 @@ namespace ht {
 class HostTensorDialect : public Dialect {
  public:
   static StringRef getDialectNamespace() { return "ht"; }
-  explicit HostTensorDialect(MLIRContext *context);
+  explicit HostTensorDialect(MLIRContext* context);
 
-  Type parseType(DialectAsmParser &parser) const override;
-  void printType(Type type, DialectAsmPrinter &os) const override;
+  Type parseType(DialectAsmParser& parser) const override;
+  void printType(Type type, DialectAsmPrinter& os) const override;
 };
 
 /// The host buffer descriptor type.

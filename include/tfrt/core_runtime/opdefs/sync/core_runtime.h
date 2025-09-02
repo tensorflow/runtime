@@ -37,10 +37,10 @@ using namespace mlir;
 // Dialect for corert_sync operations.
 class CoreRTSyncDialect : public Dialect {
  public:
-  explicit CoreRTSyncDialect(MLIRContext *context);
+  explicit CoreRTSyncDialect(MLIRContext* context);
   static StringRef getDialectNamespace() { return "corert_sync"; }
 
-  Operation *materializeConstant(OpBuilder &builder, Attribute value, Type type,
+  Operation* materializeConstant(OpBuilder& builder, Attribute value, Type type,
                                  mlir::Location loc) override;
 };
 

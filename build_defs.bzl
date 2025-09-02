@@ -14,6 +14,9 @@
 
 """BUILD rules for tfrt."""
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 # Placeholder: load aliased py_binary
 
 # Sanitize a dependency so that it works correctly from code that includes
@@ -138,8 +141,7 @@ def tfrt_cc_library(
                     "Found include path '" + inc + "' that is already in TFRT_INCLUDES",
                     "includes",
                 )
-
-    native.cc_library(
+    cc_library(
         name = name,
         srcs = srcs,
         deps = deps,
@@ -152,7 +154,7 @@ def tfrt_cc_library(
 
     # Generate a second target with "_alwayslink" suffix in its name.
     if alwayslink_static_registration_src != "":
-        native.cc_library(
+        cc_library(
             name = name + "_alwayslink",
             srcs = [alwayslink_static_registration_src],
             # Depend on non-alwayslink target to avoid duplicate symbol linker
@@ -173,7 +175,7 @@ def tfrt_cc_binary(
         features = [],
         **kwargs):
     """A cc_binary with tfrt-specific options."""
-    native.cc_binary(
+    cc_binary(
         copts = TFRT_COPTS + copts,
         includes = TFRT_INCLUDES + includes,
         linkopts = TFRT_LINKOPTS + linkopts,
@@ -193,7 +195,7 @@ def tfrt_cc_test(
         features = [],
         **kwargs):
     """A cc_test with tfrt-specific options."""
-    native.cc_test(
+    cc_test(
         includes = TFRT_INCLUDES + includes,
         copts = TFRT_COPTS + copts,
         linkopts = TFRT_LINKOPTS + linkopts,

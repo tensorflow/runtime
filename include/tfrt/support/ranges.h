@@ -70,8 +70,8 @@ CountedView<IteratorT> Counted(IteratorT it, size_t count) {
 
 // Base class to implement range that is based on indexing into a BaseT.
 // See `llvm::detail::indexed_accessor_range_base` for details.
-template <typename DerivedT, typename BaseT, typename T,
-          typename PointerT = T *, typename ReferenceT = T &>
+template <typename DerivedT, typename BaseT, typename T, typename PointerT = T*,
+          typename ReferenceT = T&>
 using IndexedAccessorRangeBase =
     llvm::detail::indexed_accessor_range_base<DerivedT, BaseT, T, PointerT,
                                               ReferenceT>;

@@ -21,7 +21,7 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/init_tfrt_dialects.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
   mlir::registerInlinerPass();

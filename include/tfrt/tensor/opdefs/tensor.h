@@ -31,10 +31,10 @@ namespace tfrt_tensor {
 class TensorDialect : public Dialect {
  public:
   static StringRef getDialectNamespace() { return "tfrt_tensor"; }
-  explicit TensorDialect(MLIRContext *context);
+  explicit TensorDialect(MLIRContext* context);
 
-  Type parseType(DialectAsmParser &parser) const override;
-  void printType(Type type, DialectAsmPrinter &os) const override;
+  Type parseType(DialectAsmParser& parser) const override;
+  void printType(Type type, DialectAsmPrinter& os) const override;
 };
 
 /// The tensor descriptor type represents a generic tensor that's

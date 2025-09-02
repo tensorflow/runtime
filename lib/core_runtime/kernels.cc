@@ -49,7 +49,7 @@ namespace tfrt {
 // Core Runtime.
 static void HTToTensorHandle(Argument<HostTensor> arg, Argument<Chain> in_chain,
                              Result<TensorHandle> tensorhandle_output,
-                             const ExecutionContext &exec_ctx) {
+                             const ExecutionContext& exec_ctx) {
   // Since we know the Tensor is present, we can access its metadata.
   tensorhandle_output.Emplace(exec_ctx.host()->GetHostDeviceRef(),
                               arg->metadata(), arg.ValueRef());
@@ -63,14 +63,14 @@ static void TensorHandleToHT(Argument<TensorHandle> arg,
 // Get TensorShape of a TensorHandle for use by Core Runtime.
 static void TensorHandleToShape(Argument<TensorHandle> arg,
                                 Result<TensorShape> tensorshape_result,
-                                const ExecutionContext &exec_ctx) {
+                                const ExecutionContext& exec_ctx) {
   if (arg->IsMetadataAvailable()) {
     auto shape = arg->GetAvailableMetadata().shape;
     tensorshape_result.Emplace(std::move(shape));
     return;
   }
   // The metadata is not available yet.
-  const AsyncValueRef<TensorMetadata> &metadata = arg->GetAsyncMetadata();
+  const AsyncValueRef<TensorMetadata>& metadata = arg->GetAsyncMetadata();
 
   auto value = tensorshape_result.AllocateIndirect();
   metadata.AndThen([value_ref = std::move(value),
@@ -88,7 +88,7 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
 
 // Convert a HostTensor (or subclass) into a TensorHandle for use by
 // Core Runtime.
-static Chain PrintTensorHandle(const TensorHandle &arg) {
+static Chain PrintTensorHandle(const TensorHandle& arg) {
   llvm::SmallString<256> message;
   llvm::raw_svector_ostream(message) << arg << "\n";
   printf("%s", message.c_str());
@@ -148,7 +148,7 @@ static Chain OpAttrsSetString(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static llvm::Expected<TensorHandle> ConstStringTensor(
-    ArrayAttr shape, AggregateAttr value, const ExecutionContext &exec_ctx) {
+    ArrayAttr shape, AggregateAttr value, const ExecutionContext& exec_ctx) {
   TensorMetadata metadata(DType(DType::String), shape.GetValue<int64_t>());
 
   auto tensor_ref =
@@ -177,8 +177,8 @@ static llvm::Expected<TensorHandle> ConstStringTensor(
 }
 
 static llvm::Expected<TensorHandle> ConstDenseTensor(
-    DenseAttr value, const ExecutionContext &context) {
-  auto *host = context.host();
+    DenseAttr value, const ExecutionContext& context) {
+  auto* host = context.host();
   auto dht = DeserializeDenseHostTensorFromDenseAttr(value, host);
   if (!dht) return dht.takeError();
 
@@ -195,8 +195,8 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
 template <typename DType>
 static llvm::Expected<TensorHandle> CreateDenseTensor(
     ArrayAttribute<int64_t> shape, ArrayAttribute<DType> value,
-    const ExecutionContext &context) {
-  auto *host = context.host();
+    const ExecutionContext& context) {
+  auto* host = context.host();
 
   TensorMetadata metadata(GetDType<DType>(), shape.data());
   auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(metadata, host);
@@ -210,21 +210,21 @@ static llvm::Expected<TensorHandle> CreateDenseTensor(
 }
 
 static llvm::Expected<CoreRuntimeOp> GetCoreRuntimeOp(
-    string_view op_name, OpHandler *op_handler,
-    const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
-  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+    string_view op_name, OpHandler* op_handler,
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  auto* core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return MakeStringError("no CoreRuntime available");
 
   return core_rt->MakeOp(op_name, op_handler);
 }
 
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
-static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
+static void ExecuteOp(Argument<OpHandler*> op_handler, RemainingArguments args,
                       RemainingResults results, AggregateAttr op_attr_array,
                       AggregateAttr op_func_attr_array, StringAttr op_name,
                       KernelErrorHandler handler,
-                      const ExecutionContext &exec_ctx) {
+                      const ExecutionContext& exec_ctx) {
   auto expected_op =
       GetCoreRuntimeOp(op_name.GetValue(), op_handler.get(), exec_ctx);
   if (!expected_op) return handler.ReportError(StrCat(expected_op.takeError()));
@@ -241,13 +241,13 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
 // an `in_op_chain` and produces an `out_op_chain` for sequencing op execution.
 // The execution is only started when `in_op_chain` is ready, and the
 // `out_op_chain` is ready only after the execution is finished.
-static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
+static void ExecuteOpSeq(Argument<OpHandler*> op_handler,
                          Argument<Chain> in_op_chain, RemainingArguments args,
                          Result<Chain> out_op_chain, RemainingResults results,
                          AggregateAttr op_attr_array,
                          AggregateAttr op_func_attr_array, StringAttr op_name,
                          KernelErrorHandler handler,
-                         const ExecutionContext &exec_ctx) {
+                         const ExecutionContext& exec_ctx) {
   auto expected_op =
       GetCoreRuntimeOp(op_name.GetValue(), op_handler.get(), exec_ctx);
   if (!expected_op) return handler.ReportError(StrCat(expected_op.takeError()));
@@ -268,9 +268,9 @@ static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
                                  AggregateAttr op_attrs,
                                  AggregateAttr op_func_attrs,
                                  KernelErrorHandler handler,
-                                 const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
-  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+                                 const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  auto* core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
 
   for (int b = 0, e = results.size(); b < e; ++b)
@@ -282,45 +282,45 @@ static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
 }
 
 static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
-    Attribute<Function> fn_const, const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
-  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+    Attribute<Function> fn_const, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  auto* core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return MakeStringError("no CoreRuntime available");
 
-  Function *fn = const_cast<Function *>(&(*fn_const));
+  Function* fn = const_cast<Function*>(&(*fn_const));
   return core_rt->MakeCompositeOp(fn);
 }
 
 // GetOpHandler accepts chains because the op_handlers now can be registered
 // dynamically as well.
-static tfrt::Expected<OpHandler *> GetOpHandler(
+static tfrt::Expected<OpHandler*> GetOpHandler(
     Argument<Chain> in_op_chain, StringAttribute op_handler_name,
-    const ExecutionContext &exec_ctx) {
-  auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
+    const ExecutionContext& exec_ctx) {
+  auto* runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
-  if (auto *op_handler = runtime->GetOpHandler(op_handler_name.get())) {
+  if (auto* op_handler = runtime->GetOpHandler(op_handler_name.get())) {
     return op_handler;
   }
   return tfrt::MakeStringError("op_handler not found: ", op_handler_name.get());
 }
 
-static Chain RegisterOpHandler(Argument<OpHandler *> root,
+static Chain RegisterOpHandler(Argument<OpHandler*> root,
                                StringAttribute chain_name,
-                               const ExecutionContext &exec_ctx) {
+                               const ExecutionContext& exec_ctx) {
   assert(root.get());
-  auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
+  auto* runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
   runtime->RegisterOpHandler(chain_name, root.get());
   return Chain();
 }
 
-void CreateLoggingOpHandlerKernel(Argument<OpHandler *> fallback,
-                                  Result<OpHandler *> op_handler,
+void CreateLoggingOpHandlerKernel(Argument<OpHandler*> fallback,
+                                  Result<OpHandler*> op_handler,
                                   Attribute<bool> sync_log_results,
-                                  const ExecutionContext &exec_ctx) {
-  auto *runtime = tfrt::CoreRuntime::GetFromHostContext(exec_ctx.host());
+                                  const ExecutionContext& exec_ctx) {
+  auto* runtime = tfrt::CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
   auto op_handler_ptr =
       CreateLoggingOpHandler(runtime, fallback.get(), sync_log_results.get());
@@ -328,7 +328,7 @@ void CreateLoggingOpHandlerKernel(Argument<OpHandler *> fallback,
   op_handler.Emplace(op_handler_ptr.get());
 }
 
-static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
+static bool GetDHTPredicateValue(const DenseHostTensor& dht) {
   switch (dht.dtype()) {
     default:
       llvm_unreachable("dtype not supported");
@@ -360,7 +360,7 @@ static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
 // inputs are ready. In other words, this is to provide a natural exeuction
 // model that is easy to eg. manage resources.
 static bool ReturnAfterHandlingError(
-    AsyncValue *condition, ArrayRef<AsyncValue *> args,
+    AsyncValue* condition, ArrayRef<AsyncValue*> args,
     MutableArrayRef<RCReference<IndirectAsyncValue>> results) {
   if (!condition->IsError()) return false;
 
@@ -387,18 +387,18 @@ static bool ReturnAfterHandlingError(
 }
 
 static bool ReturnAfterHandlingError(
-    AsyncValue *condition, ArrayRef<RCReference<AsyncValue>> args,
+    AsyncValue* condition, ArrayRef<RCReference<AsyncValue>> args,
     MutableArrayRef<RCReference<IndirectAsyncValue>> results) {
-  llvm::SmallVector<AsyncValue *, 4> arg_avs;
-  for (auto &arg_ref : args) arg_avs.push_back(arg_ref.get());
+  llvm::SmallVector<AsyncValue*, 4> arg_avs;
+  for (auto& arg_ref : args) arg_avs.push_back(arg_ref.get());
   return ReturnAfterHandlingError(condition, arg_avs, results);
 }
 
-static llvm::Expected<bool> GetTensorPredicateValue(const Tensor &tensor) {
+static llvm::Expected<bool> GetTensorPredicateValue(const Tensor& tensor) {
   // TODO(hanbinyoon): Handle other tensor types and other dtypes.
-  if (const DenseHostTensor *dht = llvm::dyn_cast<DenseHostTensor>(&tensor)) {
+  if (const DenseHostTensor* dht = llvm::dyn_cast<DenseHostTensor>(&tensor)) {
     return GetDHTPredicateValue(*dht);
-  } else if (const StringHostTensor *sht =
+  } else if (const StringHostTensor* sht =
                  llvm::dyn_cast<StringHostTensor>(&tensor)) {
     ArrayRef<std::string> strings = sht->strings();
     // Only empty string is false.
@@ -419,11 +419,11 @@ static llvm::Expected<bool> GetTensorPredicateValue(const Tensor &tensor) {
 static void CoreRtConditional(RemainingArguments args, RemainingResults results,
                               Attribute<Function> true_fn_const,
                               Attribute<Function> false_fn_const,
-                              const ExecutionContext &exec_ctx) {
+                              const ExecutionContext& exec_ctx) {
   assert(args.size() > 0);
 
-  const Function *true_fn = &(*true_fn_const);
-  const Function *false_fn = &(*false_fn_const);
+  const Function* true_fn = &(*true_fn_const);
+  const Function* false_fn = &(*false_fn_const);
 
   assert(true_fn->argument_types().size() == args.size() - 1 &&
          "argument count mismatch");
@@ -454,21 +454,21 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
   }
 
   auto if_impl =
-      [](const HostTensor &ht, const Function *true_fn,
-         const Function *false_fn, ArrayRef<AsyncValue *> arg_refs,
+      [](const HostTensor& ht, const Function* true_fn,
+         const Function* false_fn, ArrayRef<AsyncValue*> arg_refs,
          MutableArrayRef<RCReference<IndirectAsyncValue>> result_refs,
-         const ExecutionContext &exec_ctx) {
+         const ExecutionContext& exec_ctx) {
         llvm::Expected<bool> predicate = GetTensorPredicateValue(ht);
         if (!predicate) {
           RCReference<ErrorAsyncValue> error_value =
               EmitErrorAsync(exec_ctx, StrCat(predicate.takeError()));
-          for (auto &result : result_refs) {
+          for (auto& result : result_refs) {
             result->SetError(error_value->GetError());
           }
           return;
         }
 
-        const Function *fn = predicate.get() ? true_fn : false_fn;
+        const Function* fn = predicate.get() ? true_fn : false_fn;
         llvm::SmallVector<RCReference<AsyncValue>, 8> results;
         results.resize(result_refs.size());
         fn->Execute(exec_ctx, arg_refs.drop_front(), results);
@@ -481,7 +481,7 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
       };
 
   // Arg[0] is a TensorHandle async value condition predicate.
-  AsyncValue *condition_tensorhandle_ptr = args[0];
+  AsyncValue* condition_tensorhandle_ptr = args[0];
   // Dispatch when the condition becomes available.
   condition_tensorhandle_ptr->AndThen([condition_tensorhandle_ptr =
                                            condition_tensorhandle_ptr,
@@ -495,9 +495,9 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
                                  result_refs))
       return;
 
-    auto &condition_tensorhandle =
+    auto& condition_tensorhandle =
         condition_tensorhandle_ptr->get<TensorHandle>();
-    AsyncValue *condition_async_tensor =
+    AsyncValue* condition_async_tensor =
         condition_tensorhandle.GetAsyncTensor();
 
     // In graph mode, we maintain the invariant that if any fields of the
@@ -508,8 +508,8 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
     assert(condition_tensorhandle.IsDeviceAvailable());
     assert(!condition_tensorhandle.IsDeviceError());
 
-    auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
-    auto &tensor = condition_async_tensor->get<Tensor>();
+    auto& src_device_ref = condition_tensorhandle.GetAvailableDevice();
+    auto& tensor = condition_async_tensor->get<Tensor>();
 
     // NOTE(fishx): Right now, we will try to implicitly transfer the
     // condition tensor to cpu and read its value. However, in the
@@ -543,20 +543,20 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 // argument. We need to use either CopyRef() or std::move for RCReference
 // argument.
 static Expected<TensorHandle> TransferToDevice(
-    const TensorHandle &src, const RCReference<Device> &device,
-    const TensorType &dst_tensor_type_name, const ExecutionContext &exec_ctx) {
+    const TensorHandle& src, const RCReference<Device>& device,
+    const TensorType& dst_tensor_type_name, const ExecutionContext& exec_ctx) {
   return src.TransferTo(exec_ctx, device, dst_tensor_type_name);
 }
 
 static Expected<TensorHandle> TransferToDeviceInferredType(
-    const TensorHandle &src, const RCReference<Device> &device,
-    const ExecutionContext &exec_ctx) {
+    const TensorHandle& src, const RCReference<Device>& device,
+    const ExecutionContext& exec_ctx) {
   return src.TransferToInferredType(exec_ctx, device);
 }
 
 // Forward declaration for use in CoreRtWhileLoopIterationImpl.
 static void CoreRtWhileLoopIteration(
-    const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
+    const ExecutionContext& exec_ctx, RCReference<const Function> cond_fn_ref,
     RCReference<const Function> body_fn_ref,
     llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs,
     llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs);
@@ -564,7 +564,7 @@ static void CoreRtWhileLoopIteration(
 // This is a helper function that runs a single iteration (or zero iterations if
 // the condition is not met) of CoreRtWhileLoop.
 static void CoreRtWhileLoopIterationImpl(
-    const ExecutionContext &exec_ctx, const Tensor &condition,
+    const ExecutionContext& exec_ctx, const Tensor& condition,
     RCReference<const Function> cond_fn_ref,
     RCReference<const Function> body_fn_ref,
     llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs,
@@ -589,8 +589,8 @@ static void CoreRtWhileLoopIterationImpl(
   }
 
   // Execute the loop body function.
-  llvm::SmallVector<AsyncValue *, 4> args;
-  for (RCReference<AsyncValue> &arg : arg_refs) args.push_back(arg.get());
+  llvm::SmallVector<AsyncValue*, 4> args;
+  for (RCReference<AsyncValue>& arg : arg_refs) args.push_back(arg.get());
   llvm::SmallVector<RCReference<AsyncValue>, 4> passed_args;
   passed_args.resize(result_refs.size());
   body_fn_ref->Execute(exec_ctx, args, passed_args);
@@ -608,15 +608,15 @@ static void CoreRtWhileLoopIterationImpl(
 // This is a helper function that executes the loop condition function and kicks
 // off a potential iteration of CoreRtWhileLoop.
 static void CoreRtWhileLoopIteration(
-    const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
+    const ExecutionContext& exec_ctx, RCReference<const Function> cond_fn_ref,
     RCReference<const Function> body_fn_ref,
     llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs,
     llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
   // TODO(hanbinyoon): Look for ways to avoid allocating this args SmallVector
   // on each iteration of the loop. For example, consider the reuse of
   // passed_args in TFRTRepeatI32Block().
-  llvm::SmallVector<AsyncValue *, 4> args;
-  for (RCReference<AsyncValue> &arg : arg_refs) args.push_back(arg.get());
+  llvm::SmallVector<AsyncValue*, 4> args;
+  for (RCReference<AsyncValue>& arg : arg_refs) args.push_back(arg.get());
   llvm::SmallVector<RCReference<AsyncValue>, 2> condition;
   condition.resize(2);
   cond_fn_ref->Execute(exec_ctx, args, condition);
@@ -642,9 +642,9 @@ static void CoreRtWhileLoopIteration(
     assert(condition_tensorhandle_ref->IsType<TensorHandle>() &&
            "Cond function did not return a TensorHandle");
 
-    auto &condition_tensorhandle =
+    auto& condition_tensorhandle =
         condition_tensorhandle_ref->get<TensorHandle>();
-    AsyncValue *condition_async_tensor =
+    AsyncValue* condition_async_tensor =
         condition_tensorhandle.GetAsyncTensor();
 
     // In graph mode, we maintain the invariant that if any fields of the
@@ -655,9 +655,9 @@ static void CoreRtWhileLoopIteration(
     assert(condition_tensorhandle.IsDeviceAvailable());
     assert(!condition_tensorhandle.IsDeviceError());
 
-    auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
+    auto& src_device_ref = condition_tensorhandle.GetAvailableDevice();
 
-    auto &tensor = condition_async_tensor->get<Tensor>();
+    auto& tensor = condition_async_tensor->get<Tensor>();
 
     // NOTE(fishx): Right now, we will try to implicit transfer the
     // condition tensor to cpu and read its value. However, in the
@@ -697,11 +697,11 @@ static void CoreRtWhileLoopIteration(
 static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
                             Attribute<Function> cond_fn_const,
                             Attribute<Function> body_fn_const,
-                            const ExecutionContext &exec_ctx) {
+                            const ExecutionContext& exec_ctx) {
   assert(args.size() > 0);
 
-  const Function *cond_fn = &(*cond_fn_const);
-  const Function *body_fn = &(*body_fn_const);
+  const Function* cond_fn = &(*cond_fn_const);
+  const Function* body_fn = &(*body_fn_const);
 
   assert(body_fn->argument_types() == body_fn->result_types() &&
          "Argument and result types of repeat body_fn must match");
@@ -717,7 +717,7 @@ static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
   // CoreRtWhileLoopIteration) so the kernel's arguments will be available when
   // the closure runs.
   llvm::SmallVector<RCReference<AsyncValue>, 4> arg_refs;
-  for (AsyncValue *arg : args.values()) {
+  for (AsyncValue* arg : args.values()) {
     arg_refs.push_back(FormRef(arg));
   }
 
@@ -743,24 +743,24 @@ static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
 }
 
 static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
-    const TensorHandle &tensor_handle, const RCReference<Device> &dst_device,
-    const ExecutionContext &exec_ctx) {
+    const TensorHandle& tensor_handle, const RCReference<Device>& dst_device,
+    const ExecutionContext& exec_ctx) {
   static TensorType dense_cpu_type = TensorTraits<DenseHostTensor>::kTensorType;
   static TensorType dense_gpu_type = GetStaticTensorType("DenseGpu");
   static TensorType dense_tpu_type = GetStaticTensorType("DenseTpu");
-  static const DeviceType &cpu_device = GetStaticDeviceType("cpu");
-  static const DeviceType &gpu_device = GetStaticDeviceType("gpu");
-  static const DeviceType &tpu_device = GetStaticDeviceType("tpu");
+  static const DeviceType& cpu_device = GetStaticDeviceType("cpu");
+  static const DeviceType& gpu_device = GetStaticDeviceType("gpu");
+  static const DeviceType& tpu_device = GetStaticDeviceType("tpu");
 
   auto result = MakeUnconstructedAsyncValueRef<TensorType>();
   auto tensor = AsyncValueRef<Tensor>(FormRef(tensor_handle.GetAsyncTensor()));
 
-  AsyncValue *tensor_ptr = tensor.GetAsyncValue();
+  AsyncValue* tensor_ptr = tensor.GetAsyncValue();
   tensor_ptr->AndThen([result = result.CopyRef(), tensor = std::move(tensor),
                        dst_device = dst_device, exec_ctx]() {
     TensorType dst_tensor_type = TensorType::kUnknownTensorType;
     TensorType src_tensor_type = tensor->tensor_type();
-    const DeviceType &dst_device_type = dst_device->type();
+    const DeviceType& dst_device_type = dst_device->type();
     if (IsUnsupported(tensor->dtype())) {
       // Note: we will use fallback tensor type for tensor with unsupported
       // data type.
@@ -791,8 +791,8 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
 // TensorHandle is a dense tensor with a single value). This kernel is
 // specifically a helper for obtaining the index value of `tf.Case` op.
 static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
-    const TensorHandle &src, const ExecutionContext &exec_ctx) {
-  auto get_index = [exec_ctx](AsyncValue *src_av, const Device &device,
+    const TensorHandle& src, const ExecutionContext& exec_ctx) {
+  auto get_index = [exec_ctx](AsyncValue* src_av, const Device& device,
                               AsyncValueRef<int32_t> result) {
     if (src_av->IsError()) {
       result.SetError(src_av->GetError());
@@ -810,7 +810,7 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
                                           converted_tensor_avref.CopyRef(),
                                       result = result.CopyRef()] {
         // Check the validity of the index.
-        AsyncValue *converted_tensor_av =
+        AsyncValue* converted_tensor_av =
             converted_tensor_avref.GetAsyncValue();
         if (!converted_tensor_av->IsType<DenseHostTensor>() &&
             converted_tensor_av->get<DenseHostTensor>().dtype() !=
@@ -826,16 +826,16 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
               "The tensor should have only one element, which is the index."));
         }
 
-        auto *index_ptr = converted_tensor_av->get<DenseHostTensor>().data();
-        int index = *reinterpret_cast<int32_t *>(index_ptr);
+        auto* index_ptr = converted_tensor_av->get<DenseHostTensor>().data();
+        int index = *reinterpret_cast<int32_t*>(index_ptr);
         result.emplace(index);
       });
     }
   };
 
   assert(src.IsDeviceAvailable() && "TensorHandle device should be available.");
-  AsyncValue *src_av = src.GetAsyncTensor();
-  const RCReference<Device> &device = src.GetAvailableDevice();
+  AsyncValue* src_av = src.GetAsyncTensor();
+  const RCReference<Device>& device = src.GetAvailableDevice();
 
   if (src_av->IsAvailable()) {
     auto result = MakeUnconstructedAsyncValueRef<int32_t>();
@@ -858,7 +858,7 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
 // Registration
 //===----------------------------------------------------------------------===//
 
-void RegisterCreateDenseTensor(KernelRegistry *registry) {
+void RegisterCreateDenseTensor(KernelRegistry* registry) {
 #define REGISTER_CREATE_DENSE_TENSOR(CPP_TYPE, TYPE_NAME)            \
   registry->AddKernel("corert.create_dense_tensor." #TYPE_NAME,      \
                       TFRT_KERNEL(CreateDenseTensor<CPP_TYPE>));     \
@@ -880,7 +880,7 @@ void RegisterCreateDenseTensor(KernelRegistry *registry) {
 #undef REGISTER_CREATE_DENSE_TENSOR
 }
 
-void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
+void RegisterCoreRuntimeKernels(KernelRegistry* registry) {
   registry->AddKernel("corert.tensorhandle_to_shape",
                       TFRT_KERNEL(TensorHandleToShape));
   registry->AddKernel("corert.ht_to_tensorhandle",

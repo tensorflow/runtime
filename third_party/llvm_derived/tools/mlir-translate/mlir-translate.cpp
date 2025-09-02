@@ -48,11 +48,11 @@ static llvm::cl::opt<bool> verifyDiagnostics(
                    "expected-* lines on the corresponding line"),
     llvm::cl::init(false));
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   llvm::InitLLVM y(argc, argv);
 
   // Add flags for all the registered translations.
-  llvm::cl::opt<const Translation *, false, TranslationParser>
+  llvm::cl::opt<const Translation*, false, TranslationParser>
       translationRequested("", llvm::cl::desc("Translation to perform"),
                            llvm::cl::Required);
   registerAsmPrinterCLOptions();
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 
   // Processes the memory buffer with a new MLIRContext.
   auto processBuffer = [&](std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
-                           raw_ostream &os) {
+                           raw_ostream& os) {
     MLIRContext context;
     context.allowUnregisteredDialects();
     context.printOpOnDiagnostic(!verifyDiagnostics);

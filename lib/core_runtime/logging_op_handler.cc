@@ -56,10 +56,10 @@ namespace tfrt {
 
 namespace {
 
-void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
-                                   llvm::raw_ostream &os) {
+void FlattenTensorAndDumpToOStream(const DenseHostTensor& dht,
+                                   llvm::raw_ostream& os) {
   auto element_size = GetHostSize(dht.dtype());
-  auto *data_ptr = static_cast<const char *>(dht.data());
+  auto* data_ptr = static_cast<const char*>(dht.data());
 
   // TODO(tfrt-devs): Dump to BTF format once we have BTF reader/writer
   // implemented in C++.
@@ -72,8 +72,8 @@ void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
   }
 }
 
-void FlattenTensorAndDumpToOStream(const StringHostTensor &sht,
-                                   llvm::raw_ostream &os) {
+void FlattenTensorAndDumpToOStream(const StringHostTensor& sht,
+                                   llvm::raw_ostream& os) {
   auto strings = sht.strings();
   for (Index i = 0, e = sht.NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
@@ -84,7 +84,7 @@ void FlattenTensorAndDumpToOStream(const StringHostTensor &sht,
 class LoggingOpHandler : public OpHandler {
  public:
   static llvm::Expected<std::unique_ptr<LoggingOpHandler>> Create(
-      CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results) {
+      CoreRuntime* runtime, OpHandler* fallback, bool sync_log_results) {
     std::unique_ptr<llvm::raw_fd_ostream> metadata_ostream;
     if (auto metadata_dump_prefix =
             std::getenv("LOGGING_DEV_METADATA_DUMP_PREFIX")) {
@@ -117,7 +117,7 @@ class LoggingOpHandler : public OpHandler {
   }
 
   explicit LoggingOpHandler(
-      CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results,
+      CoreRuntime* runtime, OpHandler* fallback, bool sync_log_results,
       std::string tensor_dump_prefix,
       std::unique_ptr<llvm::raw_fd_ostream> metadata_ostream)
       : OpHandler((sync_log_results ? "sync_logging" : "logging"), runtime,
@@ -133,12 +133,12 @@ class LoggingOpHandler : public OpHandler {
 
   // TODO(tfrt-devs): Handle error TensorHandle.
   llvm::SmallVector<RCReference<AsyncValue>, 4> CollectAsyncHostTensors(
-      const ExecutionContext &exec_ctx, ArrayRef<TensorHandle> tensor_handles) {
-    auto *host = exec_ctx.host();
+      const ExecutionContext& exec_ctx, ArrayRef<TensorHandle> tensor_handles) {
+    auto* host = exec_ctx.host();
 
     // Wait for all metadatas.
     std::vector<RCReference<AsyncValue>> tensor_metadatas;
-    for (auto &th : tensor_handles) {
+    for (auto& th : tensor_handles) {
       if (!th.IsMetadataAvailable()) {
         tensor_metadatas.push_back(th.GetAsyncMetadata().CopyRCRef());
       }
@@ -148,7 +148,7 @@ class LoggingOpHandler : public OpHandler {
 
     // Convert all tensors to HostTensor.
     llvm::SmallVector<RCReference<AsyncValue>, 4> async_hts;
-    for (auto &th : tensor_handles) {
+    for (auto& th : tensor_handles) {
       auto host_tensor_handle =
           th.TransferTo(exec_ctx, host->GetHostDeviceRef(),
                         th.GetAvailableMetadata().dtype == DType::String
@@ -174,10 +174,10 @@ class LoggingOpHandler : public OpHandler {
        << op_name << "':\n";
 
     int index = 0;
-    for (auto &async_host_tensor : async_host_tensors) {
+    for (auto& async_host_tensor : async_host_tensors) {
       os << (is_input ? "  Input" : "  Output") << " for [" << id_number
          << "] tensor " << index << ": ";
-      auto &tensor = async_host_tensor->get<HostTensor>();
+      auto& tensor = async_host_tensor->get<HostTensor>();
       tensor.Print(os);
       if (ShouldDumpTensorToFile()) {
         PrintTensorToFile(tensor, id_number, op_name,
@@ -196,7 +196,7 @@ class LoggingOpHandler : public OpHandler {
     *metadata_ostream_ << contents;
   }
 
-  void PrintTensorToFile(const HostTensor &tensor, int log_counter,
+  void PrintTensorToFile(const HostTensor& tensor, int log_counter,
                          string_view op_name, string_view input_or_output,
                          int input_or_output_index) {
     std::string tensor_dump_filename =
@@ -212,9 +212,9 @@ class LoggingOpHandler : public OpHandler {
       abort();
     }
 
-    if (auto *dht = llvm::dyn_cast<DenseHostTensor>(&tensor)) {
+    if (auto* dht = llvm::dyn_cast<DenseHostTensor>(&tensor)) {
       FlattenTensorAndDumpToOStream(*dht, fostream);
-    } else if (auto *sht = llvm::dyn_cast<StringHostTensor>(&tensor)) {
+    } else if (auto* sht = llvm::dyn_cast<StringHostTensor>(&tensor)) {
       FlattenTensorAndDumpToOStream(*sht, fostream);
     } else {
       fprintf(stderr,
@@ -239,14 +239,12 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
   return CoreRuntimeOp(
       [this, op_name = op_name.str(),
        fallback_handle =
-           std::move(fallback_handle.get())](const OpInvocation &invocation) {
+           std::move(fallback_handle.get())](const OpInvocation& invocation) {
         // TODO(tfrt-devs): Make this class thread safe.
         auto id_number = log_counter_.fetch_add(1);
 
         // Used to make logging messages more grammatical.
-        auto plural = [](size_t n) -> const char * {
-          return n == 1 ? "" : "s";
-        };
+        auto plural = [](size_t n) -> const char* { return n == 1 ? "" : "s"; };
 
         // Print everything into a std::string, and then print it with printf.
         // This ensures that the messages are emitted atomically (even if
@@ -295,8 +293,8 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
       /*is_fallback=*/false);
 }
 
-llvm::Expected<tfrt::OpHandler *> CreateLoggingOpHandler(
-    tfrt::CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results) {
+llvm::Expected<tfrt::OpHandler*> CreateLoggingOpHandler(
+    tfrt::CoreRuntime* runtime, OpHandler* fallback, bool sync_log_results) {
   auto op_handler =
       LoggingOpHandler::Create(runtime, fallback, sync_log_results);
   if (auto error = op_handler.takeError()) {

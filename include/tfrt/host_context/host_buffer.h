@@ -41,13 +41,13 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   // when the returned buffer is destroyed.
   static RCReference<HostBuffer> CreateUninitialized(size_t size,
                                                      size_t alignment,
-                                                     HostAllocator *allocator);
+                                                     HostAllocator* allocator);
 
-  using Deallocator = llvm::unique_function<void(void *ptr, size_t size)>;
+  using Deallocator = llvm::unique_function<void(void* ptr, size_t size)>;
   // Create a HostBuffer by taking ownership of an externally allocated buffer.
   // `deallocator` is called with `ptr` and `size` as arguments when we destroy
   // this buffer.
-  static RCReference<HostBuffer> CreateFromExternal(void *ptr, size_t size,
+  static RCReference<HostBuffer> CreateFromExternal(void* ptr, size_t size,
                                                     Deallocator deallocator);
 
   // Create a HostBuffer by creating a reference to an externally allocated
@@ -60,11 +60,11 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
 
   // Returns the address of the data. If the buffer is empty, the behavior is
   // undefined to dereference the returned address.
-  void *data() { return data_; }
+  void* data() { return data_; }
 
   // Returns the address of the data. If the buffer is empty, the behavior is
   // undefined to dereference the returned address.
-  const void *data() const { return data_; }
+  const void* data() const { return data_; }
 
   size_t size() const { return size_; }
 
@@ -74,13 +74,13 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
            "Invalid size for HostBuffer::CastAs<T>");
     assert(IsAlignedPtr<T>(data()) &&
            "HostBuffer is not aligned for the target type");
-    return {static_cast<const T *>(data()), size() / sizeof(T)};
+    return {static_cast<const T*>(data()), size() / sizeof(T)};
   }
 
   template <typename T>
   MutableArrayRef<T> CastAs() {
-    auto array_ref = static_cast<const HostBuffer *>(this)->CastAs<T>();
-    return {const_cast<T *>(array_ref.data()), array_ref.size()};
+    auto array_ref = static_cast<const HostBuffer*>(this)->CastAs<T>();
+    return {const_cast<T*>(array_ref.data()), array_ref.size()};
   }
 
   // Returns `true` iff `*this` is an exclusive owner of the underlying data.
@@ -108,18 +108,18 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   // For access to Destroy().
   friend class ReferenceCounted<HostBuffer>;
 
-  HostBuffer(size_t size, size_t allocated_size, HostAllocator *allocator)
+  HostBuffer(size_t size, size_t allocated_size, HostAllocator* allocator)
       : size_(size),
         mode_{Mode::kInlined},
         inlined_{allocator, allocated_size} {}
 
-  HostBuffer(void *ptr, size_t size, Deallocator deallocator)
+  HostBuffer(void* ptr, size_t size, Deallocator deallocator)
       : data_(ptr),
         size_(size),
         mode_{Mode::kOutOfLine},
         out_of_line_deallocator_{std::move(deallocator)} {}
 
-  HostBuffer(void *ptr, size_t size, RCReference<HostBuffer> parent_buffer)
+  HostBuffer(void* ptr, size_t size, RCReference<HostBuffer> parent_buffer)
       : data_(ptr),
         size_(size),
         mode_{Mode::kSliced},
@@ -129,7 +129,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
 
   void Destroy();
 
-  void *data_;
+  void* data_;
   size_t size_ : 62;
 
   enum class Mode : uint8_t {
@@ -146,7 +146,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   // TODO(zhangqiaorjc): Use variant instead of union.
   union {
     struct {
-      HostAllocator *allocator;
+      HostAllocator* allocator;
       size_t allocated_size;
     } inlined_;
 
@@ -160,7 +160,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   alignas(alignof(std::max_align_t)) char unaligned_data_[];
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const HostBuffer &buffer);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const HostBuffer& buffer);
 
 }  // namespace tfrt
 

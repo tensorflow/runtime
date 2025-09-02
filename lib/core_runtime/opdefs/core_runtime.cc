@@ -44,8 +44,8 @@ namespace {
 struct CoreRTInlinerInterface : public mlir::DialectInlinerInterface {
   using DialectInlinerInterface::DialectInlinerInterface;
 
-  bool isLegalToInline(Operation *op, Region *dest, bool would_be_cloned,
-                       IRMapping &) const final {
+  bool isLegalToInline(Operation* op, Region* dest, bool would_be_cloned,
+                       IRMapping&) const final {
     // All CoreRT dialect ops can be inlined.
     return true;
   }
@@ -57,7 +57,7 @@ struct CoreRTInlinerInterface : public mlir::DialectInlinerInterface {
 // CoreRTDialect Dialect
 //===----------------------------------------------------------------------===//
 
-CoreRTDialect::CoreRTDialect(MLIRContext *context)
+CoreRTDialect::CoreRTDialect(MLIRContext* context)
     : Dialect(/*name=*/"corert", context, TypeID::get<CoreRTDialect>()) {
   context->getOrLoadDialect<compiler::TFRTDialect>();
 
@@ -80,7 +80,7 @@ CoreRTDialect::CoreRTDialect(MLIRContext *context)
 
 namespace {
 
-ShapeAttr ParseShapeAttr(MLIRContext *context, llvm::StringRef spec,
+ShapeAttr ParseShapeAttr(MLIRContext* context, llvm::StringRef spec,
                          Location loc) {
   auto emit_error = [&, spec]() {
     mlir::emitError(loc, "unknown corert shape attribute: ") << spec;
@@ -107,7 +107,7 @@ ShapeAttr ParseShapeAttr(MLIRContext *context, llvm::StringRef spec,
   return ShapeAttr::get(context, shape);
 }
 
-void PrintShapeAttr(ShapeAttr attr, mlir::DialectAsmPrinter &os) {  // NOLINT
+void PrintShapeAttr(ShapeAttr attr, mlir::DialectAsmPrinter& os) {  // NOLINT
   os << "shape";
 
   os << "<";
@@ -127,7 +127,7 @@ void PrintShapeAttr(ShapeAttr attr, mlir::DialectAsmPrinter &os) {  // NOLINT
 
 }  // namespace
 
-mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
+mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser& parser) const {
   StringRef data;
   if (parser.parseKeyword(&data)) return Type();
 
@@ -149,7 +149,7 @@ mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 }
 
 void CoreRTDialect::printType(mlir::Type type,
-                              mlir::DialectAsmPrinter &os) const {
+                              mlir::DialectAsmPrinter& os) const {
   if (mlir::isa<StringType>(type)) {
     os << "string";
     return;
@@ -203,7 +203,7 @@ void CoreRTDialect::printType(mlir::Type type,
   llvm_unreachable("unexpected corert type kind");
 }
 
-mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser &parser,
+mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser& parser,
                                               mlir::Type type) const {
   auto spec = parser.getFullSymbolSpec();
   auto loc = parser.getEncodedSourceLoc(parser.getNameLoc());
@@ -214,14 +214,14 @@ mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser &parser,
 }
 
 void CoreRTDialect::printAttribute(mlir::Attribute attr,
-                                   mlir::DialectAsmPrinter &os) const {
+                                   mlir::DialectAsmPrinter& os) const {
   if (auto shape_attr = mlir::dyn_cast<ShapeAttr>(attr))
     PrintShapeAttr(mlir::cast<ShapeAttr>(attr), os);
   else
     llvm_unreachable("unexpected corert attribute kind");
 }
 
-Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,
+Operation* CoreRTDialect::materializeConstant(OpBuilder& builder,
                                               Attribute value, Type type,
                                               Location loc) {
   if (auto dense_attr = mlir::dyn_cast<DenseElementsAttr>(value))
@@ -230,20 +230,20 @@ Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,
   return nullptr;
 }
 
-void ExecuteOp::build(OpBuilder &builder, OperationState &state,
+void ExecuteOp::build(OpBuilder& builder, OperationState& state,
                       TypeRange results, Value op_handler, ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
                       ArrayRef<std::pair<StringRef, Attribute>> op_func_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;
-  for (const auto &named_attr : op_attrs) {
+  for (const auto& named_attr : op_attrs) {
     auto name = builder.getStringAttr(named_attr.first);
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
     attrs.push_back(ArrayAttr::get(builder.getContext(), key_value));
   }
 
   SmallVector<Attribute, 4> func_attrs;
-  for (const auto &named_attr : op_func_attrs) {
+  for (const auto& named_attr : op_func_attrs) {
     auto name = builder.getStringAttr(named_attr.first);
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
     func_attrs.push_back(ArrayAttr::get(builder.getContext(), key_value));
@@ -264,15 +264,15 @@ LogicalResult ExecuteOpSeq::verify() {
   return VerifyExecuteOpImpl(op);
 }
 
-ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult ExecuteOp::parse(OpAsmParser& parser, OperationState& result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
                             /*has_func_attr=*/true);
 }
-ParseResult ExecuteOpSeq::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult ExecuteOpSeq::parse(OpAsmParser& parser, OperationState& result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/1,
                             /*has_func_attr=*/true);
 }
-void ExecuteOp::print(OpAsmPrinter &p) {
+void ExecuteOp::print(OpAsmPrinter& p) {
   p << "(" << getOpHandler() << ") " << (*this)->getAttr("op_name") << '('
     << getArguments() << ')';
 
@@ -280,7 +280,7 @@ void ExecuteOp::print(OpAsmPrinter &p) {
   PrintExecuteOpFuncAttribute(p, *this);
   if (!getResults().empty()) p << " : " << getResults().size();
 }
-void ExecuteOpSeq::print(OpAsmPrinter &p) {
+void ExecuteOpSeq::print(OpAsmPrinter& p) {
   p << "(" << getOpHandler() << ", " << getInOpChain() << ") "
     << (*this)->getAttr("op_name") << '(' << getArguments() << ')';
 
@@ -290,7 +290,7 @@ void ExecuteOpSeq::print(OpAsmPrinter &p) {
 }
 
 void ExecuteOp::getOpAttrs(
-    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
+    llvm::SmallVectorImpl<std::pair<StringRef, Attribute>>* op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
   ArrayRef<Attribute> op_attr_array = this->getOpAttrs().getValue();
@@ -305,7 +305,7 @@ void ExecuteOp::getOpAttrs(
 }
 
 void ExecuteOp::getOpFuncAttrs(
-    SmallVectorImpl<std::pair<StringRef, Attribute>> *op_func_attrs) {
+    SmallVectorImpl<std::pair<StringRef, Attribute>>* op_func_attrs) {
   assert(op_func_attrs);
   op_func_attrs->clear();
   ArrayRef<Attribute> op_func_attr_array = this->getOpFuncAttrs().getValue();
@@ -320,7 +320,7 @@ void ExecuteOp::getOpFuncAttrs(
 }
 
 LogicalResult ExecuteOp::fold(FoldAdaptor,
-                              SmallVectorImpl<OpFoldResult> &results) {
+                              SmallVectorImpl<OpFoldResult>& results) {
   if (getOpName() == "tf.Const") {
     auto op_attr_array = getOpAttrs().getValue();
     assert(!op_attr_array.empty());
@@ -350,7 +350,7 @@ OpFoldResult ConstDenseTensorOp::fold(FoldAdaptor adaptor) {
 // CoreRt_CondOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult VerifyFunctionAttribute(Operation *op, StringRef name,
+static LogicalResult VerifyFunctionAttribute(Operation* op, StringRef name,
                                              TypeRange inputTypes,
                                              TypeRange resultTypes) {
   auto attribute = op->getAttrOfType<FlatSymbolRefAttr>(name);

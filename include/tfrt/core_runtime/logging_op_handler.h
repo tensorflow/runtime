@@ -26,8 +26,8 @@ namespace tfrt {
 class OpHandler;
 class CoreRuntime;
 
-llvm::Expected<tfrt::OpHandler *> CreateLoggingOpHandler(
-    tfrt::CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results);
+llvm::Expected<tfrt::OpHandler*> CreateLoggingOpHandler(
+    tfrt::CoreRuntime* runtime, OpHandler* fallback, bool sync_log_results);
 
 }  // namespace tfrt
 

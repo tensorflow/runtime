@@ -31,7 +31,7 @@ namespace dht {
 // DenseHostTensor Dialect
 //===----------------------------------------------------------------------===//
 
-DenseHostTensorSyncDialect::DenseHostTensorSyncDialect(MLIRContext *context)
+DenseHostTensorSyncDialect::DenseHostTensorSyncDialect(MLIRContext* context)
     : Dialect(/*name=*/"tfrt_dht_sync", context,
               TypeID::get<DenseHostTensorSyncDialect>()) {
   context->getOrLoadDialect<tfrt::tfrt_tensor::TensorDialect>();

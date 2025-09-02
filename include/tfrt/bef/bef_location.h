@@ -39,10 +39,10 @@ enum class BefLocationType : uint8_t {
 // A base class for BEF locations.
 class BefLocation {
  public:
-  explicit BefLocation(const void *base)
-      : base_(static_cast<const uint8_t *>(base)) {}
+  explicit BefLocation(const void* base)
+      : base_(static_cast<const uint8_t*>(base)) {}
 
-  const uint8_t *base() const { return base_; }
+  const uint8_t* base() const { return base_; }
   BefLocationType type() const { return static_cast<BefLocationType>(*base_); }
   size_t length() const { return length_; }
 
@@ -66,15 +66,15 @@ class BefLocation {
   string_view OffsetToString(ArrayRef<uint8_t> location_strings_section,
                              size_t offset) const;
 
-  static const uint8_t *NextLocation(const uint8_t *ptr);
+  static const uint8_t* NextLocation(const uint8_t* ptr);
 
-  const uint8_t *base_ = nullptr;
+  const uint8_t* base_ = nullptr;
   size_t length_ = 0;
 };
 
 class BefUnknownLocation : public BefLocation {
  public:
-  explicit BefUnknownLocation(const void *base);
+  explicit BefUnknownLocation(const void* base);
   static bool classof(BefLocation base) {
     return base.type() == BefLocationType::kUnknown;
   }
@@ -82,7 +82,7 @@ class BefUnknownLocation : public BefLocation {
 
 class BefFileLineColLocation : public BefLocation {
  public:
-  explicit BefFileLineColLocation(const void *base);
+  explicit BefFileLineColLocation(const void* base);
 
   string_view filename(ArrayRef<uint8_t> location_strings_section) const {
     return OffsetToString(location_strings_section, filename_offset_);
@@ -102,7 +102,7 @@ class BefFileLineColLocation : public BefLocation {
 
 class BefNameLocation : public BefLocation {
  public:
-  explicit BefNameLocation(const void *base);
+  explicit BefNameLocation(const void* base);
 
   string_view name(ArrayRef<uint8_t> location_strings_section) const {
     return OffsetToString(location_strings_section, name_offset_);
@@ -116,12 +116,12 @@ class BefNameLocation : public BefLocation {
 
  private:
   size_t name_offset_ = 0;
-  const uint8_t *child_ = nullptr;
+  const uint8_t* child_ = nullptr;
 };
 
 class BefCallSiteLocation : public BefLocation {
  public:
-  explicit BefCallSiteLocation(const void *base);
+  explicit BefCallSiteLocation(const void* base);
 
   BefLocation callee() const { return BefLocation(callee_); }
 
@@ -132,13 +132,13 @@ class BefCallSiteLocation : public BefLocation {
   }
 
  private:
-  const uint8_t *callee_ = nullptr;
-  const uint8_t *caller_ = nullptr;
+  const uint8_t* callee_ = nullptr;
+  const uint8_t* caller_ = nullptr;
 };
 
 class BefFusedLocation : public BefLocation {
  public:
-  explicit BefFusedLocation(const void *base);
+  explicit BefFusedLocation(const void* base);
 
   size_t size() const { return size_; }
 
@@ -153,16 +153,16 @@ class BefFusedLocation : public BefLocation {
 
  private:
   size_t size_;
-  llvm::SmallVector<const uint8_t *, 4> bases_;
+  llvm::SmallVector<const uint8_t*, 4> bases_;
 };
 
 // Decode a BefLocation to DecodedLocation.
 DecodedLocation DecodeBefLocation(ArrayRef<uint8_t> location_strings_section,
-                                  const BefLocation &loc);
+                                  const BefLocation& loc);
 
 // Get a DebugInfo string from a BefLocation.
 std::optional<DebugInfo> GetDebugInfoFromBefLocation(
-    ArrayRef<uint8_t> location_strings_section, const BefLocation &loc);
+    ArrayRef<uint8_t> location_strings_section, const BefLocation& loc);
 }  // namespace tfrt
 
 #endif  // TFRT_BEF_BEF_LOCATION_H_

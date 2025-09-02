@@ -30,7 +30,7 @@ namespace ht {
 // HostTensor Dialect
 //===----------------------------------------------------------------------===//
 
-HostTensorDialect::HostTensorDialect(MLIRContext *context)
+HostTensorDialect::HostTensorDialect(MLIRContext* context)
     : Dialect(/*name=*/"ht", context, TypeID::get<HostTensorDialect>()) {
   allowUnknownTypes();
   addTypes<HostBufferType>();
@@ -41,7 +41,7 @@ HostTensorDialect::HostTensorDialect(MLIRContext *context)
 }
 
 /// Parse a type registered to this dialect.
-Type HostTensorDialect::parseType(DialectAsmParser &parser) const {
+Type HostTensorDialect::parseType(DialectAsmParser& parser) const {
   StringRef keyword;
   if (parser.parseKeyword(&keyword)) return Type();
 
@@ -52,7 +52,7 @@ Type HostTensorDialect::parseType(DialectAsmParser &parser) const {
 }
 
 /// Print a type registered to this dialect.
-void HostTensorDialect::printType(Type type, DialectAsmPrinter &os) const {
+void HostTensorDialect::printType(Type type, DialectAsmPrinter& os) const {
   if (mlir::isa<HostBufferType>(type)) {
     os << "host_buffer";
     return;

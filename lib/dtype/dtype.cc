@@ -23,12 +23,12 @@
 namespace tfrt {
 
 // Support printing of dtype enums.
-raw_ostream &operator<<(raw_ostream &os, DType dtype) {
+raw_ostream& operator<<(raw_ostream& os, DType dtype) {
   return os << DispatchByDType(
              dtype, [](auto dtype_data) { return dtype_data.kName; });
 }
 
-std::ostream &operator<<(std::ostream &os, DType dtype) {
+std::ostream& operator<<(std::ostream& os, DType dtype) {
   return os << DispatchByDType(
              dtype, [](auto dtype_data) { return dtype_data.kName; });
 }

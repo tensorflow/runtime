@@ -24,27 +24,27 @@
 
 namespace tfrt {
 
-static void CreateNullOpHandlerKernel(Result<OpHandler *> op_handler,
-                                      const ExecutionContext &exec_ctx) {
-  auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
+static void CreateNullOpHandlerKernel(Result<OpHandler*> op_handler,
+                                      const ExecutionContext& exec_ctx) {
+  auto* runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
   auto op_handler_ptr = CreateNullOpHandler(runtime);
   assert(op_handler_ptr);
   op_handler.Emplace(op_handler_ptr.get());
 }
 
-static Expected<OpHandler *> CreateCpuOpHandlerKernel(
-    Argument<OpHandler *> fallback, const ExecutionContext &exec_ctx) {
-  auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
+static Expected<OpHandler*> CreateCpuOpHandlerKernel(
+    Argument<OpHandler*> fallback, const ExecutionContext& exec_ctx) {
+  auto* runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
   return CreateCpuOpHandler(runtime, exec_ctx.host()->GetHostDeviceRef(),
                             fallback.get());
 }
 
-static Expected<OpHandler *> CreateCpuOpHandlerWithOrdinalKernel(
-    Argument<OpHandler *> fallback, int ordinal,
-    const ExecutionContext &exec_ctx) {
-  auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
+static Expected<OpHandler*> CreateCpuOpHandlerWithOrdinalKernel(
+    Argument<OpHandler*> fallback, int ordinal,
+    const ExecutionContext& exec_ctx) {
+  auto* runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
   exec_ctx.host()->GetDeviceManager()->MaybeAddDevice(
       TakeRef(new CpuDevice(StrCat("CPU:", ordinal))));
@@ -55,7 +55,7 @@ static Expected<OpHandler *> CreateCpuOpHandlerWithOrdinalKernel(
 // Registration
 //===----------------------------------------------------------------------===//
 
-void RegisterCpuOpHandlerKernels(KernelRegistry *registry) {
+void RegisterCpuOpHandlerKernels(KernelRegistry* registry) {
   registry->AddKernel("corert.create_null_op_handler",
                       TFRT_KERNEL(CreateNullOpHandlerKernel));
   registry->AddKernel("corert.create_cpu_op_handler",

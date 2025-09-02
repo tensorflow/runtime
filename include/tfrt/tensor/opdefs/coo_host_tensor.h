@@ -32,7 +32,7 @@ namespace coo {
 class CooHostTensorDialect : public Dialect {
  public:
   static StringRef getDialectNamespace() { return "coo"; }
-  explicit CooHostTensorDialect(MLIRContext *context);
+  explicit CooHostTensorDialect(MLIRContext* context);
 };
 
 }  // namespace coo

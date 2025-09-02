@@ -52,7 +52,7 @@ namespace crc32c {
 #ifndef USE_SSE_CRC32C
 
 bool CanAccelerate() { return false; }
-uint32_t AcceleratedExtend(uint32_t crc, const char *buf, size_t size) {
+uint32_t AcceleratedExtend(uint32_t crc, const char* buf, size_t size) {
   // Should not be called.
   return 0;
 }
@@ -62,16 +62,16 @@ uint32_t AcceleratedExtend(uint32_t crc, const char *buf, size_t size) {
 // SSE4.2 optimized crc32c computation.
 bool CanAccelerate() { return __builtin_cpu_supports("sse4.2"); }
 
-uint32_t AcceleratedExtend(uint32_t crc, const char *buf, size_t size) {
-  const uint8_t *p = reinterpret_cast<const uint8_t *>(buf);
-  const uint8_t *e = p + size;
+uint32_t AcceleratedExtend(uint32_t crc, const char* buf, size_t size) {
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(buf);
+  const uint8_t* e = p + size;
   uint32_t l = crc ^ 0xffffffffu;
 
   // Advance p until aligned to 8-bytes..
   // Point x at first 7-byte aligned byte in string.  This might be
   // just past the end of the string.
   const uintptr_t pval = reinterpret_cast<uintptr_t>(p);
-  const uint8_t *x = reinterpret_cast<const uint8_t *>(((pval + 7) >> 3) << 3);
+  const uint8_t* x = reinterpret_cast<const uint8_t*>(((pval + 7) >> 3) << 3);
   if (x <= e) {
     // Process bytes until finished or p is 8-byte aligned
     while (p != x) {
@@ -83,8 +83,8 @@ uint32_t AcceleratedExtend(uint32_t crc, const char *buf, size_t size) {
   // Process bytes 16 at a time
   uint64_t l64 = l;
   while ((e - p) >= 16) {
-    l64 = _mm_crc32_u64(l64, *reinterpret_cast<const uint64_t *>(p));
-    l64 = _mm_crc32_u64(l64, *reinterpret_cast<const uint64_t *>(p + 8));
+    l64 = _mm_crc32_u64(l64, *reinterpret_cast<const uint64_t*>(p));
+    l64 = _mm_crc32_u64(l64, *reinterpret_cast<const uint64_t*>(p + 8));
     p += 16;
   }
 

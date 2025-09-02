@@ -32,9 +32,9 @@ namespace test {
 namespace {
 void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
                 ArrayRef<Type> types,
-                SmallVector<OpAsmParser::Argument> &args) {
+                SmallVector<OpAsmParser::Argument>& args) {
   for (auto argAndType : llvm::zip(operands, types)) {
-    auto &arg = args.emplace_back();
+    auto& arg = args.emplace_back();
     arg.ssaName = std::get<0>(argAndType);
     arg.type = std::get<1>(argAndType);
   }
@@ -45,7 +45,7 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 // TestDialect Dialect
 //===----------------------------------------------------------------------===//
 
-TestDialect::TestDialect(MLIRContext *context)
+TestDialect::TestDialect(MLIRContext* context)
     : Dialect(/*name=*/"tfrt_test", context, TypeID::get<TestDialect>()) {
   context->getOrLoadDialect<compiler::TFRTDialect>();
 
@@ -61,11 +61,11 @@ TestDialect::TestDialect(MLIRContext *context)
 // Verify that the specified region contains a tfrt.return operation with the
 // specified type list and emit an error if not.
 template <typename ResultTypeContainer>
-static LogicalResult checkTFRTReturn(Operation *op, Region *region,
+static LogicalResult checkTFRTReturn(Operation* op, Region* region,
                                      ResultTypeContainer result_types) {
   assert(std::distance(region->begin(), region->end()) == 1 &&
          "verifier should already check region size");
-  auto *block = &region->front();
+  auto* block = &region->front();
 
   if (block->empty() || block->back().getName().getStringRef() != "tfrt.return")
     return op->emitOpError("expected tfrt.return in body");
@@ -83,7 +83,7 @@ static LogicalResult checkTFRTReturn(Operation *op, Region *region,
 // DoAsyncOp
 //===----------------------------------------------------------------------===//
 
-ParseResult DoAsyncOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult DoAsyncOp::parse(OpAsmParser& parser, OperationState& result) {
   SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
@@ -103,12 +103,12 @@ ParseResult DoAsyncOp::parse(OpAsmParser &parser, OperationState &result) {
     return failure();
   SmallVector<OpAsmParser::Argument> args;
   createArgs(operands, types.getInputs(), args);
-  Region *body = result.addRegion();
+  Region* body = result.addRegion();
   return parser.parseRegion(*body, args,
                             /*enableNameShadowing=*/true);
 }
 
-void DoAsyncOp::print(OpAsmPrinter &p) {
+void DoAsyncOp::print(OpAsmPrinter& p) {
   p << " ";
   p.printOperands(getOperands());
   if (!(*this)->getAttrs().empty()) {
@@ -143,7 +143,7 @@ LogicalResult DoAsyncOp::verify() {
 // ...
 // }
 
-ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult BenchmarkOp::parse(OpAsmParser& parser, OperationState& result) {
   StringAttr nameAttr;
   if (parser.parseAttribute(nameAttr, "name", result.attributes))
     return failure();
@@ -194,9 +194,9 @@ ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
     if (parseIntegerKeywordAttr()) return failure();
   } while (succeeded(parser.parseOptionalComma()));
 
-  auto setDefaultAttrIfUnset = [&](const char *attr_name, int value) {
+  auto setDefaultAttrIfUnset = [&](const char* attr_name, int value) {
     bool found = llvm::any_of(result.attributes,
-                              [attr_name](const NamedAttribute &attr) {
+                              [attr_name](const NamedAttribute& attr) {
                                 return attr.getName() == attr_name;
                               });
     if (!found) {
@@ -208,7 +208,7 @@ ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
   // Set the default attribute num_warmup_runs to 1 if unset
   setDefaultAttrIfUnset("num_warmup_runs", 1);
 
-  Region *target = result.addRegion();
+  Region* target = result.addRegion();
   SmallVector<OpAsmParser::Argument> args;
   createArgs(operands, types, args);
   return parser.parseRegion(*target, args, /*enableNameShadowing=*/true);
@@ -219,7 +219,7 @@ ParseResult BenchmarkOp::parse(OpAsmParser &parser, OperationState &result) {
 //       max_count = 100, duration_secs = 1 {
 // ...
 // }
-void BenchmarkOp::print(OpAsmPrinter &p) {
+void BenchmarkOp::print(OpAsmPrinter& p) {
   p << " ";
 
   // Print the name attribute, e.g "add.i32"
@@ -229,7 +229,7 @@ void BenchmarkOp::print(OpAsmPrinter &p) {
   // Print the operands and types, e.g. (%c : i32, %d : f32)
   p << '(';
   llvm::interleaveComma(llvm::zip(getOperands(), getOperandTypes()), p,
-                        [&](const auto &it) {
+                        [&](const auto& it) {
                           p << std::get<0>(it) << " : " << std::get<1>(it);
                         });
   p << ") ";
@@ -237,7 +237,7 @@ void BenchmarkOp::print(OpAsmPrinter &p) {
   bool need_comma = false;
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
-  for (auto &name_attr : (*this)->getAttrs()) {
+  for (auto& name_attr : (*this)->getAttrs()) {
     auto id = name_attr.getName().getValue();
     if (id == "name") continue;
 
@@ -268,8 +268,8 @@ void BenchmarkOp::print(OpAsmPrinter &p) {
 LogicalResult BenchmarkOp::verify() {
   BenchmarkOp op = *this;
   // Verify that the target benchmark region has exactly one return value.
-  auto &region = op.getRegion();
-  auto &last_op = region.front().back();
+  auto& region = op.getRegion();
+  auto& last_op = region.front().back();
   if (last_op.getName().getStringRef() != "tfrt.return") {
     return op.emitOpError("missing return statement");
   }
@@ -290,8 +290,8 @@ LogicalResult BenchmarkOp::verify() {
 // tfrt_test.sync_benchmark @fibonacci.i32()
 //       duration_secs = 1, max_count = 100, num_warmup_runs = 10
 
-ParseResult SyncBenchmarkOp::parse(OpAsmParser &parser,
-                                   OperationState &result) {
+ParseResult SyncBenchmarkOp::parse(OpAsmParser& parser,
+                                   OperationState& result) {
   SymbolRefAttr targetFnAttr;
   if (parser.parseAttribute(targetFnAttr, "target_fn", result.attributes))
     return failure();
@@ -339,9 +339,9 @@ ParseResult SyncBenchmarkOp::parse(OpAsmParser &parser,
     if (parseIntegerKeywordAttr()) return failure();
   } while (succeeded(parser.parseOptionalComma()));
 
-  auto setDefaultAttrIfUnset = [&](const char *attr_name, int value) {
+  auto setDefaultAttrIfUnset = [&](const char* attr_name, int value) {
     bool found = llvm::any_of(result.attributes,
-                              [attr_name](const NamedAttribute &attr) {
+                              [attr_name](const NamedAttribute& attr) {
                                 return attr.getName() == attr_name;
                               });
     if (!found) {
@@ -359,7 +359,7 @@ ParseResult SyncBenchmarkOp::parse(OpAsmParser &parser,
 // Print the SyncBenchmarkOp in the following format
 // tfrt_test.sync_benchmark @fibonacci.i32()
 //       max_count = 100, duration_secs = 1
-void SyncBenchmarkOp::print(OpAsmPrinter &p) {
+void SyncBenchmarkOp::print(OpAsmPrinter& p) {
   p << " ";
 
   // Print the target benchmark function
@@ -368,7 +368,7 @@ void SyncBenchmarkOp::print(OpAsmPrinter &p) {
   // Print the operands and types, e.g. (%c : i32, %d : f32)
   p << '(';
   llvm::interleaveComma(llvm::zip(getOperands(), getOperandTypes()), p,
-                        [&](const auto &it) {
+                        [&](const auto& it) {
                           p << std::get<0>(it) << " : " << std::get<1>(it);
                         });
   p << ") ";
@@ -376,7 +376,7 @@ void SyncBenchmarkOp::print(OpAsmPrinter &p) {
   bool need_comma = false;
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
-  for (auto &name_attr : (*this)->getAttrs()) {
+  for (auto& name_attr : (*this)->getAttrs()) {
     auto id = name_attr.getName().getValue();
     if (id == "target_fn") continue;
 

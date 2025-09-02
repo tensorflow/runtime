@@ -38,19 +38,19 @@ void CatchError(j_common_ptr cinfo);
 
 typedef struct {
   struct jpeg_destination_mgr pub;
-  JOCTET *buffer;
+  JOCTET* buffer;
   int bufsize;
   int datacount;
 } MemDestMgr;
 
 typedef struct {
   struct jpeg_source_mgr pub;
-  const unsigned char *data;
+  const unsigned char* data;
   uint64_t datasize;
   bool try_recover_truncated_jpeg;
 } MemSourceMgr;
 
-void SetSrc(j_decompress_ptr cinfo, const void *data, uint64_t datasize,
+void SetSrc(j_decompress_ptr cinfo, const void* data, uint64_t datasize,
             bool try_recover_truncated_jpeg);
 
 }  // namespace jpeg

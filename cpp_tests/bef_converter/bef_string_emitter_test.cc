@@ -27,7 +27,7 @@ TEST(BefStringEmitterTest, EmitSingleString) {
   size_t offset = emitter.EmitString(kTestStr1);
 
   auto buffer = emitter.TakeResult();
-  EXPECT_EQ(strcmp(reinterpret_cast<char *>(buffer.data() + offset), kTestStr1),
+  EXPECT_EQ(strcmp(reinterpret_cast<char*>(buffer.data() + offset), kTestStr1),
             0);
 }
 
@@ -39,11 +39,11 @@ TEST(BefStringEmitterTest, EmitTwoStrings) {
 
   auto buffer = emitter.TakeResult();
   EXPECT_EQ(
-      strcmp(reinterpret_cast<char *>(buffer.data() + first_offset), kTestStr1),
+      strcmp(reinterpret_cast<char*>(buffer.data() + first_offset), kTestStr1),
       0);
-  EXPECT_EQ(strcmp(reinterpret_cast<char *>(buffer.data() + second_offset),
-                   kTestStr2),
-            0);
+  EXPECT_EQ(
+      strcmp(reinterpret_cast<char*>(buffer.data() + second_offset), kTestStr2),
+      0);
 }
 
 TEST(BefStringEmitterTest, EmitDuplicateString) {

@@ -24,7 +24,7 @@
 namespace tfrt {
 
 // This is the entrypoint to the library.
-static void RegisterKernels(KernelRegistry *registry) {
+static void RegisterKernels(KernelRegistry* registry) {
   RegisterCoreRuntimeKernels(registry);
   RegisterCoreRuntimeTestKernels(registry);
 }

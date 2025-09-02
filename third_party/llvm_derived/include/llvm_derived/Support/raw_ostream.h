@@ -45,9 +45,9 @@ class raw_fd_ostream : public llvm::raw_pwrite_stream {
   uint64_t pos = 0;
 
   // See raw_ostream::write_impl.
-  void write_impl(const char *Ptr, size_t Size) override;
+  void write_impl(const char* Ptr, size_t Size) override;
 
-  void pwrite_impl(const char *Ptr, size_t Size, uint64_t Offset) override;
+  void pwrite_impl(const char* Ptr, size_t Size, uint64_t Offset) override;
 
   // Return the current position within the stream, not counting the bytes
   // currently in the buffer.
@@ -70,9 +70,9 @@ class raw_fd_ostream : public llvm::raw_pwrite_stream {
   // As a special case, if Filename is "-", then the stream will use
   // STDOUT_FILENO instead of opening a file. This will not close the stdout
   // descriptor.
-  raw_fd_ostream(llvm::StringRef Filename, std::error_code &EC,
+  raw_fd_ostream(llvm::StringRef Filename, std::error_code& EC,
                  llvm::sys::fs::OpenFlags Flags);
-  raw_fd_ostream(llvm::StringRef Filename, std::error_code &EC,
+  raw_fd_ostream(llvm::StringRef Filename, std::error_code& EC,
                  llvm::sys::fs::CreationDisposition Disp,
                  llvm::sys::fs::FileAccess Access,
                  llvm::sys::fs::OpenFlags Flags);
@@ -119,11 +119,11 @@ class raw_fd_ostream : public llvm::raw_pwrite_stream {
 
 // This returns a reference to a raw_ostream for standard output.
 // Use it like: outs() << "foo" << "bar";
-llvm::raw_ostream &outs();
+llvm::raw_ostream& outs();
 
 // This returns a reference to a raw_ostream for standard error. Use it like:
 // errs() << "foo" << "bar";
-llvm::raw_ostream &errs();
+llvm::raw_ostream& errs();
 
 }  // namespace tfrt
 

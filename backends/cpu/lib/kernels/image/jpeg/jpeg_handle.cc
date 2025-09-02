@@ -28,7 +28,7 @@ namespace jpeg {
 
 void CatchError(j_common_ptr cinfo) {
   (*cinfo->err->output_message)(cinfo);
-  jmp_buf *jpeg_jmpbuf = reinterpret_cast<jmp_buf *>(cinfo->client_data);
+  jmp_buf* jpeg_jmpbuf = reinterpret_cast<jmp_buf*>(cinfo->client_data);
   jpeg_destroy(cinfo);
   longjmp(*jpeg_jmpbuf, 1);
 }
@@ -40,7 +40,7 @@ void CatchError(j_common_ptr cinfo) {
 
 // -----------------------------------------------------------------------------
 void MemInitSource(j_decompress_ptr cinfo) {
-  MemSourceMgr *src = reinterpret_cast<MemSourceMgr *>(cinfo->src);
+  MemSourceMgr* src = reinterpret_cast<MemSourceMgr*>(cinfo->src);
   src->pub.next_input_byte = src->data;
   src->pub.bytes_in_buffer = src->datasize;
 }
@@ -50,7 +50,7 @@ void MemInitSource(j_decompress_ptr cinfo) {
 // for coherency's sake.
 boolean MemFillInputBuffer(j_decompress_ptr cinfo) {
   static const JOCTET kEOIBuffer[2] = {0xff, JPEG_EOI};
-  MemSourceMgr *src = reinterpret_cast<MemSourceMgr *>(cinfo->src);
+  MemSourceMgr* src = reinterpret_cast<MemSourceMgr*>(cinfo->src);
   if (src->pub.bytes_in_buffer == 0 && src->pub.next_input_byte == src->data) {
     // empty file -> treated as an error.
     ERREXIT(cinfo, JERR_INPUT_EMPTY);
@@ -78,7 +78,7 @@ void MemTermSource(j_decompress_ptr cinfo) {}
 
 // -----------------------------------------------------------------------------
 void MemSkipInputData(j_decompress_ptr cinfo, int64_t jump) {
-  MemSourceMgr *src = reinterpret_cast<MemSourceMgr *>(cinfo->src);
+  MemSourceMgr* src = reinterpret_cast<MemSourceMgr*>(cinfo->src);
   if (jump < 0) {
     return;
   }
@@ -92,21 +92,21 @@ void MemSkipInputData(j_decompress_ptr cinfo, int64_t jump) {
 }
 
 // -----------------------------------------------------------------------------
-void SetSrc(j_decompress_ptr cinfo, const void *data, uint64_t datasize,
+void SetSrc(j_decompress_ptr cinfo, const void* data, uint64_t datasize,
             bool try_recover_truncated_jpeg) {
-  MemSourceMgr *src;
+  MemSourceMgr* src;
 
-  cinfo->src = reinterpret_cast<struct jpeg_source_mgr *>(
+  cinfo->src = reinterpret_cast<struct jpeg_source_mgr*>(
       (*cinfo->mem->alloc_small)(reinterpret_cast<j_common_ptr>(cinfo),
                                  JPOOL_PERMANENT, sizeof(MemSourceMgr)));
 
-  src = reinterpret_cast<MemSourceMgr *>(cinfo->src);
+  src = reinterpret_cast<MemSourceMgr*>(cinfo->src);
   src->pub.init_source = MemInitSource;
   src->pub.fill_input_buffer = MemFillInputBuffer;
   src->pub.skip_input_data = MemSkipInputData;
   src->pub.resync_to_restart = jpeg_resync_to_restart;
   src->pub.term_source = MemTermSource;
-  src->data = reinterpret_cast<const unsigned char *>(data);
+  src->data = reinterpret_cast<const unsigned char*>(data);
   src->datasize = datasize;
   src->pub.bytes_in_buffer = 0;
   src->pub.next_input_byte = nullptr;

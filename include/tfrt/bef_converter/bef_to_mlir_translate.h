@@ -36,7 +36,7 @@ class OwningOpRef;
 namespace tfrt {
 
 mlir::OwningOpRef<mlir::ModuleOp> BEFToMLIRTranslate(
-    llvm::SourceMgr &source_mgr, mlir::MLIRContext *context);
+    llvm::SourceMgr& source_mgr, mlir::MLIRContext* context);
 
 }  // namespace tfrt
 

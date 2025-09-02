@@ -32,7 +32,7 @@ namespace tfrt_tensor {
 // TensorShape Dialect
 //===----------------------------------------------------------------------===//
 
-TensorDialect::TensorDialect(MLIRContext *context)
+TensorDialect::TensorDialect(MLIRContext* context)
     : Dialect(/*name=*/"tfrt_tensor", context, TypeID::get<TensorDialect>()) {
   allowUnknownTypes();
   addTypes<TensorType>();
@@ -43,7 +43,7 @@ TensorDialect::TensorDialect(MLIRContext *context)
 }
 
 /// Parse a type registered to this dialect.
-Type TensorDialect::parseType(DialectAsmParser &parser) const {
+Type TensorDialect::parseType(DialectAsmParser& parser) const {
   StringRef keyword;
   if (parser.parseKeyword(&keyword)) return Type();
 
@@ -54,7 +54,7 @@ Type TensorDialect::parseType(DialectAsmParser &parser) const {
 }
 
 /// Print a type registered to this dialect.
-void TensorDialect::printType(Type type, DialectAsmPrinter &os) const {
+void TensorDialect::printType(Type type, DialectAsmPrinter& os) const {
   if (mlir::isa<TensorType>(type)) {
     os << "tensor";
     return;

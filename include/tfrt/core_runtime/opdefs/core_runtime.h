@@ -37,20 +37,20 @@ namespace corert {
 // Dialect for corert operations.
 class CoreRTDialect : public Dialect {
  public:
-  explicit CoreRTDialect(MLIRContext *context);
+  explicit CoreRTDialect(MLIRContext* context);
   static StringRef getDialectNamespace() { return "corert"; }
 
-  mlir::Attribute parseAttribute(mlir::DialectAsmParser &parser,
+  mlir::Attribute parseAttribute(mlir::DialectAsmParser& parser,
                                  mlir::Type type) const override;
 
   void printAttribute(mlir::Attribute attr,
-                      mlir::DialectAsmPrinter &os) const override;
+                      mlir::DialectAsmPrinter& os) const override;
 
-  mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+  mlir::Type parseType(mlir::DialectAsmParser& parser) const override;
 
-  void printType(mlir::Type type, mlir::DialectAsmPrinter &os) const override;
+  void printType(mlir::Type type, mlir::DialectAsmPrinter& os) const override;
 
-  Operation *materializeConstant(OpBuilder &builder, Attribute value, Type type,
+  Operation* materializeConstant(OpBuilder& builder, Attribute value, Type type,
                                  mlir::Location loc) override;
 };
 

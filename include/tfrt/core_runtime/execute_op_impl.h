@@ -36,28 +36,28 @@ class SyncKernelFrame;
 // Set up `op_attrs` with binary attributes in `op_attr_array`.
 // TypedAttributeTrait is required in ops' ODS to use this function on their
 // attributes.
-void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs);
+void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs* op_attrs);
 
 // Set up `op_attrs` with binary attributes in `op_attr_func_array`.
 // `op_attr_func_array` is an array of string that denotes function attributes.
-void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs *op_attrs);
+void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs* op_attrs);
 
 // ExecuteOpImpl is the common implementation used by ExecuteOpSeq and
 // ExecuteOp. The `op_chain` is the input/output parameter for sequencing op
 // execution. `op_chain` can be nullptr, which means it need not be sequenced.
 // `op_func_attr_array` is an optional array that contains function attributes.
-void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
-                   AsyncValueRef<Chain> *op_chain,
+void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue*> args,
+                   AsyncValueRef<Chain>* op_chain,
                    MutableArrayRef<RCReference<AsyncValue>> results,
                    AggregateAttr op_attr_array,
                    AggregateAttr op_func_attr_array,
-                   const ExecutionContext &exec_ctx);
+                   const ExecutionContext& exec_ctx);
 
-void ExecuteOpImplSync(const CoreRuntimeOp &op,
+void ExecuteOpImplSync(const CoreRuntimeOp& op,
                        RepeatedSyncArguments<TensorHandle> args,
-                       AsyncValueRef<Chain> *op_chain, SyncKernelFrame *frame,
+                       AsyncValueRef<Chain>* op_chain, SyncKernelFrame* frame,
                        AggregateAttr op_attr_array,
-                       const ExecutionContext &exec_ctx);
+                       const ExecutionContext& exec_ctx);
 
 void AsyncWaitForResultsFromTensorHandles(
     MutableArrayRef<RCReference<AsyncValue>> results,

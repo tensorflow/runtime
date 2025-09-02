@@ -39,15 +39,15 @@ class OpAttrsRef;
 
 class OpHandler {
  public:
-  explicit OpHandler(string_view name, CoreRuntime *runtime,
-                     OpHandler *fallback);
+  explicit OpHandler(string_view name, CoreRuntime* runtime,
+                     OpHandler* fallback);
 
   // Return the CoreRuntime object that this op_handler is associated with.
-  CoreRuntime *GetRuntime() const { return runtime_; }
+  CoreRuntime* GetRuntime() const { return runtime_; }
 
   string_view GetName() const { return name_; }
 
-  OpHandler *GetFallback() const { return fallback_; }
+  OpHandler* GetFallback() const { return fallback_; }
 
   virtual Expected<CoreRuntimeOp> MakeOp(string_view op_name) = 0;
 
@@ -55,16 +55,16 @@ class OpHandler {
 
  private:
   const std::string name_;
-  CoreRuntime *const runtime_;
-  OpHandler *const fallback_;
+  CoreRuntime* const runtime_;
+  OpHandler* const fallback_;
 };
 
 //===----------------------------------------------------------------------===//
 // Inline implementation details of OpHandler
 //===----------------------------------------------------------------------===//
 
-inline OpHandler::OpHandler(string_view name, CoreRuntime *runtime,
-                            OpHandler *fallback)
+inline OpHandler::OpHandler(string_view name, CoreRuntime* runtime,
+                            OpHandler* fallback)
     : name_(name), runtime_(runtime), fallback_(fallback) {}
 
 }  // namespace tfrt

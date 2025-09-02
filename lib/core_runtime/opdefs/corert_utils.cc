@@ -23,21 +23,21 @@
 namespace tfrt {
 namespace corert {
 
-static Type GetOpHandlerType(Builder *builder) {
+static Type GetOpHandlerType(Builder* builder) {
   return builder->getType<OpHandlerType>();
 }
 
-static Type GetChainType(Builder *builder) {
+static Type GetChainType(Builder* builder) {
   return builder->getType<compiler::ChainType>();
 }
 
-static Type GetTensorHandleType(Builder *builder) {
+static Type GetTensorHandleType(Builder* builder) {
   return builder->getType<TensorHandleType>();
 }
 
-ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
+ParseResult ParseExecuteOpImpl(OpAsmParser& parser, OperationState& result,
                                int num_chains, bool has_func_attr) {
-  auto &builder = parser.getBuilder();
+  auto& builder = parser.getBuilder();
   auto op_handler_type = GetOpHandlerType(&builder);
   auto chain_type = GetChainType(&builder);
   auto tensorhandle_type = GetTensorHandleType(&builder);
@@ -78,7 +78,7 @@ ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
   result.types.append(num_results, tensorhandle_type);
 
   SmallVector<Attribute, 4> op_attr_array;
-  for (const auto &key_value : op_attrs) {
+  for (const auto& key_value : op_attrs) {
     auto key = key_value.getName();
     auto value = key_value.getValue();
     op_attr_array.push_back(builder.getArrayAttr({key, value}));
@@ -90,7 +90,7 @@ ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
   // TODO(tfrt-devs): support func attributes in corert_sync.
   if (has_func_attr) {
     llvm::SmallVector<mlir::Attribute, 4> op_func_attr_array;
-    for (const auto &key_value : op_func_attrs) {
+    for (const auto& key_value : op_func_attrs) {
       auto key = key_value.getName();
       auto value = key_value.getValue();
       op_func_attr_array.push_back(builder.getArrayAttr({key, value}));

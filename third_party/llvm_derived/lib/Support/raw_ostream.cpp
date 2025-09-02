@@ -57,7 +57,7 @@ namespace tfrt {
 // raw_fd_ostream tfrt implementation
 //===----------------------------------------------------------------------===//
 
-static int getFD(llvm::StringRef Filename, std::error_code &EC,
+static int getFD(llvm::StringRef Filename, std::error_code& EC,
                  llvm::sys::fs::CreationDisposition Disp,
                  llvm::sys::fs::FileAccess Access,
                  llvm::sys::fs::OpenFlags Flags) {
@@ -84,12 +84,12 @@ static int getFD(llvm::StringRef Filename, std::error_code &EC,
   return FD;
 }
 
-raw_fd_ostream::raw_fd_ostream(llvm::StringRef Filename, std::error_code &EC,
+raw_fd_ostream::raw_fd_ostream(llvm::StringRef Filename, std::error_code& EC,
                                llvm::sys::fs::OpenFlags Flags)
     : raw_fd_ostream(Filename, EC, llvm::sys::fs::CD_CreateAlways,
                      llvm::sys::fs::FA_Write, Flags) {}
 
-raw_fd_ostream::raw_fd_ostream(llvm::StringRef Filename, std::error_code &EC,
+raw_fd_ostream::raw_fd_ostream(llvm::StringRef Filename, std::error_code& EC,
                                llvm::sys::fs::CreationDisposition Disp,
                                llvm::sys::fs::FileAccess Access,
                                llvm::sys::fs::OpenFlags Flags)
@@ -131,7 +131,7 @@ raw_fd_ostream::~raw_fd_ostream() {
   }
 }
 
-void raw_fd_ostream::write_impl(const char *Ptr, size_t Size) {
+void raw_fd_ostream::write_impl(const char* Ptr, size_t Size) {
   assert(FD >= 0 && "File already closed.");
   pos += Size;
 
@@ -201,7 +201,7 @@ uint64_t raw_fd_ostream::seek(uint64_t off) {
   return pos;
 }
 
-void raw_fd_ostream::pwrite_impl(const char *Ptr, size_t Size,
+void raw_fd_ostream::pwrite_impl(const char* Ptr, size_t Size,
                                  uint64_t Offset) {
   uint64_t Pos = tell();
   seek(Offset);
@@ -235,7 +235,7 @@ void raw_fd_ostream::anchor() {}
 
 /// outs() - This returns a reference to a raw_ostream for standard output.
 /// Use it like: outs() << "foo" << "bar";
-llvm::raw_ostream &outs() {
+llvm::raw_ostream& outs() {
   // Set buffer settings to model stdout behavior.
   std::error_code EC;
   static raw_fd_ostream S("-", EC, llvm::sys::fs::OF_None);  // NOLINT
@@ -245,7 +245,7 @@ llvm::raw_ostream &outs() {
 
 /// errs() - This returns a reference to a raw_ostream for standard error.
 /// Use it like: errs() << "foo" << "bar";
-llvm::raw_ostream &errs() {
+llvm::raw_ostream& errs() {
   // Set standard error to be unbuffered by default.
   static raw_fd_ostream S(STDERR_FILENO, false, true);  // NOLINT
   return S;

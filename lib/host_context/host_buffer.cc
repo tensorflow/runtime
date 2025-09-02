@@ -28,14 +28,14 @@
 namespace tfrt {
 
 RCReference<HostBuffer> HostBuffer::CreateUninitialized(
-    size_t size, size_t alignment, HostAllocator *allocator) {
+    size_t size, size_t alignment, HostAllocator* allocator) {
   assert(llvm::isPowerOf2_32(alignment) &&
          "Only power of 2 aligments are supported");
 
   // If the requested alignment is not greater than the alignment of
   // unaligned_data_ field, we do not need to do additional adjustment.
   if (alignment <= alignof(std::max_align_t)) {
-    auto *buf = allocator->AllocateBytes(sizeof(HostBuffer) + size,
+    auto* buf = allocator->AllocateBytes(sizeof(HostBuffer) + size,
                                          alignof(HostBuffer));
     if (!buf) return {};
 
@@ -49,7 +49,7 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
   // field, allocate (size + alignment) for the data so we have enough space to
   // adjust the buffer for alignment.
   size_t alloc_size = size + alignment;
-  auto *buf = allocator->AllocateBytes(sizeof(HostBuffer) + alloc_size,
+  auto* buf = allocator->AllocateBytes(sizeof(HostBuffer) + alloc_size,
                                        alignof(HostBuffer));
   if (!buf) return {};
 
@@ -68,7 +68,7 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
 }
 
 RCReference<HostBuffer> HostBuffer::CreateFromExternal(
-    void *ptr, size_t size, Deallocator deallocator) {
+    void* ptr, size_t size, Deallocator deallocator) {
   // Not allocated via HostAllocator as HostBuffer::CreateUninitialized.
   return TakeRef(new HostBuffer(ptr, size, std::move(deallocator)));
 }
@@ -79,7 +79,7 @@ RCReference<HostBuffer> HostBuffer::CreateFromExternal(
   assert(parent_buffer->size() >= offset + size &&
          "Invalid `offset` and `size` for given buffer.");
 
-  auto ptr = static_cast<char *>(parent_buffer->data()) + offset;
+  auto ptr = static_cast<char*>(parent_buffer->data()) + offset;
   return TakeRef(new HostBuffer(ptr, size, std::move(parent_buffer)));
 }
 
@@ -100,8 +100,8 @@ HostBuffer::~HostBuffer() {
 void HostBuffer::Destroy() {
   switch (mode_) {
     case Mode::kInlined: {
-      HostAllocator *allocator = inlined_.allocator;
-      void *data = static_cast<void *>(this);
+      HostAllocator* allocator = inlined_.allocator;
+      void* data = static_cast<void*>(this);
       size_t allocated_size = sizeof(HostBuffer) + inlined_.allocated_size;
       this->~HostBuffer();
       allocator->DeallocateBytes(data, allocated_size);
@@ -114,7 +114,7 @@ void HostBuffer::Destroy() {
   }
 }
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const HostBuffer &buffer) {
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const HostBuffer& buffer) {
   os << "HostBuffer<pointer="
      << llvm::format_hex(reinterpret_cast<uintptr_t>(buffer.data()), 1)
      << ", size=" << buffer.size() << ">";

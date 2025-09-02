@@ -32,12 +32,12 @@ namespace tfrt {
 
 namespace {
 template <typename DType>
-void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
-                              const DenseHostTensor &values,
-                              DenseHostTensor *result_tensor) {
+void ConvertToDHTTensorHelper(const DenseHostTensor& indices,
+                              const DenseHostTensor& values,
+                              DenseHostTensor* result_tensor) {
   auto result_tensor_view = MutableDHTArrayView<DType>(result_tensor);
-  const TensorMetadata &result_metadata = result_tensor->metadata();
-  const auto &result_shape = result_metadata.shape;
+  const TensorMetadata& result_metadata = result_tensor->metadata();
+  const auto& result_shape = result_metadata.shape;
   result_tensor_view.Fill(DType(0));
   auto indices_view = DHTIndexableView<int64_t, 2>(&indices);
   auto values_view = DHTIndexableView<DType, 1>(&values);
@@ -54,7 +54,7 @@ void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
 }
 }  // namespace
 
-void CooHostTensor::Print(raw_ostream &os) const {
+void CooHostTensor::Print(raw_ostream& os) const {
   // Just dumps the flat values for now.
   os << "CooHostTensor dtype = " << dtype() << ", shape = " << shape();
   os << ", indices = [";
@@ -63,7 +63,7 @@ void CooHostTensor::Print(raw_ostream &os) const {
   os << "], values = [";
 
   auto element_size = GetHostSize(dtype());
-  auto *data_ptr = static_cast<const char *>(Values()->data());
+  auto* data_ptr = static_cast<const char*>(Values()->data());
   for (Index i = 0, e = Values()->NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
     os << FormatDType(dtype(), data_ptr + i * element_size);
@@ -72,10 +72,10 @@ void CooHostTensor::Print(raw_ostream &os) const {
 }
 
 static AsyncValueRef<AnyScalarHostTensor>
-ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
-                                       const CpuDevice &src,
-                                       const CpuDevice &dst,
-                                       const ExecutionContext &exec_ctx) {
+ConvertCooHostTensorToScalarHostTensor(const CooHostTensor& coo,
+                                       const CpuDevice& src,
+                                       const CpuDevice& dst,
+                                       const ExecutionContext& exec_ctx) {
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
   switch (coo.dtype()) {
@@ -104,9 +104,9 @@ ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
 }
 
 static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
-    const CooHostTensor &tensor, const CpuDevice &src, const CpuDevice &dst,
-    const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
+    const CooHostTensor& tensor, const CpuDevice& src, const CpuDevice& dst,
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>();
   auto result_alloc =
       DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
@@ -114,7 +114,7 @@ static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
     return MakeErrorAsyncValueRef(
         "out of memory converting coo tensor to dht tensor");
   }
-  auto &result_tensor = result_alloc.value();
+  auto& result_tensor = result_alloc.value();
 
   switch (tensor.dtype()) {
     default:
@@ -130,7 +130,7 @@ static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
   return result;
 }
 
-void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry *registry) {
+void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry* registry) {
   registry->AddTensorConversionFn(
       TFRT_CONVERSION(ConvertCooHostTensorToDenseHostTensor));
   registry->AddTensorConversionFn(

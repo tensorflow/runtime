@@ -37,10 +37,10 @@ namespace llvm {
 template <typename>
 struct PointerLikeTypeTraits;
 template <>
-struct PointerLikeTypeTraits<Eigen::half *> {
-  static inline void *getAsVoidPointer(Eigen::half *ptr) { return ptr; }
-  static inline Eigen::half *getFromVoidPointer(void *ptr) {
-    return static_cast<Eigen::half *>(ptr);
+struct PointerLikeTypeTraits<Eigen::half*> {
+  static inline void* getAsVoidPointer(Eigen::half* ptr) { return ptr; }
+  static inline Eigen::half* getFromVoidPointer(void* ptr) {
+    return static_cast<Eigen::half*>(ptr);
   }
   // alignof(Eigen::half) == 2 (defined in Eigen/src/Core/arch/Default/Half.h).
   // NOLINTNEXTLINE(readability-identifier-naming)

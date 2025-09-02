@@ -29,7 +29,7 @@ namespace ts_sync {
 //===----------------------------------------------------------------------===//
 // TensorShape Sync Dialect
 //===----------------------------------------------------------------------===//
-TensorShapeSyncDialect::TensorShapeSyncDialect(MLIRContext *context)
+TensorShapeSyncDialect::TensorShapeSyncDialect(MLIRContext* context)
     : Dialect(/*name=*/"ts_sync", context,
               TypeID::get<TensorShapeSyncDialect>()) {
   addOperations<

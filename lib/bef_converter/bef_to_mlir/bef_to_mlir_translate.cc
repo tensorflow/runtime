@@ -30,27 +30,27 @@
 namespace tfrt {
 
 mlir::OwningOpRef<mlir::ModuleOp> BEFToMLIRTranslate(
-    llvm::SourceMgr &source_mgr, mlir::MLIRContext *context) {
+    llvm::SourceMgr& source_mgr, mlir::MLIRContext* context) {
   mlir::DialectRegistry registry;
   RegisterTFRTDialects(registry);
   RegisterTFRTCompiledDialects(registry);
   context->appendDialectRegistry(registry);
-  for (const auto &dialect_name : context->getAvailableDialects()) {
+  for (const auto& dialect_name : context->getAvailableDialects()) {
     context->getOrLoadDialect(dialect_name);
   }
 
-  const llvm::MemoryBuffer *input =
+  const llvm::MemoryBuffer* input =
       source_mgr.getMemoryBuffer(source_mgr.getMainFileID());
   mlir::Location location =
       mlir::FileLineColLoc::get(context, input->getBufferIdentifier(), 0, 0);
 
-  source_mgr.setDiagHandler([](const llvm::SMDiagnostic &diag, void *) {
+  source_mgr.setDiagHandler([](const llvm::SMDiagnostic& diag, void*) {
     llvm::SMDiagnostic bef_diag(diag.getFilename(), diag.getKind(),
                                 diag.getMessage());
     bef_diag.print(nullptr, llvm::errs());
   });
 
-  auto *buffer_start = input->getBufferStart();
+  auto* buffer_start = input->getBufferStart();
   auto buffer_size = input->getBufferSize();
   llvm::ArrayRef<uint8_t> bef_file;
 
@@ -60,11 +60,11 @@ mlir::OwningOpRef<mlir::ModuleOp> BEFToMLIRTranslate(
     aligned_bef_buffer.resize(buffer_size);
     std::memcpy(aligned_bef_buffer.data(), buffer_start, buffer_size);
     bef_file = llvm::ArrayRef<uint8_t>(
-        reinterpret_cast<const uint8_t *>(aligned_bef_buffer.data()),
+        reinterpret_cast<const uint8_t*>(aligned_bef_buffer.data()),
         buffer_size);
   } else {
     bef_file = llvm::ArrayRef<uint8_t>(
-        reinterpret_cast<const uint8_t *>(buffer_start), buffer_size);
+        reinterpret_cast<const uint8_t*>(buffer_start), buffer_size);
   }
 
   if (bef_file.empty()) {

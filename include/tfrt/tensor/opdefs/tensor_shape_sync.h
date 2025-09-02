@@ -34,7 +34,7 @@ namespace ts_sync {
 class TensorShapeSyncDialect : public mlir::Dialect {
  public:
   static mlir::StringRef getDialectNamespace() { return "ts_sync"; }
-  explicit TensorShapeSyncDialect(mlir::MLIRContext *context);
+  explicit TensorShapeSyncDialect(mlir::MLIRContext* context);
 };
 
 }  // namespace ts_sync

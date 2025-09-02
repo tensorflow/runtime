@@ -29,19 +29,19 @@ namespace {
 struct TFRTInlinerInterface : public mlir::DialectInlinerInterface {
   using DialectInlinerInterface::DialectInlinerInterface;
 
-  bool isLegalToInline(mlir::Operation *call, mlir::Operation *callable,
+  bool isLegalToInline(mlir::Operation* call, mlir::Operation* callable,
                        bool would_be_cloned) const final {
     // Currently only allow inlining callables called by tfrt.call op.
     return llvm::isa<CallOp>(call);
   }
 
-  bool isLegalToInline(Operation *op, Region *dest, bool would_be_cloned,
-                       IRMapping &) const final {
+  bool isLegalToInline(Operation* op, Region* dest, bool would_be_cloned,
+                       IRMapping&) const final {
     // All TFRT dialect ops can be inlined.
     return true;
   }
 
-  void handleTerminator(mlir::Operation *op,
+  void handleTerminator(mlir::Operation* op,
                         mlir::ValueRange values_to_replace) const final {
     // Handle the given inlined terminator by replacing it with a new operation
     // as necessary. Required when the region has only one block.
@@ -62,7 +62,7 @@ struct TFRTInlinerInterface : public mlir::DialectInlinerInterface {
 // TFRTDialect Dialect
 //===----------------------------------------------------------------------===//
 
-TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
+TFRTDialect::TFRTDialect(mlir::MLIRContext* context)
     : mlir::Dialect(/*name=*/"tfrt", context, TypeID::get<TFRTDialect>()) {
   allowUnknownTypes();
 
@@ -80,7 +80,7 @@ TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
       >();
 }
 
-mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
+mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser& parser) const {
   llvm::StringRef spec = parser.getFullSymbolSpec();
 
   if (spec == "chain") return compiler::ChainType::get(getContext());
@@ -95,7 +95,7 @@ mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 }
 
 void TFRTDialect::printType(mlir::Type type,
-                            mlir::DialectAsmPrinter &printer) const {
+                            mlir::DialectAsmPrinter& printer) const {
   if (mlir::isa<compiler::ChainType>(type)) {
     printer << "chain";
   } else if (mlir::isa<compiler::StringType>(type)) {

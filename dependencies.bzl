@@ -13,11 +13,17 @@
 # limitations under the License.
 """Provides a workspace macro to load dependent repositories."""
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
 
 def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
-
+    http_archive(
+        name = "rules_cc",
+        sha256 = "b8b918a85f9144c01f6cfe0f45e4f2838c7413961a8ff23bc0c6cdf8bb07a3b6",
+        strip_prefix = "rules_cc-0.1.5",
+        url = "https://github.com/bazelbuild/rules_cc/releases/download/0.1.5/rules_cc-0.1.5.tar.gz",
+    )
     tfrt_http_archive(
         name = "py-cpuinfo",
         strip_prefix = "py-cpuinfo-0.2.3",

@@ -25,7 +25,7 @@ namespace tfrt {
 namespace crc32c {
 
 extern bool CanAccelerate();
-extern uint32_t AcceleratedExtend(uint32_t crc, const char *buf, size_t size);
+extern uint32_t AcceleratedExtend(uint32_t crc, const char* buf, size_t size);
 
 static const uint32_t table0_[256] = {
     0x00000000, 0xf26b8303, 0xe13b70f7, 0x1350f3f4, 0xc79a971f, 0x35f1141c,
@@ -205,13 +205,13 @@ static const uint32_t table3_[256] = {
     0x4a21617b, 0x9764cbc3, 0xf54642fa, 0x2803e842};
 
 // Used to fetch a naturally-aligned 32-bit word in little endian byte-order
-static inline uint32_t LE_LOAD32(const uint8_t *p) {
-  return DecodeFixed32(reinterpret_cast<const char *>(p));
+static inline uint32_t LE_LOAD32(const uint8_t* p) {
+  return DecodeFixed32(reinterpret_cast<const char*>(p));
 }
 
-uint32_t RegularExtend(uint32_t crc, const char *buf, size_t size) {
-  const uint8_t *p = reinterpret_cast<const uint8_t *>(buf);
-  const uint8_t *e = p + size;
+uint32_t RegularExtend(uint32_t crc, const char* buf, size_t size) {
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(buf);
+  const uint8_t* e = p + size;
   uint32_t l = crc ^ 0xffffffffu;
 
 #define STEP1                  \
@@ -231,7 +231,7 @@ uint32_t RegularExtend(uint32_t crc, const char *buf, size_t size) {
   // Point x at first 4-byte aligned byte in string.  This might be
   // just past the end of the string.
   const uintptr_t pval = reinterpret_cast<uintptr_t>(p);
-  const uint8_t *x = reinterpret_cast<const uint8_t *>(((pval + 3) >> 2) << 2);
+  const uint8_t* x = reinterpret_cast<const uint8_t*>(((pval + 3) >> 2) << 2);
   if (x <= e) {
     // Process bytes until finished or p is 4-byte aligned
     while (p != x) {
@@ -258,7 +258,7 @@ uint32_t RegularExtend(uint32_t crc, const char *buf, size_t size) {
   return l ^ 0xffffffffu;
 }
 
-uint32_t Extend(uint32_t crc, const char *buf, size_t size) {
+uint32_t Extend(uint32_t crc, const char* buf, size_t size) {
   return CanAccelerate() ? AcceleratedExtend(crc, buf, size)
                          : RegularExtend(crc, buf, size);
 }

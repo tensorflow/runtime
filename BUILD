@@ -1,9 +1,11 @@
-# copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
-# copybara:uncomment load("//devtools/copybara/rules:copybara.bzl", "copybara_config_test")
 # Placeholder: load py_library
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
+
+# copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
+# copybara:uncomment load("//devtools/copybara/rules:copybara.bzl", "copybara_config_test")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load(":build_defs.bzl", "if_google", "if_oss", "make_variable", "tfrt_cc_library")
 
 package(
